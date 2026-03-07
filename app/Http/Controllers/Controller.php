@@ -1,0 +1,22 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+
+abstract class Controller
+{
+    use AuthorizesRequests;
+    //
+    /**
+     * Respond with pagination.
+     *
+     * @param \Illuminate\Contracts\Pagination\LengthAwarePaginator $paginator
+     * @param string $resourceClass
+     * @return \Illuminate\Http\JsonResponse
+     */
+    protected function respondWithPagination($paginator, $resourceClass)
+    {
+        return $resourceClass::collection($paginator)->response();
+    }
+}

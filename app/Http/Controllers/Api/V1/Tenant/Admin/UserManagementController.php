@@ -1,0 +1,226 @@
+<?php
+
+namespace App\Http\Controllers\Api\V1\Tenant\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Http\Resources\UserResource;
+use App\Models\Tenant\User;
+use App\Services\ApiResponseService;
+use App\Services\LimitEnforcementService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
+
+class UserManagementController extends Controller
+{
+    private const ADMIN_ROLE_NAMES = ['super_admin', 'admin'];
+
+    /**
+     * List tenant users.
+     */
+    public function index(Request $request)
+    {
+        $query = User::query()->with('roles');
+
+        if ($request->filled('search')) {
+            $search = $request->string('search')->toString();
+            $query->where(function ($builder) use ($search) {
+                $builder->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('role')) {
+            $query->role($request->string('role')->toString());
+        }
+
+        $sort = $request->string('sort', 'name')->toString();
+        $order = strtolower($request->string('order', 'asc')->toString()) === 'desc' ? 'desc' : 'asc';
+        if (!in_array($sort, ['id', 'name', 'email', 'created_at', 'updated_at'], true)) {
+            $sort = 'name';
+        }
+
+        $users = $query
+            ->orderBy($sort, $order)
+            ->paginate(min((int) $request->integer('per_page', 15), 100));
+
+        $users->through(function (User $user) use ($request) {
+            return (new UserResource($user))->toArray($request);
+        });
+
+        return ApiResponseService::paginated($users, 'Usuários recuperados com sucesso');
+    }
+
+    /**
+     * Show a single user.
+     */
+    public function show(int $id)
+    {
+        $user = User::with('roles')->find($id);
+
+        if (!$user) {
+            return ApiResponseService::notFound('Usuário não encontrado');
+        }
+
+        return ApiResponseService::success(
+            new UserResource($user),
+            'Usuário recuperado com sucesso'
+        );
+    }
+
+    /**
+     * Create a tenant user.
+     */
+    public function store(Request $request)
+    {
+        $tenant = tenant();
+        $limitService = new LimitEnforcementService($tenant);
+
+        if (!$limitService->canCreateUser()) {
+            return ApiResponseService::error(
+                'LIMIT_EXCEEDED',
+                'Limite de usuários atingido para o seu plano.',
+                null,
+                403
+            );
+        }
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', Rule::unique('users', 'email')],
+            'password' => ['required', Password::defaults()],
+            'role' => [
+                'required',
+                'string',
+                Rule::exists('roles', 'name')->where('guard_name', 'web'),
+            ],
+        ]);
+
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+        ]);
+
+        $user->syncRoles([$validated['role']]);
+
+        return ApiResponseService::created(
+            new UserResource($user->fresh('roles')),
+            'Usuário criado com sucesso'
+        );
+    }
+
+    /**
+     * Update a tenant user.
+     */
+    public function update(Request $request, int $id)
+    {
+        $user = User::with('roles')->find($id);
+
+        if (!$user) {
+            return ApiResponseService::notFound('Usuário não encontrado');
+        }
+
+        $validated = $request->validate([
+            'name' => ['sometimes', 'string', 'max:255'],
+            'email' => ['sometimes', 'email', Rule::unique('users', 'email')->ignore($id)],
+            'password' => ['sometimes', Password::defaults()],
+            'role' => [
+                'sometimes',
+                'string',
+                Rule::exists('roles', 'name')->where('guard_name', 'web'),
+            ],
+        ]);
+
+        if (array_key_exists('password', $validated)) {
+            $validated['password'] = Hash::make($validated['password']);
+        }
+
+        $user->update(collect($validated)->except(['role'])->all());
+
+        if (array_key_exists('role', $validated)) {
+            $nextRole = (string) $validated['role'];
+
+            if ($user->hasRole('super_admin') && $nextRole !== 'super_admin') {
+                $superAdminCount = User::role('super_admin')->count();
+
+                if ($superAdminCount <= 1) {
+                    return ApiResponseService::error(
+                        'LAST_SUPER_ADMIN',
+                        'Não é possível alterar a role do último super administrador',
+                        null,
+                        400
+                    );
+                }
+            }
+
+            $requestUser = $request->user();
+            $isSelfUpdate = $requestUser && (int) $requestUser->id === (int) $user->id;
+            $isCurrentlyAdminEligible = $user->hasAnyRole(self::ADMIN_ROLE_NAMES);
+            $willRemainAdminEligible = in_array($nextRole, self::ADMIN_ROLE_NAMES, true);
+
+            if ($isSelfUpdate && $isCurrentlyAdminEligible && !$willRemainAdminEligible) {
+                $adminEligibleCount = User::query()
+                    ->whereHas('roles', function ($query) {
+                        $query->whereIn('name', self::ADMIN_ROLE_NAMES)
+                            ->where('guard_name', 'web');
+                    })
+                    ->count();
+
+                if ($adminEligibleCount <= 1) {
+                    return ApiResponseService::error(
+                        'LAST_TENANT_ADMIN',
+                        'Não é possível remover o último usuário com acesso administrativo do tenant.',
+                        null,
+                        400
+                    );
+                }
+            }
+
+            $user->syncRoles([$validated['role']]);
+        }
+
+        return ApiResponseService::success(
+            new UserResource($user->fresh('roles')),
+            'Usuário atualizado com sucesso'
+        );
+    }
+
+    /**
+     * Delete a tenant user.
+     */
+    public function destroy(Request $request, int $id)
+    {
+        $user = User::with('roles')->find($id);
+
+        if (!$user) {
+            return ApiResponseService::notFound('Usuário não encontrado');
+        }
+
+        if ((int) $request->user()?->id === (int) $user->id) {
+            return ApiResponseService::error(
+                'CANNOT_DELETE_SELF',
+                'Você não pode excluir sua própria conta',
+                null,
+                400
+            );
+        }
+
+        if ($user->hasRole('super_admin')) {
+            $superAdminCount = User::role('super_admin')->count();
+            if ($superAdminCount <= 1) {
+                return ApiResponseService::error(
+                    'LAST_SUPER_ADMIN',
+                    'Não é possível excluir o último super administrador',
+                    null,
+                    400
+                );
+            }
+        }
+
+        $user->delete();
+
+        return ApiResponseService::noContent();
+    }
+}

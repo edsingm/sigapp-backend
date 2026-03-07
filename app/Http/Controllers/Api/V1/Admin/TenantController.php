@@ -1,0 +1,189 @@
+<?php
+
+namespace App\Http\Controllers\Api\V1\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
+use App\Models\Central\Tenant;
+use App\Services\ApiResponseService;
+use Illuminate\Http\Request;
+
+class TenantController extends Controller
+{
+    /**
+     * List all tenants with pagination and filters.
+     */
+    public function index(Request $request)
+    {
+        $query = Tenant::with(['plan']);
+
+        if ($request->has('search')) {
+            $search = $request->get('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('slug', 'like', "%{$search}%")
+                    ->orWhere('admin_email', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->has('status') && $request->get('status') !== 'all') {
+            $query->where('status', $request->get('status'));
+        }
+
+        $tenants = $query->latest()->paginate(15);
+
+        return ApiResponseService::success($tenants, 'Lista de tenants recuperada');
+    }
+
+    /**
+     * Get specific tenant details.
+     */
+    public function show($id)
+    {
+        $tenant = Tenant::with(['plan'])->findOrFail($id);
+
+        // Get usage stats
+        $stats = [
+            'users_count' => 0,
+            'terrenos_count' => 0,
+            'storage_used' => 0 // Placeholder
+        ];
+
+        try {
+            // We need to switch to tenant context to get these counts
+            tenancy()->initialize($tenant);
+
+            $stats['users_count'] = \App\Models\Tenant\User::count();
+            $stats['terrenos_count'] = \App\Models\Tenant\Terreno::count();
+        } catch (\Exception $e) {
+            // If database is not created or accessible, we return 0
+            // Log error if needed: \Log::error("Failed to get tenant stats: " . $e->getMessage());
+        } finally {
+            if (tenancy()->initialized) {
+                tenancy()->end();
+            }
+        }
+
+        $data = $tenant->toArray();
+        $data['stats'] = $stats;
+        $data['on_trial'] = $tenant->onTrial();
+        $data['trial_ended'] = $tenant->trialEnded();
+
+        // Financial Data (Stripe/Cashier)
+        $finance = [
+            'has_payment_method' => false,
+            'card_brand' => null,
+            'card_last4' => null,
+            'card_exp_month' => null,
+            'card_exp_year' => null,
+            'invoices' => [],
+            'subscription_status' => $tenant->status, // Default to local status
+            'renews_at' => null,
+            'canceled_at' => null,
+            'error' => null
+        ];
+
+        try {
+            if ($tenant->stripe_id) {
+                $finance['has_payment_method'] = $tenant->hasDefaultPaymentMethod();
+
+                if ($finance['has_payment_method']) {
+                    $paymentMethod = $tenant->defaultPaymentMethod();
+                    if ($paymentMethod) {
+                        $finance['card_brand'] = $paymentMethod->card->brand;
+                        $finance['card_last4'] = $paymentMethod->card->last4;
+                        $finance['card_exp_month'] = $paymentMethod->card->exp_month;
+                        $finance['card_exp_year'] = $paymentMethod->card->exp_year;
+                    }
+                }
+
+                if ($subscription = $tenant->subscription('default')) {
+                    $finance['subscription_status'] = $subscription->stripe_status;
+                    $finance['renews_at'] = $subscription->ends_at ? null : $subscription->asStripeSubscription()->current_period_end; // Timestamp
+                    $finance['canceled_at'] = $subscription->ends_at;
+                }
+
+                // Get last 5 invoices
+                $invoices = $tenant->invoicesIncludingPending(['limit' => 5]);
+                foreach ($invoices as $invoice) {
+                    $finance['invoices'][] = [
+                        'id' => $invoice->id,
+                        'number' => $invoice->number,
+                        'total' => $invoice->total(), // Formatted string
+                        'status' => $invoice->status,
+                        'created_at' => $invoice->created, // Timestamp
+                        'pdf' => $invoice->hosted_invoice_url, // URL to view invoice
+                        'download' => $invoice->invoice_pdf, // URL to download PDF
+                    ];
+                }
+            } else {
+                // Not a Stripe tenant yet (Local Trial or Free)
+                if ($tenant->onTrial()) {
+                    $finance['subscription_status'] = 'trialing';
+                    $finance['renews_at'] = $tenant->trial_ends_at ? $tenant->trial_ends_at->timestamp : null;
+                }
+            }
+
+        } catch (\Exception $e) {
+            // Log stripe error but don't fail the request
+            // \Log::error("Stripe error for tenant {$tenant->id}: " . $e->getMessage());
+            $finance['error'] = 'Erro ao carregar dados do Stripe: ' . $e->getMessage();
+        }
+
+        $data['finance'] = $finance;
+
+        return ApiResponseService::success($data, 'Detalhes do tenant recuperados');
+    }
+
+    /**
+     * Activate a tenant.
+     */
+    public function activate(Request $request, $id)
+    {
+        $tenant = Tenant::findOrFail($id);
+
+        if ($tenant->isActive()) {
+            return ApiResponseService::error('ALREADY_ACTIVE', 'Tenant já está ativo');
+        }
+
+        $tenant->activate();
+
+        // Log action
+        AuditLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'tenant.activated',
+            'description' => "Tenant {$tenant->name} ({$tenant->id}) ativado manualmente.",
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'metadata' => ['tenant_id' => $tenant->id]
+        ]);
+
+        return ApiResponseService::success($tenant, 'Tenant ativado com sucesso');
+    }
+
+    /**
+     * Suspend a tenant.
+     */
+    public function suspend(Request $request, $id)
+    {
+        $tenant = Tenant::findOrFail($id);
+
+        if ($tenant->status === Tenant::STATUS_SUSPENDED) {
+            return ApiResponseService::error('ALREADY_SUSPENDED', 'Tenant já está suspenso');
+        }
+
+        $tenant->suspend();
+
+        // Log action
+        AuditLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'tenant.suspended',
+            'description' => "Tenant {$tenant->name} ({$tenant->id}) suspenso manualmente.",
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'metadata' => ['tenant_id' => $tenant->id]
+        ]);
+
+        return ApiResponseService::success($tenant, 'Tenant suspenso com sucesso');
+    }
+}

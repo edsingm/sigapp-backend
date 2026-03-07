@@ -1,0 +1,42 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "SIGPRO API",
+        "description": "API REST para SaaS multi-tenant SIGPRO",
+        "version": "v1"
+    },
+    "servers": [
+        {
+            "url": "/"
+        }
+    ],
+    "paths": {
+        "/api/v1/auth/login": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Login do usuário (tenant)",
+                "description": "Login user and return token (tenant context).\n\nPOST /api/v1/auth/login",
+                "operationId": "a7997e7c1e3bfed64d4e56de82415931",
+                "responses": {
+                    "200": {
+                        "description": "Sucesso"
+                    },
+                    "401": {
+                        "description": "Não autorizado"
+                    },
+                    "410": {
+                        "description": "Endpoint descontinuado"
+                    }
+                }
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Auth",
+            "description": "Auth"
+        }
+    ]
+}

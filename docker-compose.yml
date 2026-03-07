@@ -1,0 +1,23 @@
+services:
+  back:
+    container_name: sigapp-backend
+    build:
+      context: .
+      dockerfile: .docker/Dockerfile
+    restart: always
+    volumes:
+      - .:/var/www/html:delegated
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_HOST=database
+      - DB_PORT=5432
+      - DB_DATABASE=sigapp
+      - DB_USERNAME=root
+      - DB_PASSWORD=123456
+    networks:
+      - database_sigapp
+
+networks:
+  database_sigapp:
+    external: true

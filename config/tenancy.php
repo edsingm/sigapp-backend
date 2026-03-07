@@ -7,6 +7,22 @@ use Stancl\Tenancy\Resolvers;
 use Stancl\Tenancy\Bootstrappers;
 use Stancl\Tenancy\UUIDGenerator;
 
+$baseCentralDomains = [
+    env('APP_DOMAIN', 'sigapp.com.br'),
+    'localhost',
+    '127.0.0.1',
+];
+
+$extraCentralDomains = array_filter(array_map(
+    static fn (string $domain): string => trim($domain),
+    explode(',', (string) env('CENTRAL_DOMAINS', 'sigapp-backend'))
+), static fn (string $domain): bool => $domain !== '');
+
+$centralDomains = array_values(array_unique(array_merge(
+    $baseCentralDomains,
+    $extraCentralDomains,
+)));
+
 /**
  * Tenancy for Laravel.
  *
@@ -30,11 +46,7 @@ return [
     'tenant_model' => App\Models\Central\Tenant::class,
     'domain_model' => Stancl\Tenancy\Database\Models\Domain::class,
     'id_generator' => UUIDGenerator::class,
-    'central_domains' => [
-        env('APP_DOMAIN', 'sigapp.com.br'),
-        'localhost',
-        '127.0.0.1',
-    ],
+    'central_domains' => $centralDomains,
 
     /**
      * Configuration for the models used by Tenancy.
@@ -75,11 +87,7 @@ return [
          *
          * Only relevant if you're using the domain or subdomain identification middleware.
          */
-        'central_domains' => [
-            env('APP_DOMAIN', 'sigapp.com.br'),
-            'localhost',
-            '127.0.0.1',
-        ],
+        'central_domains' => $centralDomains,
 
         /**
          * The default middleware used for tenant identification.

@@ -16,7 +16,10 @@ return [
 
     'allowed_methods' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 
-    'allowed_origins' => explode(',', env('CORS_ALLOWED_ORIGINS', 'http://localhost:3000')),
+    'allowed_origins' => array_values(array_filter(array_map(
+        static fn (string $origin): string => trim($origin),
+        explode(',', env('CORS_ALLOWED_ORIGINS', 'http://localhost:8080,http://localhost:3000'))
+    ))),
 
     'allowed_origins_patterns' => [
         '/https?:\/\/(.+)?\.sigpro\.com\.br/',

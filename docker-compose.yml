@@ -10,6 +10,7 @@ services:
     ports:
       - "8000:8000"
     environment:
+      - CENTRAL_DOMAINS=localhost,127.0.0.1,sigapp-backend
       - DB_HOST=database
       - DB_PORT=5432
       - DB_DATABASE=sigapp
@@ -17,6 +18,9 @@ services:
       - DB_PASSWORD=123456
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - SANCTUM_STATEFUL_DOMAINS=localhost:8080,localhost:3000,sigapp.test,*.sigapp.test
+      - CORS_ALLOWED_ORIGINS=http://localhost:8080,http://localhost:3000
+      - FRONTEND_URL=http://localhost:8080
     depends_on:
       - redis
     networks:

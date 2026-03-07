@@ -24,7 +24,7 @@ class TenantAppUrl
      */
     private function build(Tenant $tenant, string $path, array $query = []): string
     {
-        $frontendUrl = (string) config('app.frontend_url', config('app.url', 'http://localhost:3000'));
+        $frontendUrl = (string) config('app.frontend_url', config('app.url', 'http://localhost:8080'));
         $parts = parse_url($frontendUrl);
 
         $scheme = is_string($parts['scheme'] ?? null) && $parts['scheme'] !== ''

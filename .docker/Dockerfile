@@ -1,4 +1,4 @@
-FROM php:8.4-fpm
+FROM php:8.4-cli
 
 RUN apt-get update && apt-get install -y \
     git \
@@ -14,8 +14,6 @@ RUN apt-get update && apt-get install -y \
     autoconf \
     libjpeg-dev \
     libfreetype6-dev \
-    nginx \
-    supervisor \
     && rm -rf /var/lib/apt/lists/*
 
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
@@ -37,25 +35,9 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
 
-COPY composer.json composer.lock* ./
-
-RUN composer install \
-    --no-dev \
-    --no-scripts \
-    --optimize-autoloader \
-    --ignore-platform-reqs
-
-COPY . .
-
-RUN chown -R www-data:www-data /var/www \
-    && chmod -R 755 /var/www/storage /var/www/bootstrap/cache
-
-COPY docker/nginx.conf /etc/nginx/sites-available/default
-COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-
-COPY docker/entrypoint.sh /usr/local/bin/docker-entrypoint
+COPY .docker/entrypoint.sh /usr/local/bin/docker-entrypoint
 RUN chmod +x /usr/local/bin/docker-entrypoint
 
-EXPOSE 80
+EXPOSE 8000
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint"]

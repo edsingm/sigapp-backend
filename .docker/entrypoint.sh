@@ -6,7 +6,6 @@ if [ ! -f vendor/autoload.php ]; then
 fi
 
 php artisan optimize:clear
-php artisan optimize
 php artisan storage:link
 
 exec php artisan serve --host=0.0.0.0 --port=8000

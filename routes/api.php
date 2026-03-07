@@ -154,15 +154,15 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
                 Route::middleware(['auth:sanctum', 'user.admin', 'throttle:api-auth'])->group(function () {
 
                     // Admin Routes
-                    Route::prefix('admin')->group(function () {
-                        Route::get('/dashboard', [\App\Http\Controllers\Api\V1\Admin\DashboardController::class, 'index']);
+                    Route::prefix('admin')->name('admin.')->group(function () {
+                        Route::get('/dashboard', [\App\Http\Controllers\Api\V1\Admin\DashboardController::class, 'index'])->name('dashboard');
                         Route::apiResource('posts', \App\Http\Controllers\Api\V1\Admin\PostController::class);
 
                         // Tenants
-                        Route::get('/tenants', [\App\Http\Controllers\Api\V1\Admin\TenantController::class, 'index']);
-                        Route::get('/tenants/{id}', [\App\Http\Controllers\Api\V1\Admin\TenantController::class, 'show']);
-                        Route::post('/tenants/{id}/activate', [\App\Http\Controllers\Api\V1\Admin\TenantController::class, 'activate']);
-                        Route::post('/tenants/{id}/suspend', [\App\Http\Controllers\Api\V1\Admin\TenantController::class, 'suspend']);
+                        Route::get('/tenants', [\App\Http\Controllers\Api\V1\Admin\TenantController::class, 'index'])->name('tenants.index');
+                        Route::get('/tenants/{id}', [\App\Http\Controllers\Api\V1\Admin\TenantController::class, 'show'])->name('tenants.show');
+                        Route::post('/tenants/{id}/activate', [\App\Http\Controllers\Api\V1\Admin\TenantController::class, 'activate'])->name('tenants.activate');
+                        Route::post('/tenants/{id}/suspend', [\App\Http\Controllers\Api\V1\Admin\TenantController::class, 'suspend'])->name('tenants.suspend');
 
                         // Users
                         Route::apiResource('users', \App\Http\Controllers\Api\V1\Admin\UserController::class);

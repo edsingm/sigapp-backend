@@ -1,9 +1,9 @@
 {
-    "_comment": "ADMIN — acesso total (manager) em todos os módulos.",
-    "role": "ADMIN",
+    "_comment": "DIRECTOR — manager na maioria dos módulos, viewer em admin.",
+    "role": "DIRECTOR",
     "permissions": {
-        "admin": "manager",
-        "configurations": "manager",
+        "admin": null,
+        "configurations": null,
         "prospection": {
             "terrains": "manager",
             "maps": "manager"

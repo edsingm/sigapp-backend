@@ -2,7 +2,8 @@
 
 namespace Database\Seeders\Tenant;
 
-use App\Services\AclPermissionCatalogService;
+use App\Enums\Common\ModulesEnum;
+use App\Enums\Common\RolesEnum;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -10,109 +11,127 @@ use Spatie\Permission\Models\Role;
 class RolePermissionSeeder extends Seeder
 {
     /**
-     * Run the database seeds.
+     * Hierarquia cumulativa: manager inclui editor e viewer, editor inclui viewer.
+     * Assim `can('prospection.terrains.editor')` retorna true para quem tem manager.
      */
+    private const LEVEL_MAP = [
+        'viewer'  => ['viewer'],
+        'editor'  => ['viewer', 'editor'],
+        'manager' => ['viewer', 'editor', 'manager'],
+    ];
+
     public function run(): void
     {
-        // Get current tenant
-        $tenant = tenancy()->tenant;
-        
-        // Get Plan Slug for conditional seeding from central database context
-        $planSlug = tenancy()->central(function () use ($tenant) {
-            return $tenant->plan?->slug ?? 'basico';
-        });
+        // 1. Sincroniza permissions
+        $allPermissions = $this->generateAllPermissions();
 
-        $roles = [
-            'super_admin' => 'Administrador com acesso total',
-            'admin' => 'Administrador',
-            'manager' => 'Gerente',
-            'user' => 'Usuário padrão',
-        ];
-
-        // Legacy permissions still used by older code paths.
-        $legacyPermissions = [
-            'terrenos.view',
-            'terrenos.create',
-            'terrenos.edit',
-            'terrenos.delete',
-        ];
-
-        // Add Manager/Admin permissions for Master and Pro
-        if (in_array($planSlug, ['master', 'pro'])) {
-            $legacyPermissions = array_merge($legacyPermissions, [
-                'users.view',
-                'users.create',
-                'users.edit',
-                'users.delete',
-                'viability.view',
-                'viability.create',
-                'viability.edit',
-                'viability.delete',
-            ]);
+        foreach ($allPermissions as $name) {
+            Permission::firstOrCreate(['name' => $name, 'guard_name' => 'web']);
         }
 
-        // Pro specific features
-        if ($planSlug === 'pro') {
-            $permissionsArr = [
-                'reports.view',
-                'reports.export',
-                'settings.view',
-                'settings.edit',
-            ];
-            $legacyPermissions = array_merge($legacyPermissions, $permissionsArr);
+        Permission::whereNotIn('name', $allPermissions)
+            ->whereDoesntHave('roles')
+            ->whereDoesntHave('users')
+            ->delete();
+
+        $this->command?->info('Permissions sincronizadas: ' . count($allPermissions));
+
+        // 2. Sincroniza roles
+        $enumRoles = collect(RolesEnum::cases())->map(fn ($r) => $r->value);
+
+        foreach (RolesEnum::cases() as $roleEnum) {
+            Role::firstOrCreate(['name' => $roleEnum->value, 'guard_name' => 'web']);
         }
 
-        // Policy-based permissions used by current controllers/policies.
-        $policyPermissions = app(AclPermissionCatalogService::class)->allSystemPermissions();
+        Role::whereNotIn('name', $enumRoles->all())
+            ->whereDoesntHave('users')
+            ->delete();
 
-        $permissions = array_values(array_unique(array_merge($legacyPermissions, $policyPermissions)));
+        // 3. Aplica template de permissões em cada role
+        foreach (RolesEnum::cases() as $roleEnum) {
+            $templatePath = database_path('rbacTemplates/' . strtolower($roleEnum->value) . '.json');
 
-        // Create permissions
-        foreach ($permissions as $permission) {
-            Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
-        }
-
-        // Create roles with permissions
-        foreach ($roles as $roleName => $description) {
-            $role = Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
-
-            if ($roleName === 'super_admin' || $roleName === 'admin') {
-                $role->syncPermissions($permissions);
+            if (!file_exists($templatePath)) {
+                $this->command?->warn("Template não encontrado para role {$roleEnum->value}, pulando.");
                 continue;
             }
 
-            if ($roleName === 'manager') {
-                $role->syncPermissions([
-                    'view any terrenos', 'view terrenos', 'create terrenos', 'update terrenos', 'export terrenos',
-                    'view any documentos', 'view documentos', 'create documentos', 'update documentos',
-                    'view any produtos', 'view produtos', 'create produtos', 'update produtos',
-                    'view any proprietarios', 'view proprietarios', 'create proprietarios', 'update proprietarios',
-                    'view any regionais', 'view regionais',
-                    'view any corretores externos', 'view corretores externos',
-                    'view any viabilidades', 'view viabilidades', 'create viabilidades', 'update viabilidades',
-                    'request approval viabilidades', 'approve viabilidades',
-                    'duplicate viabilidades', 'compare viabilidades', 'generate dre viabilidades', 'recalculate viabilidades', 'export viabilidades',
-                    'view any projetos', 'view projetos', 'create projetos', 'update projetos', 'cancel projetos', 'mark ready projetos',
-                    'view any terreno produtos', 'view terreno produtos', 'create terreno produtos', 'update terreno produtos',
-                    'view any terreno status', 'view terreno status',
-                ]);
-                continue;
-            }
+            $template = json_decode(file_get_contents($templatePath), true);
+            $role     = Role::where('name', $roleEnum->value)->where('guard_name', 'web')->first();
 
-            if ($roleName === 'user') {
-                $role->syncPermissions([
-                    'view any terrenos', 'view terrenos',
-                    'view any documentos', 'view documentos',
-                    'view any produtos', 'view produtos',
-                    'view any proprietarios', 'view proprietarios',
-                    'view any regionais', 'view regionais',
-                    'view any corretores externos', 'view corretores externos',
-                    'view any viabilidades', 'view viabilidades', 'compare viabilidades',
-                    'view any projetos', 'view projetos',
-                    'view any terreno produtos', 'view terreno produtos',
-                    'view any terreno status', 'view terreno status',
-                ]);
-            }
+            $permissions = $this->resolvePermissions($template['permissions']);
+            $role->syncPermissions($permissions);
+
+            $this->command?->info("Role {$roleEnum->value}: " . count($permissions) . ' permissões atribuídas.');
         }
     }
+
+    /**
+     * Gera todos os nomes de permissão possíveis a partir do ModulesEnum.
+     * Formato: module.resource.level (com resource) ou module.level (sem resource).
+     */
+    private function generateAllPermissions(): array
+    {
+        $levels      = array_keys(self::LEVEL_MAP);
+        $permissions = [];
+
+        foreach (ModulesEnum::cases() as $module) {
+            if ($module->hasResources()) {
+                foreach ($module->resources() as $resource) {
+                    foreach ($levels as $level) {
+                        $permissions[] = "{$module->value}.{$resource}.{$level}";
+                    }
+                }
+            } else {
+                foreach ($levels as $level) {
+                    $permissions[] = "{$module->value}.{$level}";
+                }
+            }
+        }
+
+        return $permissions;
+    }
+
+    /**
+     * Converte o mapa do template em nomes de permissão cumulativos.
+     * Ex: terrains => manager  →  [prospection.terrains.viewer, prospection.terrains.editor, prospection.terrains.manager]
+     */
+    private function resolvePermissions(array $modulePermissions): array
+    {
+        $permissions = [];
+
+        foreach ($modulePermissions as $moduleKey => $value) {
+            $module = ModulesEnum::tryFrom($moduleKey);
+
+            if (!$module) {
+                $this->command?->warn("Módulo '{$moduleKey}' não existe no ModulesEnum, ignorado.");
+                continue;
+            }
+
+            if ($value === null) {
+                // null = módulo não visível para este papel, nenhuma permissão atribuída
+                continue;
+            }
+
+            if (is_array($value)) {
+                // Módulo com resources: ex prospection => { terrains: manager, maps: editor }
+                foreach ($value as $resource => $level) {
+                    if ($level === null) {
+                        continue;
+                    }
+                    foreach (self::LEVEL_MAP[$level] as $permLevel) {
+                        $permissions[] = "{$moduleKey}.{$resource}.{$permLevel}";
+                    }
+                }
+            } else {
+                // Módulo sem resources: ex viability => manager
+                foreach (self::LEVEL_MAP[$value] as $permLevel) {
+                    $permissions[] = "{$moduleKey}.{$permLevel}";
+                }
+            }
+        }
+
+        return $permissions;
+    }
 }
+

@@ -1,6 +1,6 @@
 {
-    "_comment": "MANAGER — manager em operações, editor em dados e projetos, viewer em admin e configurações.",
-    "role": "MANAGER",
+    "_comment": "ANALYST — manager em viabilidade/dados/relatórios, viewer no restante.",
+    "role": "ANALYST",
     "permissions": {
         "admin": null,
         "configurations": null,
@@ -10,10 +10,10 @@
         },
         "brokers": "manager",
         "data": "manager",
-        "dashboard": "manager",
+        "dashboard": "viewer",
         "legal": "manager",
-        "projects": "manager",
-        "reports": "manager",
+        "projects": "viewer",
+        "reports": "viewer",
         "viability": "manager"
     }
 }

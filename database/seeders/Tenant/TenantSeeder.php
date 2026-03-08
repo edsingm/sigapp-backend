@@ -27,12 +27,15 @@ class TenantSeeder extends Seeder
         $this->call(RolePermissionSeeder::class);
         $this->call(AdminUserSeeder::class);
         $this->call(AreaStatusSeeder::class);
-        $this->call(ProdutoSeeder::class);
-        $this->call(CorretorExternoSeeder::class);
-        $this->call(RegionalSeeder::class);
-        $this->call(TerrenoSeeder::class);
-        $this->call(TerrenoProdutoSeeder::class);
-        $this->call(LegalizacaoPermissionSeeder::class);
+
+        //TODO: remover em prod
+        if(!app()->environment('prod')) {
+            $this->call(ProdutoSeeder::class);
+            $this->call(CorretorExternoSeeder::class);
+            $this->call(RegionalSeeder::class);
+            $this->call(TerrenoSeeder::class);
+            $this->call(TerrenoProdutoSeeder::class);
+        }
 
     }
 }

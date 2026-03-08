@@ -6,7 +6,6 @@ use App\Models\Tenant\Regional;
 use App\Models\Tenant\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 
 class RegionalSeeder extends Seeder
 {
@@ -15,8 +14,13 @@ class RegionalSeeder extends Seeder
      */
     public function run(): void
     {
+        $adminId = User::first()?->id;
 
-        // Criar regionais específicas para principais estados
+        if (!$adminId) {
+            $this->command?->warn('RegionalSeeder ignorado: nenhum usuário encontrado no tenant.');
+            return;
+        }
+
         $regionaisData = [
             [
                 'nome' => 'Regional Matriz',
@@ -27,9 +31,9 @@ class RegionalSeeder extends Seeder
                 'telefone' => '(11) 3000-0000',
                 'celular' => '(11) 99000-0000',
                 'observacoes' => 'Regional Matriz',
-                'responsavel_id' => 1,
-                'created_by' => 1,
-                'updated_by' => 1,
+                'responsavel_id' => $adminId,
+                'created_by' => $adminId,
+                'updated_by' => $adminId,
             ],
         ];
 

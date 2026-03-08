@@ -2,6 +2,7 @@
 
 namespace Database\Seeders\Tenant;
 
+use App\Enums\Common\RolesEnum;
 use App\Models\Tenant\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -24,7 +25,7 @@ class AdminUserSeeder extends Seeder
             Log::error('Admin email ausente ao criar usuário do tenant', [
                 'tenant_id' => $tenant->id,
             ]);
-            // We don't throw exception here to avoid breaking the entire seeding process if something is weird, 
+            // We don't throw exception here to avoid breaking the entire seeding process if something is weird,
             // but in the original job it did throw. Let's keep it safe but log error.
             return;
         }
@@ -43,7 +44,7 @@ class AdminUserSeeder extends Seeder
 
             if (Hash::needsRehash($adminPassword)) {
                 $adminPassword = Hash::make($adminPassword);
-                
+
                 // Update central tenant password if needed (using central context)
                 tenancy()->central(function () use ($tenant, $adminPassword) {
                     /** @var \App\Models\Central\Tenant $tenant */
@@ -59,9 +60,7 @@ class AdminUserSeeder extends Seeder
             ]);
         }
 
-        if (!$user->hasRole('super_admin')) {
-            $user->assignRole('super_admin');
-        }
+        $user->assignRole(RolesEnum::ADMIN);
 
         Log::info('Usuário admin criado/verificado via Seeder', [
             'tenant_id' => $tenant->id,

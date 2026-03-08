@@ -2,8 +2,8 @@
 
 namespace App\Jobs;
 
-use App\Models\AuditLog;
 use App\Models\Central\Tenant;
+use App\Traits\LogsAudit;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Mail;
 
 class CreateFullTenantJob implements ShouldQueue, ShouldBeUnique
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, LogsAudit;
 
     /**
      * Number of times the job may be attempted.
@@ -61,35 +61,16 @@ class CreateFullTenantJob implements ShouldQueue, ShouldBeUnique
             return;
         }
 
-        Log::info('CreateFullTenantJob iniciado', ['tenant_id' => $this->tenant->id]);
-
         // Audit: creation started
-        try {
-            AuditLog::create([
-                'action' => 'tenant.creation_started',
-                'description' => "Job de criação iniciado para tenant '{$this->tenant->name}'.",
-                'metadata' => [
-                    'tenant_id' => $this->tenant->id,
-                    'tenant_slug' => $this->tenant->slug,
-                    'tenant_name' => $this->tenant->name,
-                    'plan_id' => $this->tenant->plan_id,
-                    'admin_email' => $this->tenant->admin_email,
-                ],
-            ]);
-        } catch (\Exception $e) {
-            Log::warning('Falha ao criar audit log de creation_started', ['error' => $e->getMessage()]);
-        }
+        $this->auditTrail('tenant.creation_started', "Job de criação iniciado para tenant '{$this->tenant->name}'.");
 
         try {
-            // Step 1: Create tenant database
             $this->createDatabase();
 
-            // Step 2: Run migrations
             $this->runMigrations();
 
             $this->restoreCentralConnection($centralConnection);
 
-            // Step 3: Seed tenant data
             $this->seedTenantData();
 
             $this->restoreCentralConnection($centralConnection);
@@ -112,26 +93,11 @@ class CreateFullTenantJob implements ShouldQueue, ShouldBeUnique
             // Step 8: Cache tenant info
             $this->cacheTenantInfo();
 
-            Log::info('CreateFullTenantJob concluído com sucesso', ['tenant_id' => $this->tenant->id]);
-
             // Audit: creation completed
-            try {
-                $this->restoreCentralConnection($centralConnection);
-                AuditLog::create([
-                    'action' => 'tenant.creation_completed',
-                    'description' => "Tenant '{$this->tenant->name}' criado e ativado com sucesso.",
-                    'metadata' => [
-                        'tenant_id' => $this->tenant->id,
-                        'tenant_slug' => $this->tenant->slug,
-                        'tenant_name' => $this->tenant->name,
-                        'plan_id' => $this->tenant->plan_id,
-                        'admin_email' => $this->tenant->admin_email,
-                        'status' => 'active',
-                    ],
-                ]);
-            } catch (\Exception $e) {
-                Log::warning('Falha ao criar audit log de creation_completed', ['error' => $e->getMessage()]);
-            }
+            $this->restoreCentralConnection($centralConnection);
+            $this->auditTrail('tenant.creation_completed', "Tenant '{$this->tenant->name}' criado e ativado com sucesso.", [
+                'status'      => 'active',
+            ]);
 
         } catch (\Exception $e) {
             Log::error('CreateFullTenantJob falhou', [
@@ -141,24 +107,13 @@ class CreateFullTenantJob implements ShouldQueue, ShouldBeUnique
             ]);
 
             // Audit: creation failed
-            try {
-                $this->restoreCentralConnection($centralConnection);
-                AuditLog::create([
-                    'action' => 'tenant.creation_failed',
-                    'description' => 'Job de criação falhou: ' . \Illuminate\Support\Str::limit($e->getMessage(), 200),
-                    'metadata' => [
-                        'tenant_id' => $this->tenant->id,
-                        'tenant_slug' => $this->tenant->slug,
-                        'tenant_name' => $this->tenant->name,
-                        'error' => $e->getMessage(),
-                        'error_class' => get_class($e),
-                        'attempt' => $this->attempts(),
-                        'max_tries' => $this->tries,
-                    ],
-                ]);
-            } catch (\Exception $auditEx) {
-                Log::warning('Falha ao criar audit log de creation_failed', ['error' => $auditEx->getMessage()]);
-            }
+            $this->restoreCentralConnection($centralConnection);
+            $this->auditTrail('tenant.creation_failed', 'Job de criação falhou: ' . \Illuminate\Support\Str::limit($e->getMessage(), 200), [
+                'error'       => $e->getMessage(),
+                'error_class' => get_class($e),
+                'attempt'     => $this->attempts(),
+                'max_tries'   => $this->tries,
+            ]);
 
             throw $e;
         }
@@ -178,17 +133,14 @@ class CreateFullTenantJob implements ShouldQueue, ShouldBeUnique
         $databaseName = $this->tenant->database()->getName();
         $manager = $this->tenant->database()->manager();
 
-        Log::info('Garantindo schema/banco do tenant', ['database' => $databaseName]);
 
         if ($manager->databaseExists($databaseName)) {
-            Log::info('Schema/banco do tenant ja existe', ['database' => $databaseName]);
+            Log::warning('Schema/banco do tenant ja existe', ['database' => $databaseName]);
 
             return;
         }
 
         $manager->createDatabase($this->tenant);
-
-        Log::info('Schema/banco do tenant criado', ['database' => $databaseName]);
     }
 
     /**
@@ -196,12 +148,7 @@ class CreateFullTenantJob implements ShouldQueue, ShouldBeUnique
      */
     protected function runMigrations(): void
     {
-        Log::info('Executando migrations do tenant', ['tenant_id' => $this->tenant->id]);
-
         $this->tenant->run(function () {
-
-
-
             // Manual fix: ensure tenant connection exists using Tenancy's generated config.
             if (!config('database.connections.tenant')) {
                 Log::warning('Tenant connection config missing. Manually configuring.');
@@ -215,8 +162,6 @@ class CreateFullTenantJob implements ShouldQueue, ShouldBeUnique
                 '--force' => true,
             ]);
         });
-
-        Log::info('Migrations executadas', ['tenant_id' => $this->tenant->id]);
     }
 
     /**
@@ -224,15 +169,10 @@ class CreateFullTenantJob implements ShouldQueue, ShouldBeUnique
      */
     protected function seedTenantData(): void
     {
-        Log::info('Executando seeder do tenant', ['tenant_id' => $this->tenant->id]);
-
         $this->tenant->run(function () {
-            // Run TenantSeeder (includes Roles, Permissions, AdminUser and others)
             $seeder = new \Database\Seeders\Tenant\TenantSeeder();
             $seeder->run();
         });
-
-        Log::info('Seeder executado', ['tenant_id' => $this->tenant->id]);
     }
 
     protected function getCentralConnectionName(): string
@@ -251,8 +191,6 @@ class CreateFullTenantJob implements ShouldQueue, ShouldBeUnique
         DB::setDefaultConnection($connection);
         $this->tenant->setConnection($connection);
     }
-
-
 
     /**
      * Send welcome email to admin.
@@ -280,8 +218,6 @@ class CreateFullTenantJob implements ShouldQueue, ShouldBeUnique
             'plan_id' => $this->tenant->plan_id,
             'status' => $this->tenant->status,
         ], now()->addHours(24));
-
-        Log::info('Tenant cacheado', ['tenant_id' => $this->tenant->id]);
     }
 
     /**
@@ -295,22 +231,23 @@ class CreateFullTenantJob implements ShouldQueue, ShouldBeUnique
         ]);
 
         // Audit: permanent failure
-        try {
-            AuditLog::create([
-                'action' => 'tenant.creation_failed',
-                'description' => "Job de criação falhou definitivamente para tenant '{$this->tenant->name}' após {$this->tries} tentativas.",
-                'metadata' => [
-                    'tenant_id' => $this->tenant->id,
-                    'tenant_slug' => $this->tenant->slug,
-                    'tenant_name' => $this->tenant->name,
-                    'error' => $exception->getMessage(),
-                    'error_class' => get_class($exception),
-                    'max_tries' => $this->tries,
-                    'permanent_failure' => true,
-                ],
-            ]);
-        } catch (\Exception $e) {
-            Log::warning('Falha ao criar audit log de falha permanente', ['error' => $e->getMessage()]);
-        }
+        $this->auditTrail('tenant.creation_failed', "Job de criação falhou definitivamente para tenant '{$this->tenant->name}' após {$this->tries} tentativas.",[
+            'error'             => $exception->getMessage() ?? '',
+            'error_class'       => get_class($exception) ?? '',
+            'max_tries'         => $this->tries ?? 0,
+            'permanent_failure' => true,
+        ]);
+    }
+
+    private function auditTrail(string $action, string $description, array $metadata = []): void
+    {
+        $this->audit($action, $description, array_merge([
+            'tenant_id'         => $this->tenant->id ?? null,
+            'tenant_slug'       => $this->tenant->slug ?? null,
+            'tenant_name'       => $this->tenant->name ?? null,
+            'plan_id'           => $this->tenant->plan_id ?? null,
+            'admin_email'       => $this->tenant->admin_email ?? null
+        ], $metadata));
+
     }
 }

@@ -53,10 +53,9 @@ class SyncTenantAclCommand extends Command
                 $result = $tenant->run(fn () => $syncService->syncForCurrentTenant());
 
                 $this->line(sprintf(
-                    '   roles_synced=%d templates=%d permissions_created=%d',
+                    '   roles_synced=%d permissions_synced=%d',
                     (int) ($result['roles_synced'] ?? 0),
-                    (int) ($result['templates_applied'] ?? 0),
-                    (int) ($result['permissions_created'] ?? 0)
+                    (int) ($result['permissions_synced'] ?? 0)
                 ));
             } catch (\Throwable $e) {
                 $this->error("   Falha: {$e->getMessage()}");

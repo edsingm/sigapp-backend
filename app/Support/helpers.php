@@ -37,17 +37,14 @@ if (!function_exists('ddApi')) {
     {
         $output = count($vars) === 1 ? $vars[0] : $vars;
 
-        // Limpa qualquer output buffer ativo
-        while (ob_get_level()) {
-            ob_end_clean();
-        }
-
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode(
+        $response = response()->json(
             ['__dd' => true, 'data' => $output],
+            200,
+            ['Content-Type' => 'application/json; charset=utf-8'],
             JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
         );
 
-        exit(1);
+        $response->send();
+        exit(0);
     }
 }

@@ -8,8 +8,6 @@ use App\Http\Resources\UserResource;
 use App\Models\Tenant\User;
 use App\Services\ApiResponseService;
 use App\Services\LimitEnforcementService;
-use App\Services\ModuleAccessService;
-use App\Services\RbacTemplateService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -108,9 +106,6 @@ class UserManagementController extends Controller
         ]);
 
         $user->syncRoles([$validated['role']]);
-
-        // Apply default permission template for the assigned role
-        app(RbacTemplateService::class)->applyTemplateToUser($user, $validated['role']);
 
         return ApiResponseService::created(
             new UserResource($user->fresh(['roles', 'permissions'])),
@@ -233,7 +228,6 @@ class UserManagementController extends Controller
 
     public function updateModulePermissions(
         UpdateUserModulePermissionsRequest $request,
-        ModuleAccessService $moduleAccess,
         int $id
     ) {
         $user = User::with('roles')->find($id);
@@ -242,28 +236,14 @@ class UserManagementController extends Controller
             return ApiResponseService::notFound('Usuário não encontrado');
         }
 
-        $permissionsMap = (array) $request->input('permissions', []);
+        $permissionsMap  = (array) $request->input('permissions', []);
+        $flatPermissions = $this->resolvePermissionsFromMap($permissionsMap);
 
-        $enumMap = collect($permissionsMap)
-            ->map(fn ($v) => is_array($v)
-                ? collect($v)
-                    ->map(fn ($l) => $l !== null ? \App\Enums\AccessLevel::from($l) : null)
-                    ->filter()
-                    ->all()
-                : ($v !== null ? \App\Enums\AccessLevel::from($v) : null)
-            )
-            ->filter()
-            ->all();
-
-        $flatPermissions = $moduleAccess->flatPermissionsFromMap($enumMap);
-
-        // Determine the set of all permissions that belong to the modules present in request
-        $moduleValues = array_keys($permissionsMap);
-        $toRevoke = Permission::query()
-            ->where('guard_name', 'web')
-            ->get()
-            ->filter(fn (Permission $p) => collect($moduleValues)
-                ->contains(fn ($m) => str_ends_with($p->name, ' ' . str_replace('_', ' ', $m))))
+        // Revoke existing direct permissions for the requested modules only
+        $moduleKeys = array_keys($permissionsMap);
+        $toRevoke   = $user->getDirectPermissions()
+            ->filter(fn (Permission $p) => collect($moduleKeys)
+                ->contains(fn (string $m) => str_starts_with($p->name, $m . '.')))
             ->pluck('name')
             ->all();
 
@@ -279,5 +259,49 @@ class UserManagementController extends Controller
             new UserResource($user->fresh(['roles', 'permissions'])),
             'Permissões atualizadas com sucesso'
         );
+    }
+
+    /**
+     * Converts a module permissions map to flat dot-notation permission names.
+     * Hierarchy is cumulative: manager includes editor and viewer.
+     *
+     * @param  array<string, string|array<string, string>|null> $modulePermissions
+     * @return array<int, string>
+     */
+    private function resolvePermissionsFromMap(array $modulePermissions): array
+    {
+        $levelMap = [
+            'viewer'  => ['viewer'],
+            'editor'  => ['viewer', 'editor'],
+            'manager' => ['viewer', 'editor', 'manager'],
+        ];
+
+        $permissions = [];
+
+        foreach ($modulePermissions as $moduleKey => $value) {
+            if ($value === null) {
+                continue;
+            }
+
+            if (is_array($value)) {
+                foreach ($value as $resource => $level) {
+                    if ($level === null || !isset($levelMap[$level])) {
+                        continue;
+                    }
+                    foreach ($levelMap[$level] as $permLevel) {
+                        $permissions[] = "{$moduleKey}.{$resource}.{$permLevel}";
+                    }
+                }
+            } else {
+                if (!isset($levelMap[$value])) {
+                    continue;
+                }
+                foreach ($levelMap[$value] as $permLevel) {
+                    $permissions[] = "{$moduleKey}.{$permLevel}";
+                }
+            }
+        }
+
+        return $permissions;
     }
 }

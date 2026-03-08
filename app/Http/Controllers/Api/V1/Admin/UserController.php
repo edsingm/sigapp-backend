@@ -3,15 +3,16 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\AuditLog;
 use App\Models\User;
 use App\Services\ApiResponseService;
+use App\Traits\LogsAudit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
+    use LogsAudit;
     /**
      * List all users (admins).
      */
@@ -43,13 +44,8 @@ class UserController extends Controller
             'is_admin' => $validated['is_admin'] ?? false,
         ]);
 
-        AuditLog::create([
-            'user_id' => $request->user()->id,
-            'action' => 'user.created',
-            'description' => "Usuário {$user->name} ({$user->id}) criado.",
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-            'metadata' => ['created_user_id' => $user->id]
+        $this->audit('user.created', "Usuário {$user->name} ({$user->id}) criado.", [
+            'created_user_id' => $user->id,
         ]);
 
         return ApiResponseService::success($user, 'Usuário criado com sucesso', 201);
@@ -75,13 +71,8 @@ class UserController extends Controller
 
         $user->update($validated);
 
-        AuditLog::create([
-            'user_id' => $request->user()->id,
-            'action' => 'user.updated',
-            'description' => "Usuário {$user->name} ({$user->id}) atualizado.",
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-            'metadata' => ['updated_user_id' => $user->id]
+        $this->audit('user.updated', "Usuário {$user->name} ({$user->id}) atualizado.", [
+            'updated_user_id' => $user->id,
         ]);
 
         return ApiResponseService::success($user, 'Usuário atualizado com sucesso');
@@ -100,13 +91,8 @@ class UserController extends Controller
 
         $user->delete();
 
-        AuditLog::create([
-            'user_id' => $request->user()->id,
-            'action' => 'user.deleted',
-            'description' => "Usuário {$user->name} ({$user->id}) excluído.",
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-            'metadata' => ['deleted_user_id' => $user->id]
+        $this->audit('user.deleted', "Usuário {$user->name} ({$user->id}) excluído.", [
+            'deleted_user_id' => $user->id,
         ]);
 
         return ApiResponseService::success(null, 'Usuário excluído com sucesso');

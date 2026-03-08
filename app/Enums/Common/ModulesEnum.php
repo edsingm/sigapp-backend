@@ -4,34 +4,31 @@ namespace App\Enums\Common;
 
 enum ModulesEnum: string
 {
-    case TERRENOS            = 'terrenos';
-    case DOCUMENTOS          = 'documentos';
-    case PRODUTOS            = 'produtos';
-    case PROPRIETARIOS       = 'proprietarios';
-    case REGIONAIS           = 'regionais';
-    case CORRETORES_EXTERNOS = 'corretores_externos';
-    case VIABILIDADES        = 'viabilidades';
-    case PROJETOS            = 'projetos';
-    case TERRENO_PRODUTOS    = 'terreno_produtos';
-    case TERRENO_STATUS      = 'terreno_status';
-    case LEGALIZACOES        = 'legalizacoes';
-    case LEGALIZACAO_ETAPAS  = 'legalizacao_etapas';
+    case ADMIN = 'admin';
+    case CONFIGURATIONS = 'configurations';
+    case PROSPECTION = 'prospection';
+    case BROKERS = 'brokers';
+    case DATA = 'data';
+    case DASHBOARD = 'dashboard';
+    case LEGAL = 'legal';
+    case PROJECTS = 'projects';
+    case REPORTS = 'reports';
+    case VIABILITY = 'viability';
+
 
     public function label(): string
     {
         return match ($this) {
-            self::TERRENOS            => 'Terrenos',
-            self::DOCUMENTOS          => 'Documentos',
-            self::PRODUTOS            => 'Produtos',
-            self::PROPRIETARIOS       => 'Proprietários',
-            self::REGIONAIS           => 'Regionais',
-            self::CORRETORES_EXTERNOS => 'Corretores Externos',
-            self::VIABILIDADES        => 'Viabilidades',
-            self::PROJETOS            => 'Projetos',
-            self::TERRENO_PRODUTOS    => 'Terreno Produtos',
-            self::TERRENO_STATUS      => 'Terreno Status',
-            self::LEGALIZACOES        => 'Legalizações',
-            self::LEGALIZACAO_ETAPAS  => 'Etapas de Legalização',
+            self::ADMIN => 'Administração',
+            self::CONFIGURATIONS => 'Configurações',
+            self::PROSPECTION => 'Prospecção',
+            self::BROKERS => 'Corretores',
+            self::DATA => 'Dados',
+            self::DASHBOARD => 'Dashboard',
+            self::LEGAL => 'Legalizações',
+            self::PROJECTS => 'Projetos',
+            self::REPORTS => 'Relatórios',
+            self::VIABILITY => 'Viabilidade'
         };
     }
 
@@ -39,42 +36,21 @@ enum ModulesEnum: string
      * Sub-modules (resources) within this module.
      * Empty array means the module has no sub-modules and is accessed at the module level.
      *
-     * To add sub-modules to a module, declare them here.
-     * The AclPermissionCatalogService will automatically generate permissions for them.
+     * To add resources to a module, declare them here. The permission seeder will
+     * automatically generate permissions for them in {module}.{resource}.{level} format.
      *
      * @return array<int, string>
      */
-    public function subModules(): array
+    public function resources(): array
     {
         return match ($this) {
-            self::TERRENOS => ['predio', 'casa', 'comercial'],
+            self::PROSPECTION => ['terrains','maps'],
             default        => [],
         };
     }
 
-    public function hasSubModules(): bool
+    public function hasResources(): bool
     {
-        return !empty($this->subModules());
-    }
-
-    /**
-     * Extra actions exclusive to the MANAGER level for this module.
-     * These are generated as module-level permissions (not sub-module level).
-     *
-     * Base actions (view_any, view, create, update, delete, restore) are always generated
-     * automatically by AclPermissionCatalogService and do not need to be listed here.
-     *
-     * @return array<int, string>
-     */
-    public function extraActions(): array
-    {
-        return match ($this) {
-            self::TERRENOS           => ['export'],
-            self::VIABILIDADES       => ['request_approval', 'approve', 'activate', 'duplicate', 'compare', 'generate_dre', 'recalculate', 'export'],
-            self::PROJETOS           => ['cancel', 'mark_ready'],
-            self::LEGALIZACOES       => ['sync_gantt', 'recalculate_progress'],
-            self::LEGALIZACAO_ETAPAS => ['reorder'],
-            default                  => [],
-        };
+        return !empty($this->resources());
     }
 }

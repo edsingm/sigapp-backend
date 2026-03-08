@@ -2,7 +2,7 @@
 
 namespace App\Http\Resources;
 
-use App\Services\ModuleAccessService;
+use App\Enums\Common\ModulesEnum;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -21,12 +21,34 @@ class CentralUserResource extends JsonResource
             'email_verified_at'  => $this->email_verified_at?->toIso8601String(),
             'role'               => $this->is_admin ? 'sigapp' : null,
             'roles'              => $this->is_admin ? ['sigapp'] : [],
-            'permissions'        => $this->is_admin ? ['*'] : [],
-            'module_permissions' => $this->is_admin
-                ? app(ModuleAccessService::class)->allModulesAsManager()
-                : [],
+            'permissions'        => $this->is_admin ? $this->allModulesAsManager() : [],
             'created_at'         => $this->created_at?->toIso8601String(),
             'updated_at'         => $this->updated_at?->toIso8601String(),
         ];
+    }
+
+    /**
+     * Returns all modules at manager level as a flat array of permission strings.
+     * Used for SIGAPP admin users who have unrestricted access.
+     */
+    private function allModulesAsManager(): array
+    {
+        $permissions = [];
+
+        foreach (ModulesEnum::cases() as $module) {
+            if ($module->hasResources()) {
+                foreach ($module->resources() as $resource) {
+                    $permissions[] = "{$module->value}.{$resource}.viewer";
+                    $permissions[] = "{$module->value}.{$resource}.editor";
+                    $permissions[] = "{$module->value}.{$resource}.manager";
+                }
+            } else {
+                $permissions[] = "{$module->value}.viewer";
+                $permissions[] = "{$module->value}.editor";
+                $permissions[] = "{$module->value}.manager";
+            }
+        }
+
+        return $permissions;
     }
 }

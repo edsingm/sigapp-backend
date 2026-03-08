@@ -2,28 +2,52 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Enums\Common\ModulesEnum;
 use App\Http\Controllers\Controller;
 use App\Models\Central\Plan;
 use App\Models\Central\PlanRolePermissionTemplate;
-use App\Services\AclPermissionCatalogService;
 use App\Services\ApiResponseService;
 use Illuminate\Http\Request;
 
 class AclController extends Controller
 {
-    public function __construct(
-        protected AclPermissionCatalogService $permissionCatalog
-    ) {
-    }
-
     /**
      * Get system permission catalog grouped by module.
      */
     public function catalog()
     {
+        $levels  = ['viewer', 'editor', 'manager'];
+        $grouped = [];
+
+        foreach (ModulesEnum::cases() as $module) {
+            $permissions = [];
+
+            if ($module->hasResources()) {
+                foreach ($module->resources() as $resource) {
+                    foreach ($levels as $level) {
+                        $permissions[] = [
+                            'name'     => "{$module->value}.{$resource}.{$level}",
+                            'module'   => $module->value,
+                            'resource' => $resource,
+                            'level'    => $level,
+                        ];
+                    }
+                }
+            } else {
+                foreach ($levels as $level) {
+                    $permissions[] = [
+                        'name'   => "{$module->value}.{$level}",
+                        'module' => $module->value,
+                        'level'  => $level,
+                    ];
+                }
+            }
+
+            $grouped[$module->value] = $permissions;
+        }
+
         return ApiResponseService::success([
-            'system_permissions' => $this->permissionCatalog->groupedForUi(),
-            'deprecated_permissions' => $this->permissionCatalog->deprecatedPermissions(),
+            'system_permissions' => $grouped,
         ], 'Catálogo de permissões recuperado com sucesso');
     }
 

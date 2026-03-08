@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api\V1\Tenant\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Enums\Common\ModulesEnum;
 use App\Models\Tenant\User;
 use App\Services\ApiResponseService;
-use App\Services\AclPermissionCatalogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -15,11 +15,6 @@ use Spatie\Permission\PermissionRegistrar;
 
 class PermissionController extends Controller
 {
-    public function __construct(
-        protected AclPermissionCatalogService $permissionCatalog
-    ) {
-    }
-
     /**
      * List tenant permissions.
      */
@@ -130,7 +125,7 @@ class PermissionController extends Controller
             return ApiResponseService::notFound('Permissão não encontrada');
         }
 
-        if ($this->permissionCatalog->isSystemPermission($permission->name)) {
+        if ($this->isSystemPermission($permission->name)) {
             return ApiResponseService::error(
                 'PROTECTED_PERMISSION',
                 'Permissões de sistema são protegidas e não podem ser renomeadas.',
@@ -183,7 +178,7 @@ class PermissionController extends Controller
             return ApiResponseService::notFound('Permissão não encontrada');
         }
 
-        if ($this->permissionCatalog->isSystemPermission($permission->name)) {
+        if ($this->isSystemPermission($permission->name)) {
             return ApiResponseService::error(
                 'PROTECTED_PERMISSION',
                 'Permissões de sistema são protegidas e não podem ser removidas.',
@@ -215,5 +210,29 @@ class PermissionController extends Controller
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         return ApiResponseService::noContent();
+    }
+
+    /**
+     * Checks if a permission name is a system-generated permission (dot-notation format).
+     * System permissions cannot be renamed or deleted.
+     */
+    private function isSystemPermission(string $name): bool
+    {
+        $parts = explode('.', $name);
+        $levels = ['viewer', 'editor', 'manager'];
+
+        if (count($parts) === 3) {
+            [$module, $resource, $level] = $parts;
+            $mod = ModulesEnum::tryFrom($module);
+            return $mod !== null && in_array($resource, $mod->resources(), true) && in_array($level, $levels, true);
+        }
+
+        if (count($parts) === 2) {
+            [$module, $level] = $parts;
+            $mod = ModulesEnum::tryFrom($module);
+            return $mod !== null && !$mod->hasResources() && in_array($level, $levels, true);
+        }
+
+        return false;
     }
 }

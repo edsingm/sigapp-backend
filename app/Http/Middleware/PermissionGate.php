@@ -8,40 +8,41 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Validates that the authenticated tenant user has the required Spatie permission
- * for the module (and optional sub-module) being accessed.
+ * Validates that the authenticated tenant user has the required permission
+ * for the given module (and optional resource).
+ *
+ * Permission format (dot-notation):
+ *   With resource:    {module}.{resource}.{level}   e.g. prospection.terrains.viewer
+ *   Without resource: {module}.{level}              e.g. viability.viewer
+ *
+ * HTTP method → minimum required level:
+ *   GET            → viewer
+ *   POST/PUT/PATCH → editor
+ *   DELETE         → manager
  *
  * Usage in routes:
- *
  *   permission.gate:{module}
- *   permission.gate:{module},{submodule}
- *   permission.gate:{module},null,{action}       ← explicit extra action (e.g. export, approve)
- *
- * The action is inferred from the HTTP method when not provided:
- *   GET  (no route params)  → view_any
- *   GET  (has route params) → view
- *   POST                    → create
- *   PUT / PATCH             → update
- *   DELETE                  → delete
- *
- * Permission name built following AclPermissionCatalogService convention:
- *   Module-level:      "{action} {module}"             → "view any terrenos"
- *   Sub-module level:  "{action} {submodule} {module}" → "view any predio terrenos"
- *   Extra action:      "{action} {module}"             → "export terrenos"
+ *   permission.gate:{module},{resource}
  *
  * Roles super_admin and admin bypass all checks.
  */
 class PermissionGate
 {
-    /** Roles that bypass module-level permission checks entirely. */
     private const BYPASS_ROLES = ['super_admin', 'admin'];
+
+    private const METHOD_LEVEL_MAP = [
+        'GET'    => 'viewer',
+        'POST'   => 'editor',
+        'PUT'    => 'editor',
+        'PATCH'  => 'editor',
+        'DELETE' => 'manager',
+    ];
 
     public function handle(
         Request $request,
         Closure $next,
         string $module,
-        ?string $submodule = null,
-        ?string $action = null
+        ?string $resource = null
     ): Response {
         $user = $request->user();
 
@@ -49,16 +50,14 @@ class PermissionGate
             return ApiResponseService::error('UNAUTHENTICATED', 'Não autenticado.', null, 401);
         }
 
-        // Admins bypass module-level gate
         if ($user->hasAnyRole(self::BYPASS_ROLES)) {
             return $next($request);
         }
 
-        // Normalize "null" string passed as route parameter
-        $submodule = ($submodule === null || $submodule === 'null') ? null : $submodule;
-        $action    = ($action    === null || $action    === 'null') ? null : $action;
-
-        $permissionName = $this->buildPermissionName($request, $module, $submodule, $action);
+        $level          = self::METHOD_LEVEL_MAP[strtoupper($request->method())] ?? 'viewer';
+        $permissionName = $resource !== null
+            ? "{$module}.{$resource}.{$level}"
+            : "{$module}.{$level}";
 
         if (!$user->hasPermissionTo($permissionName)) {
             return ApiResponseService::error(
@@ -70,49 +69,5 @@ class PermissionGate
         }
 
         return $next($request);
-    }
-
-    /**
-     * Builds the Spatie permission name for the current request context.
-     */
-    private function buildPermissionName(
-        Request $request,
-        string $module,
-        ?string $submodule,
-        ?string $action
-    ): string {
-        $resolvedAction = $action ?? $this->inferActionFromRequest($request);
-
-        $actionLabel  = str_replace('_', ' ', $resolvedAction);
-        $moduleLabel  = str_replace('_', ' ', $module);
-
-        if ($submodule !== null) {
-            return "{$actionLabel} {$submodule} {$moduleLabel}";
-        }
-
-        return "{$actionLabel} {$moduleLabel}";
-    }
-
-    /**
-     * Infers the Spatie action name from the HTTP method and whether the route
-     * has bound parameters (indicating a single-resource operation).
-     */
-    private function inferActionFromRequest(Request $request): string
-    {
-        $method = strtoupper($request->method());
-
-        if ($method === 'GET') {
-            $route    = $request->route();
-            $hasParam = $route !== null && count($route->parameters()) > 0;
-
-            return $hasParam ? 'view' : 'view_any';
-        }
-
-        return match ($method) {
-            'POST'          => 'create',
-            'PUT', 'PATCH'  => 'update',
-            'DELETE'        => 'delete',
-            default         => 'view_any',
-        };
     }
 }

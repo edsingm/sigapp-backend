@@ -2,33 +2,43 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\Common\ModulesEnum;
+use App\Enums\Common\RolesEnum;
 use App\Models\Central\Tenant;
-use App\Models\Tenant\User;
-use App\Services\RbacTemplateService;
 use Illuminate\Console\Command;
+use Spatie\Permission\Models\Role;
 
 /**
- * Applies RBAC permission templates to tenant users.
+ * Sincroniza as permissões das roles com base nos templates RBAC.
+ *
+ * Funciona exatamente como o RolePermissionSeeder: lê cada template em
+ * database/rbacTemplates/{role}.json e aplica syncPermissions() na role correspondente.
  *
  * Usage:
  *   php artisan rbac:apply-templates --tenant=<id|slug>
  *   php artisan rbac:apply-templates --all
- *   php artisan rbac:apply-templates --all --force   ← overwrites users with custom permissions
  */
 class ApplyRbacTemplatesCommand extends Command
 {
     protected $signature = 'rbac:apply-templates
         {--tenant= : ID ou slug do tenant}
-        {--all : Aplica em todos os tenants}
-        {--force : Sobrescreve usuários que já possuem permissões diretas customizadas}';
+        {--all : Aplica em todos os tenants}';
 
-    protected $description = 'Aplica os templates de permissão RBAC (database/rbacTemplates) aos usuários dos tenants';
+    protected $description = 'Sincroniza as permissões das roles com base nos templates RBAC (database/rbacTemplates)';
 
-    public function handle(RbacTemplateService $rbacTemplates): int
+    /**
+     * Hierarquia cumulativa: igual ao RolePermissionSeeder.
+     */
+    private const LEVEL_MAP = [
+        'viewer'  => ['viewer'],
+        'editor'  => ['viewer', 'editor'],
+        'manager' => ['viewer', 'editor', 'manager'],
+    ];
+
+    public function handle(): int
     {
         $applyAll         = (bool) $this->option('all');
         $tenantIdentifier = $this->option('tenant');
-        $force            = (bool) $this->option('force');
 
         if (!$applyAll && !$tenantIdentifier) {
             $this->error('Informe --tenant=<id|slug> ou use --all.');
@@ -49,52 +59,76 @@ class ApplyRbacTemplatesCommand extends Command
             return self::SUCCESS;
         }
 
-        $availableTemplates = $rbacTemplates->allTemplates();
-
-        if (empty($availableTemplates)) {
-            $this->error('Nenhum template encontrado em database/rbacTemplates/.');
-            return self::FAILURE;
-        }
-
-        $this->info('Templates disponíveis: ' . implode(', ', array_keys($availableTemplates)));
-        if ($force) {
-            $this->warn('Modo --force ativado: permissões customizadas serão sobrescritas.');
-        }
-
-        $totalApplied = 0;
-        $totalSkipped = 0;
-
         foreach ($tenants as $tenant) {
             $this->line("\n→ Tenant: {$tenant->id} ({$tenant->slug})");
 
-            $tenant->run(function () use ($rbacTemplates, $force, &$totalApplied, &$totalSkipped) {
-                $users = User::with('roles')->get();
+            $tenant->run(function () {
+                foreach (RolesEnum::cases() as $roleEnum) {
+                    $templatePath = database_path('rbacTemplates/' . strtolower($roleEnum->value) . '.json');
 
-                foreach ($users as $user) {
-                    $role = $user->roles->first()?->name;
-
-                    if (!$role) {
-                        $this->line("  [SKIP] {$user->email} — sem role atribuído");
-                        $totalSkipped++;
+                    if (!file_exists($templatePath)) {
+                        $this->warn("  [SKIP] Template não encontrado para role {$roleEnum->value}");
                         continue;
                     }
 
-                    $applied = $rbacTemplates->applyTemplateToUser($user, $role, $force);
+                    $template = json_decode(file_get_contents($templatePath), true);
+                    $role     = Role::where('name', $roleEnum->value)->where('guard_name', 'web')->first();
 
-                    if ($applied) {
-                        $this->line("  [OK]   {$user->email} ({$role})");
-                        $totalApplied++;
-                    } else {
-                        $this->line("  [SKIP] {$user->email} ({$role}) — sem template ou permissões customizadas");
-                        $totalSkipped++;
+                    if (!$role) {
+                        $this->warn("  [SKIP] Role {$roleEnum->value} não encontrada no tenant.");
+                        continue;
                     }
+
+                    $permissions = $this->resolvePermissions($template['permissions']);
+                    $role->syncPermissions($permissions);
+
+                    $this->line("  [OK]   {$roleEnum->value}: " . count($permissions) . ' permissões atribuídas.');
                 }
             });
         }
 
         $this->newLine();
-        $this->info("Concluído. Aplicados: {$totalApplied} | Ignorados: {$totalSkipped}");
+        $this->info('Concluído.');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Converte o mapa do template em nomes de permissão cumulativos.
+     * Lógica idêntica ao RolePermissionSeeder::resolvePermissions().
+     */
+    private function resolvePermissions(array $modulePermissions): array
+    {
+        $permissions = [];
+
+        foreach ($modulePermissions as $moduleKey => $value) {
+            $module = ModulesEnum::tryFrom($moduleKey);
+
+            if (!$module) {
+                $this->warn("  [WARN] Módulo '{$moduleKey}' não existe no ModulesEnum, ignorado.");
+                continue;
+            }
+
+            if ($value === null) {
+                continue;
+            }
+
+            if (is_array($value)) {
+                foreach ($value as $resource => $level) {
+                    if ($level === null) {
+                        continue;
+                    }
+                    foreach (self::LEVEL_MAP[$level] as $permLevel) {
+                        $permissions[] = "{$moduleKey}.{$resource}.{$permLevel}";
+                    }
+                }
+            } else {
+                foreach (self::LEVEL_MAP[$value] as $permLevel) {
+                    $permissions[] = "{$moduleKey}.{$permLevel}";
+                }
+            }
+        }
+
+        return $permissions;
     }
 }

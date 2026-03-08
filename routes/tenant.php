@@ -98,13 +98,13 @@ Route::middleware([
             // Terrenos (with plan limit enforcement)
             Route::middleware([EnforcePlanLimits::class . ':terrenos'])->group(function () {
                 Route::post('/terrenos', [TerrenoController::class, 'store'])
-                    ->middleware('permission.gate:terrenos');
+                    ->middleware('permission.gate:prospection,terrains');
             });
             // Rotas específicas devem vir ANTES do apiResource
             Route::get('/terrenos/filter', [TerrenoController::class, 'filter']);
             Route::get('/terrenos/select', [TerrenoController::class, 'forSelect']);
             Route::get('/terrenos/{id}/informacoes', [TerrenoController::class, 'getInformacoes'])
-                    ->middleware('permission.gate:terrenos,informacoes');
+                    ->middleware('permission.gate:prospection,terrains');
             Route::post('/terrenos/{id}/informacoes', [TerrenoController::class, 'storeInfo']);
             Route::put('/terrenos/informacoes/{infoId}', [TerrenoController::class, 'updateInfo']);
             Route::delete('/terrenos/informacoes/{infoId}', [TerrenoController::class, 'destroyInfo']);

@@ -1,19 +1,19 @@
 {
-    "_comment": "Template de permissões padrão para o role user. Acesso somente de visualização em todos os módulos.",
-    "role": "user",
-    "label": "Usuário",
+    "_comment": "USER — viewer em todos os módulos.",
+    "role": "USER",
     "permissions": {
-        "terrenos": "editor",
-        "documentos": "viewer",
-        "produtos": "viewer",
-        "proprietarios": "viewer",
-        "regionais": "viewer",
-        "corretores_externos": "viewer",
-        "viabilidades": "viewer",
-        "projetos": "viewer",
-        "terreno_produtos": "viewer",
-        "terreno_status": "viewer",
-        "legalizacoes": "viewer",
-        "legalizacao_etapas": "viewer"
+        "admin": null,
+        "configurations": null,
+        "prospection": {
+            "terrains": "viewer",
+            "maps": "viewer"
+        },
+        "brokers": "viewer",
+        "data": "viewer",
+        "dashboard": "viewer",
+        "legal": "viewer",
+        "projects": "viewer",
+        "reports": "viewer",
+        "viability": "viewer"
     }
 }

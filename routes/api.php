@@ -9,6 +9,9 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\V1\TenantStatusController;
+
+
 
 /*
 |--------------------------------------------------------------------------
@@ -16,7 +19,7 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 |
 | Routes for the central application (without tenant context).
-| These are accessible at: https://sigpro.com.br/api/v1/...
+| These are accessible at: /api/v1/...
 |
 */
 
@@ -182,6 +185,8 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
                     ->middleware('throttle:admin-login');
             });
         }
+        // Status dos tenants (empresas)
+        Route::get('/tenant-status', [TenantStatusController::class, 'index']);
 
         // End of API v1 prefix
     });

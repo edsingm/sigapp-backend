@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Http\Resources\tenant;
+namespace App\Http\Resources\Tenant;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use App\Http\Resources\tenant\ProdutoResource;
-use App\Http\Resources\tenant\TerrenoResource;
+use App\Http\Resources\Tenant\ProdutoResource;
+use App\Http\Resources\Tenant\TerrenoResource;
 
 class TerrenoProdutoResource extends JsonResource
 {

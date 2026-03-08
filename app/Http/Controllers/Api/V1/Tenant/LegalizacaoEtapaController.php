@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Gate;
 use App\Http\Requests\Tenant\StoreLegalizacaoEtapaRequest;
 use App\Http\Requests\Tenant\UpdateLegalizacaoEtapaRequest;
-use App\Http\Resources\tenant\LegalizacaoEtapaResource;
+use App\Http\Resources\Tenant\LegalizacaoEtapaResource;
 
 class LegalizacaoEtapaController extends Controller
 {

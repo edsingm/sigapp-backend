@@ -12,9 +12,9 @@ use Illuminate\Support\Facades\Gate;
 use App\Http\Requests\Tenant\StoreLegalizacaoRequest;
 use App\Http\Requests\Tenant\UpdateLegalizacaoRequest;
 use App\Http\Requests\Tenant\SyncGanttRequest;
-use App\Http\Resources\tenant\LegalizacaoResource;
-use App\Http\Resources\tenant\LegalizacaoEtapaResource;
-use App\Http\Resources\tenant\LegalizacaoDependenciaResource;
+use App\Http\Resources\Tenant\LegalizacaoResource;
+use App\Http\Resources\Tenant\LegalizacaoEtapaResource;
+use App\Http\Resources\Tenant\LegalizacaoDependenciaResource;
 
 class LegalizacaoController extends Controller
 {

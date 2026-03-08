@@ -1,11 +1,11 @@
 <?php
-
-namespace App\Http\Resources\tenant;
+namespace App\Http\Resources\Tenant;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class ActivityLogResource extends JsonResource
+
+class TerrenoInfoResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -16,18 +16,25 @@ class ActivityLogResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'user_id' => $this->user_id,
+            'terreno_id' => $this->terreno_id,
+            'descricao' => $this->descricao,
             'user' => [
-                'id' => $this->user_id,
-                'name' => $this->user?->name ?? 'Sistema',
+                'id' => $this->createdBy?->id,
+                'name' => $this->createdBy?->name,
             ],
-            'action' => $this->action,
-            'model_type' => $this->model_type,
-            'model_id' => $this->model_id,
-            'old_data' => $this->old_data,
-            'new_data' => $this->new_data,
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
+            'deleted_at' => $this->deleted_at?->format('Y-m-d H:i:s'),
         ];
     }
 }
+
+
+
+
+
+
+
+
+
+?>

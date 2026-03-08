@@ -130,7 +130,7 @@ class ViabilidadeController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Aprovação da viabilidade solicitada com sucesso',
-                'data' => new \App\Http\Resources\tenant\ViabilidadeResource(
+                'data' => new \App\Http\Resources\Tenant\ViabilidadeResource(
                     $viabilidade->fresh(['terreno', 'createdBy', 'approvalDecidedBy'])
                 ),
             ]);
@@ -393,7 +393,7 @@ class ViabilidadeController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => $message,
-                'data' => new \App\Http\Resources\tenant\ViabilidadeResource(
+                'data' => new \App\Http\Resources\Tenant\ViabilidadeResource(
                     $viabilidade->fresh(['terreno', 'createdBy', 'approvalDecidedBy'])
                 ),
             ]);

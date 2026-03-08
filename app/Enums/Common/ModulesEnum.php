@@ -2,6 +2,19 @@
 
 namespace App\Enums\Common;
 
+use App\Models\Tenant\CorretorExterno;
+use App\Models\Tenant\Documento;
+use App\Models\Tenant\Legalizacao;
+use App\Models\Tenant\LegalizacaoEtapa;
+use App\Models\Tenant\Produto;
+use App\Models\Tenant\Projeto;
+use App\Models\Tenant\Proprietario;
+use App\Models\Tenant\Regional;
+use App\Models\Tenant\Terreno;
+use App\Models\Tenant\TerrenoProduto;
+use App\Models\Tenant\TerrenoStatus;
+use App\Models\Tenant\Viabilidade;
+
 enum ModulesEnum: string
 {
     case ADMIN = 'admin';
@@ -52,5 +65,70 @@ enum ModulesEnum: string
     public function hasResources(): bool
     {
         return !empty($this->resources());
+    }
+
+    /**
+     * Maps model classes that belong to this module.
+     * Key = fully-qualified model class name.
+     * Value = resource name within the module, or null when the module has no resources.
+     *
+     * When you add a new module, declare its models here and TenantPolicy
+     * will automatically pick them up — no changes needed in the policy.
+     *
+     * @return array<class-string, string|null>
+     */
+    public function models(): array
+    {
+        return match ($this) {
+            self::PROSPECTION => [
+                Terreno::class => 'terrains',
+            ],
+            self::BROKERS => [
+                CorretorExterno::class => null,
+            ],
+            self::DATA => [
+                Regional::class       => null,
+                Produto::class        => null,
+                Proprietario::class   => null,
+                TerrenoProduto::class => null,
+                TerrenoStatus::class  => null,
+                Documento::class      => null,
+            ],
+            self::LEGAL => [
+                Legalizacao::class      => null,
+                LegalizacaoEtapa::class => null,
+            ],
+            self::PROJECTS => [
+                Projeto::class => null,
+            ],
+            self::VIABILITY => [
+                Viabilidade::class => null,
+            ],
+            default => [],
+        };
+    }
+
+    /**
+     * Flat map of [ModelClass => 'module.resource' | 'module'] for all cases.
+     * Used by TenantPolicy to resolve the permission string for a given model.
+     *
+     * @return array<class-string, string>
+     */
+    public static function modelMap(): array
+    {
+        static $map = null;
+
+        if ($map === null) {
+            $map = [];
+            foreach (self::cases() as $case) {
+                foreach ($case->models() as $modelClass => $resource) {
+                    $map[$modelClass] = $resource !== null
+                        ? "{$case->value}.{$resource}"
+                        : $case->value;
+                }
+            }
+        }
+
+        return $map;
     }
 }

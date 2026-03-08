@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Http\Controllers\Controller;
-use App\Http\Resources\tenant\MobileNotificationResource;
+use App\Http\Resources\Tenant\MobileNotificationResource;
 use App\Services\ApiResponseService;
 use App\Services\Tenant\MobilePushService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;

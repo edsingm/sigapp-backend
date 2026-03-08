@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Http\Resources\tenant\ProdutoResource;
+use App\Http\Resources\Tenant\ProdutoResource;
 use App\Models\Tenant\Produto;
 use App\Http\Requests\Tenant\StoreProdutoRequest;
 use App\Http\Requests\Tenant\UpdateProdutoRequest;

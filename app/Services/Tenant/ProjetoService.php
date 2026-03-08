@@ -2,10 +2,10 @@
 
 namespace App\Services\Tenant;
 
-use App\Http\Resources\tenant\LegalizacaoResource;
-use App\Http\Resources\tenant\ProjetoResource;
-use App\Http\Resources\tenant\TerrenoResource;
-use App\Http\Resources\tenant\ViabilidadeResource;
+use App\Http\Resources\Tenant\LegalizacaoResource;
+use App\Http\Resources\Tenant\ProjetoResource;
+use App\Http\Resources\Tenant\TerrenoResource;
+use App\Http\Resources\Tenant\ViabilidadeResource;
 use App\Models\Tenant\Projeto;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\TerrenoStatus;

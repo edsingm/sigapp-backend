@@ -1,20 +1,20 @@
 <?php
 
-namespace App\Http\Resources\tenant;
+namespace App\Http\Resources\Tenant;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use App\Http\Resources\tenant\UserResource;
-use App\Http\Resources\tenant\CorretorExternoResource;
-use App\Http\Resources\tenant\TerrenoStatusResource;
-use App\Http\Resources\tenant\RegionalResource;
-use App\Http\Resources\tenant\ProprietarioResource;
-use App\Http\Resources\tenant\DocumentoResource;
-use App\Http\Resources\tenant\ViabilidadeResource;
-use App\Http\Resources\tenant\TerrenoInfoResource;
-use App\Http\Resources\tenant\TerrenoProdutoResource;
-use App\Http\Resources\tenant\CidadeResource;
-use App\Http\Resources\tenant\LegalizacaoResource;
+use App\Http\Resources\Tenant\UserResource;
+use App\Http\Resources\Tenant\CorretorExternoResource;
+use App\Http\Resources\Tenant\TerrenoStatusResource;
+use App\Http\Resources\Tenant\RegionalResource;
+use App\Http\Resources\Tenant\ProprietarioResource;
+use App\Http\Resources\Tenant\DocumentoResource;
+use App\Http\Resources\Tenant\ViabilidadeResource;
+use App\Http\Resources\Tenant\TerrenoInfoResource;
+use App\Http\Resources\Tenant\TerrenoProdutoResource;
+use App\Http\Resources\Tenant\CidadeResource;
+use App\Http\Resources\Tenant\LegalizacaoResource;
 
 
 class TerrenoResource extends JsonResource

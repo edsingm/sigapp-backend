@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Tenant\User;
+use Database\Seeders\Tenant\AdminUserSeeder;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -18,16 +19,9 @@ class DatabaseSeeder extends Seeder
         $this->call([
             PlanSeeder::class,
             PlanRolePermissionTemplateSeeder::class,
+            AdminsSetupSeeder::class
         ]);
 
-        User::firstOrCreate(
-            ['email' => 'admin@sigapp.com.br'],
-            [
-                'name' => 'Edson G. Maldonado',
-                'password' => bcrypt('Mrt74dla@'),
-                'is_admin' => true,
-                'email_verified_at' => now(),
-            ]
-        );
+
     }
 }

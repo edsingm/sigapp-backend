@@ -89,18 +89,22 @@ Route::middleware([
                 ->as('tenant-admin.')
                 ->group(function () {
                     Route::apiResource('users', AdminUserManagementController::class);
+                    Route::put('users/{id}/module-permissions', [AdminUserManagementController::class, 'updateModulePermissions'])
+                        ->name('tenant-admin.users.module-permissions');
                     Route::apiResource('roles', AdminRoleController::class);
                     Route::apiResource('permissions', AdminPermissionController::class);
                 });
 
             // Terrenos (with plan limit enforcement)
             Route::middleware([EnforcePlanLimits::class . ':terrenos'])->group(function () {
-                Route::post('/terrenos', [TerrenoController::class, 'store']);
+                Route::post('/terrenos', [TerrenoController::class, 'store'])
+                    ->middleware('permission.gate:terrenos');
             });
             // Rotas específicas devem vir ANTES do apiResource
             Route::get('/terrenos/filter', [TerrenoController::class, 'filter']);
             Route::get('/terrenos/select', [TerrenoController::class, 'forSelect']);
-            Route::get('/terrenos/{id}/informacoes', [TerrenoController::class, 'getInformacoes']);
+            Route::get('/terrenos/{id}/informacoes', [TerrenoController::class, 'getInformacoes'])
+                    ->middleware('permission.gate:terrenos,informacoes');
             Route::post('/terrenos/{id}/informacoes', [TerrenoController::class, 'storeInfo']);
             Route::put('/terrenos/informacoes/{infoId}', [TerrenoController::class, 'updateInfo']);
             Route::delete('/terrenos/informacoes/{infoId}', [TerrenoController::class, 'destroyInfo']);

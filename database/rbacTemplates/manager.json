@@ -1,0 +1,23 @@
+{
+    "_comment": "Template de permissões padrão para o role manager. Controle total em viabilidades, editor em módulos operacionais, viewer em configurações.",
+    "role": "manager",
+    "label": "Gerente",
+    "permissions": {
+        "terrenos": {
+            "predio": "editor",
+            "casa": "editor",
+            "comercial": "editor"
+        },
+        "documentos": "editor",
+        "produtos": "editor",
+        "proprietarios": "editor",
+        "regionais": "viewer",
+        "corretores_externos": "viewer",
+        "viabilidades": "manager",
+        "projetos": "viewer",
+        "terreno_produtos": "editor",
+        "terreno_status": "viewer",
+        "legalizacoes": "viewer",
+        "legalizacao_etapas": "viewer"
+    }
+}

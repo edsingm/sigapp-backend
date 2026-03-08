@@ -1,0 +1,19 @@
+{
+    "_comment": "Template de permissões padrão para o role user. Acesso somente de visualização em todos os módulos.",
+    "role": "user",
+    "label": "Usuário",
+    "permissions": {
+        "terrenos": "editor",
+        "documentos": "viewer",
+        "produtos": "viewer",
+        "proprietarios": "viewer",
+        "regionais": "viewer",
+        "corretores_externos": "viewer",
+        "viabilidades": "viewer",
+        "projetos": "viewer",
+        "terreno_produtos": "viewer",
+        "terreno_status": "viewer",
+        "legalizacoes": "viewer",
+        "legalizacao_etapas": "viewer"
+    }
+}

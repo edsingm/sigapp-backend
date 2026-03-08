@@ -26,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant.admin' => \App\Http\Middleware\EnsureTenantAdmin::class,
             'user.admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
             'require.entitlement' => \App\Http\Middleware\RequireEntitlement::class,
+            'permission.gate'     => \App\Http\Middleware\PermissionGate::class,
         ]);
 
         // Register the 'tenant' middleware group

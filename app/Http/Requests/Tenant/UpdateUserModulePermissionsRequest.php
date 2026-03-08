@@ -1,0 +1,64 @@
+<?php
+
+namespace App\Http\Requests\Tenant;
+
+use App\Enums\AccessLevel;
+use App\Enums\Common\ModulesEnum;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+class UpdateUserModulePermissionsRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function rules(): array
+    {
+        $validModules    = array_column(ModulesEnum::cases(), 'value');
+        $validLevels     = array_column(AccessLevel::cases(), 'value');
+
+        $rules = [
+            'permissions'   => ['required', 'array'],
+        ];
+
+        foreach (ModulesEnum::cases() as $module) {
+            $key = "permissions.{$module->value}";
+
+            if ($module->hasSubModules()) {
+                $rules[$key] = ['sometimes', 'array'];
+
+                foreach ($module->subModules() as $sub) {
+                    $rules["{$key}.{$sub}"] = [
+                        'sometimes',
+                        'nullable',
+                        Rule::in($validLevels),
+                    ];
+                }
+            } else {
+                $rules[$key] = [
+                    'sometimes',
+                    'nullable',
+                    Rule::in($validLevels),
+                ];
+            }
+        }
+
+        return $rules;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'permissions.required' => 'O campo permissions é obrigatório.',
+            'permissions.array'    => 'O campo permissions deve ser um objeto.',
+        ];
+    }
+}

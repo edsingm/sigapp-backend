@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Services\ModuleAccessService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -13,16 +14,19 @@ class CentralUserResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id' => $this->id,
-            'name' => $this->name,
-            'email' => $this->email,
-            'is_admin' => (bool) $this->is_admin,
-            'email_verified_at' => $this->email_verified_at?->toIso8601String(),
-            'role' => $this->is_admin ? 'admin' : null,
-            'roles' => $this->is_admin ? ['admin'] : [],
-            'permissions' => $this->is_admin ? ['admin'] : [],
-            'created_at' => $this->created_at?->toIso8601String(),
-            'updated_at' => $this->updated_at?->toIso8601String(),
+            'id'                 => $this->id,
+            'name'               => $this->name,
+            'email'              => $this->email,
+            'is_admin'           => (bool) $this->is_admin,
+            'email_verified_at'  => $this->email_verified_at?->toIso8601String(),
+            'role'               => $this->is_admin ? 'sigapp' : null,
+            'roles'              => $this->is_admin ? ['sigapp'] : [],
+            'permissions'        => $this->is_admin ? ['*'] : [],
+            'module_permissions' => $this->is_admin
+                ? app(ModuleAccessService::class)->allModulesAsManager()
+                : [],
+            'created_at'         => $this->created_at?->toIso8601String(),
+            'updated_at'         => $this->updated_at?->toIso8601String(),
         ];
     }
 }

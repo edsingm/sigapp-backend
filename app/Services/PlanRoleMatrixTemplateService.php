@@ -2,51 +2,65 @@
 
 namespace App\Services;
 
+use App\Enums\AccessLevel;
+use App\Enums\Common\ModulesEnum;
 use App\Models\Central\Plan;
 
 class PlanRoleMatrixTemplateService
 {
     /**
-     * Build the default role->permissions matrix for a plan.
+     * Default module/sub-module → access level templates per role.
      *
-     * Current behavior mirrors the existing tenant seeders.
+     *   super_admin / admin → MANAGER everywhere
+     *   manager             → MANAGER on viabilidades, EDITOR on operational, VIEWER on config
+     *   user                → VIEWER everywhere
+     *
+     * For modules with sub-modules the map value is an array keyed by sub-module.
      *
      * @return array<string, array<int, string>>
      */
     public function defaultMatrixForPlan(Plan $plan): array
     {
-        $all = app(AclPermissionCatalogService::class)->allSystemPermissions();
+        $service = app(ModuleAccessService::class);
 
-        $manager = [
-            'view any terrenos', 'view terrenos', 'create terrenos', 'update terrenos', 'export terrenos',
-            'view any documentos', 'view documentos', 'create documentos', 'update documentos',
-            'view any produtos', 'view produtos', 'create produtos', 'update produtos',
-            'view any proprietarios', 'view proprietarios', 'create proprietarios', 'update proprietarios',
-            'view any regionais', 'view regionais',
-            'view any corretores externos', 'view corretores externos',
-            'view any viabilidades', 'view viabilidades', 'create viabilidades', 'update viabilidades',
-            'duplicate viabilidades', 'compare viabilidades', 'generate dre viabilidades', 'recalculate viabilidades', 'export viabilidades',
-            'view any terreno produtos', 'view terreno produtos', 'create terreno produtos', 'update terreno produtos',
-            'view any terreno status', 'view terreno status',
-        ];
+        // Build all-manager and all-viewer maps respecting sub-modules
+        $allManager = [];
+        $allViewer  = [];
 
-        $user = [
-            'view any terrenos', 'view terrenos',
-            'view any documentos', 'view documentos',
-            'view any produtos', 'view produtos',
-            'view any proprietarios', 'view proprietarios',
-            'view any regionais', 'view regionais',
-            'view any corretores externos', 'view corretores externos',
-            'view any viabilidades', 'view viabilidades', 'compare viabilidades',
-            'view any terreno produtos', 'view terreno produtos',
-            'view any terreno status', 'view terreno status',
+        foreach (ModulesEnum::cases() as $module) {
+            if ($module->hasSubModules()) {
+                $allManager[$module->value] = array_fill_keys($module->subModules(), AccessLevel::MANAGER);
+                $allViewer[$module->value]  = array_fill_keys($module->subModules(), AccessLevel::VIEWER);
+            } else {
+                $allManager[$module->value] = AccessLevel::MANAGER;
+                $allViewer[$module->value]  = AccessLevel::VIEWER;
+            }
+        }
+
+        $managerTemplate = [
+            ModulesEnum::TERRENOS->value => [
+                'predio'    => AccessLevel::EDITOR,
+                'casa'      => AccessLevel::EDITOR,
+                'comercial' => AccessLevel::EDITOR,
+            ],
+            ModulesEnum::DOCUMENTOS->value          => AccessLevel::EDITOR,
+            ModulesEnum::PRODUTOS->value            => AccessLevel::EDITOR,
+            ModulesEnum::PROPRIETARIOS->value       => AccessLevel::EDITOR,
+            ModulesEnum::REGIONAIS->value           => AccessLevel::VIEWER,
+            ModulesEnum::CORRETORES_EXTERNOS->value => AccessLevel::VIEWER,
+            ModulesEnum::VIABILIDADES->value        => AccessLevel::MANAGER,
+            ModulesEnum::PROJETOS->value            => AccessLevel::VIEWER,
+            ModulesEnum::TERRENO_PRODUTOS->value    => AccessLevel::EDITOR,
+            ModulesEnum::TERRENO_STATUS->value      => AccessLevel::VIEWER,
+            ModulesEnum::LEGALIZACOES->value        => AccessLevel::VIEWER,
+            ModulesEnum::LEGALIZACAO_ETAPAS->value  => AccessLevel::VIEWER,
         ];
 
         return [
-            'super_admin' => $all,
-            'admin' => $all,
-            'manager' => $manager,
-            'user' => $user,
+            'super_admin' => $service->flatPermissionsFromMap($allManager),
+            'admin'       => $service->flatPermissionsFromMap($allManager),
+            'manager'     => $service->flatPermissionsFromMap($managerTemplate),
+            'user'        => $service->flatPermissionsFromMap($allViewer),
         ];
     }
 

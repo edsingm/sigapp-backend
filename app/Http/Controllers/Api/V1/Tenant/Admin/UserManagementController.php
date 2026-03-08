@@ -3,14 +3,18 @@
 namespace App\Http\Controllers\Api\V1\Tenant\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Tenant\UpdateUserModulePermissionsRequest;
 use App\Http\Resources\UserResource;
 use App\Models\Tenant\User;
 use App\Services\ApiResponseService;
 use App\Services\LimitEnforcementService;
+use App\Services\ModuleAccessService;
+use App\Services\RbacTemplateService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
+use Spatie\Permission\Models\Permission;
 
 class UserManagementController extends Controller
 {
@@ -105,8 +109,11 @@ class UserManagementController extends Controller
 
         $user->syncRoles([$validated['role']]);
 
+        // Apply default permission template for the assigned role
+        app(RbacTemplateService::class)->applyTemplateToUser($user, $validated['role']);
+
         return ApiResponseService::created(
-            new UserResource($user->fresh('roles')),
+            new UserResource($user->fresh(['roles', 'permissions'])),
             'Usuário criado com sucesso'
         );
     }
@@ -222,5 +229,55 @@ class UserManagementController extends Controller
         $user->delete();
 
         return ApiResponseService::noContent();
+    }
+
+    public function updateModulePermissions(
+        UpdateUserModulePermissionsRequest $request,
+        ModuleAccessService $moduleAccess,
+        int $id
+    ) {
+        $user = User::with('roles')->find($id);
+
+        if (!$user) {
+            return ApiResponseService::notFound('Usuário não encontrado');
+        }
+
+        $permissionsMap = (array) $request->input('permissions', []);
+
+        $enumMap = collect($permissionsMap)
+            ->map(fn ($v) => is_array($v)
+                ? collect($v)
+                    ->map(fn ($l) => $l !== null ? \App\Enums\AccessLevel::from($l) : null)
+                    ->filter()
+                    ->all()
+                : ($v !== null ? \App\Enums\AccessLevel::from($v) : null)
+            )
+            ->filter()
+            ->all();
+
+        $flatPermissions = $moduleAccess->flatPermissionsFromMap($enumMap);
+
+        // Determine the set of all permissions that belong to the modules present in request
+        $moduleValues = array_keys($permissionsMap);
+        $toRevoke = Permission::query()
+            ->where('guard_name', 'web')
+            ->get()
+            ->filter(fn (Permission $p) => collect($moduleValues)
+                ->contains(fn ($m) => str_ends_with($p->name, ' ' . str_replace('_', ' ', $m))))
+            ->pluck('name')
+            ->all();
+
+        if (!empty($toRevoke)) {
+            $user->revokePermissionTo($toRevoke);
+        }
+
+        if (!empty($flatPermissions)) {
+            $user->givePermissionTo($flatPermissions);
+        }
+
+        return ApiResponseService::success(
+            new UserResource($user->fresh(['roles', 'permissions'])),
+            'Permissões atualizadas com sucesso'
+        );
     }
 }

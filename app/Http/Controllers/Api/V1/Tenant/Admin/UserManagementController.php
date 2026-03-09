@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Api\V1\Tenant\Admin;
 
+use App\Enums\Common\RolesEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\UpdateUserModulePermissionsRequest;
 use App\Http\Resources\UserResource;
 use App\Models\Tenant\User;
 use App\Services\ApiResponseService;
+use App\Services\LanguageService;
 use App\Services\LimitEnforcementService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -16,7 +18,7 @@ use Spatie\Permission\Models\Permission;
 
 class UserManagementController extends Controller
 {
-    private const ADMIN_ROLE_NAMES = ['super_admin', 'admin'];
+    private const ADMIN_ROLE_NAMES = [RolesEnum::ADMIN->value, RolesEnum::DIRECTOR->value];
 
     /**
      * List tenant users.
@@ -89,20 +91,22 @@ class UserManagementController extends Controller
         }
 
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', Rule::unique('users', 'email')],
+            'name'     => ['required', 'string', 'max:255'],
+            'email'    => ['required', 'email', Rule::unique('users', 'email')],
             'password' => ['required', Password::defaults()],
-            'role' => [
+            'role'     => [
                 'required',
                 'string',
                 Rule::exists('roles', 'name')->where('guard_name', 'web'),
             ],
+            'locale'   => ['sometimes', 'string', 'in:' . implode(',', LanguageService::SUPPORTED_LOCALES)],
         ]);
 
         $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
+            'name'     => $validated['name'],
+            'email'    => $validated['email'],
             'password' => Hash::make($validated['password']),
+            'locale'   => $validated['locale'] ?? 'pt-br',
         ]);
 
         $user->syncRoles([$validated['role']]);
@@ -125,14 +129,15 @@ class UserManagementController extends Controller
         }
 
         $validated = $request->validate([
-            'name' => ['sometimes', 'string', 'max:255'],
-            'email' => ['sometimes', 'email', Rule::unique('users', 'email')->ignore($id)],
+            'name'     => ['sometimes', 'string', 'max:255'],
+            'email'    => ['sometimes', 'email', Rule::unique('users', 'email')->ignore($id)],
             'password' => ['sometimes', Password::defaults()],
-            'role' => [
+            'role'     => [
                 'sometimes',
                 'string',
                 Rule::exists('roles', 'name')->where('guard_name', 'web'),
             ],
+            'locale'   => ['sometimes', 'string', 'in:' . implode(',', LanguageService::SUPPORTED_LOCALES)],
         ]);
 
         if (array_key_exists('password', $validated)) {

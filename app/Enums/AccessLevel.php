@@ -11,9 +11,9 @@ enum AccessLevel: string
     public function label(): string
     {
         return match ($this) {
-            self::VIEWER  => 'Visualizador',
-            self::EDITOR  => 'Editor',
-            self::MANAGER => 'Gerente',
+            self::VIEWER  => language()->t('VIEWER'),
+            self::EDITOR  => language()->t('EDITOR'),
+            self::MANAGER => language()->t('MANAGER'),
         };
     }
 }

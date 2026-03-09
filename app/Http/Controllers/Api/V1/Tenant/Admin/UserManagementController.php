@@ -149,12 +149,12 @@ class UserManagementController extends Controller
         if (array_key_exists('role', $validated)) {
             $nextRole = (string) $validated['role'];
 
-            if ($user->hasRole('super_admin') && $nextRole !== 'super_admin') {
-                $superAdminCount = User::role('super_admin')->count();
+            if ($user->hasRole(RolesEnum::ADMIN->value) && $nextRole !== RolesEnum::ADMIN->value) {
+                $adminCount = User::role(RolesEnum::ADMIN->value)->count();
 
-                if ($superAdminCount <= 1) {
+                if ($adminCount <= 1) {
                     return ApiResponseService::error(
-                        'LAST_SUPER_ADMIN',
+                        'LAST_ADMIN',
                         language()->t('USER_ADMIN_CANT_CHANGE_ROLE'),
                         null,
                         400
@@ -189,8 +189,7 @@ class UserManagementController extends Controller
         }
 
         return ApiResponseService::success(
-            new UserResource($user->fresh('roles')),
-            'Usuário atualizado com sucesso'
+            new UserResource($user->fresh('roles')), language()->t('USER_UPDATED_SUCCESSFULLY')
         );
     }
 
@@ -202,24 +201,24 @@ class UserManagementController extends Controller
         $user = User::with('roles')->find($id);
 
         if (!$user) {
-            return ApiResponseService::notFound('Usuário não encontrado');
+            return ApiResponseService::notFound(language()->t('USER_NOT_FOUND'));
         }
 
         if ((int) $request->user()?->id === (int) $user->id) {
             return ApiResponseService::error(
                 'CANNOT_DELETE_SELF',
-                'Você não pode excluir sua própria conta',
+                language()->t('USER_CANNOT_DELETE_OWN_ACCOUNT'),
                 null,
                 400
             );
         }
 
-        if ($user->hasRole('super_admin')) {
-            $superAdminCount = User::role('super_admin')->count();
-            if ($superAdminCount <= 1) {
+        if ($user->hasRole(RolesEnum::ADMIN->value)) {
+            $adminCount = User::role(RolesEnum::ADMIN->value)->count();
+            if ($adminCount <= 1) {
                 return ApiResponseService::error(
-                    'LAST_SUPER_ADMIN',
-                    'Não é possível excluir o último super administrador',
+                    'LAST_ADMIN',
+                    language()->t('USER_ADMIN_CANT_DELETE_LAST_ADMIN'),
                     null,
                     400
                 );
@@ -238,7 +237,7 @@ class UserManagementController extends Controller
         $user = User::with('roles')->find($id);
 
         if (!$user) {
-            return ApiResponseService::notFound('Usuário não encontrado');
+            return ApiResponseService::notFound(language()->t('USER_NOT_FOUND'));
         }
 
         $permissionsMap  = (array) $request->input('permissions', []);
@@ -262,7 +261,7 @@ class UserManagementController extends Controller
 
         return ApiResponseService::success(
             new UserResource($user->fresh(['roles', 'permissions'])),
-            'Permissões atualizadas com sucesso'
+                language()->t('USER_PERMISSIONS_UPDATED_SUCCESSFULLY')
         );
     }
 

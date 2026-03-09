@@ -14,12 +14,12 @@ enum RolesEnum: string
     public function label(): string
     {
         return match ($this) {
-            self::ADMIN      => 'Administrador',
-            self::DIRECTOR   => 'Diretor',
-            self::MANAGER    => 'Gerente',
-            self::SUPERVISOR => 'Supervisor',
-            self::ANALYST    => 'Analista',
-            self::USER       => 'Usuário',
+            self::ADMIN      => language()->t('ADMINISTRATOR'),
+            self::DIRECTOR   => language()->t('DIRECTOR'),
+            self::MANAGER    => language()->t('MANAGER'),
+            self::SUPERVISOR => language()->t('SUPERVISOR'),
+            self::ANALYST    => language()->t('ANALYST'),
+            self::USER       => language()->t('USER')
         };
     }
 }

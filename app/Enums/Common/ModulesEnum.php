@@ -32,16 +32,16 @@ enum ModulesEnum: string
     public function label(): string
     {
         return match ($this) {
-            self::ADMIN => 'Administração',
-            self::CONFIGURATIONS => 'Configurações',
-            self::PROSPECTION => 'Prospecção',
-            self::BROKERS => 'Corretores',
-            self::DATA => 'Dados',
-            self::DASHBOARD => 'Dashboard',
-            self::LEGAL => 'Legalizações',
-            self::PROJECTS => 'Projetos',
-            self::REPORTS => 'Relatórios',
-            self::VIABILITY => 'Viabilidade'
+            self::ADMIN => language()->t('ADMIN'),
+            self::CONFIGURATIONS => language()->t('CONFIGURATIONS'),
+            self::PROSPECTION => language()->t('PROSPECTION'),
+            self::BROKERS => language()->t('BROKERS'),
+            self::DATA => language()->t('DATA'),
+            self::DASHBOARD => language()->t('DASHBOARD'),
+            self::LEGAL => language()->t('LEGAL'),
+            self::PROJECTS => language()->t('PROJECTS'),
+            self::REPORTS => language()->t('REPORTS'),
+            self::VIABILITY => language()->t('VIABILITY')
         };
     }
 

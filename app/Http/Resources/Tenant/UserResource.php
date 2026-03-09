@@ -30,6 +30,7 @@ class UserResource extends JsonResource
             'zip_code' => $this->zip_code,
             'profile_picture' => $this->profile_picture,
             'status' => $this->status,
+            'locale' => $this->locale ?? 'pt-br',
             'email_verified_at' => $this->email_verified_at,
             'roles' => $this->whenLoaded('roles', function () {
                 return $this->roles->map(function ($role) {

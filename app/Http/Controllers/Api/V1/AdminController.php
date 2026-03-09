@@ -40,7 +40,7 @@ class AdminController extends Controller
         if (!$user || !Hash::check($credentials['password'], $user->password) || !$user->is_admin) {
             return ApiResponseService::error(
                 'UNAUTHORIZED',
-                'Credenciais inválidas ou acesso não autorizado',
+                language()->t('INVALID_CREDENTIALS'),
                 null,
                 401
             );
@@ -62,7 +62,7 @@ class AdminController extends Controller
             'user' => $user,
             'token' => $tokenResult->plainTextToken,
             'expires_at' => $tokenResult->accessToken->expires_at?->toIso8601String(),
-        ], 'Login de administrador realizado com sucesso');
+        ], language()->t('LOGIN_SUCCESS'));
     }
 
     /**
@@ -85,6 +85,6 @@ class AdminController extends Controller
                 'active_tenants' => $totalTenants, // Placeholder logic
             ],
             'recent_tenants' => $recentTenants
-        ], 'Dados do dashboard recuperados');
+        ], language()->t('DASHBOARD_DATA_RETRIEVED'));
     }
 }

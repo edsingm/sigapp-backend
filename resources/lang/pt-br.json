@@ -1,0 +1,8 @@
+{
+    "DASHBOARD_DATA_RETRIEVED": "Dados do dashboard recuperados",
+    "INVALID_CREDENTIALS": "Credenciais inválidas ou acesso não autorizado",
+    "LOGIN_SUCCESS": "Login de administrador realizado com sucesso",
+    "SIGNATURE_DATA_RETRIEVED": "Status da assinatura recuperado com sucesso",
+    "USAGE_METRICS_RETRIEVED": "Métricas de uso recuperadas com sucesso",
+    "TENANT_DATA_RETRIEVED": "Tenant recuperado com sucesso"
+}

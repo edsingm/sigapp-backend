@@ -33,7 +33,7 @@ class TenantController extends Controller
 
         return ApiResponseService::success(
             new TenantResource($tenant),
-            'Tenant recuperado com sucesso'
+            language()->t('TENANT_DATA_RETRIEVED')
         );
     }
 
@@ -50,7 +50,7 @@ class TenantController extends Controller
             'metrics' => $this->usageService->getMetrics(),
             'percentages' => $this->usageService->getUsagePercentages(),
             'approaching_limits' => $this->usageService->isApproachingLimits(),
-        ], 'Métricas de uso recuperadas com sucesso');
+        ], language()->t('USAGE_METRICS_RETRIEVED'));
     }
 
     /**
@@ -180,6 +180,6 @@ class TenantController extends Controller
             'entitlements' => $this->featureService->getEntitlements(),
             'feature_flags' => $this->featureService->getFeatureFlags(),
             'stripe_error' => app()->environment('local') ? $stripeError : null,
-        ], 'Status da assinatura recuperado com sucesso');
+        ], language()->t('SIGNATURE_DATA_RETRIEVED'));
     }
 }

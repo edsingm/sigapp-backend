@@ -23,11 +23,13 @@ use App\Http\Controllers\Api\V1\Tenant\MobileDeviceController;
 use App\Http\Controllers\Api\V1\Tenant\MobileNotificationController;
 use App\Http\Controllers\Api\V1\Tenant\ProjetoController;
 use App\Http\Controllers\Api\V1\CidadesController;
+use App\Http\Controllers\Api\V1\LanguageController;
 use App\Http\Middleware\AddTenantContextToLogs;
 use App\Http\Middleware\ApiRequestLogger;
 use App\Http\Middleware\CheckSubscriptionStatus;
 use App\Http\Middleware\EnforcePlanLimits;
 use App\Http\Middleware\ForceJsonResponse;
+use App\Http\Middleware\SetUserLocale;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -66,6 +68,7 @@ Route::middleware([
         Route::middleware([
             'auth:sanctum',
             'throttle:api-auth',
+            SetUserLocale::class,
             CheckSubscriptionStatus::class,
         ])->group(function () {
 
@@ -74,6 +77,9 @@ Route::middleware([
             Route::post('/auth/logout-all', [AuthController::class, 'logoutAll']);
             Route::post('/auth/refresh', [AuthController::class, 'refresh']);
             Route::get('/auth/me', [AuthController::class, 'me']);
+
+            // Locale
+            Route::put('/locale', [LanguageController::class, 'set']);
 
             // Tenant info
             Route::get('/tenant', [TenantController::class, 'show']);

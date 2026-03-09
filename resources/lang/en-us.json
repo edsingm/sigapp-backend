@@ -1,0 +1,8 @@
+{
+    "DASHBOARD_DATA_RETRIEVED": "Dashboard data retrieved successfully",
+    "INVALID_CREDENTIALS": "Invalid credentials or unauthorized access",
+    "LOGIN_SUCCESS": "Admin login successful",
+    "SIGNATURE_DATA_RETRIEVED": "Subscription status retrieved successfully",
+    "USAGE_METRICS_RETRIEVED": "Usage metrics retrieved successfully",
+    "TENANT_DATA_RETRIEVED": "Tenant data retrieved successfully"
+}

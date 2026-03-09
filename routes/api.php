@@ -5,11 +5,13 @@ use App\Http\Controllers\Api\V1\PlanController;
 use App\Http\Controllers\Api\V1\SignupController;
 use App\Http\Controllers\Api\V1\WebhookController;
 use App\Http\Middleware\ForceJsonResponse;
+use App\Http\Middleware\SetUserLocale;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\TenantStatusController;
+use App\Http\Controllers\Api\V1\LanguageController;
 
 
 
@@ -144,7 +146,10 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
                 });
 
                 // Authenticated routes (central app)
-                Route::middleware(['auth:sanctum', 'user.admin', 'throttle:api-auth'])->group(function () {
+                Route::middleware(['auth:sanctum', 'user.admin', 'throttle:api-auth', SetUserLocale::class])->group(function () {
+
+                    // Locale
+                    Route::put('/locale', [LanguageController::class, 'set']);
 
                     // Auth
                     Route::post('/auth/logout', [AuthController::class, 'logout']);

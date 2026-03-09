@@ -1,5 +1,6 @@
 <?php
 
+use App\Services\LanguageService;
 use App\Support\UserContext;
 
 if (!function_exists('user')) {
@@ -22,6 +23,24 @@ if (!function_exists('user')) {
         }
 
         return new UserContext($user);
+    }
+}
+
+if (!function_exists('language')) {
+    /**
+     * Retorna uma instância de LanguageService para o locale informado.
+     * Se nenhum locale for passado, usa o locale atual da aplicação.
+     *
+     * Uso:
+     *   language()->t('auth.login')
+     *   language('en-us')->t('common.save')
+     *   language()->t('validation.required', ['field' => 'nome'])
+     */
+    function language(?string $locale = null): LanguageService
+    {
+        $resolvedLocale = $locale ?? app()->getLocale();
+
+        return new LanguageService($resolvedLocale);
     }
 }
 

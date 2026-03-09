@@ -113,7 +113,7 @@ class UserManagementController extends Controller
 
         return ApiResponseService::created(
             new UserResource($user->fresh(['roles', 'permissions'])),
-            'Usuário criado com sucesso'
+            language()->t('USER_CREATED_SUCCESSFULLY')
         );
     }
 
@@ -125,7 +125,7 @@ class UserManagementController extends Controller
         $user = User::with('roles')->find($id);
 
         if (!$user) {
-            return ApiResponseService::notFound('Usuário não encontrado');
+            return ApiResponseService::notFound(language()->t('USER_NOT_FOUND'));
         }
 
         $validated = $request->validate([
@@ -155,7 +155,7 @@ class UserManagementController extends Controller
                 if ($superAdminCount <= 1) {
                     return ApiResponseService::error(
                         'LAST_SUPER_ADMIN',
-                        'Não é possível alterar a role do último super administrador',
+                        language()->t('USER_ADMIN_CANT_CHANGE_ROLE'),
                         null,
                         400
                     );
@@ -178,7 +178,7 @@ class UserManagementController extends Controller
                 if ($adminEligibleCount <= 1) {
                     return ApiResponseService::error(
                         'LAST_TENANT_ADMIN',
-                        'Não é possível remover o último usuário com acesso administrativo do tenant.',
+                        language()->t('USER_ADMIN_CANT_REMOVE_LAST_ADMIN_ROLE'),
                         null,
                         400
                     );

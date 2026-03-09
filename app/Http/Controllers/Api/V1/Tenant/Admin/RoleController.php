@@ -32,8 +32,9 @@ class RoleController extends Controller
             ->get(['id', 'name']);
 
         return ApiResponseService::success($roles->map(fn (Role $role) => [
-            'id'   => $role->id,
-            'name' => $role->name,
+            'id'    => $role->id,
+            'name'  => $role->name,
+            'label' => RolesEnum::tryFrom($role->name)?->label() ?? $role->name,
         ])->values(), 'Roles recuperadas com sucesso');
     }
 

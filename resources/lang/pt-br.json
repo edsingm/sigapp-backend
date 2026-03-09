@@ -4,5 +4,9 @@
     "LOGIN_SUCCESS": "Login de administrador realizado com sucesso",
     "SIGNATURE_DATA_RETRIEVED": "Status da assinatura recuperado com sucesso",
     "USAGE_METRICS_RETRIEVED": "Métricas de uso recuperadas com sucesso",
+    "USER_LIMIT_REACHED": "Limite de usuários atingido para o seu plano",
+    "USER_LIST_RETRIEVED": "Lista de usuários recuperada com sucesso",
+    "USER_NOT_FOUND": "Usuário não encontrado",
+    "USER_RETRIEVED": "Usuário recuperado com sucesso",
     "TENANT_DATA_RETRIEVED": "Tenant recuperado com sucesso"
 }

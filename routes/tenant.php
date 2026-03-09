@@ -97,6 +97,8 @@ Route::middleware([
                     Route::apiResource('users', AdminUserManagementController::class);
                     Route::put('users/{id}/module-permissions', [AdminUserManagementController::class, 'updateModulePermissions'])
                         ->name('tenant-admin.users.module-permissions');
+                    Route::get('roles/select', [AdminRoleController::class, 'forSelect'])
+                        ->name('tenant-admin.roles.select');
                     Route::apiResource('roles', AdminRoleController::class);
                     Route::apiResource('permissions', AdminPermissionController::class);
                 });

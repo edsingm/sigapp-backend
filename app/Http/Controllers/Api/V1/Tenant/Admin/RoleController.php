@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Tenant\Admin;
 
+use App\Enums\Common\RolesEnum;
 use App\Http\Controllers\Controller;
 use App\Models\Tenant\User;
 use App\Services\ApiResponseService;
@@ -14,7 +15,27 @@ use Spatie\Permission\PermissionRegistrar;
 
 class RoleController extends Controller
 {
-    private const PROTECTED_ROLE_NAMES = ['super_admin', 'admin'];
+    /** Roles definidas pelo sistema (enum) — não podem ser renomeadas nem excluídas. */
+    private static function protectedRoleNames(): array
+    {
+        return array_column(RolesEnum::cases(), 'value');
+    }
+
+    /**
+     * List roles for select inputs (id + name only, no heavy relations).
+     */
+    public function forSelect()
+    {
+        $roles = Role::query()
+            ->where('guard_name', 'web')
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        return ApiResponseService::success($roles->map(fn (Role $role) => [
+            'id'   => $role->id,
+            'name' => $role->name,
+        ])->values(), 'Roles recuperadas com sucesso');
+    }
 
     /**
      * List tenant roles.
@@ -175,10 +196,10 @@ class RoleController extends Controller
         ]);
 
         if (array_key_exists('name', $validated)) {
-            if (in_array($role->name, self::PROTECTED_ROLE_NAMES, true) && $validated['name'] !== $role->name) {
+            if (in_array($role->name, self::protectedRoleNames(), true) && $validated['name'] !== $role->name) {
                 return ApiResponseService::error(
                     'PROTECTED_ROLE',
-                    'As roles super_admin e admin são protegidas e não podem ser renomeadas.',
+                    'As roles do sistema são protegidas e não podem ser renomeadas.',
                     null,
                     400
                 );
@@ -189,10 +210,10 @@ class RoleController extends Controller
         }
 
         if (array_key_exists('permission_ids', $validated)) {
-            if ($role->name === 'super_admin') {
+            if ($role->name === RolesEnum::ADMIN->value) {
                 return ApiResponseService::error(
                     'PROTECTED_ROLE_PERMISSIONS',
-                    'As permissões da role super_admin são gerenciadas pelo sistema e não podem ser alteradas manualmente.',
+                    'As permissões da role ADMIN são gerenciadas pelo sistema e não podem ser alteradas manualmente.',
                     null,
                     400
                 );
@@ -244,10 +265,10 @@ class RoleController extends Controller
             return ApiResponseService::notFound('Role não encontrada');
         }
 
-        if (in_array($role->name, self::PROTECTED_ROLE_NAMES, true)) {
+        if (in_array($role->name, self::protectedRoleNames(), true)) {
             return ApiResponseService::error(
                 'PROTECTED_ROLE',
-                'As roles super_admin e admin são protegidas e não podem ser removidas.',
+                'As roles do sistema são protegidas e não podem ser removidas.',
                 null,
                 400
             );

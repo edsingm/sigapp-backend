@@ -4,5 +4,9 @@
     "LOGIN_SUCCESS": "Admin login successful",
     "SIGNATURE_DATA_RETRIEVED": "Subscription status retrieved successfully",
     "USAGE_METRICS_RETRIEVED": "Usage metrics retrieved successfully",
+    "USER_LIMIT_REACHED": "User limit reached for your plan",
+    "USER_LIST_RETRIEVED": "User list retrieved successfully",
+    "USER_NOT_FOUND": "User not found",
+    "USER_RETRIEVED": "User retrieved successfully",
     "TENANT_DATA_RETRIEVED": "Tenant data retrieved successfully"
 }

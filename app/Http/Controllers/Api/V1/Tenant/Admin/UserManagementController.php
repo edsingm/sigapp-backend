@@ -53,7 +53,7 @@ class UserManagementController extends Controller
             return (new UserResource($user))->toArray($request);
         });
 
-        return ApiResponseService::paginated($users, 'Usuários recuperados com sucesso');
+        return ApiResponseService::paginated($users, language()->t('USER_LIST_RETRIEVED'));
     }
 
     /**
@@ -64,12 +64,12 @@ class UserManagementController extends Controller
         $user = User::with('roles')->find($id);
 
         if (!$user) {
-            return ApiResponseService::notFound('Usuário não encontrado');
+            return ApiResponseService::notFound(language()->t('USER_NOT_FOUND'));
         }
 
         return ApiResponseService::success(
             new UserResource($user),
-            'Usuário recuperado com sucesso'
+            language()->t('USER_RETRIEVED')
         );
     }
 
@@ -84,7 +84,7 @@ class UserManagementController extends Controller
         if (!$limitService->canCreateUser()) {
             return ApiResponseService::error(
                 'LIMIT_EXCEEDED',
-                'Limite de usuários atingido para o seu plano.',
+                language()->t('USER_LIMIT_REACHED'),
                 null,
                 403
             );

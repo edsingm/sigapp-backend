@@ -12,13 +12,13 @@ class ApiResponseService
      */
     public static function success(
         mixed $data = null,
-        string $message = 'Operação realizada com sucesso',
+        string $message = 'SUCCESS_OPERATION',
         int $statusCode = 200
     ): JsonResponse {
         return response()->json([
             'success' => true,
             'data' => $data,
-            'message' => $message,
+            'message' => language()->t($message),
         ], $statusCode);
     }
 
@@ -27,9 +27,9 @@ class ApiResponseService
      */
     public static function created(
         mixed $data = null,
-        string $message = 'Recurso criado com sucesso'
+        string $message = 'RESOURCE_CREATED_SUCCESSFULLY'
     ): JsonResponse {
-        return static::success($data, $message, 201);
+        return static::success($data, language()->t($message), 201);
     }
 
     /**
@@ -45,12 +45,12 @@ class ApiResponseService
      */
     public static function paginated(
         LengthAwarePaginator $paginator,
-        string $message = 'Dados recuperados com sucesso'
+        string $message = 'DATA_RETRIEVED_SUCCESSFULLY'
     ): JsonResponse {
         return response()->json([
             'success' => true,
             'data' => $paginator->items(),
-            'message' => $message,
+            'message' => language()->t($message),
             'meta' => [
                 'current_page' => $paginator->currentPage(),
                 'per_page' => $paginator->perPage(),
@@ -67,7 +67,7 @@ class ApiResponseService
      */
     public static function error(
         string $code,
-        string $message,
+        string $message = 'UNKNOWN_ERROR',
         mixed $details = null,
         int $statusCode = 400
     ): JsonResponse {
@@ -75,7 +75,7 @@ class ApiResponseService
             'success' => false,
             'error' => [
                 'code' => $code,
-                'message' => $message,
+                'message' => language()->t($message),
             ],
         ];
 
@@ -93,7 +93,7 @@ class ApiResponseService
     {
         return static::error(
             'VALIDATION_ERROR',
-            'Os dados fornecidos são inválidos',
+            language()->t('INVALID_PROVIDED_DATA'),
             $errors,
             422
         );
@@ -102,48 +102,48 @@ class ApiResponseService
     /**
      * Return an unauthorized response.
      */
-    public static function unauthorized(string $message = 'Não autenticado'): JsonResponse
+    public static function unauthorized(string $message = 'NOT_AUTHENTICATED'): JsonResponse
     {
-        return static::error('UNAUTHORIZED', $message, null, 401);
+        return static::error('UNAUTHORIZED', language()->t($message), null, 401);
     }
 
     /**
      * Return a forbidden response.
      */
-    public static function forbidden(string $message = 'Sem permissão'): JsonResponse
+    public static function forbidden(string $message = 'MISSING_PERMISSION'): JsonResponse
     {
-        return static::error('FORBIDDEN', $message, null, 403);
+        return static::error('FORBIDDEN', language()->t($message), null, 403);
     }
 
     /**
      * Return a not found response.
      */
-    public static function notFound(string $message = 'Recurso não encontrado'): JsonResponse
+    public static function notFound(string $message = 'RESOURCE_NOT_FOUND'): JsonResponse
     {
-        return static::error('NOT_FOUND', $message, null, 404);
+        return static::error('NOT_FOUND', language()->t($message), null, 404);
     }
 
     /**
      * Return a conflict response.
      */
-    public static function conflict(string $message = 'Recurso já existe'): JsonResponse
+    public static function conflict(string $message = 'RESOURCE_ALREADY_EXISTS'): JsonResponse
     {
-        return static::error('CONFLICT', $message, null, 409);
+        return static::error('CONFLICT', language()->t($message), null, 409);
     }
 
     /**
      * Return a too many requests response.
      */
-    public static function tooManyRequests(string $message = 'Muitas requisições. Tente novamente em 1 minuto.'): JsonResponse
+    public static function tooManyRequests(string $message = 'TOO_MANY_REQUESTS_1_MINUTE'): JsonResponse
     {
-        return static::error('TOO_MANY_REQUESTS', $message, null, 429);
+        return static::error('TOO_MANY_REQUESTS', language()->t($message), null, 429);
     }
 
     /**
      * Return an internal server error response.
      */
-    public static function serverError(string $message = 'Erro interno do servidor'): JsonResponse
+    public static function serverError(string $message = 'INTERNAL_SERVER_ERROR'): JsonResponse
     {
-        return static::error('INTERNAL_ERROR', $message, null, 500);
+        return static::error('INTERNAL_ERROR', language()->t($message), null, 500);
     }
 }

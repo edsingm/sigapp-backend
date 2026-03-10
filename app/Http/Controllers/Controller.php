@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Traits\LogsAudit;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 abstract class Controller
 {
-    use AuthorizesRequests;
+    use AuthorizesRequests, LogsAudit;
     //
     /**
      * Respond with pagination.

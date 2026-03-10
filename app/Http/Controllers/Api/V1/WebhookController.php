@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Jobs\CreateFullTenantJob;
-use App\Models\AuditLog;
 use App\Models\Central\Tenant;
+use App\Traits\LogsAudit;
 use App\Models\Central\WebhookEvent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -13,6 +13,7 @@ use Laravel\Cashier\Http\Middleware\VerifyWebhookSignature;
 
 class WebhookController extends CashierController
 {
+    use LogsAudit;
     /**
      * Create a new WebhookController instance.
      *
@@ -58,14 +59,10 @@ class WebhookController extends CashierController
         if (!$tenantId) {
             Log::warning('Checkout completed sem tenant_id', ['session_id' => $session->id]);
 
-            AuditLog::create([
-                'action' => 'tenant.checkout_no_tenant_id',
-                'description' => 'Checkout concluído sem tenant_id nos metadados da sessão.',
-                'metadata' => [
-                    'session_id' => $session->id,
-                    'customer' => $session->customer ?? null,
-                    'reason' => 'missing_tenant_id',
-                ],
+            $this->audit('tenant.checkout_no_tenant_id', 'Checkout concluído sem tenant_id nos metadados da sessão.', [
+                'session_id' => $session->id,
+                'customer' => $session->customer ?? null,
+                'reason' => 'missing_tenant_id',
             ]);
 
             return $this->successMethod();
@@ -76,15 +73,11 @@ class WebhookController extends CashierController
         if (!$tenant) {
             Log::error('Tenant não encontrado para checkout', ['tenant_id' => $tenantId]);
 
-            AuditLog::create([
-                'action' => 'tenant.checkout_tenant_not_found',
-                'description' => "Checkout concluído mas tenant ID '{$tenantId}' não encontrado no banco.",
-                'metadata' => [
-                    'tenant_id' => $tenantId,
-                    'session_id' => $session->id,
-                    'customer' => $session->customer ?? null,
-                    'reason' => 'tenant_not_found',
-                ],
+            $this->audit('tenant.checkout_tenant_not_found', "Checkout concluído mas tenant ID '{$tenantId}' não encontrado no banco.", [
+                'tenant_id' => $tenantId,
+                'session_id' => $session->id,
+                'customer' => $session->customer ?? null,
+                'reason' => 'tenant_not_found',
             ]);
 
             return $this->successMethod();
@@ -100,18 +93,14 @@ class WebhookController extends CashierController
                 'customer_id' => $session->customer ?? null,
             ]);
 
-            AuditLog::create([
-                'action' => 'tenant.checkout_missing_contract_acceptance',
-                'description' => 'Checkout concluído sem aceite de contrato de utilização registrado no signup.',
-                'metadata' => [
-                    'tenant_id' => $tenant->id,
-                    'tenant_slug' => $tenant->slug,
-                    'tenant_name' => $tenant->name,
-                    'session_id' => $session->id ?? null,
-                    'subscription_id' => $session->subscription ?? null,
-                    'customer_id' => $session->customer ?? null,
-                    'reason' => 'missing_signup_contract_acceptance',
-                ],
+            $this->audit('tenant.checkout_missing_contract_acceptance', 'Checkout concluído sem aceite de contrato de utilização registrado no signup.', [
+                'tenant_id' => $tenant->id,
+                'tenant_slug' => $tenant->slug,
+                'tenant_name' => $tenant->name,
+                'session_id' => $session->id ?? null,
+                'subscription_id' => $session->subscription ?? null,
+                'customer_id' => $session->customer ?? null,
+                'reason' => 'missing_signup_contract_acceptance',
             ]);
         }
 
@@ -128,17 +117,13 @@ class WebhookController extends CashierController
         $this->dispatchTenantProvisioning($tenant);
 
         // Audit: checkout completed
-        AuditLog::create([
-            'action' => 'tenant.checkout_completed',
-            'description' => "Checkout Stripe concluído para tenant '{$tenant->name}'. Job de criação disparado.",
-            'metadata' => [
-                'tenant_id' => $tenant->id,
-                'tenant_slug' => $tenant->slug,
-                'tenant_name' => $tenant->name,
-                'session_id' => $session->id,
-                'subscription_id' => $session->subscription,
-                'customer_id' => $session->customer,
-            ],
+        $this->audit('tenant.checkout_completed', "Checkout Stripe concluído para tenant '{$tenant->name}'. Job de criação disparado.", [
+            'tenant_id' => $tenant->id,
+            'tenant_slug' => $tenant->slug,
+            'tenant_name' => $tenant->name,
+            'session_id' => $session->id,
+            'subscription_id' => $session->subscription,
+            'customer_id' => $session->customer,
         ]);
 
         // Manual Sync: Ensure subscription is recorded (fix for race condition)
@@ -239,18 +224,14 @@ class WebhookController extends CashierController
                 'attempts' => $invoice->attempt_count ?? 0,
             ]);
 
-            AuditLog::create([
-                'action' => 'tenant.payment_failed',
-                'description' => "Pagamento falhou {$invoice->attempt_count}x para tenant '{$tenant->name}'. Tenant suspenso.",
-                'metadata' => [
-                    'tenant_id' => $tenant->id,
-                    'tenant_slug' => $tenant->slug,
-                    'tenant_name' => $tenant->name,
-                    'customer_id' => $customerId,
-                    'attempt_count' => $invoice->attempt_count ?? 0,
-                    'invoice_id' => $invoice->id ?? null,
-                    'reason' => 'payment_failed_suspended',
-                ],
+            $this->audit('tenant.payment_failed', "Pagamento falhou {$invoice->attempt_count}x para tenant '{$tenant->name}'. Tenant suspenso.", [
+                'tenant_id' => $tenant->id,
+                'tenant_slug' => $tenant->slug,
+                'tenant_name' => $tenant->name,
+                'customer_id' => $customerId,
+                'attempt_count' => $invoice->attempt_count ?? 0,
+                'invoice_id' => $invoice->id ?? null,
+                'reason' => 'payment_failed_suspended',
             ]);
         }
 
@@ -313,16 +294,12 @@ class WebhookController extends CashierController
             $tenant->cancel();
             Log::info('Tenant cancelou assinatura', ['tenant_id' => $tenant->id]);
 
-            AuditLog::create([
-                'action' => 'tenant.subscription_canceled',
-                'description' => "Assinatura cancelada para tenant '{$tenant->name}'.",
-                'metadata' => [
-                    'tenant_id' => $tenant->id,
-                    'tenant_slug' => $tenant->slug,
-                    'tenant_name' => $tenant->name,
-                    'customer_id' => $customerId,
-                    'subscription_id' => $subscription->id ?? null,
-                ],
+            $this->audit('tenant.subscription_canceled', "Assinatura cancelada para tenant '{$tenant->name}'.", [
+                'tenant_id' => $tenant->id,
+                'tenant_slug' => $tenant->slug,
+                'tenant_name' => $tenant->name,
+                'customer_id' => $customerId,
+                'subscription_id' => $subscription->id ?? null,
             ]);
         }
 
@@ -362,7 +339,6 @@ class WebhookController extends CashierController
             }
 
             Log::info('Assinatura sincronizada manualmente via checkout session', ['subscription_id' => $subscriptionId]);
-
         } catch (\Exception $e) {
             Log::error('Erro ao sincronizar assinatura manualmente', ['error' => $e->getMessage()]);
         }

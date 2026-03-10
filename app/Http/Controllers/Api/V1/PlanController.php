@@ -20,7 +20,7 @@ class PlanController extends Controller
 
         return ApiResponseService::success(
             PlanResource::collection($plans),
-            'Planos recuperados com sucesso'
+            language()->t('PLANS_RETRIEVED_SUCCESSFULLY')
         );
     }
 
@@ -34,12 +34,12 @@ class PlanController extends Controller
         $plan = Plan::where('slug', $slug)->active()->first();
 
         if (!$plan) {
-            return ApiResponseService::notFound('Plano não encontrado');
+            return ApiResponseService::notFound(language()->t('PLAN_NOT_FOUND'));
         }
 
         return ApiResponseService::success(
             new PlanResource($plan),
-            'Plano recuperado com sucesso'
+            language()->t('PLANS_RETRIEVED_SUCCESSFULLY')
         );
     }
 }

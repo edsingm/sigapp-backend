@@ -31,7 +31,7 @@ class CidadesController extends Controller
     public function getCities(string $stateCode): JsonResponse
     {
         $cacheKey = "central:cities:{$stateCode}";
-        
+
         $cities = Cache::rememberForever($cacheKey, function () use ($stateCode) {
             return Cidade::citiesByState($stateCode)->get(['code', 'city as name']);
         });
@@ -51,7 +51,7 @@ class CidadesController extends Controller
         if (!$termo) {
             return response()->json([
                 'status' => 'ERROR',
-                'message' => 'Termo de busca não informado.'
+                'message' => language()->t('MISSING_SEARCH_TERM')
             ], 400);
         }
 
@@ -74,7 +74,7 @@ class CidadesController extends Controller
         if (!$cityCode) {
             return response()->json([
                 'status' => 'ERROR',
-                'message' => 'Código da cidade não informado.'
+                'message' => language()->t('MISSING_CITY_CODE')
             ], 400);
         }
 
@@ -82,7 +82,7 @@ class CidadesController extends Controller
         if (!$cidade) {
             return response()->json([
                 'status' => 'ERROR',
-                'message' => 'Cidade não encontrada.'
+                'message' => language()->t('CITY_NOT_FOUND')
             ], 404);
         }
 

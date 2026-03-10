@@ -17,7 +17,7 @@ class PublicTenantController extends Controller
 
         return ApiResponseService::success([
             'available' => !$exists,
-        ], $exists ? 'Subdomínio indisponível' : 'Subdomínio disponível');
+        ], $exists ? 'SUBDOMAIN_UNVAVAILABLE' : 'SUBDOMAIN_AVAILABLE');
     }
 
     public function bySubdomain(string $subdomain)
@@ -27,7 +27,7 @@ class PublicTenantController extends Controller
             ->first();
 
         if (!$tenant) {
-            return ApiResponseService::notFound('Tenant não encontrado');
+            return ApiResponseService::notFound('TENANT_NOT_FOUND');
         }
 
         return ApiResponseService::success([
@@ -35,14 +35,14 @@ class PublicTenantController extends Controller
             'name' => $tenant->name,
             'slug' => $tenant->slug,
             'status' => $tenant->status,
-        ], 'Tenant encontrado com sucesso');
+        ], 'TENANT_DATA_RETRIEVED');
     }
 
     public function discover(Request $request)
     {
         return ApiResponseService::error(
             'DEPRECATED_ENDPOINT',
-            'Fluxo substituído por login central com email e senha (/api/v1/auth/central-login).',
+            'USE_CENTRAL_LOGIN_FLOW',
             null,
             410
         );

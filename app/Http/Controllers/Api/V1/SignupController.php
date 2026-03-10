@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SignupRequest;
-use App\Models\AuditLog;
 use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
 use App\Services\ApiResponseService;
@@ -12,7 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Cashier\Cashier;
-use Stancl\Tenancy\Database\Exceptions\TenantDatabaseAlreadyExistsException;
+use Stancl\Tenancy\Exceptions\TenantDatabaseAlreadyExistsException;
 
 class SignupController extends Controller
 {
@@ -31,7 +30,7 @@ class SignupController extends Controller
         $plan = Plan::where('slug', $validated['plan_slug'])->active()->first();
 
         if (!$plan) {
-            return ApiResponseService::notFound('Plano não encontrado');
+            return ApiResponseService::notFound('PLAN_NOT_FOUND');
         }
 
         try {
@@ -47,16 +46,10 @@ class SignupController extends Controller
                     // Generate unique slug with random suffix
                     $validated['slug'] = $validated['slug'] . '-' . Str::random(4);
 
-                    AuditLog::create([
-                        'action' => 'tenant.signup_slug_conflict',
-                        'description' => "Slug '{$originalSlug}' já existente. Gerado novo slug '{$validated['slug']}'.",
-                        'ip_address' => request()->ip(),
-                        'user_agent' => request()->userAgent(),
-                        'metadata' => [
-                            'original_slug' => $originalSlug,
-                            'new_slug' => $validated['slug'],
-                            'admin_email' => $validated['admin_email'],
-                        ],
+                    $this->audit('tenant.signup_slug_conflict', "Slug '{$originalSlug}' já existente. Gerado novo slug '{$validated['slug']}'.", [
+                        'original_slug' => $originalSlug,
+                        'new_slug' => $validated['slug'],
+                        'admin_email' => $validated['admin_email'],
                     ]);
                 }
 
@@ -102,46 +95,34 @@ class SignupController extends Controller
 
             $contractAcceptance = data_get($tenant->data ?? [], 'signup_contract_acceptance', []);
 
-            AuditLog::create([
-                'action' => 'tenant.signup_contract_accepted',
-                'description' => 'Aceite de contrato de utilização registrado no signup.',
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-                'metadata' => [
-                    'tenant_id' => $tenant->id,
-                    'tenant_slug' => $tenant->slug,
-                    'tenant_name' => $tenant->name,
-                    'plan_slug' => $plan->slug,
-                    'admin_email' => $validated['admin_email'],
-                    'admin_name' => $validated['admin_name'],
-                    'document_key' => $contractAcceptance['document_key'] ?? null,
-                    'document_title' => $contractAcceptance['document_title'] ?? null,
-                    'document_version' => $contractAcceptance['document_version'] ?? null,
-                    'document_hash' => $contractAcceptance['document_hash'] ?? null,
-                    'document_url' => $contractAcceptance['document_url'] ?? null,
-                    'accepted_at' => $contractAcceptance['accepted_at'] ?? null,
-                    'accepted' => $contractAcceptance['accepted'] ?? false,
-                    'ip_address' => $contractAcceptance['ip_address'] ?? null,
-                    'user_agent' => $contractAcceptance['user_agent'] ?? null,
-                ],
+            $this->audit('tenant.signup_contract_accepted', 'Aceite de contrato de utilização registrado no signup.', [
+                'tenant_id' => $tenant->id,
+                'tenant_slug' => $tenant->slug,
+                'tenant_name' => $tenant->name,
+                'plan_slug' => $plan->slug,
+                'admin_email' => $validated['admin_email'],
+                'admin_name' => $validated['admin_name'],
+                'document_key' => $contractAcceptance['document_key'] ?? null,
+                'document_title' => $contractAcceptance['document_title'] ?? null,
+                'document_version' => $contractAcceptance['document_version'] ?? null,
+                'document_hash' => $contractAcceptance['document_hash'] ?? null,
+                'document_url' => $contractAcceptance['document_url'] ?? null,
+                'accepted_at' => $contractAcceptance['accepted_at'] ?? null,
+                'accepted' => $contractAcceptance['accepted'] ?? false,
+                'ip_address' => $contractAcceptance['ip_address'] ?? null,
+                'user_agent' => $contractAcceptance['user_agent'] ?? null,
             ]);
 
             // Audit: tenant signup started
-            AuditLog::create([
-                'action' => 'tenant.signup_started',
-                'description' => "Novo tenant '{$tenant->name}' criado (pendente). Aguardando checkout Stripe.",
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-                'metadata' => [
-                    'tenant_id' => $tenant->id,
-                    'tenant_slug' => $tenant->slug,
-                    'tenant_name' => $tenant->name,
-                    'plan_slug' => $plan->slug,
-                    'plan_name' => $plan->name,
-                    'admin_email' => $validated['admin_email'],
-                    'admin_name' => $validated['admin_name'],
-                    'trial_days' => $plan->trial_days,
-                ],
+            $this->audit('tenant.signup_started', "Novo tenant '{$tenant->name}' criado (pendente). Aguardando checkout Stripe.", [
+                'tenant_id' => $tenant->id,
+                'tenant_slug' => $tenant->slug,
+                'tenant_name' => $tenant->name,
+                'plan_slug' => $plan->slug,
+                'plan_name' => $plan->name,
+                'admin_email' => $validated['admin_email'],
+                'admin_name' => $validated['admin_name'],
+                'trial_days' => $plan->trial_days,
             ]);
 
             // Create Stripe customer
@@ -191,46 +172,33 @@ class SignupController extends Controller
                 'tenant_id' => $tenant->id,
                 'session_id' => $session->id,
                 'tenant_slug' => $tenant->slug,
-            ], 'Tenant criado com sucesso. Redirecione para o checkout.');
-
+            ], 'CHECKOUT_TENANT_CREATED_SUCCESSFULLY');
         } catch (TenantDatabaseAlreadyExistsException $e) {
-            AuditLog::create([
-                'action' => 'tenant.signup_failed',
-                'description' => 'Signup falhou: banco de dados do tenant já existe.',
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-                'metadata' => [
-                    'error' => $e->getMessage(),
-                    'slug' => $validated['slug'] ?? null,
-                    'admin_email' => $validated['admin_email'] ?? null,
-                    'reason' => 'database_already_exists',
-                ],
+            $this->audit('tenant.signup_failed', 'Signup falhou: banco de dados do tenant já existe.', [
+                'error' => $e->getMessage(),
+                'slug' => $validated['slug'] ?? null,
+                'admin_email' => $validated['admin_email'] ?? null,
+                'reason' => 'database_already_exists',
             ]);
 
             return ApiResponseService::validationError([
-                'slug' => ['Este subdomínio já está em uso internamente. Por favor, escolha outro.']
+                'slug' => [language()->t('SUBDOMAIN_UNVAVAILABLE')]
             ]);
         } catch (\Exception $e) {
             report($e);
 
-            AuditLog::create([
-                'action' => 'tenant.signup_failed',
-                'description' => 'Signup falhou: ' . Str::limit($e->getMessage(), 200),
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-                'metadata' => [
-                    'error' => $e->getMessage(),
-                    'error_class' => get_class($e),
-                    'slug' => $validated['slug'] ?? null,
-                    'plan_slug' => $validated['plan_slug'] ?? null,
-                    'admin_email' => $validated['admin_email'] ?? null,
-                    'reason' => 'exception',
-                ],
+            $this->audit('tenant.signup_failed', 'Signup falhou: ' . Str::limit($e->getMessage(), 200), [
+                'error' => $e->getMessage(),
+                'error_class' => get_class($e),
+                'slug' => $validated['slug'] ?? null,
+                'plan_slug' => $validated['plan_slug'] ?? null,
+                'admin_email' => $validated['admin_email'] ?? null,
+                'reason' => 'exception',
             ]);
 
             return ApiResponseService::error(
                 'SIGNUP_ERROR',
-                'Erro ao criar conta. Tente novamente.',
+                'SIGNUP_ERROR',
                 app()->environment('local') ? $e->getMessage() : null,
                 500
             );
@@ -250,7 +218,7 @@ class SignupController extends Controller
             $tenant = Tenant::find($session->metadata->tenant_id);
 
             if (!$tenant) {
-                return ApiResponseService::notFound('Tenant não encontrado');
+                return ApiResponseService::notFound('TENANT_NOT_FOUND');
             }
 
             return ApiResponseService::success([
@@ -262,9 +230,8 @@ class SignupController extends Controller
                 'is_ready' => $tenant->isActive() && $tenant->database_created,
                 'subdomain' => $tenant->slug . '.' . (env('APP_DOMAIN') ?: 'localhost'),
             ]);
-
         } catch (\Exception $e) {
-            return ApiResponseService::notFound('Sessão não encontrada');
+            return ApiResponseService::notFound('SESSION_NOT_FOUND');
         }
     }
 

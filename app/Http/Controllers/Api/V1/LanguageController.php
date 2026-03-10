@@ -25,7 +25,7 @@ class LanguageController extends Controller
 
         return ApiResponseService::success(
             ['locale' => $data['locale']],
-            'Idioma atualizado com sucesso'
+            language()->t('LANGUAGE_UPDATED_SUCCESFULLY')
         );
     }
 }

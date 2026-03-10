@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\AuditLog;
 use App\Models\Central\Tenant;
 use App\Services\ApiResponseService;
 use Illuminate\Http\Request;
@@ -123,7 +122,6 @@ class TenantController extends Controller
                     $finance['renews_at'] = $tenant->trial_ends_at ? $tenant->trial_ends_at->timestamp : null;
                 }
             }
-
         } catch (\Exception $e) {
             // Log stripe error but don't fail the request
             // \Log::error("Stripe error for tenant {$tenant->id}: " . $e->getMessage());
@@ -149,13 +147,8 @@ class TenantController extends Controller
         $tenant->activate();
 
         // Log action
-        AuditLog::create([
-            'user_id' => $request->user()->id,
-            'action' => 'tenant.activated',
-            'description' => "Tenant {$tenant->name} ({$tenant->id}) ativado manualmente.",
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-            'metadata' => ['tenant_id' => $tenant->id]
+        $this->audit('tenant.activated', "Tenant {$tenant->name} ({$tenant->id}) ativado manualmente.", [
+            'tenant_id' => $tenant->id,
         ]);
 
         return ApiResponseService::success($tenant, 'Tenant ativado com sucesso');
@@ -175,13 +168,8 @@ class TenantController extends Controller
         $tenant->suspend();
 
         // Log action
-        AuditLog::create([
-            'user_id' => $request->user()->id,
-            'action' => 'tenant.suspended',
-            'description' => "Tenant {$tenant->name} ({$tenant->id}) suspenso manualmente.",
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-            'metadata' => ['tenant_id' => $tenant->id]
+        $this->audit('tenant.suspended', "Tenant {$tenant->name} ({$tenant->id}) suspenso manualmente.", [
+            'tenant_id' => $tenant->id,
         ]);
 
         return ApiResponseService::success($tenant, 'Tenant suspenso com sucesso');

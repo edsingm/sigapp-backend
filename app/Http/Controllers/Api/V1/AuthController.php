@@ -40,7 +40,7 @@ class AuthController extends Controller
         if (!$tenant) {
             return ApiResponseService::error(
                 'TENANT_NOT_FOUND',
-                'Tenant não encontrado',
+                'TENANT_NOT_FOUND',
                 null,
                 404
             );
@@ -54,7 +54,7 @@ class AuthController extends Controller
             if (!$user || !Hash::check($credentials['password'], $user->password)) {
                 return ApiResponseService::error(
                     'UNAUTHORIZED',
-                    'Credenciais inválidas',
+                    'INVALID_CREDENTIALS',
                     null,
                     401
                 );
@@ -80,7 +80,7 @@ class AuthController extends Controller
                 ],
                 'abilities' => ['*'],
                 'expires_at' => $tokenResult->accessToken->expires_at?->toIso8601String(),
-            ], 'Login realizado com sucesso');
+            ], 'LOGIN_SUCCESS');
         } finally {
             if (tenancy()->initialized) {
                 tenancy()->end();
@@ -111,7 +111,7 @@ class AuthController extends Controller
         if (($result['next_action'] ?? null) === 'unauthorized') {
             return ApiResponseService::error(
                 'UNAUTHORIZED',
-                'Credenciais inválidas',
+                'INVALID_CREDENTIALS',
                 null,
                 401
             );
@@ -120,8 +120,8 @@ class AuthController extends Controller
         return ApiResponseService::success(
             $result,
             ($result['next_action'] ?? null) === 'choose_tenant'
-                ? 'Selecione o tenant para continuar'
-                : 'Redirecionamento pronto'
+                ? 'CHOOSE_TENANT'
+                : 'REDIRECT_READY'
         );
     }
 
@@ -148,13 +148,13 @@ class AuthController extends Controller
         if (!$result) {
             return ApiResponseService::error(
                 'BROKER_SESSION_INVALID',
-                'Sessão de seleção inválida ou expirada',
+                'INVALID_SESSION',
                 null,
                 410
             );
         }
 
-        return ApiResponseService::success($result, 'Redirecionamento pronto');
+        return ApiResponseService::success($result, 'REDIRECT_READY');
     }
 
     /**
@@ -178,7 +178,7 @@ class AuthController extends Controller
         if (!$result) {
             return ApiResponseService::error(
                 'INVALID_TRANSFER_TICKET',
-                'Ticket inválido, expirado ou já utilizado',
+                'INVALID_TICKET',
                 null,
                 401
             );
@@ -189,7 +189,7 @@ class AuthController extends Controller
             'token' => $result['token'],
             'abilities' => $result['abilities'],
             'expires_at' => $result['expires_at'],
-        ], 'Login realizado com sucesso');
+        ], 'LOGIN_SUCCESS');
     }
 
     public function forgotPassword(Request $request, TenantPasswordResetService $passwordResetService)
@@ -206,7 +206,7 @@ class AuthController extends Controller
 
         return ApiResponseService::success(
             null,
-            'Se o e-mail informado existir, enviaremos instruções para redefinir a senha.'
+            'PASSWORD_RECOVERY_EMAIL_SEND'
         );
     }
 
@@ -231,23 +231,23 @@ class AuthController extends Controller
             return match ($status) {
                 Password::PASSWORD_RESET => ApiResponseService::success(
                     null,
-                    'Senha redefinida com sucesso.'
+                    'PASSWORD_RECOVERY_RESET_SUCCESS'
                 ),
                 Password::INVALID_TOKEN => ApiResponseService::error(
                     'INVALID_RESET_TOKEN',
-                    'O link de redefinição é inválido ou expirou.',
+                    'PASSWORD_RECOVERY_INVALID_TOKEN',
                     null,
                     422
                 ),
                 Password::INVALID_USER => ApiResponseService::error(
                     'INVALID_RESET_USER',
-                    'Não foi possível validar a solicitação de redefinição.',
+                    'PASSWORD_RECOVERY_INVALID_USER',
                     null,
                     422
                 ),
                 default => ApiResponseService::error(
                     'PASSWORD_RESET_FAILED',
-                    'Não foi possível redefinir a senha.',
+                    'PASSWORD_RECOVERY_RESET_FAILED',
                     ['status' => $status],
                     422
                 ),
@@ -260,7 +260,7 @@ class AuthController extends Controller
 
         if (!is_string($tenantIdentifier) || $tenantIdentifier === '') {
             return ApiResponseService::validationError([
-                'tenant_identifier' => ['O tenant é obrigatório para redefinir a senha fora do domínio do cliente.'],
+                'tenant_identifier' => [language()->t('PASSWORD_RECOVERY_TENANT_REQUIRED')],
             ]);
         }
 
@@ -270,7 +270,7 @@ class AuthController extends Controller
             ->first();
 
         if (!$tenant) {
-            return ApiResponseService::notFound('Tenant não encontrado');
+            return ApiResponseService::notFound('TENANT_NOT_FOUND');
         }
 
         tenancy()->initialize($tenant);
@@ -294,17 +294,18 @@ class AuthController extends Controller
         summary: 'Login do usuário (tenant)',
         tags: ['Auth'],
         responses: [
-            new OA\Response(response: 200, description: 'Sucesso'),
-            new OA\Response(response: 401, description: 'Não autorizado'),
-            new OA\Response(response: 410, description: 'Endpoint descontinuado')
+            new OA\Response(response: 200, description: 'Success'),
+            new OA\Response(response: 401, description: 'Unauthorized'),
+            new OA\Response(response: 410, description: 'Deprecated endpoint'),
         ]
     )]
+
     public function login(LoginRequest $request)
     {
         if (!tenancy()->initialized) {
             return ApiResponseService::error(
                 'DEPRECATED_ENDPOINT',
-                'Use o fluxo de login central em /api/v1/auth/central-login.',
+                'USE_CENTRAL_LOGIN_FLOW',
                 null,
                 410
             );
@@ -319,7 +320,7 @@ class AuthController extends Controller
         if (!$user || !Hash::check($credentials['password'], $user->password)) {
             return ApiResponseService::error(
                 'UNAUTHORIZED',
-                'Credenciais inválidas',
+                'INVALID_CREDENTIALS',
                 null,
                 401
             );
@@ -342,7 +343,7 @@ class AuthController extends Controller
             'token' => $tokenResult->plainTextToken,
             'abilities' => ['*'],
             'expires_at' => $tokenResult->accessToken->expires_at?->toIso8601String(),
-        ], 'Login realizado com sucesso');
+        ], 'LOGIN_SUCCESS');
     }
 
     /**
@@ -355,7 +356,7 @@ class AuthController extends Controller
         // Revoke the token that was used for authentication
         $request->user()->currentAccessToken()->delete();
 
-        return ApiResponseService::success(null, 'Logout realizado com sucesso');
+        return ApiResponseService::success(null, 'LOGOUT_SUCCESS');
     }
 
     /**
@@ -368,7 +369,7 @@ class AuthController extends Controller
         // Revoke all tokens
         $request->user()->tokens()->delete();
 
-        return ApiResponseService::success(null, 'Logout de todos os dispositivos realizado');
+        return ApiResponseService::success(null, 'LOGOUT_ALL_DEVICES_SUCCESS');
     }
 
     /**
@@ -382,7 +383,7 @@ class AuthController extends Controller
         $currentToken = $request->user()->currentAccessToken();
 
         if (!$currentToken) {
-            return ApiResponseService::unauthorized('Token atual inválido');
+            return ApiResponseService::unauthorized('INVALID_TOKEN');
         }
 
         $tokenName = $currentToken?->name ?? 'api-token';
@@ -404,7 +405,7 @@ class AuthController extends Controller
         return ApiResponseService::success([
             'token' => $tokenResult->plainTextToken,
             'expires_at' => $tokenResult->accessToken->expires_at?->toIso8601String(),
-        ], 'Token renovado com sucesso');
+        ], 'TOKEN_RENEWED');
     }
 
     /**
@@ -419,13 +420,13 @@ class AuthController extends Controller
         if ($user instanceof CentralUser && !tenancy()->initialized) {
             return ApiResponseService::success(
                 new CentralUserResource($user),
-                'Usuário recuperado com sucesso'
+                'USER_RETRIEVED'
             );
         }
 
         return ApiResponseService::success(
             new UserResource($user),
-            'Usuário recuperado com sucesso'
+            'USER_RETRIEVED'
         );
     }
 
@@ -441,12 +442,16 @@ class AuthController extends Controller
     }
 }
 
+/**
+ * Define os metadados globais da especificação OpenAPI da API SIGPRO.
+ *
+ * Esta classe atua como um ponto de ancoragem para os atributos `OA\Info` e `OA\Server`,
+ * informando versão, título, descrição e URL base da documentação da API.
+ */
 #[OA\Info(
     version: 'v1',
     title: 'SIGPRO API',
     description: 'API REST para SaaS multi-tenant SIGPRO'
 )]
 #[OA\Server(url: '/')]
-final class OpenApiSpec
-{
-}
+final class OpenApiSpec {}

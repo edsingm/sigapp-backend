@@ -3,20 +3,22 @@
 namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Http\Resources\Tenant\TerrenoProdutoResource;
-use App\Models\Tenant\TerrenoProduto;
 use App\Http\Requests\Tenant\StoreTerrenoProdutoRequest;
 use App\Http\Requests\Tenant\UpdateTerrenoProdutoRequest;
-
+use App\Http\Resources\Tenant\TerrenoProdutoResource;
+use App\Models\Tenant\TerrenoProduto;
+use App\Services\Tenant\LandWorkflowService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 class TerrenoProdutosController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+    public function __construct(
+        protected LandWorkflowService $workflowService,
+    ) {
+    }
+
     public function index(Request $request): JsonResponse
     {
         Gate::authorize('viewAny', TerrenoProduto::class);
@@ -53,22 +55,18 @@ class TerrenoProdutosController extends Controller
         return $cacheStore->remember($cacheKey, now()->addMinutes(30), $resolver);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(StoreTerrenoProdutoRequest $request): JsonResponse
     {
         Gate::authorize('create', TerrenoProduto::class);
 
         $data = $request->validated();
-
         $userId = $request->user()->id ?? null;
         $data['created_by'] = $userId;
         $data['updated_by'] = $userId;
 
         $terrenoProduto = TerrenoProduto::create($data);
-
         $terrenoProduto->load(['terreno', 'produto']);
+        $this->workflowService->syncReadiness($terrenoProduto->terreno()->firstOrFail(), $request->user(), 'land_product_created');
 
         return response()->json([
             'success' => true,
@@ -77,9 +75,6 @@ class TerrenoProdutosController extends Controller
         ], 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(string $id): JsonResponse
     {
         $terrenoProduto = TerrenoProduto::with(['terreno', 'produto', 'createdBy', 'updatedBy'])
@@ -92,9 +87,6 @@ class TerrenoProdutosController extends Controller
         ]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(UpdateTerrenoProdutoRequest $request, string $id): JsonResponse
     {
         $terrenoProduto = TerrenoProduto::findOrFail($id);
@@ -105,8 +97,8 @@ class TerrenoProdutosController extends Controller
         $data['updated_by'] = $userId;
 
         $terrenoProduto->update($data);
-
         $terrenoProduto->load(['terreno', 'produto']);
+        $this->workflowService->syncReadiness($terrenoProduto->terreno()->firstOrFail(), $request->user(), 'land_product_updated');
 
         return response()->json([
             'success' => true,
@@ -115,14 +107,16 @@ class TerrenoProdutosController extends Controller
         ]);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(Request $request, string $id): JsonResponse
     {
         $terrenoProduto = TerrenoProduto::findOrFail($id);
         Gate::authorize('delete', $terrenoProduto);
+        $terreno = $terrenoProduto->terreno()->first();
         $terrenoProduto->delete();
+
+        if ($terreno) {
+            $this->workflowService->syncReadiness($terreno, $request->user(), 'land_product_deleted');
+        }
 
         return response()->json([
             'success' => true,
@@ -130,9 +124,6 @@ class TerrenoProdutosController extends Controller
         ]);
     }
 
-    /**
-     * Get terreno produtos by terreno_id.
-     */
     public function byTerreno(string $terrenoId)
     {
         Gate::authorize('viewAny', TerrenoProduto::class);

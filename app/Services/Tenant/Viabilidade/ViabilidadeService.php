@@ -3,7 +3,9 @@
 namespace App\Services\Tenant\Viabilidade;
 
 use App\Models\Tenant\Viabilidade;
+use App\Models\Tenant\ViabilidadeAprovacao;
 use App\Models\Tenant\Terreno;
+use App\Services\Tenant\LandWorkflowService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -14,7 +16,8 @@ class ViabilidadeService
     protected ViabilidadeUnificadoService $unificadoService;
 
     public function __construct(
-        ViabilidadeUnificadoService $unificadoService
+        ViabilidadeUnificadoService $unificadoService,
+        protected LandWorkflowService $workflowService,
     ) {
         $this->unificadoService = $unificadoService;
     }
@@ -26,7 +29,8 @@ class ViabilidadeService
     {
         return Viabilidade::with(['terreno', 'createdBy', 'updatedBy'])
             ->where('terreno_id', $terrenoId)
-            ->orderBy('created_at', 'desc')
+            ->orderByDesc('version')
+            ->orderByDesc('created_at')
             ->get();
     }
 
@@ -37,7 +41,9 @@ class ViabilidadeService
     {
         return Viabilidade::with(['terreno', 'createdBy', 'updatedBy'])
             ->where('terreno_id', $terrenoId)
-            ->orderBy('created_at', 'desc')
+            ->where('is_current', true)
+            ->orderByDesc('version')
+            ->orderByDesc('created_at')
             ->first();
     }
 
@@ -63,9 +69,17 @@ class ViabilidadeService
     {
         return DB::transaction(function () use ($dados) {
             $this->validarDados($dados);
+            $terreno = Terreno::query()->findOrFail($dados['terreno_id']);
+            $nextVersion = ((int) Viabilidade::where('terreno_id', $dados['terreno_id'])->max('version')) + 1;
+
+            Viabilidade::where('terreno_id', $dados['terreno_id'])
+                ->where('is_current', true)
+                ->update(['is_current' => false]);
 
             $viabilidade = Viabilidade::create([
                 ...collect($dados)->except(['produtos'])->toArray(),
+                'version' => $nextVersion,
+                'is_current' => true,
                 'created_by' => Auth::id(),
                 'updated_by' => Auth::id(),
             ]);
@@ -80,8 +94,13 @@ class ViabilidadeService
                 'resultados_dre' => $dreResultados
             ]);
 
+            $this->advanceWorkflowForNewViability(
+                $terreno,
+                $viabilidade->version,
+            );
+
             return [
-                'viabilidade' => $viabilidade->load(['terreno', 'createdBy', 'updatedBy']),
+                'viabilidade' => $viabilidade->load(['terreno', 'createdBy', 'updatedBy', 'secoes', 'aprovacoes']),
             ];
         });
     }
@@ -111,7 +130,7 @@ class ViabilidadeService
             ]);
 
             return [
-                'viabilidade' => $viabilidade->fresh(['terreno', 'createdBy', 'updatedBy']),
+                'viabilidade' => $viabilidade->fresh(['terreno', 'createdBy', 'updatedBy', 'secoes', 'aprovacoes']),
                 'dre_resultados' => $dreResultados
             ];
         });
@@ -123,7 +142,7 @@ class ViabilidadeService
     public function buscarViabilidadeComDre(int $viabilidadeId): array
     {
         try {
-            $viabilidade = Viabilidade::with(['terreno.cidade', 'area.cidade', 'createdBy', 'updatedBy'])
+            $viabilidade = Viabilidade::with(['terreno.cidade', 'createdBy', 'updatedBy'])
                 ->findOrFail($viabilidadeId);
 
             $dreResultados = $viabilidade->resultados_dre;
@@ -183,6 +202,7 @@ class ViabilidadeService
         }
 
         return $query->orderBy('created_at', 'desc')
+            ->orderByDesc('version')
             ->paginate($filtros['per_page'] ?? 10);
     }
 
@@ -225,16 +245,42 @@ class ViabilidadeService
     public function duplicarViabilidade(int $viabilidadeId): Viabilidade
     {
         $viabilidadeOriginal = Viabilidade::findOrFail($viabilidadeId);
+        $nextVersion = ((int) Viabilidade::where('terreno_id', $viabilidadeOriginal->terreno_id)->max('version')) + 1;
 
         $dadosNova = $viabilidadeOriginal->toArray();
         $dadosNova['created_by'] = Auth::id();
         $dadosNova['updated_by'] = Auth::id();
         $dadosNova['resultados_dre'] = null;
+        $dadosNova['approval_status'] = 'pendente';
+        $dadosNova['approval_requested_at'] = null;
+        $dadosNova['approval_decided_at'] = null;
+        $dadosNova['approval_decided_by'] = null;
+        $dadosNova['approval_notes'] = null;
+        $dadosNova['submitted_at'] = null;
+        $dadosNova['locked_at'] = null;
+        $dadosNova['status'] = 'rascunho';
+        $dadosNova['version'] = $nextVersion;
+        $dadosNova['is_current'] = true;
+
+        Viabilidade::where('terreno_id', $viabilidadeOriginal->terreno_id)
+            ->where('is_current', true)
+            ->update(['is_current' => false]);
 
         // Remove campos gerados automaticamente
         unset($dadosNova['id'], $dadosNova['created_at'], $dadosNova['updated_at'], $dadosNova['deleted_at']);
 
-        return Viabilidade::create($dadosNova);
+        $novaViabilidade = Viabilidade::create($dadosNova);
+        $viabilidadeOriginal->loadMissing('secoes');
+        foreach ($viabilidadeOriginal->secoes as $secao) {
+            $novaViabilidade->secoes()->create([
+                'section_code' => $secao->section_code,
+                'section_name' => $secao->section_name,
+                'content_json' => $secao->content_json,
+                'status' => $secao->status,
+            ]);
+        }
+
+        return $novaViabilidade;
     }
 
     /**
@@ -268,5 +314,34 @@ class ViabilidadeService
                 'dre_resultados' => $dreResultados
             ];
         });
+    }
+
+    public function registrarAprovacao(Viabilidade $viabilidade, string $decision, ?string $comments = null): void
+    {
+        ViabilidadeAprovacao::create([
+            'viabilidade_id' => $viabilidade->id,
+            'user_id' => Auth::id(),
+            'decision' => $decision,
+            'comments' => $comments,
+            'created_at' => now(),
+        ]);
+    }
+
+    protected function advanceWorkflowForNewViability(Terreno $terreno, int $version): void
+    {
+        $user = Auth::user();
+        $reasonNotes = "Viabilidade versão {$version} criada.";
+
+        if (($terreno->workflow_status_code ?? null) === 'aguardando_viabilidade') {
+            return;
+        }
+
+        $this->workflowService->transition(
+            $terreno,
+            'aguardando_viabilidade',
+            $user,
+            'viability_created',
+            $reasonNotes,
+        );
     }
 }

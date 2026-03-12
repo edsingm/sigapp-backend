@@ -112,6 +112,11 @@ class TenantAclSyncService
         $permissions = [];
 
         foreach ($modulePermissions as $moduleKey => $value) {
+            $module = ModulesEnum::tryFrom($moduleKey);
+            if (!$module || $value === null) {
+                continue;
+            }
+
             if ($value === null) {
                 continue;
             }
@@ -133,60 +138,5 @@ class TenantAclSyncService
         }
 
         return $permissions;
-    }
-}
-
-
-        $createdPermissions = 0;
-        foreach ($systemPermissions as $permissionName) {
-            $permission = Permission::firstOrCreate([
-                'name' => $permissionName,
-                'guard_name' => 'web',
-            ]);
-
-            if ($permission->wasRecentlyCreated) {
-                $createdPermissions++;
-            }
-        }
-
-        $templateRows = tenancy()->central(function () use ($planId) {
-            return PlanRolePermissionTemplate::query()
-                ->where('plan_id', $planId)
-                ->orderBy('role_slug')
-                ->orderBy('permission_name')
-                ->get()
-                ->groupBy('role_slug');
-        });
-
-        $rolesSynced = 0;
-        $templatesApplied = 0;
-
-        foreach ($templateRows as $roleSlug => $rows) {
-            $role = Role::firstOrCreate([
-                'name' => (string) $roleSlug,
-                'guard_name' => 'web',
-            ]);
-
-            $permissionNames = $rows->pluck('permission_name')->unique()->values()->all();
-            $permissions = Permission::query()
-                ->where('guard_name', 'web')
-                ->whereIn('name', $permissionNames)
-                ->get();
-
-            $role->syncPermissions($permissions);
-
-            $rolesSynced++;
-            $templatesApplied += count($permissionNames);
-        }
-
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
-
-        return [
-            'tenant_id' => (string) $tenant->id,
-            'plan_id' => (int) $planId,
-            'permissions_created' => $createdPermissions,
-            'roles_synced' => $rolesSynced,
-            'templates_applied' => $templatesApplied,
-        ];
     }
 }

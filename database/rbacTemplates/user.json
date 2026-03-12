@@ -11,7 +11,9 @@
         "brokers": "viewer",
         "data": "viewer",
         "dashboard": "viewer",
+        "committee": "viewer",
         "legal": "viewer",
+        "negotiation": "viewer",
         "projects": "viewer",
         "reports": "viewer",
         "viability": "viewer"

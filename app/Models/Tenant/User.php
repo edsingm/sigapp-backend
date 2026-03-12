@@ -2,6 +2,7 @@
 
 namespace App\Models\Tenant;
 
+use App\Enums\Common\RolesEnum;
 use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
 use App\Notifications\TenantResetPasswordNotification;
@@ -26,6 +27,13 @@ use App\Traits\HasDashboardCache;
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, HasRoles, Notifiable, HasDashboardCache;
+
+    private const SUPER_ADMIN_ROLE_NAMES = ['SUPER_ADMIN', 'super_admin'];
+    private const ADMIN_ROLE_NAMES = [
+        RolesEnum::ADMIN->value,
+        'admin',
+        ...self::SUPER_ADMIN_ROLE_NAMES,
+    ];
 
     protected $guard_name = 'web';
 
@@ -80,7 +88,7 @@ class User extends Authenticatable
      */
     public function isSuperAdmin(): bool
     {
-        return $this->hasRole('super_admin');
+        return $this->hasAnyRole(self::SUPER_ADMIN_ROLE_NAMES);
     }
 
     /**
@@ -88,7 +96,7 @@ class User extends Authenticatable
      */
     public function isAdmin(): bool
     {
-        return $this->hasRole(['super_admin', 'admin']);
+        return $this->hasAnyRole(self::ADMIN_ROLE_NAMES);
     }
 
     /**

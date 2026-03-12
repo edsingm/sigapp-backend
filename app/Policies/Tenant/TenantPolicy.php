@@ -9,33 +9,18 @@ use App\Models\Tenant\User;
  * Single policy for all tenant models.
  *
  * All logic lives in before(), which Laravel calls with the model class (for
- * viewAny/create) or model instance (for view/update/delete/etc.) as the third
- * argument — before any named policy method is invoked.
- *
- * Ability → minimum required level:
- *   viewAny / view            → viewer
- *   create  / update          → editor
- *   everything else           → manager  (delete, restore, export, ativar, approve…)
- *
- * Admin and super_admin bypass all checks (before() returns true immediately).
+ * viewAny/create) or model instance (for view/update/delete/etc.) before the
+ * named policy method below.
  */
 class TenantPolicy
 {
-    /**
-     * Called before any policy method. Handles all authorization.
-     *
-     * Returning non-null short-circuits all named methods below.
-     * Returning null falls through to the named method (which denies by default).
-     *
-     * Model → module mapping lives in ModulesEnum::models() — add new models there.
-     */
     public function before(User $user, string $ability, mixed $modelOrClass = null): ?bool
     {
         if ($user->isAdmin()) {
             return true;
         }
 
-        $class  = is_object($modelOrClass) ? get_class($modelOrClass) : (string) $modelOrClass;
+        $class = is_object($modelOrClass) ? get_class($modelOrClass) : (string) $modelOrClass;
         $module = ModulesEnum::modelMap()[$class] ?? null;
 
         if (!$module) {
@@ -43,15 +28,13 @@ class TenantPolicy
         }
 
         $level = match (true) {
-            in_array($ability, ['viewAny', 'view'], true) => 'viewer',
-            in_array($ability, ['create', 'update'], true) => 'editor',
+            in_array($ability, ['viewAny', 'view', 'compare'], true) => 'viewer',
+            in_array($ability, ['create', 'update', 'ativar', 'requestApproval', 'duplicate', 'gerarDre', 'recalcular', 'reorder', 'syncGantt', 'recalcularProgresso'], true) => 'editor',
             default => 'manager',
         };
 
         return $user->can("{$module}.{$level}");
     }
-
-    // ── Default-deny fallbacks (only reached when model is not in MODEL_MAP) ──
 
     public function viewAny(User $user): bool { return false; }
     public function view(User $user, mixed $model): bool { return false; }
@@ -59,5 +42,18 @@ class TenantPolicy
     public function update(User $user, mixed $model): bool { return false; }
     public function delete(User $user, mixed $model): bool { return false; }
     public function restore(User $user, mixed $model): bool { return false; }
-}
 
+    public function ativar(User $user, mixed $model): bool { return false; }
+    public function requestApproval(User $user, mixed $model): bool { return false; }
+    public function approve(User $user, mixed $model): bool { return false; }
+    public function duplicate(User $user, mixed $model): bool { return false; }
+    public function compare(User $user): bool { return false; }
+    public function gerarDre(User $user, mixed $model): bool { return false; }
+    public function recalcular(User $user, mixed $model): bool { return false; }
+    public function reorder(User $user): bool { return false; }
+    public function syncGantt(User $user, mixed $model): bool { return false; }
+    public function recalcularProgresso(User $user, mixed $model): bool { return false; }
+    public function export(User $user, mixed $model): bool { return false; }
+    public function markReady(User $user, mixed $model): bool { return false; }
+    public function cancel(User $user, mixed $model): bool { return false; }
+}

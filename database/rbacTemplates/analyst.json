@@ -11,7 +11,9 @@
         "brokers": "manager",
         "data": "manager",
         "dashboard": "viewer",
+        "committee": "viewer",
         "legal": "manager",
+        "negotiation": "viewer",
         "projects": "viewer",
         "reports": "viewer",
         "viability": "manager"

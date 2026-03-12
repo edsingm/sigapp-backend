@@ -21,6 +21,7 @@ class UpdateProjetoRequest extends FormRequest
             'status' => ['sometimes', 'required', Rule::in([
                 Projeto::STATUS_EM_VIABILIDADE,
                 Projeto::STATUS_EM_LEGALIZACAO,
+                Projeto::STATUS_FINALIZADO,
                 Projeto::STATUS_PRONTO_PARA_REGISTRO,
                 Projeto::STATUS_CANCELADO,
             ])],

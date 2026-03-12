@@ -29,7 +29,6 @@ return new class extends Migration {
 
             $table->decimal('area_calculada', 12, 2)->nullable();
 
-            $table->foreignId('status_id')->nullable();
             $table->foreignId('regional_id')->nullable();
 
             $table->string('cep', 10)->nullable();
@@ -54,7 +53,6 @@ return new class extends Migration {
             $table->softDeletes();
             $table->timestamps();
 
-            $table->index(['status_id']);
             $table->index(['regional_id']);
             $table->index(['corretor_id']);
             $table->index(['responsavel_id']);

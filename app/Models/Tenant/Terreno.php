@@ -57,8 +57,15 @@ class Terreno extends Model
         'polygon_coords',
         'static_map_url',
         'area_calculada',
-        'status_id',
         'regional_id',
+        'workflow_stage',
+        'workflow_status_code',
+        'workflow_status_changed_at',
+        'workflow_reason_code',
+        'workflow_reason_notes',
+        'qualification_data',
+        'qualification_completed_at',
+        'qualification_completed_by',
         'cep',
         'bairro',
         'observacoes',
@@ -80,6 +87,9 @@ class Terreno extends Model
         'polygon_coords' => 'array',
         'area_calculada' => 'decimal:2',
         'valor' => 'decimal:2',
+        'qualification_data' => 'array',
+        'workflow_status_changed_at' => 'datetime',
+        'qualification_completed_at' => 'datetime',
         'data_apresentacao' => 'date',
         'data_negociacao' => 'date',
         'data_opcao' => 'date',
@@ -132,19 +142,6 @@ class Terreno extends Model
         return $this->updater();
     }
 
-    /**
-     * Status, regional, and external broker relationships.
-     */
-    public function status(): BelongsTo
-    {
-        return $this->belongsTo(TerrenoStatus::class, 'status_id');
-    }
-
-    public function terrenoStatus(): BelongsTo
-    {
-        return $this->status();
-    }
-
     public function regional(): BelongsTo
     {
         return $this->belongsTo(Regional::class, 'regional_id');
@@ -183,7 +180,9 @@ class Terreno extends Model
 
     public function viabilidadeAtual(): HasOne
     {
-        return $this->hasOne(Viabilidade::class, 'terreno_id')->latestOfMany();
+        return $this->hasOne(Viabilidade::class, 'terreno_id')
+            ->where('is_current', true)
+            ->latestOfMany();
     }
 
     public function informacoes(): HasMany
@@ -201,6 +200,11 @@ class Terreno extends Model
         return $this->hasMany(Proprietario::class, 'terreno_id');
     }
 
+    public function contatos(): HasMany
+    {
+        return $this->hasMany(TerrenoContato::class, 'terreno_id');
+    }
+
     public function legalizacao(): HasOne
     {
         return $this->hasOne(Legalizacao::class, 'terreno_id');
@@ -209,6 +213,56 @@ class Terreno extends Model
     public function projetos(): HasMany
     {
         return $this->hasMany(Projeto::class, 'terreno_id');
+    }
+
+    public function comiteRevisoes(): HasMany
+    {
+        return $this->hasMany(ComiteRevisao::class, 'terreno_id');
+    }
+
+    public function comiteAtual(): HasOne
+    {
+        return $this->hasOne(ComiteRevisao::class, 'terreno_id')->latestOfMany();
+    }
+
+    public function negociacoes(): HasMany
+    {
+        return $this->hasMany(Negociacao::class, 'terreno_id');
+    }
+
+    public function negociacaoAtual(): HasOne
+    {
+        return $this->hasOne(Negociacao::class, 'terreno_id')->latestOfMany();
+    }
+
+    public function contratos(): HasMany
+    {
+        return $this->hasMany(Contrato::class, 'terreno_id');
+    }
+
+    public function contratoAtual(): HasOne
+    {
+        return $this->hasOne(Contrato::class, 'terreno_id')->latestOfMany();
+    }
+
+    public function statusHistories(): HasMany
+    {
+        return $this->hasMany(StatusHistory::class, 'terreno_id')->orderByDesc('created_at');
+    }
+
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(Task::class, 'terreno_id')->orderBy('due_date');
+    }
+
+    public function comments(): HasMany
+    {
+        return $this->hasMany(Comment::class, 'terreno_id')->orderByDesc('created_at');
+    }
+
+    public function activities(): HasMany
+    {
+        return $this->hasMany(EntityActivity::class, 'terreno_id')->orderByDesc('happened_at');
     }
 
     public function projetoAtivo(): HasOne

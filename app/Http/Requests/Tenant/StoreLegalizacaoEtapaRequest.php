@@ -20,8 +20,8 @@ class StoreLegalizacaoEtapaRequest extends FormRequest
         if (empty($custos) && $this->temAlgumCampoDeCustoRaiz()) {
             $custos = [[
                 'tipo_custo' => $this->input('tipo_custo'),
-                'valor_custo' => $this->input('valor_custo', $this->input('custo_previsto')),
-                'custo_pago' => $this->normalizarBoolean($this->input('custo_pago', $this->input('foi_pago', false))),
+                'valor_custo' => $this->input('valor_custo'),
+                'custo_pago' => $this->normalizarBoolean($this->input('custo_pago', false)),
             ]];
         }
 
@@ -32,14 +32,14 @@ class StoreLegalizacaoEtapaRequest extends FormRequest
                 $merge['tipo_custo'] = count($custos) === 1 ? ($custos[0]['tipo_custo'] ?? null) : 'Diversos';
             }
 
-            if (!$this->exists('valor_custo') && !$this->exists('custo_previsto')) {
+            if (!$this->exists('valor_custo')) {
                 $merge['valor_custo'] = array_sum(array_map(
                     fn ($custo) => (float) ($custo['valor_custo'] ?? 0),
                     $custos
                 ));
             }
 
-            if (!$this->exists('custo_pago') && !$this->exists('foi_pago')) {
+            if (!$this->exists('custo_pago')) {
                 $merge['custo_pago'] = collect($custos)->every(
                     fn ($custo) => (bool) ($custo['custo_pago'] ?? false)
                 );
@@ -50,20 +50,12 @@ class StoreLegalizacaoEtapaRequest extends FormRequest
             if (!$this->exists('tipo_custo')) {
                 $merge['tipo_custo'] = null;
             }
-            if (!$this->exists('valor_custo') && !$this->exists('custo_previsto')) {
+            if (!$this->exists('valor_custo')) {
                 $merge['valor_custo'] = null;
             }
-            if (!$this->exists('custo_pago') && !$this->exists('foi_pago')) {
+            if (!$this->exists('custo_pago')) {
                 $merge['custo_pago'] = false;
             }
-        }
-
-        if (!$this->exists('valor_custo') && $this->exists('custo_previsto')) {
-            $merge['valor_custo'] = $this->input('custo_previsto');
-        }
-
-        if (!$this->exists('custo_pago') && $this->exists('foi_pago')) {
-            $merge['custo_pago'] = $this->normalizarBoolean($this->input('foi_pago'));
         }
 
         if (!empty($merge)) {
@@ -147,9 +139,9 @@ class StoreLegalizacaoEtapaRequest extends FormRequest
                 continue;
             }
 
-            $tipo = $custo['tipo_custo'] ?? $custo['tipo'] ?? null;
-            $valor = $custo['valor_custo'] ?? $custo['valor'] ?? null;
-            $pago = $custo['custo_pago'] ?? $custo['pago'] ?? $custo['foi_pago'] ?? false;
+            $tipo = $custo['tipo_custo'] ?? null;
+            $valor = $custo['valor_custo'] ?? null;
+            $pago = $custo['custo_pago'] ?? false;
 
             if ($tipo === null && $valor === null) {
                 continue;
@@ -169,9 +161,7 @@ class StoreLegalizacaoEtapaRequest extends FormRequest
     {
         return $this->exists('tipo_custo')
             || $this->exists('valor_custo')
-            || $this->exists('custo_previsto')
-            || $this->exists('custo_pago')
-            || $this->exists('foi_pago');
+            || $this->exists('custo_pago');
     }
 
     protected function normalizarBoolean(mixed $value): bool

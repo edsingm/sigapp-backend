@@ -5,31 +5,11 @@ namespace App\Models\Tenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Tenant\Terreno;
 use App\Traits\LogsActivity;
 use App\Traits\HasDashboardCache;
-
-
-/** Obter todas as viabilidades de uma área
-* $area = Area::with('viabilidades')->find(1);
-* $todasViabilidades = $area->viabilidades;
-*
-* Obter apenas a viabilidade mais recente
-* $viabilidadeAtual = $area->viabilidadeAtual;
-*
-* Buscar viabilidade mais recente por área específica
-* $ultimaViabilidade = Viabilidade::latestByArea($areaId)->first();
-
-* Buscar apenas viabilidades ativas (mais recentes de cada área)
-* $viabilidadesAtivas = Viabilidade::ativas()->with('area')->get();
-
-* Histórico de viabilidades de uma área
-* $historico = $area->viabilidades()
-*    ->orderBy('created_at', 'desc')
-*    ->get();
-*/
-
 
 class Viabilidade extends Model
 {
@@ -87,6 +67,8 @@ class Viabilidade extends Model
 
     protected $fillable = [
         'terreno_id',
+        'version',
+        'is_current',
         'parceria_vgv',
         'compra_terreno',
         'infra_nao_incidente',
@@ -119,6 +101,8 @@ class Viabilidade extends Model
         'approval_decided_at',
         'approval_decided_by',
         'approval_notes',
+        'submitted_at',
+        'locked_at',
         'created_by',
         'updated_by',
     ];
@@ -149,8 +133,11 @@ class Viabilidade extends Model
         'outras_despesas_financeiras' => 'decimal:2',
         'despesas_onerosas_bancos' => 'decimal:2',
         'resultados_dre' => 'array',
+        'is_current' => 'boolean',
         'approval_requested_at' => 'datetime',
         'approval_decided_at' => 'datetime',
+        'submitted_at' => 'datetime',
+        'locked_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
@@ -190,20 +177,9 @@ class Viabilidade extends Model
         'despesas_onerosas_bancos' => '10.00',
     ];
 
-    /**
-     * Relacionamento com a área
-     */
     public function terreno(): BelongsTo
     {
         return $this->belongsTo(Terreno::class);
-    }
-
-    /**
-     * Alias para terreno (compatibilidade com templates antigos)
-     */
-    public function area(): BelongsTo
-    {
-        return $this->terreno();
     }
 
     /**
@@ -225,6 +201,16 @@ class Viabilidade extends Model
     public function approvalDecidedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approval_decided_by');
+    }
+
+    public function secoes(): HasMany
+    {
+        return $this->hasMany(ViabilidadeSecao::class, 'viabilidade_id');
+    }
+
+    public function aprovacoes(): HasMany
+    {
+        return $this->hasMany(ViabilidadeAprovacao::class, 'viabilidade_id')->orderByDesc('created_at');
     }
 
     public function isApproved(): bool

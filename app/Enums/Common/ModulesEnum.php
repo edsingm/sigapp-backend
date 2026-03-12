@@ -2,17 +2,19 @@
 
 namespace App\Enums\Common;
 
+use App\Models\Tenant\ComiteRevisao;
+use App\Models\Tenant\Contrato;
 use App\Models\Tenant\CorretorExterno;
 use App\Models\Tenant\Documento;
 use App\Models\Tenant\Legalizacao;
 use App\Models\Tenant\LegalizacaoEtapa;
+use App\Models\Tenant\Negociacao;
 use App\Models\Tenant\Produto;
 use App\Models\Tenant\Projeto;
 use App\Models\Tenant\Proprietario;
 use App\Models\Tenant\Regional;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\TerrenoProduto;
-use App\Models\Tenant\TerrenoStatus;
 use App\Models\Tenant\Viabilidade;
 
 enum ModulesEnum: string
@@ -23,7 +25,9 @@ enum ModulesEnum: string
     case BROKERS = 'brokers';
     case DATA = 'data';
     case DASHBOARD = 'dashboard';
+    case COMMITTEE = 'committee';
     case LEGAL = 'legal';
+    case NEGOTIATION = 'negotiation';
     case PROJECTS = 'projects';
     case REPORTS = 'reports';
     case VIABILITY = 'viability';
@@ -32,16 +36,16 @@ enum ModulesEnum: string
     public function label(): string
     {
         return match ($this) {
-            self::ADMIN => language()->t('ADMIN'),
-            self::CONFIGURATIONS => language()->t('CONFIGURATIONS'),
-            self::PROSPECTION => language()->t('PROSPECTION'),
-            self::BROKERS => language()->t('BROKERS'),
-            self::DATA => language()->t('DATA'),
-            self::DASHBOARD => language()->t('DASHBOARD'),
-            self::LEGAL => language()->t('LEGAL'),
-            self::PROJECTS => language()->t('PROJECTS'),
-            self::REPORTS => language()->t('REPORTS'),
-            self::VIABILITY => language()->t('VIABILITY')
+            self::ADMIN => 'Administração',
+            self::CONFIGURATIONS => 'Configurações',
+            self::PROSPECTION => 'Prospecção',
+            self::BROKERS => 'Corretores',
+            self::DATA => 'Dados',
+            self::DASHBOARD => 'Dashboard',
+            self::LEGAL => 'Legalizações',
+            self::PROJECTS => 'Projetos',
+            self::REPORTS => 'Relatórios',
+            self::VIABILITY => 'Viabilidade'
         };
     }
 
@@ -91,12 +95,18 @@ enum ModulesEnum: string
                 Produto::class        => null,
                 Proprietario::class   => null,
                 TerrenoProduto::class => null,
-                TerrenoStatus::class  => null,
                 Documento::class      => null,
             ],
             self::LEGAL => [
                 Legalizacao::class      => null,
                 LegalizacaoEtapa::class => null,
+            ],
+            self::COMMITTEE => [
+                ComiteRevisao::class => null,
+            ],
+            self::NEGOTIATION => [
+                Negociacao::class => null,
+                Contrato::class => null,
             ],
             self::PROJECTS => [
                 Projeto::class => null,

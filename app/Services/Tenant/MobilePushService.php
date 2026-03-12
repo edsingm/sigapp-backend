@@ -118,7 +118,7 @@ class MobilePushService
             ->where(function (Builder $query) use ($permission) {
                 $query->whereHas('permissions', fn (Builder $builder) => $builder->where('name', $permission))
                     ->orWhereHas('roles.permissions', fn (Builder $builder) => $builder->where('name', $permission))
-                    ->orWhereHas('roles', fn (Builder $builder) => $builder->whereIn('name', ['admin', 'super_admin']));
+                    ->orWhereHas('roles', fn (Builder $builder) => $builder->whereIn('name', ['ADMIN', 'SUPER_ADMIN', 'admin', 'super_admin']));
             })
             ->when($exclude, fn (Builder $query) => $query->whereKeyNot($exclude->getKey()))
             ->get();

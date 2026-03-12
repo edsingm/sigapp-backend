@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Tenant;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreTerrenoRequest extends FormRequest
 {
@@ -25,7 +26,7 @@ class StoreTerrenoRequest extends FormRequest
             'polygon_coords.*.lng' => 'required_with:polygon_coords|numeric',
             'static_map_url' => 'nullable|string',
             'area_calculada' => 'nullable|numeric',
-            'status_id' => 'required|integer|exists:terreno_status,id',
+            'workflow_status_code' => ['nullable', 'string', Rule::in(['em_analise'])],
             'regional_id' => 'nullable|integer|exists:regionais,id',
             'cep' => 'nullable|string|max:10',
             'bairro' => 'nullable|string|max:255',
@@ -50,7 +51,6 @@ class StoreTerrenoRequest extends FormRequest
             'nome.required' => 'O nome é obrigatório.',
             'estado.required' => 'O estado (UF) é obrigatório.',
             'cidade_code.exists' => 'Código da cidade inválido.',
-            'status_id.required' => 'O status é obrigatório.',
             'responsavel_id.exists' => 'Responsável inválido.',
             'comprador_id.exists' => 'Comprador inválido.',
             'polygon_coords.array' => 'polygon_coords deve ser um array.',

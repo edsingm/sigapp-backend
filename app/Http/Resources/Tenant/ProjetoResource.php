@@ -4,6 +4,7 @@ namespace App\Http\Resources\Tenant;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Services\Tenant\LandWorkflowService;
 
 class ProjetoResource extends JsonResource
 {
@@ -24,7 +25,7 @@ class ProjetoResource extends JsonResource
             'terreno' => $this->whenLoaded('terreno', fn () => [
                 'id' => $this->terreno->id,
                 'nome' => $this->terreno->nome,
-                'status' => $this->terreno->status?->nome,
+                'status' => LandWorkflowService::statuses()[$this->terreno->workflow_status_code]['label'] ?? null,
             ]),
             'pronto_para_registro_por_user' => $this->whenLoaded('prontoParaRegistroPor', fn () => [
                 'id' => $this->prontoParaRegistroPor->id,

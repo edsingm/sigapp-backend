@@ -13,7 +13,6 @@ use App\Http\Controllers\Api\V1\Tenant\RegionaisController;
 use App\Http\Controllers\Api\V1\Tenant\ProdutosController;
 use App\Http\Controllers\Api\V1\Tenant\ProprietariosController;
 use App\Http\Controllers\Api\V1\Tenant\TerrenoProdutosController;
-use App\Http\Controllers\Api\V1\Tenant\TerrenoStatusController;
 use App\Http\Controllers\Api\V1\Tenant\TerrenosExportController;
 use App\Http\Controllers\Api\V1\Tenant\ViabilidadeController;
 use App\Http\Controllers\Api\V1\Tenant\DashboardController;
@@ -21,7 +20,11 @@ use App\Http\Controllers\Api\V1\Tenant\LegalizacaoController;
 use App\Http\Controllers\Api\V1\Tenant\LegalizacaoEtapaController;
 use App\Http\Controllers\Api\V1\Tenant\MobileDeviceController;
 use App\Http\Controllers\Api\V1\Tenant\MobileNotificationController;
+use App\Http\Controllers\Api\V1\Tenant\CommitteeController;
+use App\Http\Controllers\Api\V1\Tenant\ContractController;
+use App\Http\Controllers\Api\V1\Tenant\NegotiationController;
 use App\Http\Controllers\Api\V1\Tenant\ProjetoController;
+use App\Http\Controllers\Api\V1\Tenant\TerrenoWorkflowController;
 use App\Http\Controllers\Api\V1\CidadesController;
 use App\Http\Controllers\Api\V1\LanguageController;
 use App\Http\Middleware\AddTenantContextToLogs;
@@ -116,6 +119,9 @@ Route::middleware([
             Route::post('/terrenos/{id}/informacoes', [TerrenoController::class, 'storeInfo']);
             Route::put('/terrenos/informacoes/{infoId}', [TerrenoController::class, 'updateInfo']);
             Route::delete('/terrenos/informacoes/{infoId}', [TerrenoController::class, 'destroyInfo']);
+            Route::get('/terrenos/{id}/workflow', [TerrenoWorkflowController::class, 'show']);
+            Route::post('/terrenos/{id}/workflow', [TerrenoWorkflowController::class, 'update']);
+            Route::put('/terrenos/{id}/qualificacao', [TerrenoWorkflowController::class, 'updateQualification']);
 
             Route::apiResource('terrenos', TerrenoController::class)->except(['store']);
 
@@ -148,11 +154,6 @@ Route::middleware([
             Route::get('/terreno-produtos/by-terreno/{terrenoId}', [TerrenoProdutosController::class, 'byTerreno']);
             Route::apiResource('terreno-produtos', TerrenoProdutosController::class);
 
-            // Terreno Status
-            Route::get('/terreno-status/select', [TerrenoStatusController::class, 'statusForSelect']);
-            Route::get('/terrenos/{terreno}/status', [TerrenoStatusController::class, 'index']);
-            Route::post('/terrenos/{terreno}/status', [TerrenoStatusController::class, 'store']);
-
             // Terreno Export
             Route::get('/terrenos/export/pdf', [TerrenosExportController::class, 'exportPdf']);
             Route::get('/terrenos/export/excel', [TerrenosExportController::class, 'exportExcel']);
@@ -184,6 +185,26 @@ Route::middleware([
             Route::post('/projetos/{id}/marcar-pronto-registro', [ProjetoController::class, 'markReady']);
             Route::post('/projetos/{id}/cancelar', [ProjetoController::class, 'cancel']);
             Route::apiResource('projetos', ProjetoController::class)->only(['index', 'store', 'show', 'update']);
+
+            // Comitê
+            Route::get('/comite', [CommitteeController::class, 'index']);
+            Route::post('/comite', [CommitteeController::class, 'store']);
+            Route::get('/comite/{id}', [CommitteeController::class, 'show']);
+            Route::post('/comite/{id}/department-reviews', [CommitteeController::class, 'upsertDepartmentReview']);
+            Route::post('/comite/{id}/decision', [CommitteeController::class, 'finalize']);
+
+            // Negociação e contratos
+            Route::get('/negociacoes', [NegotiationController::class, 'index']);
+            Route::post('/negociacoes', [NegotiationController::class, 'store']);
+            Route::get('/negociacoes/{id}', [NegotiationController::class, 'show']);
+            Route::put('/negociacoes/{id}', [NegotiationController::class, 'update']);
+            Route::post('/negociacoes/{id}/events', [NegotiationController::class, 'addEvent']);
+
+            Route::get('/contratos', [ContractController::class, 'index']);
+            Route::post('/contratos', [ContractController::class, 'store']);
+            Route::get('/contratos/{id}', [ContractController::class, 'show']);
+            Route::put('/contratos/{id}', [ContractController::class, 'update']);
+            Route::post('/contratos/{id}/sign', [ContractController::class, 'sign']);
 
             // Cidades e Estados
             Route::get('/cidades/estados', [CidadesController::class, 'index']);

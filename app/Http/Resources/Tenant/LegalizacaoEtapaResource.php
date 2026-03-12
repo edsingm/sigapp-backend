@@ -20,18 +20,13 @@ class LegalizacaoEtapaResource extends JsonResource
         }
 
         $custos = array_values(array_map(function ($custo) {
-            $valor = $custo['valor_custo'] ?? $custo['valor'] ?? null;
-            $pago = $custo['custo_pago'] ?? $custo['pago'] ?? $custo['foi_pago'] ?? false;
+            $valor = $custo['valor_custo'] ?? null;
+            $pago = $custo['custo_pago'] ?? false;
 
             return [
-                'tipo_custo' => $custo['tipo_custo'] ?? $custo['tipo'] ?? null,
+                'tipo_custo' => $custo['tipo_custo'] ?? null,
                 'valor_custo' => $valor !== null ? (float) $valor : null,
                 'custo_pago' => (bool) $pago,
-                // Compatibilidade retroativa no item.
-                'tipo' => $custo['tipo_custo'] ?? $custo['tipo'] ?? null,
-                'valor' => $valor !== null ? (float) $valor : null,
-                'pago' => (bool) $pago,
-                'foi_pago' => (bool) $pago,
             ];
         }, $custos));
 
@@ -68,10 +63,7 @@ class LegalizacaoEtapaResource extends JsonResource
             'custos' => $custos,
             'tipo_custo' => $tipoCustoResumo,
             'valor_custo' => $valorCustoTotal,
-            // Compatibilidade retroativa com o frontend legado.
-            'custo_previsto' => $valorCustoTotal,
             'custo_pago' => (bool) $custoPagoResumo,
-            'foi_pago' => (bool) $custoPagoResumo,
             'created_by' => $this->whenLoaded('createdBy', fn() => [
                 'id' => $this->createdBy->id,
                 'name' => $this->createdBy->name,

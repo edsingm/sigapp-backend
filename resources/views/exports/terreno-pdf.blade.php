@@ -317,12 +317,15 @@
     @php
         $tenantName = function_exists('tenant') ? (tenant('name') ?? tenant('slug')) : null;
         $companyName = $tenantName ?: config('app.name', 'SIG');
-        $isContratoAssinado = static function (?string $statusNome): bool {
-            $slug = \Illuminate\Support\Str::slug($statusNome ?? '');
-            return $slug === 'contrato-assinado' || str_contains($slug, 'contrato-assinado');
+        $workflowStatuses = \App\Services\Tenant\LandWorkflowService::statuses();
+        $statusLabel = static function (?string $statusCode) use ($workflowStatuses): string {
+            return $workflowStatuses[$statusCode]['label'] ?? 'Sem status';
+        };
+        $isContratoAssinado = static function (?string $statusCode): bool {
+            return $statusCode === 'contrato_assinado';
         };
         $terrenosComContratoAssinado = $terrenos->filter(
-            fn ($terreno) => $isContratoAssinado($terreno->status?->nome)
+            fn ($terreno) => $isContratoAssinado($terreno->workflow_status_code)
         );
         $totalContratosAssinados = (int) $terrenosComContratoAssinado->count();
         $totalUnidadesContratoAssinado = (int) $terrenosComContratoAssinado->sum(
@@ -413,7 +416,7 @@
                 <tbody>
                     @forelse($terrenos as $terreno)
                         @php
-                            $statusNome = $terreno->status?->nome ?? 'Sem status';
+                            $statusNome = $statusLabel($terreno->workflow_status_code);
                             $statusSlug = \Illuminate\Support\Str::slug($statusNome);
                             $statusClass = match($statusSlug) {
                                 'analise' => 'status-analise',

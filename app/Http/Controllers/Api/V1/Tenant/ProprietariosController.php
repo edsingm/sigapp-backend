@@ -7,24 +7,27 @@ use App\Http\Requests\Tenant\StoreProprietarioRequest;
 use App\Http\Requests\Tenant\UpdateProprietarioRequest;
 use App\Http\Resources\Tenant\ProprietarioResource;
 use App\Models\Tenant\Proprietario;
-use Illuminate\Http\Request;
+use App\Services\Tenant\LandWorkflowService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 class ProprietariosController extends Controller
 {
-    /**
-     * Display a listing of the owners.
-     */
+    public function __construct(
+        protected LandWorkflowService $workflowService,
+    ) {
+    }
+
     public function index(Request $request): JsonResponse
     {
         Gate::authorize('viewAny', Proprietario::class);
 
         $tenantId = tenant('id') ?? 'central';
         $filters = $request->only(['per_page', 'page', 'terreno_id']);
-        
+
         $cacheKey = "tenant:{$tenantId}:proprietarios:index:" . md5(json_encode($filters));
-        
+
         return \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:proprietarios"])->remember($cacheKey, now()->addMinutes(30), function () use ($request) {
             $perPage = (int) ($request->input('per_page') ?? 10);
             $terrenoId = $request->input('terreno_id');
@@ -42,9 +45,6 @@ class ProprietariosController extends Controller
         });
     }
 
-    /**
-     * Store a newly created owner in storage.
-     */
     public function store(StoreProprietarioRequest $request): JsonResponse
     {
         Gate::authorize('create', Proprietario::class);
@@ -56,6 +56,7 @@ class ProprietariosController extends Controller
         $data['updated_by'] = $userId;
 
         $owner = Proprietario::create($data);
+        $this->workflowService->syncReadiness($owner->terreno()->firstOrFail(), $request->user(), 'owner_created');
 
         return response()->json([
             'success' => true,
@@ -64,9 +65,6 @@ class ProprietariosController extends Controller
         ], 201);
     }
 
-    /**
-     * Display the specified owner.
-     */
     public function show(Proprietario $proprietario): JsonResponse
     {
         Gate::authorize('view', $proprietario);
@@ -77,9 +75,6 @@ class ProprietariosController extends Controller
         ]);
     }
 
-    /**
-     * Update the specified owner in storage.
-     */
     public function update(UpdateProprietarioRequest $request, Proprietario $proprietario): JsonResponse
     {
         Gate::authorize('update', $proprietario);
@@ -89,6 +84,7 @@ class ProprietariosController extends Controller
         $data['updated_by'] = $userId;
 
         $proprietario->update($data);
+        $this->workflowService->syncReadiness($proprietario->terreno()->firstOrFail(), $request->user(), 'owner_updated');
 
         return response()->json([
             'success' => true,
@@ -97,13 +93,15 @@ class ProprietariosController extends Controller
         ]);
     }
 
-    /**
-     * Remove the specified owner from storage.
-     */
     public function destroy(Proprietario $proprietario): JsonResponse
     {
         Gate::authorize('delete', $proprietario);
+        $terreno = $proprietario->terreno()->first();
         $proprietario->delete();
+
+        if ($terreno) {
+            $this->workflowService->syncReadiness($terreno, request()->user(), 'owner_deleted');
+        }
 
         return response()->json([
             'success' => true,

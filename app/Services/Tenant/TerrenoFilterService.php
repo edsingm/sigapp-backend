@@ -14,7 +14,6 @@ class TerrenoFilterService
     {
         $query = Terreno::query()
             ->with([
-                'status',
                 'responsavel',
                 'regional',
                 'cidade',
@@ -30,9 +29,9 @@ class TerrenoFilterService
             $query->whereRaw('LOWER(nome) LIKE ?', [Str::lower($nome) . '%']);
         }
 
-        $statusIds = $request->input('status_ids');
-        if (is_array($statusIds) && count($statusIds)) {
-            $query->whereIn('status_id', $statusIds);
+        $workflowStatuses = $request->input('workflow_statuses');
+        if (is_array($workflowStatuses) && count($workflowStatuses)) {
+            $query->whereIn('workflow_status_code', $workflowStatuses);
         }
 
         $ufs = $request->input('ufs');

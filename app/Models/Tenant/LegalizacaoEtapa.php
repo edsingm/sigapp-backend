@@ -24,6 +24,10 @@ class LegalizacaoEtapa extends Model
     protected $fillable = [
         'legalizacao_id',
         'parent_id',
+        'phase_code',
+        'subphase_code',
+        'is_required',
+        'is_critical',
         'titulo',
         'descricao',
         'ordem',
@@ -49,6 +53,8 @@ class LegalizacaoEtapa extends Model
         'inicio_real' => 'date',
         'fim_real' => 'date',
         'ordem' => 'integer',
+        'is_required' => 'boolean',
+        'is_critical' => 'boolean',
         'percentual' => 'integer',
         'valor_custo' => 'decimal:2',
         'custo_pago' => 'boolean',
@@ -116,6 +122,16 @@ class LegalizacaoEtapa extends Model
     public function dependencias(): HasMany
     {
         return $this->dependenciasDestino();
+    }
+
+    public function documentos(): HasMany
+    {
+        return $this->hasMany(LegalizacaoDocumentoFase::class, 'legalizacao_etapa_id');
+    }
+
+    public function pendencias(): HasMany
+    {
+        return $this->hasMany(LegalizacaoPendencia::class, 'legalizacao_etapa_id');
     }
 
     public function dependentes()

@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\Tenant\TerrenosExport;
+use App\Services\Tenant\LandWorkflowService;
 
 class TerrenosExportController extends Controller
 {
@@ -70,9 +71,9 @@ class TerrenosExportController extends Controller
                 $query->whereRaw('LOWER(nome) LIKE ?', [Str::lower($nome) . '%']);
             }
 
-            $statusIds = $request->input('status_ids');
-            if (is_array($statusIds) && count($statusIds)) {
-                $query->whereIn('status_id', $statusIds);
+            $workflowStatuses = $request->input('workflow_statuses');
+            if (is_array($workflowStatuses) && count($workflowStatuses)) {
+                $query->whereIn('workflow_status_code', $workflowStatuses);
             }
 
             $ufs = $request->input('ufs');
@@ -128,6 +129,10 @@ class TerrenosExportController extends Controller
                 'nome' => $request->input('nome'),
                 'dataInicio' => $request->input('data_inicio'),
                 'dataFim' => $request->input('data_fim'),
+                'workflow_statuses' => collect($request->input('workflow_statuses', []))
+                    ->map(fn (string $code) => LandWorkflowService::statuses()[$code]['label'] ?? $code)
+                    ->values()
+                    ->all(),
             ],
         ];
 
@@ -185,7 +190,7 @@ class TerrenosExportController extends Controller
 
         $filters = [
             'nome' => $request->input('nome'),
-            'status_ids' => $request->input('status_ids'),
+            'workflow_statuses' => $request->input('workflow_statuses'),
             'ufs' => $request->input('ufs'),
             'cidades' => $request->input('cidades'),
             'gestor_ids' => $request->input('gestor_ids'),

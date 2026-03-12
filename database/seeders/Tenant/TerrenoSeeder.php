@@ -4,8 +4,6 @@ namespace Database\Seeders\Tenant;
 
 use App\Models\Tenant\CorretorExterno;
 use App\Models\Tenant\Regional;
-use App\Models\Tenant\Terreno;
-use App\Models\Tenant\TerrenoStatus;
 use App\Models\Tenant\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
@@ -18,10 +16,6 @@ class TerrenoSeeder extends Seeder
     {
         $this->ensureUsers();
 
-        if (TerrenoStatus::query()->count() === 0) {
-            $this->call(AreaStatusSeeder::class);
-        }
-
         if (CorretorExterno::query()->count() === 0) {
             $this->call(CorretorExternoSeeder::class);
         }
@@ -31,8 +25,6 @@ class TerrenoSeeder extends Seeder
         }
 
         $userIds = User::query()->pluck('id')->all();
-        $statusByName = TerrenoStatus::query()->pluck('id', 'nome')->all();
-        $statusNames = array_keys($statusByName);
         $regionalIds = Regional::query()->pluck('id')->all();
         $corretorIds = CorretorExterno::query()->pluck('id')->all();
 
@@ -47,8 +39,7 @@ class TerrenoSeeder extends Seeder
             $createdAt = $this->createdAtForIndex($i);
             $updatedAt = $this->updatedAtFromCreatedAt($createdAt);
 
-            $statusNome = $statusNames[array_rand($statusNames)];
-            $statusId = $statusByName[$statusNome];
+            $workflowStatus = $this->workflowSeedState($i);
 
             $dataApresentacao = $createdAt->copy()->subDays(random_int(0, 15))->toDateString();
             $dataNegociacao = null;
@@ -56,23 +47,23 @@ class TerrenoSeeder extends Seeder
             $dataDescarte = null;
             $dataContrato = null;
 
-            if (in_array($statusNome, ['Negociação', 'Opção', 'Minuta', 'Legalização', 'Contrato', 'Registro', 'Lançamento', 'Obra', 'Entregue', 'Landbank', 'StandBy'], true)) {
+            if (in_array($workflowStatus, ['em_negociacao', 'proposta_emitida', 'minuta_contratual', 'contrato_em_assinatura', 'contrato_assinado', 'legalizacao_em_andamento', 'pronto_para_registro', 'registrado', 'encerrado', 'standby'], true)) {
                 $dataNegociacao = $createdAt->copy()->subDays(random_int(0, 45))->toDateString();
             }
-            if (in_array($statusNome, ['Opção', 'Minuta', 'Legalização', 'Contrato', 'Registro', 'Lançamento', 'Obra', 'Entregue'], true)) {
+            if (in_array($workflowStatus, ['proposta_emitida', 'minuta_contratual', 'contrato_em_assinatura', 'contrato_assinado', 'legalizacao_em_andamento', 'pronto_para_registro', 'registrado', 'encerrado'], true)) {
                 $dataOpcao = $createdAt->copy()->subDays(random_int(0, 90))->toDateString();
             }
-            if ($statusNome === 'Descartado') {
+            if ($workflowStatus === 'descartado') {
                 $dataDescarte = $createdAt->copy()->subDays(random_int(0, 60))->toDateString();
             }
-            if (in_array($statusNome, ['Contrato', 'Registro', 'Lançamento', 'Obra', 'Entregue'], true)) {
+            if (in_array($workflowStatus, ['contrato_assinado', 'legalizacao_em_andamento', 'pronto_para_registro', 'registrado', 'encerrado'], true)) {
                 $dataContrato = $createdAt->copy()->subDays(random_int(0, 120))->toDateString();
             }
 
             $responsavelId = $userIds[array_rand($userIds)];
             $creatorId = $userIds[array_rand($userIds)];
             $updaterId = $userIds[array_rand($userIds)];
-            $compradorId = in_array($statusNome, ['Contrato', 'Registro', 'Lançamento', 'Obra', 'Entregue'], true)
+            $compradorId = in_array($workflowStatus, ['contrato_assinado', 'legalizacao_em_andamento', 'pronto_para_registro', 'registrado', 'encerrado'], true)
                 ? $userIds[array_rand($userIds)]
                 : null;
 
@@ -90,8 +81,10 @@ class TerrenoSeeder extends Seeder
                 'polygon_coords' => json_encode($this->randomPolygonCoords()),
                 'static_map_url' => null,
                 'area_calculada' => $this->randomMoney(500_000, 250_000_000),
-                'status_id' => $statusId,
                 'regional_id' => $regionalIds ? $regionalIds[array_rand($regionalIds)] : null,
+                'workflow_stage' => $this->workflowStage($workflowStatus),
+                'workflow_status_code' => $workflowStatus,
+                'workflow_status_changed_at' => $updatedAt,
                 'cep' => $this->randomCep(),
                 'bairro' => 'Bairro ' . Str::title(Str::replace(['-', '_'], ' ', Str::random(6))),
                 'observacoes' => random_int(1, 4) === 1 ? null : 'Observação ' . Str::title(Str::replace(['-', '_'], ' ', Str::random(12))),
@@ -114,6 +107,47 @@ class TerrenoSeeder extends Seeder
 
         \Illuminate\Support\Facades\DB::table('terrenos')->insert($terrenosData);
 
+    }
+
+    private function workflowSeedState(int $index): string
+    {
+        $states = [
+            'novo_lead',
+            'em_qualificacao',
+            'viabilidade_em_elaboracao',
+            'em_negociacao',
+            'contrato_assinado',
+        ];
+
+        return $states[($index - 1) % count($states)];
+    }
+
+    private function workflowStage(string $status): string
+    {
+        return match ($status) {
+            'novo_lead', 'em_qualificacao', 'standby', 'descartado' => 'captacao',
+            'qualificacao_em_andamento', 'qualificacao_concluida', 'qualificacao_reprovada' => 'qualificacao',
+            'viabilidade_nao_iniciada',
+            'viabilidade_em_elaboracao',
+            'viabilidade_aguardando_aprovacao',
+            'viabilidade_aprovada',
+            'viabilidade_reprovada',
+            'viabilidade_para_revisao' => 'viabilidade',
+            'aguardando_comite', 'em_comite', 'aprovado_comite', 'aprovado_com_ressalvas', 'reprovado_comite' => 'comite',
+            'em_negociacao',
+            'proposta_emitida',
+            'minuta_contratual',
+            'contrato_em_assinatura',
+            'contrato_assinado',
+            'negociacao_perdida',
+            'contrato_cancelado' => 'negociacao_contrato',
+            'legalizacao_nao_iniciada',
+            'legalizacao_em_andamento',
+            'legalizacao_com_pendencias',
+            'legalizacao_concluida' => 'legalizacao',
+            'pronto_para_registro', 'registrado', 'encerrado', 'arquivado' => 'registro_encerramento',
+            default => 'captacao',
+        };
     }
 
     private function createdAtForIndex(int $index): Carbon

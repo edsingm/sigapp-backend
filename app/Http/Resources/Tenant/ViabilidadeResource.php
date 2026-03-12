@@ -16,6 +16,8 @@ class ViabilidadeResource extends JsonResource
         return [
             'id' => $this->id,
             'terreno_id' => $this->terreno_id,
+            'version' => $this->version,
+            'is_current' => $this->is_current,
             'parceria_vgv' => (float) $this->parceria_vgv,
             'compra_terreno' => (float) $this->compra_terreno,
             'infra_nao_incidente' => (float) $this->infra_nao_incidente,
@@ -46,6 +48,8 @@ class ViabilidadeResource extends JsonResource
             'approval_requested_at' => $this->approval_requested_at?->toIso8601String(),
             'approval_decided_at' => $this->approval_decided_at?->toIso8601String(),
             'approval_notes' => $this->approval_notes,
+            'submitted_at' => $this->submitted_at?->toIso8601String(),
+            'locked_at' => $this->locked_at?->toIso8601String(),
             'resultados_dre' => $this->resultados_dre,
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
@@ -68,6 +72,23 @@ class ViabilidadeResource extends JsonResource
                 'id' => $this->approvalDecidedBy->id,
                 'name' => $this->approvalDecidedBy->name,
             ] : null,
+            'sections' => $this->whenLoaded('secoes', fn () => $this->secoes->map(fn ($secao) => [
+                'id' => $secao->id,
+                'section_code' => $secao->section_code,
+                'section_name' => $secao->section_name,
+                'content_json' => $secao->content_json,
+                'status' => $secao->status,
+            ])->values()),
+            'approvals' => $this->whenLoaded('aprovacoes', fn () => $this->aprovacoes->map(fn ($approval) => [
+                'id' => $approval->id,
+                'decision' => $approval->decision,
+                'comments' => $approval->comments,
+                'created_at' => $approval->created_at?->toIso8601String(),
+                'user' => $approval->relationLoaded('user') && $approval->user ? [
+                    'id' => $approval->user->id,
+                    'name' => $approval->user->name,
+                ] : null,
+            ])->values()),
         ];
     }
 }

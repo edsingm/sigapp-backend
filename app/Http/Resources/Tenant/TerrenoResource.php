@@ -6,7 +6,6 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use App\Http\Resources\Tenant\UserResource;
 use App\Http\Resources\Tenant\CorretorExternoResource;
-use App\Http\Resources\Tenant\TerrenoStatusResource;
 use App\Http\Resources\Tenant\RegionalResource;
 use App\Http\Resources\Tenant\ProprietarioResource;
 use App\Http\Resources\Tenant\DocumentoResource;
@@ -14,7 +13,15 @@ use App\Http\Resources\Tenant\ViabilidadeResource;
 use App\Http\Resources\Tenant\TerrenoInfoResource;
 use App\Http\Resources\Tenant\TerrenoProdutoResource;
 use App\Http\Resources\Tenant\CidadeResource;
+use App\Http\Resources\Tenant\ComiteRevisaoResource;
+use App\Http\Resources\Tenant\ContratoResource;
+use App\Http\Resources\Tenant\EntityActivityResource;
 use App\Http\Resources\Tenant\LegalizacaoResource;
+use App\Http\Resources\Tenant\NegociacaoResource;
+use App\Http\Resources\Tenant\StatusHistoryResource;
+use App\Http\Resources\Tenant\TaskResource;
+use App\Http\Resources\Tenant\TerrenoContatoResource;
+use App\Services\Tenant\LandWorkflowService;
 
 
 class TerrenoResource extends JsonResource
@@ -29,8 +36,10 @@ class TerrenoResource extends JsonResource
         return [
             'id' => $this->id,
             'nome' => $this->nome,
+            'responsavel_id' => $this->responsavel_id,
             'responsavel' => new UserResource($this->whenLoaded('responsavel')),
             'endereco' => $this->endereco,
+            'corretor_id' => $this->corretor_id,
             'corretor_externo' => new CorretorExternoResource($this->whenLoaded('corretorExterno')),
             'estado' => $this->estado,
             'cidade_code' => $this->cidade_code,
@@ -38,15 +47,25 @@ class TerrenoResource extends JsonResource
             'polygon_coords' => $this->polygon_coords,
             'static_map_url' => $this->static_map_url,
             'area_calculada' => $this->area_calculada ? (float) $this->area_calculada : null,
-            'status_id' => $this->status_id,
-            'status' => new TerrenoStatusResource($this->whenLoaded('status')),
+            'workflow_stage' => $this->workflow_stage,
+            'workflow_status_code' => $this->workflow_status_code,
+            'workflow_status_label' => LandWorkflowService::statuses()[$this->workflow_status_code]['label'] ?? null,
+            'workflow_status_changed_at' => $this->workflow_status_changed_at?->toIso8601String(),
+            'workflow_reason_code' => $this->workflow_reason_code,
+            'workflow_reason_notes' => $this->workflow_reason_notes,
+            'qualification_data' => $this->qualification_data,
+            'qualification_completed_at' => $this->qualification_completed_at?->toIso8601String(),
+            'checklist' => app(LandWorkflowService::class)->checklist($this->resource),
+            'regional_id' => $this->regional_id,
             'regional' => new RegionalResource($this->whenLoaded('regional')),
             'cep' => $this->cep,
+            'bairro' => $this->bairro,
             'observacoes' => $this->observacoes,
             'valor' => $this->valor ? (float) $this->valor : null,
             'zona' => $this->zona,
             'distrito' => $this->distrito,
             'operacao_urbana' => $this->operacao_urbana,
+            'data_apresentacao' => $this->data_apresentacao?->format('Y-m-d'),
             'data_negociacao' => $this->data_negociacao?->format('Y-m-d'),
             'data_opcao' => $this->data_opcao?->format('Y-m-d'),
             'data_descarte' => $this->data_descarte?->format('Y-m-d'),
@@ -85,6 +104,7 @@ class TerrenoResource extends JsonResource
 
             // Relacionamentos adicionais
             'proprietarios' => ProprietarioResource::collection($this->whenLoaded('proprietarios')),
+            'contatos' => TerrenoContatoResource::collection($this->whenLoaded('contatos')),
             'terreno_produtos' => TerrenoProdutoResource::collection($this->whenLoaded('terrenoProdutos')),
             'cidade_dados' => new CidadeResource($this->whenLoaded('cidade')),
             'documentos' => DocumentoResource::collection($this->whenLoaded('documentos')),
@@ -97,7 +117,13 @@ class TerrenoResource extends JsonResource
             'viabilidades_count' => isset($this->viabilidades_count) ? (int) $this->viabilidades_count : null,
             'terreno_infos_count' => isset($this->terreno_infos_count) ? (int) $this->terreno_infos_count : null,
             'viabilidade_atual' => new ViabilidadeResource($this->whenLoaded('viabilidadeAtual')),
+            'comite_atual' => new ComiteRevisaoResource($this->whenLoaded('comiteAtual')),
+            'negociacao_atual' => new NegociacaoResource($this->whenLoaded('negociacaoAtual')),
+            'contrato_atual' => new ContratoResource($this->whenLoaded('contratoAtual')),
             'legalizacao' => new LegalizacaoResource($this->whenLoaded('legalizacao')),
+            'tasks' => TaskResource::collection($this->whenLoaded('tasks')),
+            'status_history' => StatusHistoryResource::collection($this->whenLoaded('statusHistories')),
+            'activities' => EntityActivityResource::collection($this->whenLoaded('activities')),
         ];
     }
 }

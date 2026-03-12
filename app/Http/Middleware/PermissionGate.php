@@ -24,11 +24,11 @@ use Symfony\Component\HttpFoundation\Response;
  *   permission.gate:{module}
  *   permission.gate:{module},{resource}
  *
- * Roles super_admin and admin bypass all checks.
+ * Roles SUPER_ADMIN and ADMIN bypass all checks.
  */
 class PermissionGate
 {
-    private const BYPASS_ROLES = ['super_admin', 'admin'];
+    private const BYPASS_ROLES = ['SUPER_ADMIN', 'ADMIN', 'super_admin', 'admin'];
 
     private const METHOD_LEVEL_MAP = [
         'GET'    => 'viewer',

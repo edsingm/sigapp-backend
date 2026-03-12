@@ -149,8 +149,8 @@ class UserManagementController extends Controller
         if (array_key_exists('role', $validated)) {
             $nextRole = (string) $validated['role'];
 
-            if ($user->hasRole(RolesEnum::ADMIN->value) && $nextRole !== RolesEnum::ADMIN->value) {
-                $adminCount = User::role(RolesEnum::ADMIN->value)->count();
+            if ($user->hasRole('super_admin') && $nextRole !== 'super_admin') {
+                $superAdminCount = User::role('super_admin')->count();
 
                 if ($adminCount <= 1) {
                     return ApiResponseService::error(
@@ -213,9 +213,9 @@ class UserManagementController extends Controller
             );
         }
 
-        if ($user->hasRole(RolesEnum::ADMIN->value)) {
-            $adminCount = User::role(RolesEnum::ADMIN->value)->count();
-            if ($adminCount <= 1) {
+        if ($user->hasRole('super_admin')) {
+            $superAdminCount = User::role('super_admin')->count();
+            if ($superAdminCount <= 1) {
                 return ApiResponseService::error(
                     'LAST_ADMIN',
                     language()->t('USER_ADMIN_CANT_DELETE_LAST_ADMIN'),

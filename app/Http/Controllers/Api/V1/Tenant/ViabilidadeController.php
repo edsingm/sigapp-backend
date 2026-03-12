@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Spatie\LaravelPdf\Facades\Pdf;
 use Exception;
+use App\Services\Tenant\LandWorkflowService;
 
 class ViabilidadeController extends Controller
 {
@@ -22,7 +23,8 @@ class ViabilidadeController extends Controller
 
     public function __construct(
         ViabilidadeService $viabilidadeService,
-        protected MobilePushService $mobilePushService
+        protected MobilePushService $mobilePushService,
+        protected LandWorkflowService $workflowService,
     )
     {
         $this->viabilidadeService = $viabilidadeService;
@@ -101,11 +103,19 @@ class ViabilidadeController extends Controller
             $viabilidade->update([
                 'approval_status' => 'em_aprovacao',
                 'approval_requested_at' => now(),
+                'submitted_at' => now(),
                 'approval_decided_at' => null,
                 'approval_decided_by' => null,
                 'approval_notes' => $validated['approval_notes'] ?? null,
                 'updated_by' => $request->user()?->id,
             ]);
+            $this->workflowService->transition(
+                $viabilidade->terreno()->firstOrFail(),
+                'aguardando_viabilidade',
+                $request->user(),
+                'viability_submitted',
+                $validated['approval_notes'] ?? null,
+            );
 
             $viabilidade->loadMissing('terreno');
 
@@ -356,11 +366,21 @@ class ViabilidadeController extends Controller
 
             if ($decision === 'aprovada') {
                 $payload['status'] = 'ativo';
+                $payload['locked_at'] = now();
             } else {
                 $payload['status'] = 'rascunho';
+                $payload['locked_at'] = null;
             }
 
             $viabilidade->update($payload);
+            $this->viabilidadeService->registrarAprovacao($viabilidade, $decision, $validated['approval_notes'] ?? null);
+            $this->workflowService->transition(
+                $viabilidade->terreno()->firstOrFail(),
+                $decision === 'aprovada' ? 'viabilidade_aprovada' : 'em_analise',
+                $request->user(),
+                'viability_decided',
+                $validated['approval_notes'] ?? null,
+            );
             $viabilidade->loadMissing('terreno');
 
             $this->mobilePushService->notifyAllUsers(

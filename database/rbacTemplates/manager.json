@@ -11,7 +11,9 @@
         "brokers": "manager",
         "data": "manager",
         "dashboard": "manager",
+        "committee": "manager",
         "legal": "manager",
+        "negotiation": "manager",
         "projects": "manager",
         "reports": "manager",
         "viability": "manager"

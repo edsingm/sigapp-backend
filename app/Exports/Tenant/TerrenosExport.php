@@ -3,6 +3,7 @@
 namespace App\Exports\Tenant;
 
 use App\Models\Tenant\Terreno;
+use App\Services\Tenant\LandWorkflowService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Concerns\FromCollection;
@@ -25,7 +26,6 @@ class TerrenosExport implements FromCollection, WithHeadings, WithMapping, WithS
     {
         $query = Terreno::query()
             ->with([
-                'status',
                 'responsavel',
                 'regional',
                 'cidade',
@@ -38,9 +38,9 @@ class TerrenosExport implements FromCollection, WithHeadings, WithMapping, WithS
             $query->whereRaw('LOWER(nome) LIKE ?', [Str::lower($nome) . '%']);
         }
 
-        $statusIds = $this->filters['status_ids'] ?? null;
-        if (is_array($statusIds) && count($statusIds)) {
-            $query->whereIn('status_id', $statusIds);
+        $workflowStatuses = $this->filters['workflow_statuses'] ?? null;
+        if (is_array($workflowStatuses) && count($workflowStatuses)) {
+            $query->whereIn('workflow_status_code', $workflowStatuses);
         }
 
         $ufs = $this->filters['ufs'] ?? null;
@@ -116,7 +116,7 @@ class TerrenosExport implements FromCollection, WithHeadings, WithMapping, WithS
             $terreno->total_unidades ?? '',
             $terreno->valor ?? '',
             $terreno->responsavel?->name ?? '',
-            $terreno->status?->nome ?? '',
+            LandWorkflowService::statuses()[$terreno->workflow_status_code]['label'] ?? '',
             $terreno->created_at ? $terreno->created_at->format('d/m/Y') : '',
             preg_replace('/^Regional\s+/i', '', $terreno->regional?->nome ?? ''),
         ];

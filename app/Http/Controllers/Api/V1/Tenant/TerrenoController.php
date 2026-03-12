@@ -3,24 +3,27 @@
 namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Http\Controllers\Controller;
-use App\Models\Tenant\Terreno;
-use App\Services\ApiResponseService;
-use Illuminate\Http\Request;
 use App\Http\Requests\Tenant\FilterTerrenosRequest;
-use App\Services\Tenant\TerrenoFilterService;
-use Illuminate\Support\Facades\Log;
-use App\Http\Resources\Tenant\TerrenoResource;
-use App\Http\Resources\Tenant\TerrenoInfoResource;
 use App\Http\Requests\Tenant\StoreTerrenoRequest;
 use App\Http\Requests\Tenant\UpdateTerrenoRequest;
+use App\Http\Resources\Tenant\TerrenoInfoResource;
+use App\Http\Resources\Tenant\TerrenoResource;
+use App\Models\Tenant\Terreno;
 use App\Models\Tenant\TerrenoInfos;
+use App\Services\ApiResponseService;
+use App\Services\Tenant\LandWorkflowService;
+use App\Services\Tenant\TerrenoFilterService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 
 class TerrenoController extends Controller
 {
-    /**
-     * List all terrenos.
-     */
+    public function __construct(
+        protected LandWorkflowService $workflowService
+    ) {
+    }
+
     public function index(Request $request)
     {
         Gate::authorize('viewAny', Terreno::class);
@@ -28,7 +31,7 @@ class TerrenoController extends Controller
         $tenantId = tenant('id') ?? 'central';
         $forceRefresh = $request->boolean('force_refresh', false);
         $filters = $request->only(['search', 'per_page', 'page']);
-        
+
         $cacheKey = "tenant:{$tenantId}:terrenos:index:" . md5(json_encode($filters));
         $cacheStore = \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:terrenos"]);
 
@@ -51,14 +54,10 @@ class TerrenoController extends Controller
             $cacheStore->put($cacheKey, $freshData, now()->addMinutes(30));
             return $freshData;
         }
-        
+
         return $cacheStore->remember($cacheKey, now()->addMinutes(30), $resolver);
     }
 
-    /**
-     * Create a new terreno.
-     * (Middleware EnforcePlanLimits will check the limit before this)
-     */
     public function store(StoreTerrenoRequest $request)
     {
         Gate::authorize('create', Terreno::class);
@@ -76,20 +75,18 @@ class TerrenoController extends Controller
         }
 
         $validated = $request->validated();
-
+        unset($validated['workflow_status_code']);
         $validated['created_by'] = $request->user()->id;
 
         $terreno = Terreno::create($validated);
+        $this->workflowService->initialize($terreno, $request->user());
 
         return ApiResponseService::created(
-            $terreno,
+            new TerrenoResource($this->loadDetailRelations($terreno)),
             'Terreno criado com sucesso'
         );
     }
 
-    /**
-     * Get a specific terreno.
-     */
     public function show(string $id)
     {
         $terreno = Terreno::find($id);
@@ -100,12 +97,11 @@ class TerrenoController extends Controller
 
         $this->authorize('view', $terreno);
 
-        return ApiResponseService::success($terreno);
+        return ApiResponseService::success(
+            new TerrenoResource($this->loadDetailRelations($terreno))
+        );
     }
 
-    /**
-     * Update a terreno.
-     */
     public function update(UpdateTerrenoRequest $request, string $id)
     {
         $terreno = Terreno::find($id);
@@ -117,17 +113,17 @@ class TerrenoController extends Controller
         $this->authorize('update', $terreno);
 
         $validated = $request->validated();
-
         $validated['updated_by'] = $request->user()->id;
 
         $terreno->update($validated);
+        $this->workflowService->syncReadiness($terreno, $request->user(), 'terrain_updated');
 
-        return ApiResponseService::success($terreno, 'Terreno atualizado com sucesso');
+        return ApiResponseService::success(
+            new TerrenoResource($this->loadDetailRelations($terreno)),
+            'Terreno atualizado com sucesso'
+        );
     }
 
-    /**
-     * Delete a terreno.
-     */
     public function destroy(string $id)
     {
         $terreno = Terreno::find($id);
@@ -137,7 +133,6 @@ class TerrenoController extends Controller
         }
 
         $this->authorize('delete', $terreno);
-
         $terreno->delete();
 
         return ApiResponseService::noContent();
@@ -254,5 +249,38 @@ class TerrenoController extends Controller
             ->get();
 
         return response()->json($terrenos);
+    }
+
+    protected function loadDetailRelations(Terreno $terreno): Terreno
+    {
+        return $terreno->fresh([
+            'responsavel',
+            'corretorExterno',
+            'regional',
+            'cidade',
+            'createdBy',
+            'updatedBy',
+            'proprietarios',
+            'contatos',
+            'documentos',
+            'terrenoProdutos.produto',
+            'viabilidades.createdBy',
+            'viabilidades.approvalDecidedBy',
+            'viabilidadeAtual.createdBy',
+            'viabilidadeAtual.approvalDecidedBy',
+            'viabilidadeAtual.secoes',
+            'viabilidadeAtual.aprovacoes.user',
+            'informacoes.user',
+            'comiteAtual.viabilidade',
+            'comiteAtual.pareceresDepartamento',
+            'comiteAtual.pendencias',
+            'negociacaoAtual.eventos',
+            'contratoAtual.partes',
+            'legalizacao.etapas',
+            'legalizacao.pendencias',
+            'tasks.assignedUser',
+            'statusHistories',
+            'activities',
+        ]);
     }
 }

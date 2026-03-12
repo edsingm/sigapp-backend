@@ -180,9 +180,9 @@ class UserController extends Controller
             );
         }
 
-        // Prevent deleting the only super_admin
-        if ($user->hasRole('super_admin')) {
-            $superAdminCount = User::role('super_admin')->count();
+        // Prevent deleting the only super admin (legacy compatibility)
+        if ($user->hasAnyRole(['SUPER_ADMIN', 'super_admin'])) {
+            $superAdminCount = User::role('SUPER_ADMIN')->count() + User::role('super_admin')->count();
 
             if ($superAdminCount <= 1) {
                 return ApiResponseService::error(

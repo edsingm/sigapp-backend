@@ -29,8 +29,8 @@ class SyncGanttRequest extends FormRequest
             if (empty($custos) && $this->etapaTemAlgumCampoDeCustoRaiz($etapa)) {
                 $custos = [[
                     'tipo_custo' => $etapa['tipo_custo'] ?? null,
-                    'valor_custo' => $etapa['valor_custo'] ?? ($etapa['custo_previsto'] ?? null),
-                    'custo_pago' => $this->normalizarBoolean($etapa['custo_pago'] ?? ($etapa['foi_pago'] ?? false)),
+                    'valor_custo' => $etapa['valor_custo'] ?? null,
+                    'custo_pago' => $this->normalizarBoolean($etapa['custo_pago'] ?? false),
                 ]];
             }
 
@@ -41,14 +41,14 @@ class SyncGanttRequest extends FormRequest
                     $etapa['tipo_custo'] = count($custos) === 1 ? ($custos[0]['tipo_custo'] ?? null) : 'Diversos';
                 }
 
-                if (!array_key_exists('valor_custo', $etapa) && !array_key_exists('custo_previsto', $etapa)) {
+                if (!array_key_exists('valor_custo', $etapa)) {
                     $etapa['valor_custo'] = array_sum(array_map(
                         fn ($custo) => (float) ($custo['valor_custo'] ?? 0),
                         $custos
                     ));
                 }
 
-                if (!array_key_exists('custo_pago', $etapa) && !array_key_exists('foi_pago', $etapa)) {
+                if (!array_key_exists('custo_pago', $etapa)) {
                     $etapa['custo_pago'] = collect($custos)->every(
                         fn ($custo) => (bool) ($custo['custo_pago'] ?? false)
                     );
@@ -58,20 +58,12 @@ class SyncGanttRequest extends FormRequest
                 if (!array_key_exists('tipo_custo', $etapa)) {
                     $etapa['tipo_custo'] = null;
                 }
-                if (!array_key_exists('valor_custo', $etapa) && !array_key_exists('custo_previsto', $etapa)) {
+                if (!array_key_exists('valor_custo', $etapa)) {
                     $etapa['valor_custo'] = null;
                 }
-                if (!array_key_exists('custo_pago', $etapa) && !array_key_exists('foi_pago', $etapa)) {
+                if (!array_key_exists('custo_pago', $etapa)) {
                     $etapa['custo_pago'] = false;
                 }
-            }
-
-            if (!array_key_exists('valor_custo', $etapa) && array_key_exists('custo_previsto', $etapa)) {
-                $etapa['valor_custo'] = $etapa['custo_previsto'];
-            }
-
-            if (!array_key_exists('custo_pago', $etapa) && array_key_exists('foi_pago', $etapa)) {
-                $etapa['custo_pago'] = $this->normalizarBoolean($etapa['foi_pago']);
             }
 
             return $etapa;
@@ -166,9 +158,9 @@ class SyncGanttRequest extends FormRequest
                 continue;
             }
 
-            $tipo = $custo['tipo_custo'] ?? $custo['tipo'] ?? null;
-            $valor = $custo['valor_custo'] ?? $custo['valor'] ?? null;
-            $pago = $custo['custo_pago'] ?? $custo['pago'] ?? $custo['foi_pago'] ?? false;
+            $tipo = $custo['tipo_custo'] ?? null;
+            $valor = $custo['valor_custo'] ?? null;
+            $pago = $custo['custo_pago'] ?? false;
 
             if ($tipo === null && $valor === null) {
                 continue;
@@ -188,9 +180,7 @@ class SyncGanttRequest extends FormRequest
     {
         return array_key_exists('tipo_custo', $etapa)
             || array_key_exists('valor_custo', $etapa)
-            || array_key_exists('custo_previsto', $etapa)
-            || array_key_exists('custo_pago', $etapa)
-            || array_key_exists('foi_pago', $etapa);
+            || array_key_exists('custo_pago', $etapa);
     }
 
     protected function normalizarBoolean(mixed $value): bool

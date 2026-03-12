@@ -4,6 +4,7 @@ namespace App\Http\Resources\Tenant;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Services\Tenant\LandWorkflowService;
 
 class LegalizacaoResource extends JsonResource
 {
@@ -19,7 +20,7 @@ class LegalizacaoResource extends JsonResource
                 'endereco' => $this->terreno->endereco,
                 'cidade' => $this->terreno->cidade?->nome,
                 'estado' => $this->terreno->cidade?->estado,
-                'status' => $this->terreno->terrenoStatus?->nome,
+                'status' => LandWorkflowService::statuses()[$this->terreno->workflow_status_code]['label'] ?? null,
             ]),
             'responsavel_id' => $this->responsavel_id,
             'responsavel' => $this->whenLoaded('responsavel', fn() => [
@@ -50,6 +51,16 @@ class LegalizacaoResource extends JsonResource
             'etapas_count' => $this->whenCounted('etapas'),
             'total_etapas' => $this->whenCounted('etapas'),
             'etapas' => LegalizacaoEtapaResource::collection($this->whenLoaded('etapas')),
+            'pendencias' => $this->whenLoaded('pendencias', fn () => $this->pendencias->map(fn ($pendencia) => [
+                'id' => $pendencia->id,
+                'title' => $pendencia->title,
+                'severity' => $pendencia->severity,
+                'status' => $pendencia->status,
+                'is_critical' => $pendencia->is_critical,
+                'due_date' => $pendencia->due_date?->format('Y-m-d'),
+                'resolved_at' => $pendencia->resolved_at?->toIso8601String(),
+                'notes' => $pendencia->notes,
+            ])->values()),
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
         ];

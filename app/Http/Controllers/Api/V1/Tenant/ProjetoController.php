@@ -157,9 +157,9 @@ class ProjetoController extends Controller
             $projeto = $this->service->marcarProntoParaRegistro($projeto);
             $this->flushProjetoCaches();
             $this->mobilePushService->notifyAllUsers([
-                'title' => 'Projeto pronto para registro',
-                'body' => "O projeto {$projeto->nome} foi marcado como pronto para registro.",
-                'type' => 'projeto.pronto_para_registro',
+                'title' => 'Projeto finalizado',
+                'body' => "O projeto {$projeto->nome} foi finalizado após a legalização.",
+                'type' => 'projeto.finalizado',
                 'entity_type' => 'projeto',
                 'entity_id' => (string) $projeto->id,
                 'target_route' => "/projetos/{$projeto->id}",
@@ -171,19 +171,19 @@ class ProjetoController extends Controller
 
             return ApiResponseService::success(
                 $this->service->workspacePayload($projeto, $request->user()),
-                'Projeto marcado como pronto para registro'
+                'Projeto finalizado com sucesso'
             );
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
             return ApiResponseService::notFound('Projeto não encontrado');
         } catch (\RuntimeException $e) {
             return ApiResponseService::error('MARK_READY_ERROR', $e->getMessage(), null, 422);
         } catch (\Throwable $e) {
-            Log::error('Erro ao marcar projeto como pronto para registro', [
+            Log::error('Erro ao finalizar projeto', [
                 'id' => $id,
                 'error' => $e->getMessage(),
             ]);
 
-            return ApiResponseService::serverError('Erro ao concluir o projeto');
+            return ApiResponseService::serverError('Erro ao finalizar o projeto');
         }
     }
 

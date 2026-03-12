@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api\V1\Tenant;
 use App\Http\Controllers\Controller;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\TerrenoProduto;
-use App\Models\Tenant\TerrenoStatus;
+use App\Services\Tenant\LandWorkflowService;
 use App\Support\Database\SqlDateParts;
 use App\Traits\HasDashboardCache;
 use Illuminate\Http\JsonResponse;
@@ -32,54 +32,60 @@ class DashboardController extends Controller
         Gate::authorize('viewAny', Terreno::class);
     }
 
-    /**
-     * Status considerado como "opção" para cálculos
-     */
-    private const STATUS_OPCAO = 'Opção';
-
-    /**
-     * Status considerado como "fechado" para cálculos
-     */
-    private const STATUS_FECHADO = 'Fechado';
-
     private const OVERVIEW_CACHE_VERSION = 'v2';
     private const OVERVIEW_CACHE_TTL_DEFAULT = 120;
     private const OVERVIEW_CACHE_TTL_MIN = 15;
     private const OVERVIEW_CACHE_TTL_MAX = 600;
 
-    /**
-     * Cache de IDs de status para evitar múltiplas consultas
-     */
-    private ?int $statusOpcaoIdCache = null;
-    private ?int $statusFechadoIdCache = null;
+    private const NEGOCIACAO_ATIVA_STATUSES = [
+        'negociacao_minuta',
+    ];
+
+    private const CONTRATO_ASSINADO_E_POSTERIORES = [
+        'contrato_assinado',
+        'legalizando',
+        'legalizado_finalizado',
+    ];
 
     private function shouldForceRefresh(Request $request): bool
     {
         return $request->boolean('force_refresh', false);
     }
 
-    /**
-     * Obtém o ID do status 'Opção'
-     */
-    private function getStatusOpcaoId(): ?int
+    private function negotiationStatuses(): array
     {
-        if ($this->statusOpcaoIdCache === null) {
-            $status = TerrenoStatus::where('nome', 'like', '%' . self::STATUS_OPCAO . '%')->first();
-            $this->statusOpcaoIdCache = $status?->id;
-        }
-        return $this->statusOpcaoIdCache;
+        return self::NEGOCIACAO_ATIVA_STATUSES;
     }
 
-    /**
-     * Obtém o ID do status 'Fechado'
-     */
-    private function getStatusFechadoId(): ?int
+    private function signedDealStatuses(): array
     {
-        if ($this->statusFechadoIdCache === null) {
-            $status = TerrenoStatus::where('nome', 'like', '%' . self::STATUS_FECHADO . '%')->first();
-            $this->statusFechadoIdCache = $status?->id;
+        return self::CONTRATO_ASSINADO_E_POSTERIORES;
+    }
+
+    private function workflowStatusLabel(?string $statusCode): string
+    {
+        if (!$statusCode) {
+            return 'Sem Status';
         }
-        return $this->statusFechadoIdCache;
+
+        return LandWorkflowService::statuses()[$statusCode]['label'] ?? $statusCode;
+    }
+
+    private function workflowStatusColor(?string $statusCode): string
+    {
+        return match ($statusCode) {
+            'em_analise' => '#0EA5E9',
+            'aguardando_viabilidade' => '#F59E0B',
+            'viabilidade_aprovada' => '#10B981',
+            'aguardando_comite' => '#06B6D4',
+            'negociacao_minuta' => '#8B5CF6',
+            'contrato_assinado' => '#047857',
+            'legalizando' => '#65A30D',
+            'legalizado_finalizado' => '#0F766E',
+            'descartado' => '#E11D48',
+            'arquivado' => '#475569',
+            default => '#94A3B8',
+        };
     }
 
     /**
@@ -127,24 +133,17 @@ class DashboardController extends Controller
         $this->authorizeDashboardAccess();
 
         $data = $this->cacheDashboardMethod('cards', $request, function () {
-            // Buscar o ID do status 'opção'
-            $statusOpcaoId = $this->getStatusOpcaoId();
-
             // Total de terrenos cadastrados
             $totalTerrenos = Terreno::count();
 
-            // Total de terrenos com status 'opção'
-            $totalOpcao = $statusOpcaoId
-                ? Terreno::where('status_id', $statusOpcaoId)->count()
-                : 0;
+            // Total de terrenos em negociação ativa
+            $totalOpcao = Terreno::whereIn('workflow_status_code', $this->negotiationStatuses())->count();
 
-            // Total de unidades das áreas com status 'opção'
-            $totalUnidadesOpcao = $statusOpcaoId
-                ? TerrenoProduto::join('terrenos', 'terreno_produtos.terreno_id', '=', 'terrenos.id')
-                    ->where('terrenos.status_id', $statusOpcaoId)
-                    ->whereNull('terrenos.deleted_at')
-                    ->sum('terreno_produtos.unidades')
-                : 0;
+            // Total de unidades das áreas em negociação ativa
+            $totalUnidadesOpcao = TerrenoProduto::join('terrenos', 'terreno_produtos.terreno_id', '=', 'terrenos.id')
+                ->whereIn('terrenos.workflow_status_code', $this->negotiationStatuses())
+                ->whereNull('terrenos.deleted_at')
+                ->sum('terreno_produtos.unidades');
 
             // Distribuição por cidade (top 20 para não sobrecarregar)
             $porCidade = Terreno::select('cidade_code', DB::raw('COUNT(*) as total'))
@@ -200,8 +199,7 @@ class DashboardController extends Controller
                 ->toArray();
 
             // Query base
-            $query = Terreno::select('status_id', DB::raw('COUNT(*) as total'))
-                ->with('terrenoStatus:id,nome,cor');
+            $query = Terreno::select('workflow_status_code', DB::raw('COUNT(*) as total'));
 
             // Filtro por ano
             if ($ano) {
@@ -209,13 +207,13 @@ class DashboardController extends Controller
             }
 
             $statusData = $query
-                ->groupBy('status_id')
+                ->groupBy('workflow_status_code')
                 ->get()
                 ->map(function ($item) {
                     return [
-                        'status_id' => $item->status_id,
-                        'status_nome' => $item->terrenoStatus?->nome ?? 'Sem Status',
-                        'status_cor' => $item->terrenoStatus?->cor ?? '#cccccc',
+                        'status_code' => $item->workflow_status_code,
+                        'status_nome' => $this->workflowStatusLabel($item->workflow_status_code),
+                        'status_cor' => $this->workflowStatusColor($item->workflow_status_code),
                         'total' => $item->total,
                     ];
                 });
@@ -489,14 +487,8 @@ class DashboardController extends Controller
         $this->authorizeDashboardAccess();
 
         $data = $this->cacheDashboardMethod('vgvAnual', $request, function () {
-            $statusOpcaoId = $this->getStatusOpcaoId();
-
-            if (!$statusOpcaoId) {
-                return [];
-            }
-
             return Terreno::leftJoin('terreno_produtos', 'terreno_produtos.terreno_id', '=', 'terrenos.id')
-                ->where('terrenos.status_id', $statusOpcaoId)
+                ->whereNotNull('terrenos.data_opcao')
                 ->whereNull('terrenos.deleted_at')
                 ->select(
                     DB::raw(SqlDateParts::yearAs('COALESCE(terrenos.data_opcao, terrenos.created_at)', 'ano')),
@@ -535,14 +527,8 @@ class DashboardController extends Controller
         $this->authorizeDashboardAccess();
 
         $data = $this->cacheDashboardMethod('unidadesFechadasAnual', $request, function () {
-            $statusFechadoId = $this->getStatusFechadoId();
-
-            if (!$statusFechadoId) {
-                return [];
-            }
-
             return TerrenoProduto::join('terrenos', 'terreno_produtos.terreno_id', '=', 'terrenos.id')
-                ->where('terrenos.status_id', $statusFechadoId)
+                ->whereIn('terrenos.workflow_status_code', $this->signedDealStatuses())
                 ->whereNull('terrenos.deleted_at')
                 ->select(
                     DB::raw(SqlDateParts::yearAs('terrenos.data_contrato', 'ano')),
@@ -694,28 +680,26 @@ class DashboardController extends Controller
         $this->authorizeDashboardAccess();
 
         $data = $this->cacheDashboardMethod('resumoGeral', $request, function () {
-            // Buscar status IDs
-            $statusOpcaoId = $this->getStatusOpcaoId();
-            $statusFechadoId = $this->getStatusFechadoId();
-
             // Total de terrenos
             $totalTerrenos = Terreno::count();
 
-            // Total em opção
-            $totalOpcao = $statusOpcaoId ? Terreno::where('status_id', $statusOpcaoId)->count() : 0;
+            // Total em negociação ativa
+            $totalOpcao = Terreno::whereIn('workflow_status_code', $this->negotiationStatuses())->count();
 
-            // Total fechados
-            $totalFechados = $statusFechadoId ? Terreno::where('status_id', $statusFechadoId)->count() : 0;
+            // Total com contrato assinado ou posterior
+            $totalFechados = Terreno::whereIn('workflow_status_code', $this->signedDealStatuses())->count();
 
-            // Total unidades opção
-            $totalUnidadesOpcao = $statusOpcaoId
-                ? TerrenoProduto::whereHas('terreno', fn($q) => $q->where('status_id', $statusOpcaoId))->sum('unidades')
-                : 0;
+            // Total unidades em negociação ativa
+            $totalUnidadesOpcao = TerrenoProduto::whereHas(
+                'terreno',
+                fn($q) => $q->whereIn('workflow_status_code', $this->negotiationStatuses())
+            )->sum('unidades');
 
-            // Total unidades fechadas
-            $totalUnidadesFechadas = $statusFechadoId
-                ? TerrenoProduto::whereHas('terreno', fn($q) => $q->where('status_id', $statusFechadoId))->sum('unidades')
-                : 0;
+            // Total unidades com contrato assinado ou posterior
+            $totalUnidadesFechadas = TerrenoProduto::whereHas(
+                'terreno',
+                fn($q) => $q->whereIn('workflow_status_code', $this->signedDealStatuses())
+            )->sum('unidades');
 
             // Cadastros do mês atual
             $cadastrosMesAtual = Terreno::whereYear('created_at', Carbon::now()->year)
@@ -736,13 +720,12 @@ class DashboardController extends Controller
                 ]);
 
             // Distribuição por status
-            $distribuicaoStatus = Terreno::select('status_id', DB::raw('COUNT(*) as total'))
-                ->with('terrenoStatus:id,nome,cor')
-                ->groupBy('status_id')
+            $distribuicaoStatus = Terreno::select('workflow_status_code', DB::raw('COUNT(*) as total'))
+                ->groupBy('workflow_status_code')
                 ->get()
                 ->map(fn($item) => [
-                    'status' => $item->terrenoStatus?->nome ?? 'Sem Status',
-                    'cor' => $item->terrenoStatus?->cor ?? '#cccccc',
+                    'status' => $this->workflowStatusLabel($item->workflow_status_code),
+                    'cor' => $this->workflowStatusColor($item->workflow_status_code),
                     'total' => $item->total,
                 ]);
 
@@ -811,14 +794,7 @@ class DashboardController extends Controller
         }
 
         $data = $this->cacheDashboardMethod('areaOpcaoDetalhe', $request, function () use ($ano, $limit) {
-            $statusOpcaoId = $this->getStatusOpcaoId();
-
-            if (!$statusOpcaoId) {
-                return [];
-            }
-
             $query = Terreno::query()
-                ->where('status_id', $statusOpcaoId)
                 ->whereYear('data_opcao', $ano)
                 ->with(['cidade', 'responsavel'])
                 ->withSum('terrenoProdutos as total_unidades', 'unidades')

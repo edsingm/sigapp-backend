@@ -3,17 +3,19 @@
 namespace App\Providers;
 
 use App\Models\Central\Tenant;
+use App\Models\Tenant\ComiteRevisao;
+use App\Models\Tenant\Contrato;
 use App\Models\Tenant\CorretorExterno;
 use App\Models\Tenant\Documento;
 use App\Models\Tenant\Legalizacao;
 use App\Models\Tenant\LegalizacaoEtapa;
+use App\Models\Tenant\Negociacao;
 use App\Models\Tenant\Produto;
 use App\Models\Tenant\Proprietario;
 use App\Models\Tenant\Projeto;
 use App\Models\Tenant\Regional;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\TerrenoProduto;
-use App\Models\Tenant\TerrenoStatus;
 use App\Models\Tenant\Viabilidade;
 use App\Policies\Tenant\TenantPolicy;
 use Illuminate\Support\Facades\Gate;
@@ -46,10 +48,12 @@ class AppServiceProvider extends ServiceProvider
             Produto::class,
             Proprietario::class,
             TerrenoProduto::class,
-            TerrenoStatus::class,
             Documento::class,
             Legalizacao::class,
             LegalizacaoEtapa::class,
+            ComiteRevisao::class,
+            Negociacao::class,
+            Contrato::class,
             Projeto::class,
             Viabilidade::class,
         ];
@@ -59,4 +63,3 @@ class AppServiceProvider extends ServiceProvider
         }
     }
 }
-

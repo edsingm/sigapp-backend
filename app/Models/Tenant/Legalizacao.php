@@ -97,6 +97,11 @@ class Legalizacao extends Model
         return $this->hasMany(LegalizacaoDependencia::class);
     }
 
+    public function pendencias(): HasMany
+    {
+        return $this->hasMany(LegalizacaoPendencia::class, 'legalizacao_id');
+    }
+
     public function recalcularProgresso(): void
     {
         $this->calculateProgress();
@@ -134,8 +139,8 @@ class Legalizacao extends Model
 
     public function scopeElegivel($query)
     {
-        return $query->whereHas('terreno.status', function ($q) {
-            $q->whereRaw('LOWER(nome) = ?', ['contrato assinado']);
+        return $query->whereHas('terreno', function ($q) {
+            $q->where('workflow_status_code', 'contrato_assinado');
         });
     }
 }

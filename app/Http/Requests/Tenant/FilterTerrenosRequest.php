@@ -24,7 +24,6 @@ class FilterTerrenosRequest extends FormRequest
         };
 
         $nome = $this->query('nome', $this->query('q'));
-        $status = $this->query('status_ids', $this->query('status', $this->query('status_id')));
         $ufs = $this->query('ufs', $this->query('uf', $this->query('estado')));
         $cidades = $this->query('cidades', $this->query('cidade_code'));
         $gestores = $this->query('gestor_ids', $this->query('responsavel_ids', $this->query('responsavel_id', $this->query('gestor'))));
@@ -35,13 +34,13 @@ class FilterTerrenosRequest extends FormRequest
         $dateField = $this->query('date_field', $this->query('campo_data'));
         $sortBy = $this->query('sort_by', $this->query('sort'));
         $sortDir = $this->query('sort_dir', $this->query('order'));
+        $workflowStatuses = $this->query('workflow_statuses', $this->query('workflow_status', $this->query('status')));
 
         // Converter strings vazias para null
         $emptyToNull = fn($value) => (is_string($value) && trim($value) === '') ? null : $value;
 
         $this->merge([
             'nome' => $emptyToNull($nome),
-            'status_ids' => $toArray($status),
             'ufs' => $toArray($ufs),
             'cidades' => $toArray($cidades),
             'gestor_ids' => $toArray($gestores),
@@ -52,6 +51,7 @@ class FilterTerrenosRequest extends FormRequest
             'date_field' => $emptyToNull($dateField),
             'sort_by' => $emptyToNull($sortBy),
             'sort_dir' => $emptyToNull($sortDir),
+            'workflow_statuses' => $toArray($workflowStatuses),
         ]);
     }
 
@@ -68,6 +68,7 @@ class FilterTerrenosRequest extends FormRequest
             'data_apresentacao',
             'data_negociacao',
             'data_contrato',
+            'workflow_status_code',
         ];
 
         $dateFields = [
@@ -79,8 +80,6 @@ class FilterTerrenosRequest extends FormRequest
 
         return [
             'nome' => ['nullable', 'string', 'max:255'],
-            'status_ids' => ['nullable', 'array'],
-            'status_ids.*' => ['integer'],
             'ufs' => ['nullable', 'array'],
             'ufs.*' => ['string', 'size:2'],
             'cidades' => ['nullable', 'array'],
@@ -97,6 +96,8 @@ class FilterTerrenosRequest extends FormRequest
             'date_field' => ['nullable', 'in:' . implode(',', $dateFields)],
             'sort_by' => ['nullable', 'in:' . implode(',', $sortFields)],
             'sort_dir' => ['nullable', 'in:asc,desc'],
+            'workflow_statuses' => ['nullable', 'array'],
+            'workflow_statuses.*' => ['string', 'max:100'],
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:10000'],
         ];

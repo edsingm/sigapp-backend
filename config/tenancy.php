@@ -15,7 +15,7 @@ $baseCentralDomains = [
 
 $extraCentralDomains = array_filter(array_map(
     static fn (string $domain): string => trim($domain),
-    explode(',', (string) env('CENTRAL_DOMAINS', 'sigapp-backend'))
+    explode(',', (string) env('CENTRAL_DOMAINS', ''))
 ), static fn (string $domain): bool => $domain !== '');
 
 $centralDomains = array_values(array_unique(array_merge(

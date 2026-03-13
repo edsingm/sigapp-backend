@@ -59,43 +59,6 @@ class LandWorkflowService
         ];
     }
 
-    /**
-     * @return array<string, string>
-     */
-    public static function legacyStatusMap(): array
-    {
-        return [
-            'novo_lead' => 'em_analise',
-            'em_qualificacao' => 'em_analise',
-            'standby' => 'em_analise',
-            'qualificacao_em_andamento' => 'em_analise',
-            'qualificacao_concluida' => 'aguardando_viabilidade',
-            'qualificacao_reprovada' => 'em_analise',
-            'viabilidade_nao_iniciada' => 'aguardando_viabilidade',
-            'viabilidade_em_elaboracao' => 'aguardando_viabilidade',
-            'viabilidade_aguardando_aprovacao' => 'aguardando_viabilidade',
-            'viabilidade_reprovada' => 'em_analise',
-            'viabilidade_para_revisao' => 'aguardando_viabilidade',
-            'em_comite' => 'aguardando_comite',
-            'aprovado_comite' => 'negociacao_minuta',
-            'aprovado_com_ressalvas' => 'negociacao_minuta',
-            'reprovado_comite' => 'em_analise',
-            'em_negociacao' => 'negociacao_minuta',
-            'proposta_emitida' => 'negociacao_minuta',
-            'minuta_contratual' => 'negociacao_minuta',
-            'contrato_em_assinatura' => 'negociacao_minuta',
-            'negociacao_perdida' => 'em_analise',
-            'contrato_cancelado' => 'em_analise',
-            'legalizacao_nao_iniciada' => 'legalizando',
-            'legalizacao_em_andamento' => 'legalizando',
-            'legalizacao_com_pendencias' => 'legalizando',
-            'legalizacao_concluida' => 'legalizado_finalizado',
-            'pronto_para_registro' => 'legalizado_finalizado',
-            'registrado' => 'legalizado_finalizado',
-            'encerrado' => 'legalizado_finalizado',
-        ];
-    }
-
     public function initialize(Terreno $terreno, ?User $user = null): void
     {
         if ($terreno->workflow_status_code) {
@@ -492,8 +455,6 @@ class LandWorkflowService
             return 'em_analise';
         }
 
-        return array_key_exists($status, self::statuses())
-            ? $status
-            : (self::legacyStatusMap()[$status] ?? $status);
+        return array_key_exists($status, self::statuses()) ? $status : 'em_analise';
     }
 }

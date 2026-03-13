@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Tenant\Terreno;
 use App\Http\Resources\TenantResource;
 use App\Services\ApiResponseService;
-use App\Services\TenantFeatureService;
+use App\Services\TenantPlanAccessService;
 use App\Services\UsageMetricsService;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
@@ -15,7 +15,7 @@ class TenantController extends Controller
 {
     public function __construct(
         protected UsageMetricsService $usageService,
-        protected TenantFeatureService $featureService
+        protected TenantPlanAccessService $planAccessService
     ) {
     }
 
@@ -177,8 +177,8 @@ class TenantController extends Controller
             ] : null,
             'stripe' => $stripeData,
             'invoices' => $invoices,
-            'entitlements' => $this->featureService->getEntitlements(),
-            'feature_flags' => $this->featureService->getFeatureFlags(),
+            'entitlements' => $this->planAccessService->getEntitlements(),
+            'feature_flags' => $this->planAccessService->getPlanFlags(),
             'stripe_error' => app()->environment('local') ? $stripeError : null,
         ], language()->t('SIGNATURE_DATA_RETRIEVED'));
     }

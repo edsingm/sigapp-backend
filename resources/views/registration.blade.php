@@ -43,7 +43,7 @@
                         class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                         id="domain" type="text" placeholder="minhaempresa" required>
                     <p class="text-xs text-gray-500 mt-1">Seu sistema será: <span
-                            id="domain-preview">...</span>.sigpro.com.br</p>
+                            id="domain-preview">...</span>.sigapp.com.br</p>
                 </div>
 
                 <div>

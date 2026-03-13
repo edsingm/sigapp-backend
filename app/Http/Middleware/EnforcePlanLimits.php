@@ -3,7 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Services\ApiResponseService;
-use App\Services\TenantFeatureService;
+use App\Services\TenantPlanAccessService;
 use App\Services\UsageMetricsService;
 use Closure;
 use Illuminate\Http\Request;
@@ -12,7 +12,7 @@ use Symfony\Component\HttpFoundation\Response;
 class EnforcePlanLimits
 {
     public function __construct(
-        protected TenantFeatureService $featureService,
+        protected TenantPlanAccessService $planAccessService,
         protected UsageMetricsService $usageService
     ) {
     }
@@ -71,9 +71,9 @@ class EnforcePlanLimits
     protected function checkResourceLimit(string $resource): bool
     {
         return match ($resource) {
-            'users' => !$this->featureService->canCreateUsers($this->usageService->getUserCount()),
-            'terrenos' => !$this->featureService->canCreateTerrenos($this->usageService->getTerrenoCount()),
-            'storage' => $this->featureService->isStorageExceeded($this->usageService->getStorageUsed()),
+            'users' => !$this->planAccessService->canCreateUsers($this->usageService->getUserCount()),
+            'terrenos' => !$this->planAccessService->canCreateTerrenos($this->usageService->getTerrenoCount()),
+            'storage' => $this->planAccessService->isStorageExceeded($this->usageService->getStorageUsed()),
             default => false,
         };
     }

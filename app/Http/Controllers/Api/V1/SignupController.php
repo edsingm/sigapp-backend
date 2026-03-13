@@ -228,7 +228,7 @@ class SignupController extends Controller
                 'payment_status' => $session->payment_status,
                 'subscription_id' => $session->subscription,
                 'is_ready' => $tenant->isActive() && $tenant->database_created,
-                'subdomain' => $tenant->slug . '.' . (env('APP_DOMAIN') ?: 'localhost'),
+                'subdomain' => $tenant->slug . '.' . config('app.domain', 'localhost'),
             ]);
         } catch (\Exception $e) {
             return ApiResponseService::notFound('SESSION_NOT_FOUND');

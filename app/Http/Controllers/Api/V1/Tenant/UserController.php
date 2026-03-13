@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Tenant;
 
+use App\Enums\Common\RolesEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use App\Models\Tenant\User;
@@ -10,10 +11,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
 class UserController extends Controller
 {
+    private const ADMIN_ROLE_NAMES = [RolesEnum::ADMIN->value, RolesEnum::DIRECTOR->value];
+
     /**
      * List all users.
      *
@@ -100,7 +104,7 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:users,email'],
             'password' => ['required', Password::defaults()],
-            'role' => ['sometimes', 'string', 'exists:roles,name'],
+            'role' => ['sometimes', 'string', Rule::in(array_column(RolesEnum::cases(), 'value'))],
         ]);
 
         $user = User::create([
@@ -112,7 +116,7 @@ class UserController extends Controller
         if (isset($validated['role'])) {
             $user->assignRole($validated['role']);
         } else {
-            $user->assignRole('user');
+            $user->assignRole(RolesEnum::USER->value);
         }
 
         return ApiResponseService::created(
@@ -138,7 +142,7 @@ class UserController extends Controller
             'name' => ['sometimes', 'string', 'max:255'],
             'email' => ['sometimes', 'email', 'unique:users,email,' . $id],
             'password' => ['sometimes', Password::defaults()],
-            'role' => ['sometimes', 'string', 'exists:roles,name'],
+            'role' => ['sometimes', 'string', Rule::in(array_column(RolesEnum::cases(), 'value'))],
         ]);
 
         if (isset($validated['password'])) {
@@ -180,14 +184,18 @@ class UserController extends Controller
             );
         }
 
-        // Prevent deleting the only super admin (legacy compatibility)
-        if ($user->hasAnyRole(['SUPER_ADMIN', 'super_admin'])) {
-            $superAdminCount = User::role('SUPER_ADMIN')->count() + User::role('super_admin')->count();
+        if ($user->hasAnyRole(self::ADMIN_ROLE_NAMES)) {
+            $adminEligibleCount = User::query()
+                ->whereHas('roles', function ($query) {
+                    $query->whereIn('name', self::ADMIN_ROLE_NAMES)
+                        ->where('guard_name', 'web');
+                })
+                ->count();
 
-            if ($superAdminCount <= 1) {
+            if ($adminEligibleCount <= 1) {
                 return ApiResponseService::error(
-                    'LAST_SUPER_ADMIN',
-                    'Não é possível excluir o último super administrador',
+                    'LAST_TENANT_ADMIN',
+                    'Não é possível excluir o último administrador do tenant',
                     null,
                     400
                 );

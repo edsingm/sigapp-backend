@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\Acl\PermissionNameResolver;
 use App\Services\ApiResponseService;
 use Closure;
 use Illuminate\Http\Request;
@@ -24,19 +25,14 @@ use Symfony\Component\HttpFoundation\Response;
  *   permission.gate:{module}
  *   permission.gate:{module},{resource}
  *
- * Roles SUPER_ADMIN and ADMIN bypass all checks.
+ * The canonical ADMIN role bypasses all checks.
  */
 class PermissionGate
 {
-    private const BYPASS_ROLES = ['SUPER_ADMIN', 'ADMIN', 'super_admin', 'admin'];
-
-    private const METHOD_LEVEL_MAP = [
-        'GET'    => 'viewer',
-        'POST'   => 'editor',
-        'PUT'    => 'editor',
-        'PATCH'  => 'editor',
-        'DELETE' => 'manager',
-    ];
+    public function __construct(
+        private readonly PermissionNameResolver $permissions,
+    ) {
+    }
 
     public function handle(
         Request $request,
@@ -50,14 +46,11 @@ class PermissionGate
             return ApiResponseService::error('UNAUTHENTICATED', 'Não autenticado.', null, 401);
         }
 
-        if ($user->hasAnyRole(self::BYPASS_ROLES)) {
+        if ($user->isAdmin()) {
             return $next($request);
         }
 
-        $level          = self::METHOD_LEVEL_MAP[strtoupper($request->method())] ?? 'viewer';
-        $permissionName = $resource !== null
-            ? "{$module}.{$resource}.{$level}"
-            : "{$module}.{$level}";
+        $permissionName = $this->permissions->forRequest($module, $resource, $request->method());
 
         if (!$user->hasPermissionTo($permissionName)) {
             return ApiResponseService::error(

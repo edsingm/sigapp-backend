@@ -7,6 +7,7 @@ use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
 use App\Notifications\TenantResetPasswordNotification;
 use App\Services\Auth\TenantPasswordResetService;
+use App\Services\Auth\TenantUserDirectoryService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -28,27 +29,30 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, HasRoles, Notifiable, HasDashboardCache;
 
-    private const SUPER_ADMIN_ROLE_NAMES = ['SUPER_ADMIN', 'super_admin'];
-    private const ADMIN_ROLE_NAMES = [
-        RolesEnum::ADMIN->value,
-        'admin',
-        ...self::SUPER_ADMIN_ROLE_NAMES,
-    ];
+    private const ADMIN_ROLE_NAMES = [RolesEnum::ADMIN->value];
 
     protected $guard_name = 'web';
 
     protected static function booted()
     {
-        static::saved(function ($model) {
+        static::saved(function (User $model) {
             $model->clearTenantCache('users');
             $model->clearTenantCache('terrenos');
             $model->clearTenantCache('legalizacoes');
+
+            if (tenancy()->initialized) {
+                app(TenantUserDirectoryService::class)->syncUser($model);
+            }
         });
 
-        static::deleted(function ($model) {
+        static::deleted(function (User $model) {
             $model->clearTenantCache('users');
             $model->clearTenantCache('terrenos');
             $model->clearTenantCache('legalizacoes');
+
+            if (tenancy()->initialized) {
+                app(TenantUserDirectoryService::class)->deleteUser($model);
+            }
         });
     }
 
@@ -88,7 +92,7 @@ class User extends Authenticatable
      */
     public function isSuperAdmin(): bool
     {
-        return $this->hasAnyRole(self::SUPER_ADMIN_ROLE_NAMES);
+        return $this->hasRole(RolesEnum::ADMIN->value);
     }
 
     /**

@@ -2,7 +2,7 @@
 
 namespace App\Policies\Tenant;
 
-use App\Enums\Common\ModulesEnum;
+use App\Services\Acl\PermissionNameResolver;
 use App\Models\Tenant\User;
 
 /**
@@ -16,24 +16,13 @@ class TenantPolicy
 {
     public function before(User $user, string $ability, mixed $modelOrClass = null): ?bool
     {
-        if ($user->isAdmin()) {
-            return true;
-        }
+        $permission = app(PermissionNameResolver::class)->forModel($modelOrClass, $ability);
 
-        $class = is_object($modelOrClass) ? get_class($modelOrClass) : (string) $modelOrClass;
-        $module = ModulesEnum::modelMap()[$class] ?? null;
-
-        if (!$module) {
+        if (!$permission) {
             return null;
         }
 
-        $level = match (true) {
-            in_array($ability, ['viewAny', 'view', 'compare'], true) => 'viewer',
-            in_array($ability, ['create', 'update', 'ativar', 'requestApproval', 'duplicate', 'gerarDre', 'recalcular', 'reorder', 'syncGantt', 'recalcularProgresso'], true) => 'editor',
-            default => 'manager',
-        };
-
-        return $user->can("{$module}.{$level}");
+        return app(PermissionNameResolver::class)->userCan($user, $permission);
     }
 
     public function viewAny(User $user): bool { return false; }

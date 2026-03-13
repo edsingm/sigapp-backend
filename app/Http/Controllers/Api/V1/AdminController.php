@@ -24,20 +24,16 @@ class AdminController extends Controller
             'device_name' => ['sometimes', 'string'],
         ]);
 
-        Log::info('Admin Login Attempt', ['email' => $credentials['email']]);
+        $requestId = $request->header('X-Request-ID');
 
         $user = User::where('email', $credentials['email'])->first();
 
-        if (!$user) {
-            Log::warning('Admin Login: User not found', ['email' => $credentials['email']]);
-        } elseif (!Hash::check($credentials['password'], $user->password)) {
-            Log::warning('Admin Login: Password mismatch', ['email' => $credentials['email']]);
-        } elseif (!$user->is_admin) {
-            Log::warning('Admin Login: Not an admin', ['email' => $credentials['email']]);
-        }
-
-        // Check if user exists, password matches, and IS ADMIN
         if (!$user || !Hash::check($credentials['password'], $user->password) || !$user->is_admin) {
+            Log::warning('Admin login rejected', [
+                'request_id' => $requestId,
+                'status' => 'rejected',
+            ]);
+
             return ApiResponseService::error(
                 'UNAUTHORIZED',
                 language()->t('INVALID_CREDENTIALS'),
@@ -46,7 +42,11 @@ class AdminController extends Controller
             );
         }
 
-        Log::info('Admin Login: Success', ['user_id' => $user->id]);
+        Log::info('Admin login accepted', [
+            'request_id' => $requestId,
+            'user_id' => $user->id,
+            'status' => 'accepted',
+        ]);
 
         if ($request->has('device_name')) {
             $user->tokens()->where('name', $credentials['device_name'])->delete();

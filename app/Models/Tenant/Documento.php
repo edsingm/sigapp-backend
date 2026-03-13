@@ -34,7 +34,7 @@ class Documento extends Model
         'tipo',
         'categoria',
         'descricao',
-        'url',
+        'file_path',
         'tamanho',
         'status',
         'created_by',

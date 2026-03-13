@@ -54,6 +54,8 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    'domain' => env('APP_DOMAIN', 'sigapp.com.br'),
+
     'frontend_url' => env('FRONTEND_URL', 'http://localhost:8080'),
 
     /*

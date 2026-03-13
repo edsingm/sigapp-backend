@@ -65,7 +65,6 @@ class InitializeTenancyFlexible
 
     protected function resolveTenantSlug(Request $request): ?string
     {
-        // 1. Try subdomain
         $host = $request->getHost();
         $centralDomains = config('tenancy.identification.central_domains', []);
 
@@ -89,14 +88,8 @@ class InitializeTenancyFlexible
             }
         }
 
-        // 2. Fallback: X-Tenant header (official)
-        if ($request->hasHeader('X-Tenant')) {
+        if (app()->environment(['local', 'testing']) && $request->hasHeader('X-Tenant')) {
             return $request->header('X-Tenant');
-        }
-
-        // 3. Backward compatibility: legacy header
-        if ($request->hasHeader('X-Tenant-ID')) {
-            return $request->header('X-Tenant-ID');
         }
 
         return null;

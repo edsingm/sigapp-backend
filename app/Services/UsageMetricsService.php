@@ -2,6 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\Tenant\Documento;
+use App\Models\Tenant\Terreno;
+use App\Models\Tenant\User;
+
 class UsageMetricsService
 {
     /**
@@ -13,7 +17,7 @@ class UsageMetricsService
             return 0;
         }
 
-        return \App\Models\Tenant\User::count();
+        return User::count();
     }
 
     /**
@@ -25,7 +29,19 @@ class UsageMetricsService
             return 0;
         }
 
-        return \App\Models\Tenant\Terreno::count();
+        return Terreno::count();
+    }
+
+    /**
+     * Get the storage used in bytes.
+     */
+    public function getStorageUsedBytes(): int
+    {
+        if (!tenancy()->initialized) {
+            return 0;
+        }
+
+        return (int) Documento::query()->sum('tamanho');
     }
 
     /**
@@ -33,33 +49,7 @@ class UsageMetricsService
      */
     public function getStorageUsed(): float
     {
-        if (!tenancy()->initialized) {
-            return 0;
-        }
-
-        $storagePath = storage_path();
-
-        if (!is_dir($storagePath)) {
-            return 0;
-        }
-
-        $bytes = $this->getDirectorySize($storagePath);
-
-        return round($bytes / (1024 * 1024 * 1024), 2);
-    }
-
-    /**
-     * Get directory size in bytes.
-     */
-    protected function getDirectorySize(string $path): int
-    {
-        $size = 0;
-
-        foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($path, \FilesystemIterator::SKIP_DOTS)) as $file) {
-            $size += $file->getSize();
-        }
-
-        return $size;
+        return round($this->getStorageUsedBytes() / (1024 * 1024 * 1024), 2);
     }
 
     /**

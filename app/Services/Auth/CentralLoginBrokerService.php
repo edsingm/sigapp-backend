@@ -5,6 +5,7 @@ namespace App\Services\Auth;
 use App\Models\Central\CentralLoginBrokerSession;
 use App\Models\Central\LoginTransferTicket;
 use App\Models\Central\Tenant;
+use App\Models\Central\TenantUserDirectory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -15,6 +16,11 @@ class CentralLoginBrokerService
     private const TRANSFER_TICKET_TTL_SECONDS = 90;
     private const BROKER_SESSION_TTL_SECONDS = 300;
 
+    public function __construct(
+        private readonly TenantUserDirectoryService $directoryService,
+    ) {
+    }
+
     /**
      * Attempt central broker login across active tenants.
      *
@@ -23,16 +29,14 @@ class CentralLoginBrokerService
     public function attemptCentralLogin(string $email, string $password, ?string $deviceName, Request $request): array
     {
         $startedAt = microtime(true);
-        $matches = $this->findMatchingTenants($email, $password);
+        $candidates = $this->directoryService->candidatesForEmail($email);
+        $matches = $this->findMatchingTenants($candidates, $password);
         $durationMs = round((microtime(true) - $startedAt) * 1000, 2);
-        $activeTenants = Tenant::query()
-            ->where('status', Tenant::STATUS_ACTIVE)
-            ->count();
 
         Log::info('Central broker login attempt completed', [
-            'ip' => $request->ip(),
+            'request_id' => $request->header('X-Request-ID'),
             'matches_count' => count($matches),
-            'active_tenants_scanned' => $activeTenants,
+            'candidate_tenants' => $candidates->count(),
             'duration_ms' => $durationMs,
         ]);
 
@@ -130,7 +134,7 @@ class CentralLoginBrokerService
         }
 
         $tokenName = $deviceName ?: ($ticket->device_name ?: 'api-token');
-        $tokenResult = $user->createToken($tokenName, ['*'], now()->addDays(7));
+        $tokenResult = $user->createToken($tokenName, ['tenant-api'], now()->addDays(7));
 
         $updated = tenancy()->central(function () use ($ticket) {
             return LoginTransferTicket::whereKey($ticket->id)
@@ -153,7 +157,7 @@ class CentralLoginBrokerService
         return [
             'user' => $user,
             'token' => $tokenResult->plainTextToken,
-            'abilities' => ['*'],
+            'abilities' => ['tenant-api'],
             'expires_at' => $tokenResult->accessToken->expires_at?->toIso8601String(),
         ];
     }
@@ -192,18 +196,26 @@ class CentralLoginBrokerService
     /**
      * @return list<array<string, mixed>>
      */
-    private function findMatchingTenants(string $email, string $password): array
+    private function findMatchingTenants(iterable $candidates, string $password): array
     {
         $matches = [];
-        $tenants = Tenant::query()
-            ->where('status', Tenant::STATUS_ACTIVE)
-            ->get();
 
-        foreach ($tenants as $tenant) {
-            /** @var Tenant $tenant */
+        foreach ($candidates as $candidateDirectory) {
+            if (!$candidateDirectory instanceof TenantUserDirectory) {
+                continue;
+            }
+
+            $tenant = $candidateDirectory->tenant;
+
+            if (!$tenant instanceof Tenant || !$tenant->isActive()) {
+                continue;
+            }
+
             try {
-                $candidate = $tenant->run(function () use ($email, $password) {
-                    $user = \App\Models\Tenant\User::where('email', $email)->first();
+                $candidate = $tenant->run(function () use ($candidateDirectory, $password) {
+                    $user = \App\Models\Tenant\User::query()
+                        ->whereKey($candidateDirectory->tenant_user_id)
+                        ->first();
 
                     if (!$user || !Hash::check($password, $user->password)) {
                         return null;
@@ -238,7 +250,7 @@ class CentralLoginBrokerService
                 'tenant_url' => $tenantUrl,
                 'tenant_user_id' => (string) $candidate['tenant_user_id'],
                 'user_name' => (string) $candidate['user_name'],
-                'email' => $email,
+                'email' => $candidateDirectory->email_normalized,
             ];
         }
 

@@ -21,7 +21,7 @@ return new class extends Migration {
             $table->integer('max_users')->default(5); // -1 para ilimitado
             $table->integer('max_storage_gb')->default(5);
             $table->integer('max_terrenos')->default(100); // -1 para ilimitado
-            $table->json('features')->nullable();
+            $table->json('entitlements')->nullable();
             $table->boolean('is_active')->default(true);
             $table->boolean('is_popular')->default(false);
             $table->integer('sort_order')->default(0);

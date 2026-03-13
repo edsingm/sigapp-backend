@@ -24,7 +24,7 @@ class EnsureUserIsAdmin
         }
 
         $token = $user->currentAccessToken();
-        $hasAdminAbility = $token && ($token->can('admin') || $token->can('*'));
+        $hasAdminAbility = $token && $token->can('admin');
 
         if (!$user->is_admin || !$hasAdminAbility) {
             return ApiResponseService::forbidden('Acesso restrito a administradores centrais.');

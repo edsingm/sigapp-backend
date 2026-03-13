@@ -9,4 +9,5 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('auth:cleanup-central-login-broker')->everyFiveMinutes();
+Schedule::command('tenants:cleanup-pending')->hourly();
 Schedule::command('tenant:notify-overdue-legalizacao-etapas')->dailyAt('08:00');

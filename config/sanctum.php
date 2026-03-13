@@ -2,6 +2,27 @@
 
 use Laravel\Sanctum\Sanctum;
 
+$appDomain = trim((string) env('APP_DOMAIN', 'sigapp.com.br'));
+$defaultStatefulDomains = [
+    'localhost',
+    'localhost:8080',
+    'localhost:3000',
+    '127.0.0.1',
+    '127.0.0.1:8000',
+    '::1',
+];
+
+if ($appDomain !== '' && !in_array($appDomain, ['localhost', '127.0.0.1'], true)) {
+    $defaultStatefulDomains[] = $appDomain;
+    $defaultStatefulDomains[] = '*.' . $appDomain;
+}
+
+$currentApplicationUrl = trim((string) Sanctum::currentApplicationUrlWithPort());
+
+if ($currentApplicationUrl !== '') {
+    $defaultStatefulDomains[] = $currentApplicationUrl;
+}
+
 return [
 
     /*
@@ -15,11 +36,9 @@ return [
     |
     */
 
-    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', sprintf(
-        '%s%s',
-        'localhost,localhost:8080,localhost:3000,127.0.0.1,127.0.0.1:8000,::1',
-        Sanctum::currentApplicationUrlWithPort(),
-        // Sanctum::currentRequestHost(),
+    'stateful' => array_values(array_filter(array_map(
+        static fn (string $domain): string => trim($domain),
+        explode(',', (string) env('SANCTUM_STATEFUL_DOMAINS', implode(',', array_unique($defaultStatefulDomains))))
     ))),
 
     /*

@@ -5,7 +5,6 @@ namespace App\Services\Auth;
 use App\Models\Central\Tenant;
 use App\Support\TenantAppUrl;
 use Illuminate\Auth\Events\PasswordReset;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
@@ -15,6 +14,7 @@ class TenantPasswordResetService
 {
     public function __construct(
         private readonly TenantAppUrl $tenantAppUrl,
+        private readonly TenantUserDirectoryService $directoryService,
     ) {
     }
 
@@ -28,11 +28,11 @@ class TenantPasswordResetService
     public function sendResetLinkAcrossActiveTenants(string $email): int
     {
         $sent = 0;
-
-        /** @var Collection<int, Tenant> $tenants */
-        $tenants = Tenant::query()
-            ->where('status', Tenant::STATUS_ACTIVE)
-            ->get();
+        $tenants = $this->directoryService->candidatesForEmail($email)
+            ->pluck('tenant')
+            ->filter(fn ($tenant) => $tenant instanceof Tenant)
+            ->unique(fn (Tenant $tenant) => (string) $tenant->getKey())
+            ->values();
 
         foreach ($tenants as $tenant) {
             try {
@@ -52,7 +52,6 @@ class TenantPasswordResetService
             } catch (\Throwable $exception) {
                 Log::warning('Failed to send tenant password reset link', [
                     'tenant_id' => (string) $tenant->id,
-                    'email' => $email,
                     'error' => $exception->getMessage(),
                 ]);
                 continue;

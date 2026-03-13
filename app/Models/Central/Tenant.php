@@ -242,7 +242,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     }
 
     /**
-     * Get feature limits from the plan.
+     * Get contractual limits from the assigned plan.
      */
     public function getMaxUsersAttribute(): int
     {

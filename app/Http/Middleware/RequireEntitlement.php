@@ -49,7 +49,7 @@ class RequireEntitlement
 
         if (!$allowed) {
             return ApiResponseService::error(
-                'PLAN_FEATURE_DISABLED',
+                'PLAN_ENTITLEMENT_DISABLED',
                 'Recurso indisponível para o plano atual.',
                 [
                     'entitlement' => $key,

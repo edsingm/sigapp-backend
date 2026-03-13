@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\UpdateUserModulePermissionsRequest;
 use App\Http\Resources\UserResource;
 use App\Models\Tenant\User;
+use App\Services\Acl\PermissionNameResolver;
 use App\Services\ApiResponseService;
 use App\Services\LanguageService;
 use App\Services\LimitEnforcementService;
@@ -19,6 +20,11 @@ use Spatie\Permission\Models\Permission;
 class UserManagementController extends Controller
 {
     private const ADMIN_ROLE_NAMES = [RolesEnum::ADMIN->value, RolesEnum::DIRECTOR->value];
+
+    public function __construct(
+        private readonly PermissionNameResolver $permissions,
+    ) {
+    }
 
     /**
      * List tenant users.
@@ -97,7 +103,7 @@ class UserManagementController extends Controller
             'role'     => [
                 'required',
                 'string',
-                Rule::exists('roles', 'name')->where('guard_name', 'web'),
+                Rule::in(array_column(RolesEnum::cases(), 'value')),
             ],
             'locale'   => ['sometimes', 'string', 'in:' . implode(',', LanguageService::SUPPORTED_LOCALES)],
         ]);
@@ -135,7 +141,7 @@ class UserManagementController extends Controller
             'role'     => [
                 'sometimes',
                 'string',
-                Rule::exists('roles', 'name')->where('guard_name', 'web'),
+                Rule::in(array_column(RolesEnum::cases(), 'value')),
             ],
             'locale'   => ['sometimes', 'string', 'in:' . implode(',', LanguageService::SUPPORTED_LOCALES)],
         ]);
@@ -148,34 +154,13 @@ class UserManagementController extends Controller
 
         if (array_key_exists('role', $validated)) {
             $nextRole = (string) $validated['role'];
-
-            if ($user->hasRole('super_admin') && $nextRole !== 'super_admin') {
-                $superAdminCount = User::role('super_admin')->count();
-
-                if ($adminCount <= 1) {
-                    return ApiResponseService::error(
-                        'LAST_ADMIN',
-                        language()->t('USER_ADMIN_CANT_CHANGE_ROLE'),
-                        null,
-                        400
-                    );
-                }
-            }
-
             $requestUser = $request->user();
             $isSelfUpdate = $requestUser && (int) $requestUser->id === (int) $user->id;
             $isCurrentlyAdminEligible = $user->hasAnyRole(self::ADMIN_ROLE_NAMES);
             $willRemainAdminEligible = in_array($nextRole, self::ADMIN_ROLE_NAMES, true);
 
             if ($isSelfUpdate && $isCurrentlyAdminEligible && !$willRemainAdminEligible) {
-                $adminEligibleCount = User::query()
-                    ->whereHas('roles', function ($query) {
-                        $query->whereIn('name', self::ADMIN_ROLE_NAMES)
-                            ->where('guard_name', 'web');
-                    })
-                    ->count();
-
-                if ($adminEligibleCount <= 1) {
+                if ($this->adminEligibleCount() <= 1) {
                     return ApiResponseService::error(
                         'LAST_TENANT_ADMIN',
                         language()->t('USER_ADMIN_CANT_REMOVE_LAST_ADMIN_ROLE'),
@@ -213,16 +198,13 @@ class UserManagementController extends Controller
             );
         }
 
-        if ($user->hasRole('super_admin')) {
-            $superAdminCount = User::role('super_admin')->count();
-            if ($superAdminCount <= 1) {
+        if ($user->hasAnyRole(self::ADMIN_ROLE_NAMES) && $this->adminEligibleCount() <= 1) {
                 return ApiResponseService::error(
-                    'LAST_ADMIN',
+                    'LAST_TENANT_ADMIN',
                     language()->t('USER_ADMIN_CANT_DELETE_LAST_ADMIN'),
                     null,
                     400
                 );
-            }
         }
 
         $user->delete();
@@ -240,8 +222,8 @@ class UserManagementController extends Controller
             return ApiResponseService::notFound(language()->t('USER_NOT_FOUND'));
         }
 
-        $permissionsMap  = (array) $request->input('permissions', []);
-        $flatPermissions = $this->resolvePermissionsFromMap($permissionsMap);
+        $permissionsMap = (array) $request->input('permissions', []);
+        $flatPermissions = $this->permissions->expandModulePermissions($permissionsMap);
 
         // Revoke existing direct permissions for the requested modules only
         $moduleKeys = array_keys($permissionsMap);
@@ -265,47 +247,13 @@ class UserManagementController extends Controller
         );
     }
 
-    /**
-     * Converts a module permissions map to flat dot-notation permission names.
-     * Hierarchy is cumulative: manager includes editor and viewer.
-     *
-     * @param  array<string, string|array<string, string>|null> $modulePermissions
-     * @return array<int, string>
-     */
-    private function resolvePermissionsFromMap(array $modulePermissions): array
+    private function adminEligibleCount(): int
     {
-        $levelMap = [
-            'viewer'  => ['viewer'],
-            'editor'  => ['viewer', 'editor'],
-            'manager' => ['viewer', 'editor', 'manager'],
-        ];
-
-        $permissions = [];
-
-        foreach ($modulePermissions as $moduleKey => $value) {
-            if ($value === null) {
-                continue;
-            }
-
-            if (is_array($value)) {
-                foreach ($value as $resource => $level) {
-                    if ($level === null || !isset($levelMap[$level])) {
-                        continue;
-                    }
-                    foreach ($levelMap[$level] as $permLevel) {
-                        $permissions[] = "{$moduleKey}.{$resource}.{$permLevel}";
-                    }
-                }
-            } else {
-                if (!isset($levelMap[$value])) {
-                    continue;
-                }
-                foreach ($levelMap[$value] as $permLevel) {
-                    $permissions[] = "{$moduleKey}.{$permLevel}";
-                }
-            }
-        }
-
-        return $permissions;
+        return User::query()
+            ->whereHas('roles', function ($query) {
+                $query->whereIn('name', self::ADMIN_ROLE_NAMES)
+                    ->where('guard_name', 'web');
+            })
+            ->count();
     }
 }

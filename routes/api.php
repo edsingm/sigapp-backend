@@ -103,8 +103,6 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
         // Universal routes (accessible on any domain)
         Route::middleware('throttle:api-public')->group(function () {
             Route::get('/tenant/subdomain-availability/{subdomain}', [\App\Http\Controllers\Api\V1\PublicTenantController::class, 'subdomainAvailability']);
-            Route::get('/tenant/by-subdomain/{subdomain}', [\App\Http\Controllers\Api\V1\PublicTenantController::class, 'bySubdomain']);
-            Route::get('/tenant/discover', [\App\Http\Controllers\Api\V1\PublicTenantController::class, 'discover']);
         });
 
         // Central Only Routes
@@ -126,12 +124,10 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
                     Route::post('/webhook/stripe', [WebhookController::class, 'handleWebhook'])
                         ->withoutMiddleware(['throttle:api-public']);
 
-                    // Auth - Login (public)
-                    Route::post('/auth/login', [AuthController::class, 'login']);
-                    Route::post('/auth/login-tenant', [AuthController::class, 'loginWithTenant']);
-                    Route::post('/auth/central-login', [AuthController::class, 'centralLogin'])
+                    // Auth - central broker flow
+                    Route::post('/auth/login', [AuthController::class, 'login'])
                         ->middleware('throttle:central-login');
-                    Route::post('/auth/central-login/select-tenant', [AuthController::class, 'selectCentralLoginTenant'])
+                    Route::post('/auth/select-tenant', [AuthController::class, 'selectTenant'])
                         ->middleware('throttle:central-login-select');
                     Route::post('/auth/password/forgot', [AuthController::class, 'forgotPassword'])
                         ->middleware('throttle:password-reset-request');
@@ -160,6 +156,7 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
                 });
 
                 Route::middleware(['auth:sanctum', 'user.admin', 'throttle:api-auth'])->group(function () {
+                    Route::get('/tenant-status', [TenantStatusController::class, 'index']);
 
                     // Admin Routes
                     Route::prefix('admin')->name('admin.')->group(function () {
@@ -190,9 +187,6 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
                     ->middleware('throttle:admin-login');
             });
         }
-        // Status dos tenants (empresas)
-        Route::get('/tenant-status', [TenantStatusController::class, 'index']);
-
         // End of API v1 prefix
     });
 

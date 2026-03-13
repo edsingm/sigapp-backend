@@ -1,5 +1,14 @@
 <?php
 
+$appDomain = trim((string) env('APP_DOMAIN', 'sigapp.com.br'));
+$allowedOriginPatterns = [
+    '/https?:\/\/(.+)?\.localhost(:\d+)?$/',
+];
+
+if ($appDomain !== '' && !in_array($appDomain, ['localhost', '127.0.0.1'], true)) {
+    $allowedOriginPatterns[] = '/https?:\/\/([a-z0-9-]+\.)?' . preg_quote($appDomain, '/') . '(:\d+)?$/i';
+}
+
 return [
 
     /*
@@ -21,10 +30,7 @@ return [
         explode(',', env('CORS_ALLOWED_ORIGINS', 'http://localhost:8080,http://localhost:3000'))
     ))),
 
-    'allowed_origins_patterns' => [
-        '/https?:\/\/(.+)?\.sigpro\.com\.br/',
-        '/https?:\/\/(.+)?\.localhost(:\d+)?/',
-    ],
+    'allowed_origins_patterns' => $allowedOriginPatterns,
 
     'allowed_headers' => [
         'Content-Type',
@@ -32,7 +38,6 @@ return [
         'X-Requested-With',
         'Accept',
         'X-Tenant',
-        'X-Tenant-ID',
         'X-Request-ID',
     ],
 

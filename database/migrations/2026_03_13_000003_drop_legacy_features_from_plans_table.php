@@ -6,23 +6,25 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
+        if (!Schema::hasColumn('plans', 'features')) {
+            return;
+        }
+
         Schema::table('plans', function (Blueprint $table) {
-            $table->json('entitlements')->nullable()->after('features');
+            $table->dropColumn('features');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
+        if (Schema::hasColumn('plans', 'features')) {
+            return;
+        }
+
         Schema::table('plans', function (Blueprint $table) {
-            $table->dropColumn('entitlements');
+            $table->json('features')->nullable()->after('max_terrenos');
         });
     }
 };

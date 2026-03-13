@@ -7,9 +7,11 @@ use App\Models\Central\Tenant;
 use App\Traits\LogsAudit;
 use App\Models\Central\WebhookEvent;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Laravel\Cashier\Http\Controllers\WebhookController as CashierController;
 use Laravel\Cashier\Http\Middleware\VerifyWebhookSignature;
+use Symfony\Component\HttpFoundation\Response;
 
 class WebhookController extends CashierController
 {
@@ -31,21 +33,43 @@ class WebhookController extends CashierController
     public function handleWebhook(Request $request)
     {
         $payload = json_decode($request->getContent(), true);
+        $eventId = $payload['id'] ?? null;
 
-        // Custom logging like before
-        try {
-            WebhookEvent::create([
-                'event_id' => $payload['id'] ?? null,
-                'type' => $payload['type'] ?? 'unknown',
-                'payload' => $payload,
-            ]);
-        } catch (\Exception $e) {
-            // Log but don't fail, maybe unique constraint on event_id
-            Log::warning('Failed to log webhook event: ' . $e->getMessage());
+        if (!is_string($eventId) || $eventId === '') {
+            return parent::handleWebhook($request);
         }
 
-        // Delegate to Cashier
-        return parent::handleWebhook($request);
+        return Cache::lock('stripe-webhook:' . $eventId, 30)->block(5, function () use ($eventId, $payload, $request) {
+            $event = WebhookEvent::query()->firstOrCreate(
+                ['event_id' => $eventId],
+                [
+                    'type' => $payload['type'] ?? 'unknown',
+                    'payload' => $payload,
+                ]
+            );
+
+            if ($event->processed_at) {
+                Log::info('Stripe webhook already processed', [
+                    'event_id' => $eventId,
+                    'type' => $event->type,
+                ]);
+
+                return $this->successMethod();
+            }
+
+            $event->forceFill([
+                'type' => $payload['type'] ?? 'unknown',
+                'payload' => $payload,
+            ])->save();
+
+            $response = parent::handleWebhook($request);
+
+            if ($response instanceof Response && $response->isSuccessful()) {
+                $event->markAsProcessed();
+            }
+
+            return $response;
+        });
     }
 
     /**
@@ -174,17 +198,15 @@ class WebhookController extends CashierController
         }
 
         $defaultConnection = (string) config('queue.default', 'sync');
+        if (!app()->isLocal() && $defaultConnection === 'sync') {
+            throw new \RuntimeException('QUEUE_CONNECTION assíncrona é obrigatória fora do ambiente local.');
+        }
+
         $queueConnection = $defaultConnection === 'sync' ? 'background' : $defaultConnection;
 
         CreateFullTenantJob::dispatch($tenant)
             ->onConnection($queueConnection)
             ->onQueue('tenant-provisioning');
-
-        if ($defaultConnection === 'sync') {
-            Log::warning('QUEUE_CONNECTION=sync detectado. Provisionamento do tenant enviado via queue connection "background" para evitar timeout no webhook Stripe.', [
-                'tenant_id' => $tenant->id,
-            ]);
-        }
     }
 
     /**

@@ -23,7 +23,6 @@ class PlanResource extends JsonResource
             'max_users' => $this->max_users,
             'max_storage_gb' => $this->max_storage_gb,
             'max_terrenos' => $this->max_terrenos,
-            'features' => $this->features,
             'entitlements' => $this->entitlements,
             'feature_flags' => $this->feature_flags,
             'is_popular' => $this->is_popular,

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Services\ApiResponseService;
 use App\Services\TenantStatusService;
 
 class TenantStatusController extends Controller
@@ -18,6 +19,6 @@ class TenantStatusController extends Controller
     {
         $stats = $this->tenantStatusService->getAggregatedStats();
 
-        return response()->json($stats);
+        return ApiResponseService::success($stats, 'TENANT_STATUS_RETRIEVED');
     }
 }

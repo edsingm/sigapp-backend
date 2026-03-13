@@ -41,7 +41,7 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 |
 | Routes for tenant-specific operations.
-| These are accessible at: https://{tenant}.sigpro.com.br/api/v1/...
+| These are accessible at: https://{tenant}.sigapp.com.br/api/v1/...
 |
 */
 
@@ -58,7 +58,7 @@ Route::middleware([
 
             // Auth - Login for tenant
             Route::post('/auth/login', [AuthController::class, 'login']);
-            Route::post('/auth/redeem-transfer-ticket', [AuthController::class, 'redeemTransferTicket'])
+            Route::post('/auth/exchange-ticket', [AuthController::class, 'exchangeTicket'])
                 ->middleware('throttle:transfer-ticket');
             Route::post('/auth/password/forgot', [AuthController::class, 'forgotPassword'])
                 ->middleware('throttle:password-reset-request');
@@ -102,8 +102,8 @@ Route::middleware([
                         ->name('tenant-admin.users.module-permissions');
                     Route::get('roles/select', [AdminRoleController::class, 'forSelect'])
                         ->name('tenant-admin.roles.select');
-                    Route::apiResource('roles', AdminRoleController::class);
-                    Route::apiResource('permissions', AdminPermissionController::class);
+                    Route::apiResource('roles', AdminRoleController::class)->only(['index', 'show']);
+                    Route::apiResource('permissions', AdminPermissionController::class)->only(['index', 'show']);
                 });
 
             // Terrenos (with plan limit enforcement)

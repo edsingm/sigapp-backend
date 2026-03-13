@@ -2,6 +2,7 @@
 
 use App\Services\LanguageService;
 use App\Support\UserContext;
+use Illuminate\Container\Container;
 
 if (!function_exists('user')) {
     /**
@@ -38,7 +39,16 @@ if (!function_exists('language')) {
      */
     function language(?string $locale = null): LanguageService
     {
-        $resolvedLocale = $locale ?? app()->getLocale();
+        $container = Container::getInstance();
+        $resolvedLocale = $locale;
+
+        if ($resolvedLocale === null) {
+            if ($container instanceof Container && $container->bound('config')) {
+                $resolvedLocale = (string) ($container->make('config')->get('app.locale') ?? 'pt_BR');
+            } else {
+                $resolvedLocale = 'pt_BR';
+            }
+        }
 
         return new LanguageService($resolvedLocale);
     }

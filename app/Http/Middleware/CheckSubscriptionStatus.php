@@ -32,7 +32,7 @@ class CheckSubscriptionStatus
                 },
                 [
                     'status' => $tenant->status,
-                    'support_url' => 'https://sigpro.com.br/suporte',
+                    'support_url' => 'https://sigapp.com.br/suporte',
                 ],
                 403
             );

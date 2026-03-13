@@ -16,7 +16,7 @@ return [
     |
     */
 
-    'enabled' => env('TELESCOPE_ENABLED', true),
+    'enabled' => (bool) env('TELESCOPE_ENABLED', false) && env('APP_ENV') !== 'testing',
 
     /*
     |--------------------------------------------------------------------------

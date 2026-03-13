@@ -6,14 +6,20 @@ use App\Models\Tenant\LegalizacaoEtapa;
 use App\Models\Tenant\MobileDeviceInstallation;
 use App\Models\Tenant\MobileNotification;
 use App\Models\Tenant\User;
+use App\Models\Tenant\Viabilidade;
+use App\Services\Acl\PermissionNameResolver;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class MobilePushService
 {
+    public function __construct(
+        private readonly PermissionNameResolver $permissions,
+    ) {
+    }
+
     public function registerDevice(User $user, array $attributes): MobileDeviceInstallation
     {
         $device = MobileDeviceInstallation::query()->updateOrCreate(
@@ -115,13 +121,11 @@ class MobilePushService
         ?string $dedupeKey = null
     ): Collection {
         $users = User::query()
-            ->where(function (Builder $query) use ($permission) {
-                $query->whereHas('permissions', fn (Builder $builder) => $builder->where('name', $permission))
-                    ->orWhereHas('roles.permissions', fn (Builder $builder) => $builder->where('name', $permission))
-                    ->orWhereHas('roles', fn (Builder $builder) => $builder->whereIn('name', ['ADMIN', 'SUPER_ADMIN', 'admin', 'super_admin']));
-            })
-            ->when($exclude, fn (Builder $query) => $query->whereKeyNot($exclude->getKey()))
-            ->get();
+            ->with(['roles.permissions', 'permissions'])
+            ->get()
+            ->filter(fn (User $user) => $this->permissions->userCan($user, $permission))
+            ->when($exclude, fn (Collection $users) => $users->reject(fn (User $user) => $user->is($exclude)))
+            ->values();
 
         return $this->notifyUsers($users, $payload, $dedupeKey);
     }
@@ -188,7 +192,7 @@ class MobilePushService
             }
 
             $this->notifyUsersWithPermission(
-                'update legalizacao etapas',
+                (string) $this->permissions->forModel(LegalizacaoEtapa::class, 'update'),
                 $payload,
                 null,
                 $dedupeKey

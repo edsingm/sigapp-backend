@@ -12,11 +12,11 @@ class LandWorkflowServiceTest extends TestCase
     {
         $statuses = LandWorkflowService::statuses();
 
-        $this->assertSame('captacao', $statuses['novo_lead']['stage']);
+        $this->assertSame('captacao', $statuses['em_analise']['stage']);
         $this->assertSame('viabilidade', $statuses['viabilidade_aprovada']['stage']);
-        $this->assertSame('comite', $statuses['em_comite']['stage']);
+        $this->assertSame('comite', $statuses['aguardando_comite']['stage']);
         $this->assertSame('negociacao_contrato', $statuses['contrato_assinado']['stage']);
-        $this->assertSame('registro_encerramento', $statuses['registrado']['stage']);
+        $this->assertSame('encerramento', $statuses['legalizado_finalizado']['stage']);
     }
 
     public function test_it_returns_available_transitions_for_the_current_status(): void
@@ -36,10 +36,10 @@ class LandWorkflowServiceTest extends TestCase
     {
         $matrix = LandWorkflowService::transitionMatrix();
 
-        $this->assertContains('viabilidade_aguardando_aprovacao', $matrix['viabilidade_em_elaboracao']);
-        $this->assertContains('aprovado_comite', $matrix['em_comite']);
-        $this->assertContains('contrato_assinado', $matrix['contrato_em_assinatura']);
-        $this->assertContains('pronto_para_registro', $matrix['legalizacao_concluida']);
-        $this->assertContains('arquivado', $matrix['encerrado']);
+        $this->assertContains('aguardando_viabilidade', $matrix['em_analise']);
+        $this->assertContains('negociacao_minuta', $matrix['aguardando_comite']);
+        $this->assertContains('contrato_assinado', $matrix['negociacao_minuta']);
+        $this->assertContains('legalizado_finalizado', $matrix['legalizando']);
+        $this->assertContains('arquivado', $matrix['legalizado_finalizado']);
     }
 }

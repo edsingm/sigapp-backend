@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Arr;
+use App\Models\Tenant\User as TenantUser;
 
 class LanguageService
 {
@@ -35,7 +36,7 @@ class LanguageService
 
         // Persiste na preferência do usuário autenticado (tenant)
         $user = request()->user();
-        if ($user && method_exists($user, 'fill')) {
+        if ($user instanceof TenantUser) {
             $user->fill(['locale' => $normalized])->save();
         }
     }
@@ -81,13 +82,15 @@ class LanguageService
 
     private function load(string $locale): array
     {
-        $path = resource_path("lang/{$locale}.json");
+        $basePath = method_exists(app(), 'resourcePath')
+            ? app()->resourcePath("lang/{$locale}.json")
+            : dirname(__DIR__, 2) . "/resources/lang/{$locale}.json";
 
-        if (!file_exists($path)) {
+        if (!file_exists($basePath)) {
             return [];
         }
 
-        $contents = file_get_contents($path);
+        $contents = file_get_contents($basePath);
         $decoded  = json_decode($contents, associative: true);
 
         return is_array($decoded) ? $decoded : [];

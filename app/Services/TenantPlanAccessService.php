@@ -4,7 +4,7 @@ namespace App\Services;
 
 use App\Models\Central\Plan;
 
-class TenantFeatureService
+class TenantPlanAccessService
 {
     public function __construct(
         protected PlanEntitlementService $entitlementService
@@ -14,7 +14,7 @@ class TenantFeatureService
     protected ?Plan $plan = null;
 
     /**
-     * Set the plan to check features against.
+     * Set the plan context used to evaluate entitlements and limits.
      */
     public function forPlan(Plan $plan): self
     {
@@ -35,20 +35,6 @@ class TenantFeatureService
         $tenant = tenancy()->tenant;
 
         return $tenant?->plan;
-    }
-
-    /**
-     * Check if a feature is enabled.
-     */
-    public function hasFeature(string $feature): bool
-    {
-        $plan = $this->getPlan();
-
-        if (!$plan) {
-            return false;
-        }
-
-        return $plan->hasFeature($feature);
     }
 
     /**
@@ -178,9 +164,9 @@ class TenantFeatureService
     }
 
     /**
-     * Get all feature flags.
+     * Get the derived plan flags exposed by the public contract.
      */
-    public function getFeatureFlags(): array
+    public function getPlanFlags(): array
     {
         $plan = $this->getPlan();
 
@@ -191,9 +177,6 @@ class TenantFeatureService
         return $plan->feature_flags;
     }
 
-    /**
-     * Get normalized entitlements map (raw JSON if present, otherwise legacy-derived via model accessor methods).
-     */
     public function getEntitlements(): array
     {
         $plan = $this->getPlan();
@@ -202,21 +185,6 @@ class TenantFeatureService
             return [];
         }
 
-        return is_array($plan->entitlements) && $plan->entitlements !== []
-            ? $plan->entitlements
-            : [
-                'users' => ['max' => $plan->getEntitlement('users.max')],
-                'terrenos' => ['max' => $plan->getEntitlement('terrenos.max')],
-                'storage' => ['max_gb' => $plan->getEntitlement('storage.max_gb')],
-                'viabilidade' => [
-                    'enabled' => $plan->getEntitlement('viabilidade.enabled'),
-                    'tier' => $plan->getEntitlement('viabilidade.tier'),
-                ],
-                'reports' => ['tier' => $plan->getEntitlement('reports.tier')],
-                'api_access' => ['enabled' => $plan->getEntitlement('api_access.enabled')],
-                'sso' => ['enabled' => $plan->getEntitlement('sso.enabled')],
-                'integrations' => ['full' => $plan->getEntitlement('integrations.full')],
-                'support' => ['priority' => $plan->getEntitlement('support.priority')],
-            ];
+        return is_array($plan->entitlements) ? $plan->entitlements : [];
     }
 }

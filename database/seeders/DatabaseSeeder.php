@@ -2,8 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\Tenant\User;
-use Database\Seeders\Tenant\AdminUserSeeder;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -19,9 +17,6 @@ class DatabaseSeeder extends Seeder
         $this->call([
             PlanSeeder::class,
             PlanRolePermissionTemplateSeeder::class,
-            AdminsSetupSeeder::class
         ]);
-
-
     }
 }

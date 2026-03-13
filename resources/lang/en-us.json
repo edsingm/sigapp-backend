@@ -40,7 +40,7 @@
     "TOKEN_RENEWED": "Token renewed successfully",
     "UNAUTHORIZED": "Unauthorized",
     "USAGE_METRICS_RETRIEVED": "Usage metrics retrieved successfully",
-    "USE_CENTRAL_LOGIN_FLOW": "Use the central login flow at /api/v1/auth/central-login.",
+    "USE_CENTRAL_LOGIN_FLOW": "Use the canonical central login flow at /api/v1/auth/login.",
     "USER": "User",
     "USER_ADMIN_CANT_CHANGE_ROLE": "Cannot change the role of the last administrator",
     "USER_ADMIN_CANT_DELETE_LAST_ADMIN": "Cannot delete the last administrator of the tenant",

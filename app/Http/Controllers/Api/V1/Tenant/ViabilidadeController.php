@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Http\Controllers\Controller;
 use App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService;
+use App\Services\Acl\PermissionNameResolver;
 use App\Services\Tenant\MobilePushService;
 use App\Services\Tenant\Viabilidade\ViabilidadeService;
 use App\Models\Tenant\Viabilidade;
@@ -25,6 +26,7 @@ class ViabilidadeController extends Controller
         ViabilidadeService $viabilidadeService,
         protected MobilePushService $mobilePushService,
         protected LandWorkflowService $workflowService,
+        protected PermissionNameResolver $permissions,
     )
     {
         $this->viabilidadeService = $viabilidadeService;
@@ -120,7 +122,7 @@ class ViabilidadeController extends Controller
             $viabilidade->loadMissing('terreno');
 
             $this->mobilePushService->notifyUsersWithPermission(
-                'approve viabilidades',
+                (string) $this->permissions->forModel(Viabilidade::class, 'approve'),
                 [
                     'title' => 'Viabilidade aguardando aprovação',
                     'body' => "A viabilidade do terreno {$viabilidade->terreno?->nome} aguarda decisão.",

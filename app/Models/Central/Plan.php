@@ -19,7 +19,6 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * @property int $max_users
  * @property int $max_storage_gb
  * @property int $max_terrenos
- * @property array $features
  * @property bool $is_active
  * @property bool $is_popular
  * @property int $sort_order
@@ -48,7 +47,6 @@ class Plan extends Model
         'max_users',
         'max_storage_gb',
         'max_terrenos',
-        'features',
         'entitlements',
         'is_active',
         'is_popular',
@@ -66,7 +64,6 @@ class Plan extends Model
             'max_users' => 'integer',
             'max_storage_gb' => 'integer',
             'max_terrenos' => 'integer',
-            'features' => 'array',
             'entitlements' => 'array',
             'is_active' => 'boolean',
             'is_popular' => 'boolean',
@@ -122,28 +119,9 @@ class Plan extends Model
         return $this->max_terrenos === -1;
     }
 
-    /**
-     * Check if plan has a specific feature.
-     */
-    public function hasFeature(string $feature): bool
-    {
-        return in_array($feature, $this->features ?? []);
-    }
-
-    /**
-     * Read an entitlement (dot notation) with legacy fallback derived from features/limits.
-     */
     public function getEntitlement(string $key, mixed $default = null): mixed
     {
-        $entitlements = $this->entitlements ?? [];
-
-        if (data_get($entitlements, $key, '__missing__') !== '__missing__') {
-            return data_get($entitlements, $key, $default);
-        }
-
-        $legacy = $this->legacyEntitlements();
-
-        return data_get($legacy, $key, $default);
+        return data_get($this->entitlements ?? [], $key, $default);
     }
 
     public function hasEntitlement(string $key): bool
@@ -152,7 +130,7 @@ class Plan extends Model
     }
 
     /**
-     * Get feature flags for the plan.
+     * Get derived plan flags from the canonical entitlements catalog.
      */
     public function getFeatureFlagsAttribute(): array
     {
@@ -164,56 +142,17 @@ class Plan extends Model
             'api_access' => (bool) $this->getEntitlement('api_access.enabled', false),
             'sso_enabled' => (bool) $this->getEntitlement('sso.enabled', false),
             'advanced_reports' => in_array((string) $this->getEntitlement('reports.tier', 'basic'), ['advanced', 'full', 'pro', 'enterprise'], true),
+            'export_pdf' => (bool) $this->getEntitlement('reports.export_pdf', false),
+            'dashboard_full' => in_array((string) $this->getEntitlement('dashboard.tier', 'basic'), ['advanced', 'full', 'pro', 'enterprise'], true),
+            'dre_full' => in_array((string) $this->getEntitlement('dre.tier', 'none'), ['advanced', 'full', 'pro', 'enterprise'], true),
+            'cash_flow' => (bool) $this->getEntitlement('cash_flow.enabled', false),
+            'kpis_indicators' => (bool) $this->getEntitlement('analytics.kpis.enabled', false)
+                || (bool) $this->getEntitlement('analytics.indicators.enabled', false),
             'full_integrations' => (bool) $this->getEntitlement('integrations.full', false),
             'priority_support' => (bool) $this->getEntitlement('support.priority', false),
+            'custom_roles' => (bool) $this->getEntitlement('acl.custom_roles.enabled', false),
+            'permission_management' => (bool) $this->getEntitlement('acl.permission_management.enabled', false),
         ];
     }
 
-    protected function legacyEntitlements(): array
-    {
-        $features = $this->features ?? [];
-
-        $has = static fn (string $feature): bool => in_array($feature, $features, true);
-
-        $viabilidadeTier = 'none';
-        if ($has('Módulo Viabilidade completo')) {
-            $viabilidadeTier = 'full';
-        } elseif ($has('Módulo Viabilidade simples') || $has('Módulo Viabilidade bloqueado') === false) {
-            // Compatibilidade: planos atuais não usam "bloqueado"; inferimos simples.
-            $viabilidadeTier = 'simple';
-        }
-
-        $reportsTier = $has('Relatórios avançados') ? 'advanced' : 'basic';
-
-        return [
-            'users' => [
-                'max' => $this->max_users,
-            ],
-            'terrenos' => [
-                'max' => $this->max_terrenos,
-            ],
-            'storage' => [
-                'max_gb' => $this->max_storage_gb,
-            ],
-            'viabilidade' => [
-                'enabled' => $viabilidadeTier !== 'none',
-                'tier' => $viabilidadeTier,
-            ],
-            'reports' => [
-                'tier' => $reportsTier,
-            ],
-            'api_access' => [
-                'enabled' => $has('API Access') || $has('Integração via API própria'),
-            ],
-            'sso' => [
-                'enabled' => $has('SSO via SAML'),
-            ],
-            'integrations' => [
-                'full' => $has('Integrações completas') || $has('Integração via API própria'),
-            ],
-            'support' => [
-                'priority' => $has('Suporte prioritário'),
-            ],
-        ];
-    }
 }

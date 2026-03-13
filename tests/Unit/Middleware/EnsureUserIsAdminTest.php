@@ -9,7 +9,7 @@ use Illuminate\Http\Response;
 use Laravel\Sanctum\PersonalAccessToken;
 use Mockery;
 use PHPUnit\Framework\Attributes\After;
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 
 class EnsureUserIsAdminTest extends TestCase
 {
@@ -65,7 +65,6 @@ class EnsureUserIsAdminTest extends TestCase
     {
         $token = Mockery::mock(PersonalAccessToken::class);
         $token->shouldReceive('can')->with('admin')->andReturn($canAdmin);
-        $token->shouldReceive('can')->with('*')->andReturn(false);
 
         return $token;
     }

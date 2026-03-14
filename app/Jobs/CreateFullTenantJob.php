@@ -53,6 +53,10 @@ class CreateFullTenantJob implements ShouldQueue, ShouldBeUnique
         $this->tenant->setConnection($centralConnection);
         $this->tenant->refresh();
 
+        Log::info('CreateFullTenantJob iniciado', [
+            'tenant_id' => $this->tenant->id,
+        ]);
+
         if ($this->tenant->database_created) {
             Log::info('CreateFullTenantJob ignorado: tenant já provisionado', [
                 'tenant_id' => $this->tenant->id,
@@ -97,6 +101,10 @@ class CreateFullTenantJob implements ShouldQueue, ShouldBeUnique
             $this->restoreCentralConnection($centralConnection);
             $this->auditTrail('tenant.creation_completed', "Tenant '{$this->tenant->name}' criado e ativado com sucesso.", [
                 'status'      => 'active',
+            ]);
+
+            Log::info('CreateFullTenantJob concluído com sucesso', [
+                'tenant_id' => $this->tenant->id,
             ]);
 
         } catch (\Exception $e) {

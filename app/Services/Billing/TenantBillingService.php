@@ -52,6 +52,23 @@ class TenantBillingService
         return is_string($sessionId) && $sessionId !== '' ? $sessionId : null;
     }
 
+    public function storeSignupCheckoutSessionId(Tenant $tenant, string $sessionId): void
+    {
+        if ($sessionId === '') {
+            return;
+        }
+
+        $tenantData = $tenant->getAttribute('data');
+        if (!is_array($tenantData)) {
+            $tenantData = [];
+        }
+
+        data_set($tenantData, 'signup_contract_acceptance.stripe_checkout_session_id', $sessionId);
+
+        $tenant->update(['data' => $tenantData]);
+        $tenant->setAttribute('signup_contract_acceptance', data_get($tenantData, 'signup_contract_acceptance', []));
+    }
+
     public function matchesSignupCheckoutSession(Tenant $tenant, ?string $sessionId): bool
     {
         if (!is_string($sessionId) || $sessionId === '') {
@@ -59,6 +76,13 @@ class TenantBillingService
         }
 
         return $this->getSignupCheckoutSessionId($tenant) === $sessionId;
+    }
+
+    public function findTenantBySignupCheckoutSessionId(string $sessionId): ?Tenant
+    {
+        return Tenant::query()
+            ->where('data->signup_contract_acceptance->stripe_checkout_session_id', $sessionId)
+            ->first();
     }
 
     public function retrieveCheckoutSession(string $sessionId): object

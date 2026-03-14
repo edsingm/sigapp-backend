@@ -31,6 +31,35 @@ class TenantBillingServiceTest extends TestCase
         self::assertFalse($service->matchesSignupCheckoutSession($tenant, 'cs_test_other'));
     }
 
+    public function test_store_signup_checkout_session_id_persists_nested_reference(): void
+    {
+        $tenant = Mockery::mock(Tenant::class);
+        $tenant->shouldReceive('getAttribute')
+            ->with('data')
+            ->once()
+            ->andReturn([
+                'signup_contract_acceptance' => [
+                    'accepted' => true,
+                ],
+            ]);
+        $tenant->shouldReceive('update')
+            ->once()
+            ->with(Mockery::on(function (array $payload): bool {
+                return data_get($payload, 'data.signup_contract_acceptance.accepted') === true
+                    && data_get($payload, 'data.signup_contract_acceptance.stripe_checkout_session_id') === 'cs_test_456';
+            }));
+        $tenant->shouldReceive('setAttribute')
+            ->once()
+            ->with('signup_contract_acceptance', Mockery::on(function (array $payload): bool {
+                return ($payload['accepted'] ?? false) === true
+                    && ($payload['stripe_checkout_session_id'] ?? null) === 'cs_test_456';
+            }));
+
+        $service = new TenantBillingService();
+
+        $service->storeSignupCheckoutSessionId($tenant, 'cs_test_456');
+    }
+
     public function test_apply_stripe_subscription_status_activates_active_subscription(): void
     {
         $tenant = Mockery::mock(Tenant::class);

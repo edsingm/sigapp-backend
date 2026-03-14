@@ -114,6 +114,17 @@ class WebhookController extends CashierController
         }
 
         if ($validationFailure = $this->validateCheckoutSessionCompleted($tenant, $session)) {
+            Log::warning('Checkout concluído rejeitado pela validação de vínculo', [
+                'tenant_id' => $tenant->id,
+                'tenant_slug' => $tenant->slug,
+                'session_id' => $session['id'] ?? null,
+                'stored_session_id' => $this->billingService->getSignupCheckoutSessionId($tenant),
+                'client_reference_id' => $session['client_reference_id'] ?? null,
+                'customer_id' => $session['customer'] ?? null,
+                'stored_customer_id' => $tenant->stripe_id,
+                'reason' => $validationFailure,
+            ]);
+
             $this->audit('tenant.checkout_validation_failed', 'Checkout concluído rejeitado pela validação de vínculo.', [
                 'tenant_id' => $tenant->id,
                 'tenant_slug' => $tenant->slug,
@@ -124,6 +135,8 @@ class WebhookController extends CashierController
 
             return $this->unprocessedSuccessMethod();
         }
+
+        $this->hydrateMissingSignupCheckoutReference($tenant, $session);
 
         $signupContractAcceptance = $this->billingService->getSignupContractAcceptance($tenant);
         $signupContractAccepted = (bool) data_get($signupContractAcceptance, 'accepted', false);
@@ -171,7 +184,15 @@ class WebhookController extends CashierController
         // Manual Sync: Ensure subscription is recorded (fix for race condition)
         if (!empty($session['subscription'])) {
             try {
-                $this->billingService->syncSubscription($tenant, $session['subscription']);
+                $this->reconcileTenantBillingState(
+                    $tenant,
+                    $session['subscription'],
+                    'checkout.session.completed',
+                    [
+                        'session_id' => $session['id'] ?? null,
+                        'customer_id' => $session['customer'] ?? null,
+                    ]
+                );
             } catch (\Exception $e) {
                 Log::error('Erro ao sincronizar assinatura manualmente', ['error' => $e->getMessage()]);
             }
@@ -198,7 +219,15 @@ class WebhookController extends CashierController
             throw new \RuntimeException('QUEUE_CONNECTION assíncrona é obrigatória fora do ambiente local.');
         }
 
-        $queueConnection = $defaultConnection === 'sync' ? 'background' : $defaultConnection;
+        if (app()->isLocal() && $defaultConnection === 'sync') {
+            // `dispatchAfterResponse` is more reliable than the background queue driver
+            // in local dev and still keeps the webhook response fast.
+            CreateFullTenantJob::dispatchAfterResponse($tenant);
+
+            return;
+        }
+
+        $queueConnection = $defaultConnection;
 
         CreateFullTenantJob::dispatch($tenant)
             ->onConnection($queueConnection)
@@ -210,14 +239,21 @@ class WebhookController extends CashierController
      */
     protected function handleInvoicePaid(array $payload)
     {
-        $invoice = (object) $payload['data']['object'];
-        $customerId = $invoice->customer;
+        $invoice = (array) data_get($payload, 'data.object', []);
+        $customerId = $invoice['customer'] ?? null;
 
         $tenant = Tenant::where('stripe_id', $customerId)->first();
 
-        if ($tenant && $tenant->status === Tenant::STATUS_SUSPENDED) {
-            $this->billingService->applyStripeSubscriptionStatus($tenant, 'active');
-            Log::info('Tenant reativado após pagamento', ['tenant_id' => $tenant->id]);
+        if ($tenant) {
+            $this->reconcileTenantBillingState(
+                $tenant,
+                $invoice['subscription'] ?? null,
+                'invoice.paid',
+                [
+                    'invoice_id' => $invoice['id'] ?? null,
+                    'customer_id' => $customerId,
+                ]
+            );
         }
 
         return $this->successMethod();
@@ -270,12 +306,44 @@ class WebhookController extends CashierController
         $tenant = Tenant::where('stripe_id', $customerId)->first();
 
         if ($tenant) {
-            $tenant->update([
-                'stripe_subscription_id' => $subscription['id'] ?? $tenant->stripe_subscription_id,
-            ]);
+            $this->reconcileTenantBillingState(
+                $tenant,
+                $subscription['id'] ?? null,
+                'customer.subscription.updated',
+                [
+                    'customer_id' => $customerId,
+                    'stripe_status' => $subscription['status'] ?? null,
+                ]
+            );
+        }
 
-            $this->billingService->syncPlanFromPriceId($tenant, data_get($subscription, 'items.data.0.price.id'));
-            $this->billingService->applyStripeSubscriptionStatus($tenant, $subscription['status'] ?? null);
+        return $this->successMethod();
+    }
+
+    /**
+     * Handle customer.subscription.created event.
+     */
+    protected function handleCustomerSubscriptionCreated(array $payload)
+    {
+        if (method_exists(parent::class, 'handleCustomerSubscriptionCreated')) {
+            parent::handleCustomerSubscriptionCreated($payload);
+        }
+
+        $subscription = (array) data_get($payload, 'data.object', []);
+        $customerId = $subscription['customer'] ?? null;
+
+        $tenant = Tenant::where('stripe_id', $customerId)->first();
+
+        if ($tenant) {
+            $this->reconcileTenantBillingState(
+                $tenant,
+                $subscription['id'] ?? null,
+                'customer.subscription.created',
+                [
+                    'customer_id' => $customerId,
+                    'stripe_status' => $subscription['status'] ?? null,
+                ]
+            );
         }
 
         return $this->successMethod();
@@ -336,7 +404,14 @@ class WebhookController extends CashierController
             return 'invalid_status';
         }
 
-        if (!$this->billingService->matchesSignupCheckoutSession($tenant, $session['id'] ?? null)) {
+        if (($session['client_reference_id'] ?? null) && (string) $session['client_reference_id'] !== (string) $tenant->id) {
+            return 'client_reference_mismatch';
+        }
+
+        $storedSessionId = $this->billingService->getSignupCheckoutSessionId($tenant);
+        $receivedSessionId = $session['id'] ?? null;
+
+        if ($storedSessionId && $storedSessionId !== $receivedSessionId) {
             return 'session_mismatch';
         }
 
@@ -352,5 +427,71 @@ class WebhookController extends CashierController
         return response()->json(['received' => true], 200, [
             'X-Webhook-Processed' => '0',
         ]);
+    }
+
+    protected function hydrateMissingSignupCheckoutReference(Tenant $tenant, array $session): void
+    {
+        $receivedSessionId = $session['id'] ?? null;
+        if (!is_string($receivedSessionId) || $receivedSessionId === '') {
+            return;
+        }
+
+        $storedSessionId = $this->billingService->getSignupCheckoutSessionId($tenant);
+        if ($storedSessionId) {
+            return;
+        }
+
+        $this->billingService->storeSignupCheckoutSessionId($tenant, $receivedSessionId);
+
+        Log::warning('Referência local do checkout ausente; vínculo recuperado a partir do webhook assinado', [
+            'tenant_id' => $tenant->id,
+            'tenant_slug' => $tenant->slug,
+            'session_id' => $receivedSessionId,
+        ]);
+    }
+
+    protected function reconcileTenantBillingState(
+        Tenant $tenant,
+        ?string $subscriptionId,
+        string $source,
+        array $context = []
+    ): void {
+        if (!$subscriptionId) {
+            Log::warning('Evento Stripe sem subscription_id para reconciliação do tenant', array_merge([
+                'tenant_id' => $tenant->id,
+                'source' => $source,
+            ], $context));
+
+            return;
+        }
+
+        $tenant->update([
+            'stripe_subscription_id' => $subscriptionId,
+        ]);
+
+        $stripeSubscription = $this->billingService->retrieveSubscription($subscriptionId);
+        $stripeStatus = (string) ($stripeSubscription->status ?? '');
+
+        $tenant->update([
+            'stripe_id' => $stripeSubscription->customer ?? $tenant->stripe_id,
+            'stripe_subscription_id' => $stripeSubscription->id ?? $tenant->stripe_subscription_id,
+        ]);
+
+        $this->billingService->syncPlanFromPriceId($tenant, data_get($stripeSubscription, 'items.data.0.price.id'));
+        $this->billingService->syncSubscription($tenant, $subscriptionId);
+
+        $appliedStatus = $this->billingService->applyStripeSubscriptionStatus($tenant, $stripeStatus);
+
+        Log::info('Tenant reconciliado a partir de evento Stripe', array_merge([
+            'tenant_id' => $tenant->id,
+            'source' => $source,
+            'stripe_status' => $stripeStatus,
+            'applied_status' => $appliedStatus,
+            'database_created' => (bool) $tenant->database_created,
+        ], $context));
+
+        if (in_array($stripeStatus, ['active', 'trialing'], true) && !$tenant->database_created) {
+            $this->dispatchTenantProvisioning($tenant->fresh());
+        }
     }
 }

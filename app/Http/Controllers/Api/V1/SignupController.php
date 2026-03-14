@@ -9,10 +9,12 @@ use App\Models\Central\Tenant;
 use App\Services\ApiResponseService;
 use App\Services\Billing\TenantBillingService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Cashier\Cashier;
 use Stancl\Tenancy\Exceptions\TenantDatabaseAlreadyExistsException;
+use Stancl\Tenancy\Database\Models\Domain;
 
 class SignupController extends Controller
 {
@@ -30,6 +32,7 @@ class SignupController extends Controller
     {
         $validated = $request->validated();
         $requestedSlug = (string) ($validated['slug'] ?? '');
+        $effectiveRequestedSlug = Str::slug($requestedSlug);
         $contractConfig = $this->getSignupUsageContractConfig();
 
         // Find the plan
@@ -41,37 +44,40 @@ class SignupController extends Controller
 
         try {
             // Use transaction with lock to prevent race condition
-            $tenant = DB::transaction(function () use ($validated, $plan, $request, $contractConfig, $requestedSlug) {
-                // Check if slug is unique (with lock)
-                $existingTenant = Tenant::where('slug', $validated['slug'])
+            $tenant = DB::transaction(function () use ($validated, $plan, $request, $contractConfig, $requestedSlug, $effectiveRequestedSlug) {
+                $existingTenant = Tenant::where('slug', $effectiveRequestedSlug)
                     ->lockForUpdate()
                     ->first();
 
-                if ($existingTenant) {
-                    $originalSlug = $validated['slug'];
-                    // Generate unique slug with random suffix
-                    $validated['slug'] = $validated['slug'] . '-' . Str::random(4);
+                $existingDomain = Domain::query()
+                    ->where('domain', $effectiveRequestedSlug)
+                    ->lockForUpdate()
+                    ->first();
 
-                    $this->audit('tenant.signup_slug_conflict', "Slug '{$originalSlug}' já existente. Gerado novo slug '{$validated['slug']}'.", [
-                        'original_slug' => $originalSlug,
-                        'new_slug' => $validated['slug'],
+                if ($existingTenant || $existingDomain) {
+                    $this->audit('tenant.signup_slug_conflict', "Slug '{$effectiveRequestedSlug}' indisponível no cadastro.", [
+                        'requested_slug' => $requestedSlug,
+                        'effective_slug' => $effectiveRequestedSlug,
                         'admin_email' => $validated['admin_email'],
+                    ]);
+
+                    throw ValidationException::withMessages([
+                        'slug' => [language()->t('SUBDOMAIN_UNVAVAILABLE')],
                     ]);
                 }
 
-                $effectiveSlug = Str::slug($validated['slug']);
                 $contractAcceptance = $this->makeSignupContractAcceptancePayload(
                     validated: $validated,
                     contractConfig: $contractConfig,
                     request: $request,
                     requestedSlug: $requestedSlug,
-                    effectiveSlug: $effectiveSlug,
+                    effectiveSlug: $effectiveRequestedSlug,
                 );
 
                 // Create pending tenant
                 $tenant = Tenant::create([
                     'name' => $validated['organization_name'],
-                    'slug' => $effectiveSlug,
+                    'slug' => $effectiveRequestedSlug,
                     'status' => Tenant::STATUS_PENDING,
                     'plan_id' => $plan->id,
                     'trial_ends_at' => now()->addDays($plan->trial_days),
@@ -146,6 +152,7 @@ class SignupController extends Controller
             // Create Stripe Checkout session
             $session = Cashier::stripe()->checkout->sessions->create([
                 'customer' => $stripeCustomer->id,
+                'client_reference_id' => (string) $tenant->id,
                 'payment_method_types' => ['card'],
                 'mode' => 'subscription',
                 'line_items' => [
@@ -179,6 +186,8 @@ class SignupController extends Controller
                 'session_id' => $session->id,
                 'tenant_slug' => $tenant->slug,
             ], 'CHECKOUT_TENANT_CREATED_SUCCESSFULLY');
+        } catch (ValidationException $e) {
+            return ApiResponseService::validationError($e->errors());
         } catch (TenantDatabaseAlreadyExistsException $e) {
             $this->audit('tenant.signup_failed', 'Signup falhou: banco de dados do tenant já existe.', [
                 'error' => $e->getMessage(),
@@ -221,10 +230,17 @@ class SignupController extends Controller
         try {
             $session = $this->billingService->retrieveCheckoutSession($sessionId);
 
-            $tenant = Tenant::find($session->metadata->tenant_id);
+            $tenantId = data_get($session, 'metadata.tenant_id');
+            $tenant = $tenantId ? Tenant::find($tenantId) : null;
+            $tenant ??= $this->billingService->findTenantBySignupCheckoutSessionId($sessionId);
 
-            if (!$tenant || !$this->billingService->matchesSignupCheckoutSession($tenant, $session->id ?? null)) {
-                return ApiResponseService::notFound('TENANT_NOT_FOUND');
+            if (!$tenant) {
+                return ApiResponseService::notFound('SESSION_NOT_FOUND');
+            }
+
+            $storedSessionId = $this->billingService->getSignupCheckoutSessionId($tenant);
+            if ($storedSessionId && $storedSessionId !== ($session->id ?? null)) {
+                return ApiResponseService::notFound('SESSION_NOT_FOUND');
             }
 
             return ApiResponseService::success([

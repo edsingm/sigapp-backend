@@ -1,8 +1,8 @@
 {
     "openapi": "3.0.0",
     "info": {
-        "title": "SIGPRO API",
-        "description": "API REST para SaaS multi-tenant SIGPRO",
+        "title": "SIGAPP API",
+        "description": "API REST para SaaS multi-tenant SIGAPP",
         "version": "v1"
     },
     "servers": [

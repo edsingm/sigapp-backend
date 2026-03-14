@@ -165,12 +165,12 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     }
 
     /**
-     * Scope for expired pending tenants (more than 2 hours old).
+     * Scope for expired pending tenants (more than 24 hours old).
      */
     public function scopeExpiredPending(Builder $query): Builder
     {
         return $query->pending()
-            ->where('created_at', '<', now()->subHours(2));
+            ->where('created_at', '<', now()->subDay());
     }
 
     /**

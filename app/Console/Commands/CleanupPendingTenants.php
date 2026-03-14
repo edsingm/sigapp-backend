@@ -15,7 +15,7 @@ class CleanupPendingTenants extends Command
     /**
      * The console command description.
      */
-    protected $description = 'Remove tenants com status pending há mais de 2 horas';
+    protected $description = 'Remove tenants com status pending há mais de 24 horas após limpeza segura no Stripe';
 
     /**
      * Execute the console command.

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Tenant\Terreno;
 use App\Http\Resources\TenantResource;
 use App\Services\ApiResponseService;
+use App\Services\Billing\TenantBillingService;
 use App\Services\TenantPlanAccessService;
 use App\Services\UsageMetricsService;
 use Illuminate\Support\Facades\Gate;
@@ -15,7 +16,8 @@ class TenantController extends Controller
 {
     public function __construct(
         protected UsageMetricsService $usageService,
-        protected TenantPlanAccessService $planAccessService
+        protected TenantPlanAccessService $planAccessService,
+        protected TenantBillingService $billingService
     ) {
     }
 
@@ -181,5 +183,36 @@ class TenantController extends Controller
             'feature_flags' => $this->planAccessService->getPlanFlags(),
             'stripe_error' => app()->environment('local') ? $stripeError : null,
         ], language()->t('SIGNATURE_DATA_RETRIEVED'));
+    }
+
+    public function billingPortal()
+    {
+        Gate::authorize('viewAny', Terreno::class);
+
+        $tenant = tenancy()->tenant;
+
+        if (!$tenant->stripe_id) {
+            return ApiResponseService::conflict('BILLING_PORTAL_UNAVAILABLE');
+        }
+
+        try {
+            $returnUrl = rtrim((string) config('app.frontend_url'), '/') . '/billing';
+
+            return ApiResponseService::success([
+                'url' => $this->billingService->createBillingPortalUrl($tenant, $returnUrl),
+            ], 'SUCCESS_OPERATION');
+        } catch (\Exception $e) {
+            Log::warning('Erro ao criar billing portal', [
+                'tenant_id' => $tenant->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return ApiResponseService::error(
+                'BILLING_PORTAL_ERROR',
+                'UNKNOWN_ERROR',
+                app()->environment('local') ? $e->getMessage() : null,
+                500
+            );
+        }
     }
 }

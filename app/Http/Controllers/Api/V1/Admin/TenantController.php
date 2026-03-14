@@ -5,10 +5,16 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Central\Tenant;
 use App\Services\ApiResponseService;
+use App\Services\Billing\TenantBillingService;
 use Illuminate\Http\Request;
 
 class TenantController extends Controller
 {
+    public function __construct(
+        protected TenantBillingService $billingService
+    ) {
+    }
+
     /**
      * List all tenants with pagination and filters.
      */
@@ -144,11 +150,26 @@ class TenantController extends Controller
             return ApiResponseService::error('ALREADY_ACTIVE', 'Tenant já está ativo');
         }
 
-        $tenant->activate();
+        try {
+            $reconciliation = $this->billingService->reconcileTenantActivation($tenant);
+        } catch (\Exception $e) {
+            return ApiResponseService::error(
+                'BILLING_RECONCILIATION_ERROR',
+                'UNKNOWN_ERROR',
+                app()->environment('local') ? $e->getMessage() : null,
+                500
+            );
+        }
+
+        if (!($reconciliation['eligible'] ?? false)) {
+            return ApiResponseService::conflict('BILLING_STATE_INVALID');
+        }
 
         // Log action
-        $this->audit('tenant.activated', "Tenant {$tenant->name} ({$tenant->id}) ativado manualmente.", [
+        $this->audit('tenant.activated', "Tenant {$tenant->name} ({$tenant->id}) ativado após reconciliação de billing.", [
             'tenant_id' => $tenant->id,
+            'source' => $reconciliation['source'] ?? null,
+            'stripe_status' => $reconciliation['stripe_status'] ?? null,
         ]);
 
         return ApiResponseService::success($tenant, 'Tenant ativado com sucesso');

@@ -7,6 +7,7 @@ use App\Http\Requests\SignupRequest;
 use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
 use App\Services\ApiResponseService;
+use App\Services\Billing\TenantBillingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -15,6 +16,11 @@ use Stancl\Tenancy\Exceptions\TenantDatabaseAlreadyExistsException;
 
 class SignupController extends Controller
 {
+    public function __construct(
+        protected TenantBillingService $billingService
+    ) {
+    }
+
     /**
      * Create a new tenant (pending status).
      *
@@ -154,8 +160,8 @@ class SignupController extends Controller
                         'tenant_id' => $tenant->id,
                     ],
                 ],
-                'success_url' => config('app.frontend_url') . '/signup/success?session_id={CHECKOUT_SESSION_ID}',
-                'cancel_url' => config('app.frontend_url') . '/signup/cancel?session_id={CHECKOUT_SESSION_ID}',
+                'success_url' => $this->signupSuccessUrl(),
+                'cancel_url' => $this->signupCancelUrl($plan->slug),
                 'metadata' => [
                     'tenant_id' => $tenant->id,
                     'plan_slug' => $plan->slug,
@@ -213,22 +219,19 @@ class SignupController extends Controller
     public function status(string $sessionId)
     {
         try {
-            $session = Cashier::stripe()->checkout->sessions->retrieve($sessionId);
+            $session = $this->billingService->retrieveCheckoutSession($sessionId);
 
             $tenant = Tenant::find($session->metadata->tenant_id);
 
-            if (!$tenant) {
+            if (!$tenant || !$this->billingService->matchesSignupCheckoutSession($tenant, $session->id ?? null)) {
                 return ApiResponseService::notFound('TENANT_NOT_FOUND');
             }
 
             return ApiResponseService::success([
                 'status' => $tenant->status,
-                'tenant_id' => $tenant->id,
-                'tenant_slug' => $tenant->slug,
                 'payment_status' => $session->payment_status,
-                'subscription_id' => $session->subscription,
                 'is_ready' => $tenant->isActive() && $tenant->database_created,
-                'subdomain' => $tenant->slug . '.' . config('app.domain', 'localhost'),
+                'tenant_slug' => $tenant->slug,
             ]);
         } catch (\Exception $e) {
             return ApiResponseService::notFound('SESSION_NOT_FOUND');
@@ -240,6 +243,12 @@ class SignupController extends Controller
      */
     protected function createPriceOnTheFly(Plan $plan): string
     {
+        $this->audit('tenant.signup_price_created_on_the_fly', 'Plano sem stripe_price_id. Criando price emergencialmente.', [
+            'plan_id' => $plan->id,
+            'plan_slug' => $plan->slug,
+            'price_in_cents' => $plan->price,
+        ]);
+
         // Create a product first
         $product = Cashier::stripe()->products->create([
             'name' => $plan->name,
@@ -260,6 +269,21 @@ class SignupController extends Controller
         $plan->update(['stripe_price_id' => $price->id]);
 
         return $price->id;
+    }
+
+    protected function signupSuccessUrl(): string
+    {
+        return rtrim((string) config('app.frontend_url'), '/') . '/signup/success?session_id={CHECKOUT_SESSION_ID}';
+    }
+
+    protected function signupCancelUrl(string $planSlug): string
+    {
+        $query = http_build_query([
+            'plan' => $planSlug,
+            'cancelled' => 1,
+        ]);
+
+        return rtrim((string) config('app.frontend_url'), '/') . '/cadastro?' . $query . '&session_id={CHECKOUT_SESSION_ID}';
     }
 
     protected function getSignupUsageContractConfig(): array

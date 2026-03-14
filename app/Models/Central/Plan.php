@@ -100,7 +100,7 @@ class Plan extends Model
      */
     public function getFormattedPriceAttribute(): string
     {
-        return 'R$ ' . number_format($this->price, 2, ',', '.');
+        return 'R$ ' . number_format($this->price / 100, 2, ',', '.');
     }
 
     /**

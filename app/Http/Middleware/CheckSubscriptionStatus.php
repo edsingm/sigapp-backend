@@ -33,6 +33,7 @@ class CheckSubscriptionStatus
                 [
                     'status' => $tenant->status,
                     'support_url' => 'https://sigapp.com.br/suporte',
+                    'billing_portal_available' => (bool) $tenant->stripe_id,
                 ],
                 403
             );
@@ -45,7 +46,8 @@ class CheckSubscriptionStatus
                 'Período de teste encerrado. Por favor, assine um plano para continuar.',
                 [
                     'trial_ended_at' => $tenant->trial_ends_at->toIso8601String(),
-                    'checkout_url' => '/api/v1/checkout',
+                    'support_url' => 'https://sigapp.com.br/suporte',
+                    'billing_portal_available' => (bool) $tenant->stripe_id,
                 ],
                 403
             );

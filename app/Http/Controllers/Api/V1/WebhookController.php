@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Jobs\CreateFullTenantJob;
 use App\Models\Central\Tenant;
-use App\Traits\LogsAudit;
 use App\Models\Central\WebhookEvent;
+use App\Services\Billing\TenantBillingService;
+use App\Traits\LogsAudit;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -16,22 +18,28 @@ use Symfony\Component\HttpFoundation\Response;
 class WebhookController extends CashierController
 {
     use LogsAudit;
-    /**
-     * Create a new WebhookController instance.
-     *
-     * @return void
-     */
-    public function __construct()
-    {
-        if (config('cashier.webhook.secret') && !app()->isLocal()) {
+
+    public function __construct(
+        protected TenantBillingService $billingService
+    ) {
+        if ($this->requiresSignedWebhook() && $this->hasWebhookSecret()) {
             $this->middleware(VerifyWebhookSignature::class);
         }
     }
+
     /**
      * Handle incoming Stripe webhooks.
      */
     public function handleWebhook(Request $request)
     {
+        if ($this->requiresSignedWebhook() && !$this->hasWebhookSecret()) {
+            Log::critical('Stripe webhook recusado: STRIPE_WEBHOOK_SECRET ausente fora de local/testing.');
+
+            return response()->json([
+                'message' => 'Stripe webhook is temporarily unavailable.',
+            ], 503);
+        }
+
         $payload = json_decode($request->getContent(), true);
         $eventId = $payload['id'] ?? null;
 
@@ -64,7 +72,9 @@ class WebhookController extends CashierController
 
             $response = parent::handleWebhook($request);
 
-            if ($response instanceof Response && $response->isSuccessful()) {
+            if ($response instanceof Response
+                && $response->isSuccessful()
+                && $response->headers->get('X-Webhook-Processed', '1') !== '0') {
                 $event->markAsProcessed();
             }
 
@@ -77,65 +87,73 @@ class WebhookController extends CashierController
      */
     protected function handleCheckoutSessionCompleted(array $payload)
     {
-        $session = (object) $payload['data']['object'];
-        $tenantId = $session->metadata['tenant_id'] ?? null;
+        $session = (array) data_get($payload, 'data.object', []);
+        $tenantId = data_get($session, 'metadata.tenant_id');
 
         if (!$tenantId) {
-            Log::warning('Checkout completed sem tenant_id', ['session_id' => $session->id]);
-
-            $this->audit('tenant.checkout_no_tenant_id', 'Checkout concluído sem tenant_id nos metadados da sessão.', [
-                'session_id' => $session->id,
-                'customer' => $session->customer ?? null,
+            $this->audit('tenant.checkout_validation_failed', 'Checkout concluído sem tenant_id válido.', [
+                'session_id' => $session['id'] ?? null,
+                'customer' => $session['customer'] ?? null,
                 'reason' => 'missing_tenant_id',
             ]);
 
-            return $this->successMethod();
+            return $this->unprocessedSuccessMethod();
         }
 
         $tenant = Tenant::find($tenantId);
 
         if (!$tenant) {
-            Log::error('Tenant não encontrado para checkout', ['tenant_id' => $tenantId]);
-
-            $this->audit('tenant.checkout_tenant_not_found', "Checkout concluído mas tenant ID '{$tenantId}' não encontrado no banco.", [
+            $this->audit('tenant.checkout_validation_failed', "Checkout concluído mas tenant ID '{$tenantId}' não encontrado no banco.", [
                 'tenant_id' => $tenantId,
-                'session_id' => $session->id,
-                'customer' => $session->customer ?? null,
+                'session_id' => $session['id'] ?? null,
+                'customer' => $session['customer'] ?? null,
                 'reason' => 'tenant_not_found',
             ]);
 
-            return $this->successMethod();
+            return $this->unprocessedSuccessMethod();
         }
 
-        $signupContractAcceptance = $this->getSignupContractAcceptance($tenant);
+        if ($validationFailure = $this->validateCheckoutSessionCompleted($tenant, $session)) {
+            $this->audit('tenant.checkout_validation_failed', 'Checkout concluído rejeitado pela validação de vínculo.', [
+                'tenant_id' => $tenant->id,
+                'tenant_slug' => $tenant->slug,
+                'session_id' => $session['id'] ?? null,
+                'customer_id' => $session['customer'] ?? null,
+                'reason' => $validationFailure,
+            ]);
+
+            return $this->unprocessedSuccessMethod();
+        }
+
+        $signupContractAcceptance = $this->billingService->getSignupContractAcceptance($tenant);
         $signupContractAccepted = (bool) data_get($signupContractAcceptance, 'accepted', false);
         if (!$signupContractAccepted) {
             Log::warning('Checkout completed para tenant sem aceite de contrato registrado no signup', [
                 'tenant_id' => $tenant->id,
                 'tenant_slug' => $tenant->slug,
-                'session_id' => $session->id ?? null,
-                'customer_id' => $session->customer ?? null,
+                'session_id' => $session['id'] ?? null,
+                'customer_id' => $session['customer'] ?? null,
             ]);
 
             $this->audit('tenant.checkout_missing_contract_acceptance', 'Checkout concluído sem aceite de contrato de utilização registrado no signup.', [
                 'tenant_id' => $tenant->id,
                 'tenant_slug' => $tenant->slug,
                 'tenant_name' => $tenant->name,
-                'session_id' => $session->id ?? null,
-                'subscription_id' => $session->subscription ?? null,
-                'customer_id' => $session->customer ?? null,
+                'session_id' => $session['id'] ?? null,
+                'subscription_id' => $session['subscription'] ?? null,
+                'customer_id' => $session['customer'] ?? null,
                 'reason' => 'missing_signup_contract_acceptance',
             ]);
         }
 
         $tenant->update([
-            'stripe_subscription_id' => $session->subscription,
-            'stripe_id' => $session->customer,
+            'stripe_subscription_id' => $session['subscription'] ?? null,
+            'stripe_id' => $session['customer'] ?? null,
         ]);
 
         Log::info('Checkout completed, disparando CreateFullTenantJob', [
             'tenant_id' => $tenant->id,
-            'subscription_id' => $session->subscription,
+            'subscription_id' => $session['subscription'] ?? null,
         ]);
 
         $this->dispatchTenantProvisioning($tenant);
@@ -145,43 +163,21 @@ class WebhookController extends CashierController
             'tenant_id' => $tenant->id,
             'tenant_slug' => $tenant->slug,
             'tenant_name' => $tenant->name,
-            'session_id' => $session->id,
-            'subscription_id' => $session->subscription,
-            'customer_id' => $session->customer,
+            'session_id' => $session['id'] ?? null,
+            'subscription_id' => $session['subscription'] ?? null,
+            'customer_id' => $session['customer'] ?? null,
         ]);
 
         // Manual Sync: Ensure subscription is recorded (fix for race condition)
-        if ($session->subscription) {
-            $this->syncSubscription($tenant, $session->subscription);
-        }
-
-        return $this->successMethod();
-    }
-
-    /**
-     * Stancl Tenancy decodes the "data" JSON column into virtual attributes on retrieval.
-     * This helper supports both shapes (virtual attribute and raw data column).
-     */
-    protected function getSignupContractAcceptance(Tenant $tenant): array
-    {
-        $virtualAcceptance = $tenant->getAttribute('signup_contract_acceptance');
-        if (is_array($virtualAcceptance)) {
-            return $virtualAcceptance;
-        }
-
-        $rawData = $tenant->getAttribute('data');
-        if (is_array($rawData)) {
-            return (array) ($rawData['signup_contract_acceptance'] ?? []);
-        }
-
-        if (is_string($rawData) && $rawData !== '') {
-            $decoded = json_decode($rawData, true);
-            if (is_array($decoded)) {
-                return (array) ($decoded['signup_contract_acceptance'] ?? []);
+        if (!empty($session['subscription'])) {
+            try {
+                $this->billingService->syncSubscription($tenant, $session['subscription']);
+            } catch (\Exception $e) {
+                Log::error('Erro ao sincronizar assinatura manualmente', ['error' => $e->getMessage()]);
             }
         }
 
-        return [];
+        return $this->successMethod();
     }
 
     /**
@@ -214,15 +210,13 @@ class WebhookController extends CashierController
      */
     protected function handleInvoicePaid(array $payload)
     {
-        // Let Cashier handle DB sync if any (usually not much for invoice.paid)
-
         $invoice = (object) $payload['data']['object'];
         $customerId = $invoice->customer;
 
         $tenant = Tenant::where('stripe_id', $customerId)->first();
 
         if ($tenant && $tenant->status === Tenant::STATUS_SUSPENDED) {
-            $tenant->activate();
+            $this->billingService->applyStripeSubscriptionStatus($tenant, 'active');
             Log::info('Tenant reativado após pagamento', ['tenant_id' => $tenant->id]);
         }
 
@@ -270,28 +264,18 @@ class WebhookController extends CashierController
             parent::handleCustomerSubscriptionUpdated($payload);
         }
 
-        $subscription = (object) $payload['data']['object'];
-        $customerId = $subscription->customer;
+        $subscription = (array) data_get($payload, 'data.object', []);
+        $customerId = $subscription['customer'] ?? null;
 
         $tenant = Tenant::where('stripe_id', $customerId)->first();
 
         if ($tenant) {
-            // Check if plan changed
-            $priceId = $subscription->items['data'][0]['price']['id'] ?? null;
+            $tenant->update([
+                'stripe_subscription_id' => $subscription['id'] ?? $tenant->stripe_subscription_id,
+            ]);
 
-            if ($priceId) {
-                $newPlan = \App\Models\Central\Plan::where('stripe_price_id', $priceId)->first();
-
-                if ($newPlan && $newPlan->id !== $tenant->plan_id) {
-                    $tenant->update(['plan_id' => $newPlan->id]);
-                    Log::info('Tenant mudou de plano', ['tenant_id' => $tenant->id]);
-                }
-            }
-
-            // Check subscription status
-            if (($subscription->status ?? '') === 'active' && !$tenant->isActive()) {
-                $tenant->activate();
-            }
+            $this->billingService->syncPlanFromPriceId($tenant, data_get($subscription, 'items.data.0.price.id'));
+            $this->billingService->applyStripeSubscriptionStatus($tenant, $subscription['status'] ?? null);
         }
 
         return $this->successMethod();
@@ -307,13 +291,17 @@ class WebhookController extends CashierController
             parent::handleCustomerSubscriptionDeleted($payload);
         }
 
-        $subscription = (object) $payload['data']['object'];
-        $customerId = $subscription->customer;
+        $subscription = (array) data_get($payload, 'data.object', []);
+        $customerId = $subscription['customer'] ?? null;
 
         $tenant = Tenant::where('stripe_id', $customerId)->first();
 
         if ($tenant) {
-            $tenant->cancel();
+            $tenant->update([
+                'stripe_subscription_id' => $subscription['id'] ?? $tenant->stripe_subscription_id,
+            ]);
+
+            $this->billingService->applyStripeSubscriptionStatus($tenant, 'canceled');
             Log::info('Tenant cancelou assinatura', ['tenant_id' => $tenant->id]);
 
             $this->audit('tenant.subscription_canceled', "Assinatura cancelada para tenant '{$tenant->name}'.", [
@@ -321,48 +309,48 @@ class WebhookController extends CashierController
                 'tenant_slug' => $tenant->slug,
                 'tenant_name' => $tenant->name,
                 'customer_id' => $customerId,
-                'subscription_id' => $subscription->id ?? null,
+                'subscription_id' => $subscription['id'] ?? null,
             ]);
         }
 
         return $this->successMethod();
     }
 
-    /**
-     * Sync subscription manually from Stripe to DB.
-     */
-    protected function syncSubscription(Tenant $tenant, string $subscriptionId)
+    protected function requiresSignedWebhook(): bool
     {
-        try {
-            // Check if subscription already exists
-            if ($tenant->subscriptions()->where('stripe_id', $subscriptionId)->exists()) {
-                return;
-            }
+        return !app()->environment(['local', 'testing']);
+    }
 
-            $stripeSubscription = $tenant->stripe()->subscriptions->retrieve($subscriptionId);
+    protected function hasWebhookSecret(): bool
+    {
+        return (string) config('cashier.webhook.secret', '') !== '';
+    }
 
-            $subscription = $tenant->subscriptions()->create([
-                'type' => 'default',
-                'stripe_id' => $stripeSubscription->id,
-                'stripe_status' => $stripeSubscription->status,
-                'stripe_price' => $stripeSubscription->items->data[0]->price->id ?? null,
-                'quantity' => $stripeSubscription->items->data[0]->quantity ?? 1,
-                'trial_ends_at' => $stripeSubscription->trial_end ? \Carbon\Carbon::createFromTimestamp($stripeSubscription->trial_end) : null,
-                'ends_at' => $stripeSubscription->cancel_at ? \Carbon\Carbon::createFromTimestamp($stripeSubscription->cancel_at) : null,
-            ]);
-
-            foreach ($stripeSubscription->items->data as $item) {
-                $subscription->items()->create([
-                    'stripe_id' => $item->id,
-                    'stripe_product' => $item->price->product,
-                    'stripe_price' => $item->price->id,
-                    'quantity' => $item->quantity ?? 1,
-                ]);
-            }
-
-            Log::info('Assinatura sincronizada manualmente via checkout session', ['subscription_id' => $subscriptionId]);
-        } catch (\Exception $e) {
-            Log::error('Erro ao sincronizar assinatura manualmente', ['error' => $e->getMessage()]);
+    protected function validateCheckoutSessionCompleted(Tenant $tenant, array $session): ?string
+    {
+        if (($session['mode'] ?? null) !== 'subscription') {
+            return 'invalid_mode';
         }
+
+        if (($session['status'] ?? null) !== 'complete') {
+            return 'invalid_status';
+        }
+
+        if (!$this->billingService->matchesSignupCheckoutSession($tenant, $session['id'] ?? null)) {
+            return 'session_mismatch';
+        }
+
+        if ($tenant->stripe_id && $tenant->stripe_id !== ($session['customer'] ?? null)) {
+            return 'customer_mismatch';
+        }
+
+        return null;
+    }
+
+    protected function unprocessedSuccessMethod(): JsonResponse
+    {
+        return response()->json(['received' => true], 200, [
+            'X-Webhook-Processed' => '0',
+        ]);
     }
 }

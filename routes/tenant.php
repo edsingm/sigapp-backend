@@ -67,12 +67,11 @@ Route::middleware([
 
         });
 
-        // Authenticated tenant routes
+        // Authenticated tenant routes (always accessible after login)
         Route::middleware([
             'auth:sanctum',
             'throttle:api-auth',
             SetUserLocale::class,
-            CheckSubscriptionStatus::class,
         ])->group(function () {
 
             // Auth
@@ -84,46 +83,50 @@ Route::middleware([
             // Locale
             Route::put('/locale', [LanguageController::class, 'set']);
 
-            // Tenant info
-            Route::get('/tenant', [TenantController::class, 'show']);
-            Route::get('/tenant/usage', [TenantController::class, 'usage']);
             Route::get('/tenant/subscription', [TenantController::class, 'subscription']);
+            Route::post('/tenant/billing-portal', [TenantController::class, 'billingPortal']);
 
-            // Users (select inputs for tenant forms)
-            Route::get('/users/for-select', [UserController::class, 'usersForSelect']);
+            Route::middleware(CheckSubscriptionStatus::class)->group(function () {
 
-            // Tenant admin (users, roles and permissions)
-            Route::prefix('tenant-admin')
-                ->middleware('tenant.admin')
-                ->as('tenant-admin.')
-                ->group(function () {
-                    Route::apiResource('users', AdminUserManagementController::class);
-                    Route::put('users/{id}/module-permissions', [AdminUserManagementController::class, 'updateModulePermissions'])
-                        ->name('tenant-admin.users.module-permissions');
-                    Route::get('roles/select', [AdminRoleController::class, 'forSelect'])
-                        ->name('tenant-admin.roles.select');
-                    Route::apiResource('roles', AdminRoleController::class)->only(['index', 'show']);
-                    Route::apiResource('permissions', AdminPermissionController::class)->only(['index', 'show']);
+                // Tenant info
+                Route::get('/tenant', [TenantController::class, 'show']);
+                Route::get('/tenant/usage', [TenantController::class, 'usage']);
+
+                // Users (select inputs for tenant forms)
+                Route::get('/users/for-select', [UserController::class, 'usersForSelect']);
+
+                // Tenant admin (users, roles and permissions)
+                Route::prefix('tenant-admin')
+                    ->middleware('tenant.admin')
+                    ->as('tenant-admin.')
+                    ->group(function () {
+                        Route::apiResource('users', AdminUserManagementController::class);
+                        Route::put('users/{id}/module-permissions', [AdminUserManagementController::class, 'updateModulePermissions'])
+                            ->name('tenant-admin.users.module-permissions');
+                        Route::get('roles/select', [AdminRoleController::class, 'forSelect'])
+                            ->name('tenant-admin.roles.select');
+                        Route::apiResource('roles', AdminRoleController::class)->only(['index', 'show']);
+                        Route::apiResource('permissions', AdminPermissionController::class)->only(['index', 'show']);
+                    });
+
+                // Terrenos (with plan limit enforcement)
+                Route::middleware([EnforcePlanLimits::class . ':terrenos'])->group(function () {
+                    Route::post('/terrenos', [TerrenoController::class, 'store'])
+                        ->middleware('permission.gate:prospection,terrains');
                 });
+                // Rotas específicas devem vir ANTES do apiResource
+                Route::get('/terrenos/filter', [TerrenoController::class, 'filter']);
+                Route::get('/terrenos/select', [TerrenoController::class, 'forSelect']);
+                Route::get('/terrenos/{id}/informacoes', [TerrenoController::class, 'getInformacoes'])
+                        ->middleware('permission.gate:prospection,terrains');
+                Route::post('/terrenos/{id}/informacoes', [TerrenoController::class, 'storeInfo']);
+                Route::put('/terrenos/informacoes/{infoId}', [TerrenoController::class, 'updateInfo']);
+                Route::delete('/terrenos/informacoes/{infoId}', [TerrenoController::class, 'destroyInfo']);
+                Route::get('/terrenos/{id}/workflow', [TerrenoWorkflowController::class, 'show']);
+                Route::post('/terrenos/{id}/workflow', [TerrenoWorkflowController::class, 'update']);
+                Route::put('/terrenos/{id}/qualificacao', [TerrenoWorkflowController::class, 'updateQualification']);
 
-            // Terrenos (with plan limit enforcement)
-            Route::middleware([EnforcePlanLimits::class . ':terrenos'])->group(function () {
-                Route::post('/terrenos', [TerrenoController::class, 'store'])
-                    ->middleware('permission.gate:prospection,terrains');
-            });
-            // Rotas específicas devem vir ANTES do apiResource
-            Route::get('/terrenos/filter', [TerrenoController::class, 'filter']);
-            Route::get('/terrenos/select', [TerrenoController::class, 'forSelect']);
-            Route::get('/terrenos/{id}/informacoes', [TerrenoController::class, 'getInformacoes'])
-                    ->middleware('permission.gate:prospection,terrains');
-            Route::post('/terrenos/{id}/informacoes', [TerrenoController::class, 'storeInfo']);
-            Route::put('/terrenos/informacoes/{infoId}', [TerrenoController::class, 'updateInfo']);
-            Route::delete('/terrenos/informacoes/{infoId}', [TerrenoController::class, 'destroyInfo']);
-            Route::get('/terrenos/{id}/workflow', [TerrenoWorkflowController::class, 'show']);
-            Route::post('/terrenos/{id}/workflow', [TerrenoWorkflowController::class, 'update']);
-            Route::put('/terrenos/{id}/qualificacao', [TerrenoWorkflowController::class, 'updateQualification']);
-
-            Route::apiResource('terrenos', TerrenoController::class)->except(['store']);
+                Route::apiResource('terrenos', TerrenoController::class)->except(['store']);
 
             // Documentos
             Route::prefix('documentos')->group(function () {
@@ -241,17 +244,17 @@ Route::middleware([
             Route::post('/legalizacoes/{id}/recalcular-progresso', [LegalizacaoController::class, 'recalcularProgresso']);
             Route::apiResource('legalizacoes', LegalizacaoController::class);
 
-            // Etapas de Legalização
-            Route::prefix('legalizacoes/{legalizacaoId}/etapas')->group(function () {
-                Route::get('/', [LegalizacaoEtapaController::class, 'index']);
-                Route::post('/', [LegalizacaoEtapaController::class, 'store']);
-                Route::get('/{id}', [LegalizacaoEtapaController::class, 'show']);
-                Route::put('/{id}', [LegalizacaoEtapaController::class, 'update']);
-                Route::delete('/{id}', [LegalizacaoEtapaController::class, 'destroy']);
-                Route::post('/reorder', [LegalizacaoEtapaController::class, 'reorder']);
-                Route::patch('/{id}/status', [LegalizacaoEtapaController::class, 'updateStatus']);
+                // Etapas de Legalização
+                Route::prefix('legalizacoes/{legalizacaoId}/etapas')->group(function () {
+                    Route::get('/', [LegalizacaoEtapaController::class, 'index']);
+                    Route::post('/', [LegalizacaoEtapaController::class, 'store']);
+                    Route::get('/{id}', [LegalizacaoEtapaController::class, 'show']);
+                    Route::put('/{id}', [LegalizacaoEtapaController::class, 'update']);
+                    Route::delete('/{id}', [LegalizacaoEtapaController::class, 'destroy']);
+                    Route::post('/reorder', [LegalizacaoEtapaController::class, 'reorder']);
+                    Route::patch('/{id}/status', [LegalizacaoEtapaController::class, 'updateStatus']);
+                });
             });
-
         });
 
     });

@@ -30,7 +30,6 @@ use App\Http\Controllers\Api\V1\LanguageController;
 use App\Http\Middleware\AddTenantContextToLogs;
 use App\Http\Middleware\ApiRequestLogger;
 use App\Http\Middleware\CheckSubscriptionStatus;
-use App\Http\Middleware\EnforcePlanLimits;
 use App\Http\Middleware\ForceJsonResponse;
 use App\Http\Middleware\SetUserLocale;
 use Illuminate\Support\Facades\Route;
@@ -100,7 +99,10 @@ Route::middleware([
                     ->middleware('tenant.admin')
                     ->as('tenant-admin.')
                     ->group(function () {
-                        Route::apiResource('users', AdminUserManagementController::class);
+                        Route::post('users', [AdminUserManagementController::class, 'store'])
+                            ->middleware('enforce.limits:users')
+                            ->name('tenant-admin.users.store');
+                        Route::apiResource('users', AdminUserManagementController::class)->except(['store']);
                         Route::put('users/{id}/module-permissions', [AdminUserManagementController::class, 'updateModulePermissions'])
                             ->name('tenant-admin.users.module-permissions');
                         Route::get('roles/select', [AdminRoleController::class, 'forSelect'])
@@ -110,44 +112,53 @@ Route::middleware([
                     });
 
                 // Terrenos (with plan limit enforcement)
-                Route::middleware([EnforcePlanLimits::class . ':terrenos'])->group(function () {
+                Route::middleware(['check.feature:prospection', 'enforce.limits:terrenos'])->group(function () {
                     Route::post('/terrenos', [TerrenoController::class, 'store'])
                         ->middleware('permission.gate:prospection,terrains');
                 });
                 // Rotas específicas devem vir ANTES do apiResource
-                Route::get('/terrenos/filter', [TerrenoController::class, 'filter']);
-                Route::get('/terrenos/select', [TerrenoController::class, 'forSelect']);
-                Route::get('/terrenos/{id}/informacoes', [TerrenoController::class, 'getInformacoes'])
-                        ->middleware('permission.gate:prospection,terrains');
-                Route::post('/terrenos/{id}/informacoes', [TerrenoController::class, 'storeInfo']);
-                Route::put('/terrenos/informacoes/{infoId}', [TerrenoController::class, 'updateInfo']);
-                Route::delete('/terrenos/informacoes/{infoId}', [TerrenoController::class, 'destroyInfo']);
-                Route::get('/terrenos/{id}/workflow', [TerrenoWorkflowController::class, 'show']);
-                Route::post('/terrenos/{id}/workflow', [TerrenoWorkflowController::class, 'update']);
-                Route::put('/terrenos/{id}/qualificacao', [TerrenoWorkflowController::class, 'updateQualification']);
+                Route::middleware('check.feature:prospection')->group(function () {
+                    Route::get('/terrenos/filter', [TerrenoController::class, 'filter']);
+                    Route::get('/terrenos/select', [TerrenoController::class, 'forSelect']);
+                    Route::get('/terrenos/{id}/informacoes', [TerrenoController::class, 'getInformacoes'])
+                            ->middleware('permission.gate:prospection,terrains');
+                    Route::post('/terrenos/{id}/informacoes', [TerrenoController::class, 'storeInfo']);
+                    Route::put('/terrenos/informacoes/{infoId}', [TerrenoController::class, 'updateInfo']);
+                    Route::delete('/terrenos/informacoes/{infoId}', [TerrenoController::class, 'destroyInfo']);
+                    Route::get('/terrenos/{id}/workflow', [TerrenoWorkflowController::class, 'show']);
+                    Route::post('/terrenos/{id}/workflow', [TerrenoWorkflowController::class, 'update']);
+                    Route::put('/terrenos/{id}/qualificacao', [TerrenoWorkflowController::class, 'updateQualification']);
+                    Route::apiResource('terrenos', TerrenoController::class)->except(['store']);
+                });
 
-                Route::apiResource('terrenos', TerrenoController::class)->except(['store']);
-
-            // Documentos
-            Route::prefix('documentos')->group(function () {
-                Route::get('/tipos', [DocumentosController::class, 'tipos']);
-                Route::get('/categorias', [DocumentosController::class, 'categorias']);
-                Route::get('/{id}/view', [DocumentosController::class, 'view']);
-                Route::get('/{id}/download', [DocumentosController::class, 'download']);
-            });
-            Route::apiResource('documentos', DocumentosController::class);
+                // Documentos
+                Route::prefix('documentos')->group(function () {
+                    Route::get('/tipos', [DocumentosController::class, 'tipos']);
+                    Route::get('/categorias', [DocumentosController::class, 'categorias']);
+                    Route::get('/{id}/view', [DocumentosController::class, 'view']);
+                    Route::get('/{id}/download', [DocumentosController::class, 'download']);
+                });
+                Route::post('/documentos', [DocumentosController::class, 'store'])
+                    ->middleware('enforce.limits:storage_gb');
+                Route::apiResource('documentos', DocumentosController::class)->except(['store']);
 
             // Corretores Externos
             Route::get('/corretores-externos/select', [CorretoresExternosController::class, 'corretoresForSelect']);
             Route::apiResource('corretores-externos', CorretoresExternosController::class);
 
-            // Regionais
-            Route::get('/regionais/select', [RegionaisController::class, 'regionaisForSelect']);
-            Route::apiResource('regionais', RegionaisController::class);
+                // Regionais
+                Route::middleware('check.feature:regionals')->group(function () {
+                    Route::get('/regionais/select', [RegionaisController::class, 'regionaisForSelect']);
+                    Route::apiResource('regionais', RegionaisController::class);
+                });
 
-            // Produtos
-            Route::get('/produtos/select', [ProdutosController::class, 'produtosForSelect']);
-            Route::apiResource('produtos', ProdutosController::class);
+                // Produtos
+                Route::middleware('check.feature:product_settings')->group(function () {
+                    Route::get('/produtos/select', [ProdutosController::class, 'produtosForSelect']);
+                    Route::post('/produtos', [ProdutosController::class, 'store'])
+                        ->middleware('enforce.limits:products');
+                    Route::apiResource('produtos', ProdutosController::class)->except(['store']);
+                });
 
             // Proprietarios
             Route::get('/proprietarios/select', [ProprietariosController::class, 'proprietariosForSelect']);
@@ -157,78 +168,96 @@ Route::middleware([
             Route::get('/terreno-produtos/by-terreno/{terrenoId}', [TerrenoProdutosController::class, 'byTerreno']);
             Route::apiResource('terreno-produtos', TerrenoProdutosController::class);
 
-            // Terreno Export
-            Route::get('/terrenos/export/pdf', [TerrenosExportController::class, 'exportPdf']);
-            Route::get('/terrenos/export/excel', [TerrenosExportController::class, 'exportExcel']);
-            Route::get('/terrenos/{id}/export/pdf-detalhe', [TerrenosExportController::class, 'exportSinglePdf']);
-            Route::post('/terrenos/{id}/export/check-list', [TerrenosExportController::class, 'checklistPdf']);
-            Route::get('/terrenos/{id}/export/viabilidade', [ViabilidadeController::class, 'exportPdf'])
-                ->middleware('require.entitlement:viabilidade.tier,simple,min');
+                // Terreno Export
+                Route::get('/terrenos/export/pdf', [TerrenosExportController::class, 'exportPdf'])
+                    ->middleware('check.feature:exports.pdf');
+                Route::get('/terrenos/export/excel', [TerrenosExportController::class, 'exportExcel'])
+                    ->middleware('check.feature:exports.excel');
+                Route::get('/terrenos/{id}/export/pdf-detalhe', [TerrenosExportController::class, 'exportSinglePdf'])
+                    ->middleware('check.feature:exports.pdf');
+                Route::post('/terrenos/{id}/export/check-list', [TerrenosExportController::class, 'checklistPdf'])
+                    ->middleware('check.feature:exports.pdf');
+                Route::get('/terrenos/{id}/export/viabilidade', [ViabilidadeController::class, 'exportPdf'])
+                    ->middleware(['check.feature:viabilities.enabled', 'check.feature:exports.pdf']);
 
-            // Viabilidades
-            Route::middleware('require.entitlement:viabilidade.tier,simple,min')->group(function () {
-                Route::get('/viabilidades/for-select', [ViabilidadeController::class, 'forSelect']);
-                Route::get('/viabilidades/terreno/{terrenoId}', [ViabilidadeController::class, 'byTerreno']);
-                Route::get('/viabilidades/terreno/{terrenoId}/latest', [ViabilidadeController::class, 'latest']);
-                Route::post('/viabilidades/compare', [ViabilidadeController::class, 'compare']);
-                Route::get('/viabilidades/{id}/export-pdf', [ViabilidadeController::class, 'exportPdf']);
-                Route::post('/viabilidades/{id}/solicitar-aprovacao', [ViabilidadeController::class, 'solicitarAprovacao']);
-                Route::post('/viabilidades/{id}/aprovar', [ViabilidadeController::class, 'aprovar']);
-                Route::post('/viabilidades/{id}/reprovar', [ViabilidadeController::class, 'reprovar']);
-                Route::post('/viabilidades/{id}/ativar', [ViabilidadeController::class, 'ativar']);
-                Route::post('/viabilidades/{id}/duplicate', [ViabilidadeController::class, 'duplicate']);
-                Route::post('/viabilidades/{id}/gerar-dre', [ViabilidadeController::class, 'gerarDre']);
-                Route::post('/viabilidades/{id}/recalcular', [ViabilidadeController::class, 'recalcular']);
-                Route::post('/viabilidades/{id}/restore', [ViabilidadeController::class, 'restore']);
-                Route::apiResource('viabilidades', ViabilidadeController::class);
-            });
+                // Viabilidades
+                Route::middleware('check.feature:viabilities.enabled')->group(function () {
+                    Route::get('/viabilidades/for-select', [ViabilidadeController::class, 'forSelect']);
+                    Route::get('/viabilidades/terreno/{terrenoId}', [ViabilidadeController::class, 'byTerreno']);
+                    Route::get('/viabilidades/terreno/{terrenoId}/latest', [ViabilidadeController::class, 'latest']);
+                    Route::post('/viabilidades/compare', [ViabilidadeController::class, 'compare']);
+                    Route::get('/viabilidades/{id}/export-pdf', [ViabilidadeController::class, 'exportPdf'])
+                        ->middleware('check.feature:exports.pdf');
+                    Route::post('/viabilidades/{id}/solicitar-aprovacao', [ViabilidadeController::class, 'solicitarAprovacao']);
+                    Route::post('/viabilidades/{id}/aprovar', [ViabilidadeController::class, 'aprovar']);
+                    Route::post('/viabilidades/{id}/reprovar', [ViabilidadeController::class, 'reprovar']);
+                    Route::post('/viabilidades/{id}/ativar', [ViabilidadeController::class, 'ativar']);
+                    Route::post('/viabilidades/{id}/duplicate', [ViabilidadeController::class, 'duplicate']);
+                    Route::post('/viabilidades/{id}/gerar-dre', [ViabilidadeController::class, 'gerarDre'])
+                        ->middleware('check.feature:viabilities.dre');
+                    Route::post('/viabilidades/{id}/recalcular', [ViabilidadeController::class, 'recalcular']);
+                    Route::post('/viabilidades/{id}/restore', [ViabilidadeController::class, 'restore']);
+                    Route::apiResource('viabilidades', ViabilidadeController::class);
+                });
 
-            // Projetos
-            Route::get('/projetos/eligible-terrenos', [ProjetoController::class, 'eligibleTerrenos']);
-            Route::post('/projetos/{id}/marcar-pronto-registro', [ProjetoController::class, 'markReady']);
-            Route::post('/projetos/{id}/cancelar', [ProjetoController::class, 'cancel']);
-            Route::apiResource('projetos', ProjetoController::class)->only(['index', 'store', 'show', 'update']);
+                // Projetos
+                Route::middleware('check.feature:projects_room')->group(function () {
+                    Route::get('/projetos/eligible-terrenos', [ProjetoController::class, 'eligibleTerrenos']);
+                    Route::post('/projetos/{id}/marcar-pronto-registro', [ProjetoController::class, 'markReady']);
+                    Route::post('/projetos/{id}/cancelar', [ProjetoController::class, 'cancel']);
+                    Route::apiResource('projetos', ProjetoController::class)->only(['index', 'store', 'show', 'update']);
+                });
 
-            // Comitê
-            Route::get('/comite', [CommitteeController::class, 'index']);
-            Route::post('/comite', [CommitteeController::class, 'store']);
-            Route::get('/comite/{id}', [CommitteeController::class, 'show']);
-            Route::post('/comite/{id}/department-reviews', [CommitteeController::class, 'upsertDepartmentReview']);
-            Route::post('/comite/{id}/decision', [CommitteeController::class, 'finalize']);
+                // Comitê
+                Route::middleware('check.feature:committee')->group(function () {
+                    Route::get('/comite', [CommitteeController::class, 'index']);
+                    Route::post('/comite', [CommitteeController::class, 'store']);
+                    Route::get('/comite/{id}', [CommitteeController::class, 'show']);
+                    Route::post('/comite/{id}/department-reviews', [CommitteeController::class, 'upsertDepartmentReview']);
+                    Route::post('/comite/{id}/decision', [CommitteeController::class, 'finalize']);
+                });
 
-            // Negociação e contratos
-            Route::get('/negociacoes', [NegotiationController::class, 'index']);
-            Route::post('/negociacoes', [NegotiationController::class, 'store']);
-            Route::get('/negociacoes/{id}', [NegotiationController::class, 'show']);
-            Route::put('/negociacoes/{id}', [NegotiationController::class, 'update']);
-            Route::post('/negociacoes/{id}/events', [NegotiationController::class, 'addEvent']);
+                // Negociação e contratos
+                Route::middleware('check.feature:negotiation')->group(function () {
+                    Route::get('/negociacoes', [NegotiationController::class, 'index']);
+                    Route::post('/negociacoes', [NegotiationController::class, 'store']);
+                    Route::get('/negociacoes/{id}', [NegotiationController::class, 'show']);
+                    Route::put('/negociacoes/{id}', [NegotiationController::class, 'update']);
+                    Route::post('/negociacoes/{id}/events', [NegotiationController::class, 'addEvent']);
 
-            Route::get('/contratos', [ContractController::class, 'index']);
-            Route::post('/contratos', [ContractController::class, 'store']);
-            Route::get('/contratos/{id}', [ContractController::class, 'show']);
-            Route::put('/contratos/{id}', [ContractController::class, 'update']);
-            Route::post('/contratos/{id}/sign', [ContractController::class, 'sign']);
+                    Route::get('/contratos', [ContractController::class, 'index']);
+                    Route::post('/contratos', [ContractController::class, 'store']);
+                    Route::get('/contratos/{id}', [ContractController::class, 'show']);
+                    Route::put('/contratos/{id}', [ContractController::class, 'update']);
+                    Route::post('/contratos/{id}/sign', [ContractController::class, 'sign']);
+                });
 
-            // Cidades e Estados
-            Route::get('/cidades/estados', [CidadesController::class, 'index']);
-            Route::get('/cidades/dados', [CidadesController::class, 'dados']);
-            Route::get('/cidades/{estado}', [CidadesController::class, 'getCities']);
+                // Cidades e Estados
+                Route::middleware('check.feature:territorial_base')->group(function () {
+                    Route::get('/cidades/estados', [CidadesController::class, 'index']);
+                    Route::get('/cidades/dados', [CidadesController::class, 'dados']);
+                    Route::get('/cidades/{estado}', [CidadesController::class, 'getCities']);
+                });
 
-            // Dashboard
-            Route::prefix('dashboard')->group(function () {
-                Route::get('/overview', [DashboardController::class, 'overview']);
-                Route::get('/cards', [DashboardController::class, 'cards']);
-                Route::get('/status-chart', [DashboardController::class, 'statusChart']);
-                Route::get('/cadastros-mensais', [DashboardController::class, 'cadastrosMensais']);
-                Route::get('/terrenos-responsavel', [DashboardController::class, 'terrenosPorResponsavel']);
-                Route::get('/top-cidades', [DashboardController::class, 'topCidades']);
-                Route::get('/vgv-anual', [DashboardController::class, 'vgvAnual']);
-                Route::get('/unidades-fechadas-anual', [DashboardController::class, 'unidadesFechadasAnual']);
-                Route::get('/cadastros-mensais-responsavel', [DashboardController::class, 'cadastrosMensaisPorResponsavel']);
-                Route::get('/resumo', [DashboardController::class, 'resumoGeral']);
-                Route::get('/anos-disponiveis', [DashboardController::class, 'anosDisponiveis']);
-                Route::get('/area-opcao-detalhe', [DashboardController::class, 'areaOpcaoDetalhe']);
-            });
+                // Dashboard
+                Route::prefix('dashboard')
+                    ->middleware('check.feature:dashboard.enabled')
+                    ->group(function () {
+                        Route::get('/overview', [DashboardController::class, 'overview']);
+                        Route::get('/cards', [DashboardController::class, 'cards']);
+                        Route::get('/status-chart', [DashboardController::class, 'statusChart']);
+                        Route::get('/cadastros-mensais', [DashboardController::class, 'cadastrosMensais']);
+                        Route::get('/terrenos-responsavel', [DashboardController::class, 'terrenosPorResponsavel']);
+                        Route::get('/top-cidades', [DashboardController::class, 'topCidades']);
+                        Route::get('/vgv-anual', [DashboardController::class, 'vgvAnual'])
+                            ->middleware('check.feature:dashboard.vgv');
+                        Route::get('/unidades-fechadas-anual', [DashboardController::class, 'unidadesFechadasAnual'])
+                            ->middleware('check.feature:dashboard.units_closed');
+                        Route::get('/cadastros-mensais-responsavel', [DashboardController::class, 'cadastrosMensaisPorResponsavel']);
+                        Route::get('/resumo', [DashboardController::class, 'resumoGeral']);
+                        Route::get('/anos-disponiveis', [DashboardController::class, 'anosDisponiveis']);
+                        Route::get('/area-opcao-detalhe', [DashboardController::class, 'areaOpcaoDetalhe']);
+                    });
 
             // Mobile devices and inbox
             Route::prefix('mobile')->group(function () {
@@ -238,21 +267,23 @@ Route::middleware([
                 Route::post('/notifications/{id}/read', [MobileNotificationController::class, 'read']);
             });
 
-            // Legalizações
-            Route::get('/legalizacoes/eligible-terrenos', [LegalizacaoController::class, 'eligibleTerrenos']);
-            Route::post('/legalizacoes/{id}/sync-gantt', [LegalizacaoController::class, 'syncGantt']);
-            Route::post('/legalizacoes/{id}/recalcular-progresso', [LegalizacaoController::class, 'recalcularProgresso']);
-            Route::apiResource('legalizacoes', LegalizacaoController::class);
+                // Legalizações
+                Route::middleware('check.feature:legalizations')->group(function () {
+                    Route::get('/legalizacoes/eligible-terrenos', [LegalizacaoController::class, 'eligibleTerrenos']);
+                    Route::post('/legalizacoes/{id}/sync-gantt', [LegalizacaoController::class, 'syncGantt']);
+                    Route::post('/legalizacoes/{id}/recalcular-progresso', [LegalizacaoController::class, 'recalcularProgresso']);
+                    Route::apiResource('legalizacoes', LegalizacaoController::class);
 
-                // Etapas de Legalização
-                Route::prefix('legalizacoes/{legalizacaoId}/etapas')->group(function () {
-                    Route::get('/', [LegalizacaoEtapaController::class, 'index']);
-                    Route::post('/', [LegalizacaoEtapaController::class, 'store']);
-                    Route::get('/{id}', [LegalizacaoEtapaController::class, 'show']);
-                    Route::put('/{id}', [LegalizacaoEtapaController::class, 'update']);
-                    Route::delete('/{id}', [LegalizacaoEtapaController::class, 'destroy']);
-                    Route::post('/reorder', [LegalizacaoEtapaController::class, 'reorder']);
-                    Route::patch('/{id}/status', [LegalizacaoEtapaController::class, 'updateStatus']);
+                    // Etapas de Legalização
+                    Route::prefix('legalizacoes/{legalizacaoId}/etapas')->group(function () {
+                        Route::get('/', [LegalizacaoEtapaController::class, 'index']);
+                        Route::post('/', [LegalizacaoEtapaController::class, 'store']);
+                        Route::get('/{id}', [LegalizacaoEtapaController::class, 'show']);
+                        Route::put('/{id}', [LegalizacaoEtapaController::class, 'update']);
+                        Route::delete('/{id}', [LegalizacaoEtapaController::class, 'destroy']);
+                        Route::post('/reorder', [LegalizacaoEtapaController::class, 'reorder']);
+                        Route::patch('/{id}/status', [LegalizacaoEtapaController::class, 'updateStatus']);
+                    });
                 });
             });
         });

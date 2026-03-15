@@ -88,18 +88,6 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
-        $tenant = tenant();
-        $limitService = new \App\Services\LimitEnforcementService($tenant);
-
-        if (!$limitService->canCreateUser()) {
-            return ApiResponseService::error(
-                'LIMIT_EXCEEDED',
-                'Limite de usuários atingido para o seu plano.',
-                null,
-                403
-            );
-        }
-
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:users,email'],

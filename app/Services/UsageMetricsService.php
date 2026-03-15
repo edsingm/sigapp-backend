@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Tenant\Documento;
+use App\Models\Tenant\Produto;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\User;
 
@@ -30,6 +31,18 @@ class UsageMetricsService
         }
 
         return Terreno::count();
+    }
+
+    /**
+     * Get the count of produtos in the current tenant.
+     */
+    public function getProdutoCount(): int
+    {
+        if (!tenancy()->initialized) {
+            return 0;
+        }
+
+        return Produto::count();
     }
 
     /**
@@ -63,17 +76,22 @@ class UsageMetricsService
         return [
             'users' => [
                 'current' => $this->getUserCount(),
-                'limit' => $plan?->max_users ?? 0,
-                'unlimited' => $plan?->hasUnlimitedUsers() ?? false,
+                'limit' => $plan?->getLimit('users') ?? 0,
+                'unlimited' => $plan?->hasUnlimitedLimit('users') ?? false,
             ],
             'terrenos' => [
                 'current' => $this->getTerrenoCount(),
-                'limit' => $plan?->max_terrenos ?? 0,
-                'unlimited' => $plan?->hasUnlimitedTerrenos() ?? false,
+                'limit' => $plan?->getLimit('terrenos') ?? 0,
+                'unlimited' => $plan?->hasUnlimitedLimit('terrenos') ?? false,
+            ],
+            'products' => [
+                'current' => $this->getProdutoCount(),
+                'limit' => $plan?->getLimit('products') ?? 0,
+                'unlimited' => $plan?->hasUnlimitedLimit('products') ?? false,
             ],
             'storage' => [
                 'used_gb' => $this->getStorageUsed(),
-                'limit_gb' => $plan?->max_storage_gb ?? 0,
+                'limit_gb' => $plan?->getLimit('storage_gb') ?? 0,
             ],
         ];
     }
@@ -96,6 +114,11 @@ class UsageMetricsService
                 : ($metrics['terrenos']['limit'] > 0
                     ? round(($metrics['terrenos']['current'] / $metrics['terrenos']['limit']) * 100, 1)
                     : 100),
+            'products' => $metrics['products']['unlimited']
+                ? 0
+                : ($metrics['products']['limit'] > 0
+                    ? round(($metrics['products']['current'] / $metrics['products']['limit']) * 100, 1)
+                    : 100),
             'storage' => $metrics['storage']['limit_gb'] > 0
                 ? round(($metrics['storage']['used_gb'] / $metrics['storage']['limit_gb']) * 100, 1)
                 : 100,
@@ -111,6 +134,7 @@ class UsageMetricsService
 
         return $percentages['users'] >= 80
             || $percentages['terrenos'] >= 80
+            || $percentages['products'] >= 80
             || $percentages['storage'] >= 80;
     }
 }

@@ -122,17 +122,6 @@ class DocumentosController extends Controller
         ]);
 
         $file = $request->file('arquivo');
-        $tenant = tenant();
-        $limitService = new \App\Services\LimitEnforcementService($tenant);
-        $sizeInKb = (int) ceil($file->getSize() / 1024);
-
-        if (!$limitService->canUploadFile($sizeInKb)) {
-            return response()->json([
-                'message' => 'Limite de armazenamento atingido para o seu plano.',
-                'error' => 'LIMIT_EXCEEDED',
-            ], 403);
-        }
-
         $extension = strtolower($file->getClientOriginalExtension());
         if (!in_array($extension, $this->allowedExtensions, true)) {
             return response()->json([

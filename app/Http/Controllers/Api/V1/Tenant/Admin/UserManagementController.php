@@ -10,7 +10,6 @@ use App\Models\Tenant\User;
 use App\Services\Acl\PermissionNameResolver;
 use App\Services\ApiResponseService;
 use App\Services\LanguageService;
-use App\Services\LimitEnforcementService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -84,18 +83,6 @@ class UserManagementController extends Controller
      */
     public function store(Request $request)
     {
-        $tenant = tenant();
-        $limitService = new LimitEnforcementService($tenant);
-
-        if (!$limitService->canCreateUser()) {
-            return ApiResponseService::error(
-                'LIMIT_EXCEEDED',
-                language()->t('USER_LIMIT_REACHED'),
-                null,
-                403
-            );
-        }
-
         $validated = $request->validate([
             'name'     => ['required', 'string', 'max:255'],
             'email'    => ['required', 'email', Rule::unique('users', 'email')],

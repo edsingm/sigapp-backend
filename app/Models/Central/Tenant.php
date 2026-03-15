@@ -72,35 +72,6 @@ class Tenant extends BaseTenant implements TenantWithDatabase
      * The attributes that should be cast.
      */
 
-
-    public const PLAN_BROKER        = 'broker';
-    public const PLAN_BASIC         = 'basico';
-    public const PLAN_MASTER        = 'master';
-    public const PLAN_PRO           = 'pro';
-
-
-    public function hasFeature(string $feature): bool
-    {
-        $matrix = config('plans.features'); // ou array direto aqui
-
-        $planFeatures = $matrix[$this->plan ?? self::PLAN_BROKER] ?? [];
-
-        // Suporte a limites (ex: max_users = 10)
-        if (str_starts_with($feature, 'max_')) {
-            return ($planFeatures[$feature] ?? 0) > 0;
-        }
-
-        return $planFeatures[$feature] ?? false;
-    }
-
-    // Método extra para limites
-    public function getLimit(string $limitKey): int
-    {
-        $matrix = config('plans.features');
-        return $matrix[$this->plan][$limitKey] ?? 0;
-    }
-
-
     protected function casts(): array
     {
         return [
@@ -276,17 +247,22 @@ class Tenant extends BaseTenant implements TenantWithDatabase
      */
     public function getMaxUsersAttribute(): int
     {
-        return $this->plan?->max_users ?? 0;
+        return $this->plan?->getLimit('users') ?? 0;
     }
 
     public function getMaxTerrenosAttribute(): int
     {
-        return $this->plan?->max_terrenos ?? 0;
+        return $this->plan?->getLimit('terrenos') ?? 0;
     }
 
     public function getMaxStorageGbAttribute(): int
     {
-        return $this->plan?->max_storage_gb ?? 0;
+        return $this->plan?->getLimit('storage_gb') ?? 0;
+    }
+
+    public function getMaxProductsAttribute(): int
+    {
+        return $this->plan?->getLimit('products') ?? 0;
     }
 
     public static function getCustomColumns(): array

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\PlanResource;
 use App\Models\Central\Tenant;
 use App\Services\ApiResponseService;
 use App\Services\Billing\TenantBillingService;
@@ -51,6 +52,7 @@ class TenantController extends Controller
         $stats = [
             'users_count' => 0,
             'terrenos_count' => 0,
+            'products_count' => 0,
             'storage_used' => 0 // Placeholder
         ];
 
@@ -60,6 +62,7 @@ class TenantController extends Controller
 
             $stats['users_count'] = \App\Models\Tenant\User::count();
             $stats['terrenos_count'] = \App\Models\Tenant\Terreno::count();
+            $stats['products_count'] = \App\Models\Tenant\Produto::count();
         } catch (\Exception $e) {
             // If database is not created or accessible, we return 0
             // Log error if needed: \Log::error("Failed to get tenant stats: " . $e->getMessage());
@@ -70,6 +73,7 @@ class TenantController extends Controller
         }
 
         $data = $tenant->toArray();
+        $data['plan'] = $tenant->plan ? (new PlanResource($tenant->plan))->resolve() : null;
         $data['stats'] = $stats;
         $data['on_trial'] = $tenant->onTrial();
         $data['trial_ended'] = $tenant->trialEnded();

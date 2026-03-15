@@ -62,18 +62,6 @@ class TerrenoController extends Controller
     {
         Gate::authorize('create', Terreno::class);
 
-        $tenant = tenant();
-        $limitService = new \App\Services\LimitEnforcementService($tenant);
-
-        if (!$limitService->canCreateTerreno()) {
-            return ApiResponseService::error(
-                'LIMIT_EXCEEDED',
-                'Limite de terrenos atingido para o seu plano.',
-                null,
-                403
-            );
-        }
-
         $validated = $request->validated();
         unset($validated['workflow_status_code']);
         $validated['created_by'] = $request->user()->id;

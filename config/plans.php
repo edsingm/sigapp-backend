@@ -1,0 +1,80 @@
+<?php
+
+return [
+    'features' => [
+        'broker' => [
+            'home'                      => true,
+            'dashboard'                 => false,
+            'prospeccao'                => true,
+            'viabilidades'              => false,
+            'comite'                    => false,
+            'negociacao'                => false,
+            'legalizacoes'              => false,
+            'sala de projetos'          => false,
+            'configuracoes de produtos' => true,
+            'regionais'                 => true,
+            'base territorial'          => true,
+            'max_users'                 => 1,
+            'max_terrenos'              => 50,
+            'max_produtos'              => 1,
+            'max_storage_gb'            => 0,
+            'exports'                   => true, // apenas excel, bloquear pdf
+
+        ],
+        'basico' => [
+            'home'                      => true,
+            'dashboard'                 => true, // apenas Panorama, bloquear unidades, vgv, funil
+            'prospeccao'                => true,
+            'viabilidades'              => true, // apenas resumo e DRE, bloquear Fluxo, Graficos, Premissas e Kpis
+            'comite'                    => false,
+            'negociacao'                => false,
+            'legalizacoes'              => false,
+            'sala de projetos'          => false,
+            'configuracoes de produtos' => true,
+            'regionais'                 => true,
+            'base territorial'          => true,
+            'max_users'                 => 3,
+            'max_terrenos'              => 100,
+            'max_produtos'              => 2,
+            'max_storage_gb'            => 1,
+            'exports'                   => true,
+
+        ],
+        'master' => [
+            'home'                      => true,
+            'dashboard'                 => true,
+            'prospeccao'                => true,
+            'viabilidades'              => true, // apenas resumo, DRE e Fluxo. Bloquear Graficos, Premissas e Kpis
+            'comite'                    => false,
+            'negociacao'                => false,
+            'legalizacoes'              => false,
+            'sala de projetos'          => false,
+            'configuracoes de produtos' => true,
+            'regionais'                 => true,
+            'base territorial'          => true,
+            'max_users'                 => 10,
+            'max_terrenos'              => 200,
+            'max_produtos'              => 3,
+            'max_storage_gb'            => 3,
+            'exports'                   => true,
+        ],
+        'pro' => [
+            'home'                      => true,
+            'dashboard'                 => true, 
+            'prospeccao'                => true,
+            'viabilidades'              => true,
+            'comite'                    => true,
+            'negociacao'                => true,
+            'legalizacoes'              => true,
+            'sala de projetos'          => true,
+            'configuracoes de produtos' => true,
+            'regionais'                 => true,
+            'base territorial'          => true,
+            'max_users'                 => -1,
+            'max_terrenos'              => -1,
+            'max_produtos'              => -1,
+            'max_storage_gb'            => 5,
+            'exports'                   => true,
+        ],
+    ],
+];

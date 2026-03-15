@@ -71,6 +71,36 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     /**
      * The attributes that should be cast.
      */
+
+
+    public const PLAN_BROKER        = 'broker';
+    public const PLAN_BASIC         = 'basico';
+    public const PLAN_MASTER        = 'master';
+    public const PLAN_PRO           = 'pro';
+
+
+    public function hasFeature(string $feature): bool
+    {
+        $matrix = config('plans.features'); // ou array direto aqui
+
+        $planFeatures = $matrix[$this->plan ?? self::PLAN_BROKER] ?? [];
+
+        // Suporte a limites (ex: max_users = 10)
+        if (str_starts_with($feature, 'max_')) {
+            return ($planFeatures[$feature] ?? 0) > 0;
+        }
+
+        return $planFeatures[$feature] ?? false;
+    }
+
+    // Método extra para limites
+    public function getLimit(string $limitKey): int
+    {
+        $matrix = config('plans.features');
+        return $matrix[$this->plan][$limitKey] ?? 0;
+    }
+
+
     protected function casts(): array
     {
         return [

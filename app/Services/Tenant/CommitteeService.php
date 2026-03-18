@@ -2,6 +2,7 @@
 
 namespace App\Services\Tenant;
 
+use App\Enums\WorkflowStatus;
 use App\Models\Tenant\ComiteParecerDepartamento;
 use App\Models\Tenant\ComitePendencia;
 use App\Models\Tenant\ComiteRevisao;
@@ -16,6 +17,9 @@ class CommitteeService
 {
     public const DEFAULT_REQUIRED_DEPARTMENTS = ['comercial', 'engenharia', 'juridico'];
 
+    /**
+     * Lista as revisões de comitê com filtros e paginação.
+     */
     public function list(array $filters = []): LengthAwarePaginator
     {
         $query = ComiteRevisao::query()
@@ -30,11 +34,11 @@ class CommitteeService
                 'pendencias',
             ]);
 
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->where('status', $filters['status']);
         }
 
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
             $search = $filters['search'];
             $query->whereHas('terreno', function ($builder) use ($search) {
                 $builder->where('nome', 'like', "%{$search}%");
@@ -45,7 +49,9 @@ class CommitteeService
     }
 
     /**
-     * @param array<string, mixed> $data
+     * Cria uma nova revisão de comitê para um terreno.
+     *
+     * @param  array<string, mixed>  $data
      */
     public function create(array $data, ?User $user = null): ComiteRevisao
     {
@@ -62,11 +68,11 @@ class CommitteeService
                 ->latest('id')
                 ->first();
 
-            if (!$review) {
+            if (! $review) {
                 $review = ComiteRevisao::create([
                     'terreno_id' => $terreno->id,
                     'viabilidade_id' => $data['viabilidade_id'] ?? $terreno->viabilidadeAtual?->id,
-                    'status' => $data['status'] ?? 'aguardando_comite',
+                    'status' => $data['status'] ?? WorkflowStatus::AGUARDANDO_COMITE->value,
                     'required_departments' => $data['required_departments'] ?? self::DEFAULT_REQUIRED_DEPARTMENTS,
                 ]);
 
@@ -86,7 +92,7 @@ class CommitteeService
 
             app(LandWorkflowService::class)->transition(
                 $terreno,
-                'aguardando_comite',
+                WorkflowStatus::AGUARDANDO_COMITE->value,
                 $user,
                 'committee_created',
                 'Caso enviado para comitê.',
@@ -96,6 +102,9 @@ class CommitteeService
         });
     }
 
+    /**
+     * Busca os detalhes de uma revisão de comitê.
+     */
     public function show(ComiteRevisao $review): ComiteRevisao
     {
         return $review->load([
@@ -120,7 +129,9 @@ class CommitteeService
     }
 
     /**
-     * @param array<string, mixed> $data
+     * Registra ou atualiza o parecer de um departamento.
+     *
+     * @param  array<string, mixed>  $data
      */
     public function upsertDepartmentReview(
         ComiteRevisao $review,
@@ -155,7 +166,7 @@ class CommitteeService
             ]);
         });
 
-        if ($review->status === 'aguardando_comite') {
+        if ($review->status === WorkflowStatus::AGUARDANDO_COMITE->value) {
             $review->update(['status' => 'em_comite']);
         }
 
@@ -163,7 +174,9 @@ class CommitteeService
     }
 
     /**
-     * @param array<string, mixed> $data
+     * Finaliza a revisão do comitê com uma decisão final.
+     *
+     * @param  array<string, mixed>  $data
      */
     public function finalize(ComiteRevisao $review, array $data, ?User $user, LandWorkflowService $workflowService): ComiteRevisao
     {
@@ -174,7 +187,7 @@ class CommitteeService
                 ->all();
 
             foreach ($requiredDepartments as $department) {
-                if (!in_array($department, $submittedDepartments, true)) {
+                if (! in_array($department, $submittedDepartments, true)) {
                     throw new RuntimeException("Falta parecer obrigatório do departamento {$department}.");
                 }
             }
@@ -213,7 +226,7 @@ class CommitteeService
 
             $workflowService->transition(
                 $review->terreno()->firstOrFail(),
-                $decision === 'reprovado_comite' ? 'em_analise' : 'negociacao_minuta',
+                $decision === 'reprovado_comite' ? WorkflowStatus::EM_ANALISE->value : WorkflowStatus::NEGOCIACAO_MINUTA->value,
                 $user,
                 'committee_decision',
                 $data['final_comments'] ?? null,

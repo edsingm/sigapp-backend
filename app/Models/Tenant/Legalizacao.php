@@ -2,6 +2,7 @@
 
 namespace App\Models\Tenant;
 
+use App\Enums\WorkflowStatus;
 use App\Traits\HasDashboardCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,11 +12,14 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Legalizacao extends Model
 {
-    use HasFactory, SoftDeletes, HasDashboardCache;
+    use HasDashboardCache, HasFactory, SoftDeletes;
 
     public const STATUS_PLANEJADO = 'planejado';
+
     public const STATUS_EM_ANDAMENTO = 'em_andamento';
+
     public const STATUS_CONCLUIDO = 'concluido';
+
     public const STATUS_CANCELADO = 'cancelado';
 
     protected $table = 'legalizacoes';
@@ -117,6 +121,7 @@ class Legalizacao extends Model
                 $this->status = self::STATUS_PLANEJADO;
             }
             $this->save();
+
             return;
         }
 
@@ -140,7 +145,7 @@ class Legalizacao extends Model
     public function scopeElegivel($query)
     {
         return $query->whereHas('terreno', function ($q) {
-            $q->where('workflow_status_code', 'contrato_assinado');
+            $q->where('workflow_status_code', WorkflowStatus::CONTRATO_ASSINADO->value);
         });
     }
 }

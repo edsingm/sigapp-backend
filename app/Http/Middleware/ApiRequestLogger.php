@@ -10,7 +10,7 @@ use Symfony\Component\HttpFoundation\Response;
 class ApiRequestLogger
 {
     /**
-     * Handle an incoming request.
+     * Manipula uma requisição de entrada.
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -30,26 +30,26 @@ class ApiRequestLogger
             'memory_mb' => round(memory_get_peak_usage(true) / 1024 / 1024, 2),
         ];
 
-        // Add tenant context if available
+        // Adiciona o contexto do tenant se disponível
         if (tenancy()->initialized) {
             $logData['tenant_id'] = tenancy()->tenant->id;
             $logData['tenant_slug'] = tenancy()->tenant->slug;
         }
 
-        // Add user context if authenticated
+        // Adiciona o contexto do usuário se autenticado
         if ($request->user()) {
             $logData['user_id'] = $request->user()->id;
         }
 
-        // Highlight auth/authz/rate-limit events with route context.
+        // Destaca eventos de auth/authz/rate-limit com o contexto da rota.
         if (in_array($response->getStatusCode(), [401, 403, 429], true)) {
             $logData['route'] = $request->route()?->uri();
-            Log::channel('tenant')->warning('API Security Response', $logData);
+            Log::channel('tenant')->warning('Resposta de Segurança da API', $logData);
         } elseif ($duration > 1) {
-            // Log slow requests as warning
-            Log::channel('tenant')->warning('Slow API Request', $logData);
+            // Loga requisições lentas como aviso
+            Log::channel('tenant')->warning('Requisição de API Lenta', $logData);
         } else {
-            Log::channel('tenant')->info('API Request', $logData);
+            Log::channel('tenant')->info('Requisição de API', $logData);
         }
 
         return $response;

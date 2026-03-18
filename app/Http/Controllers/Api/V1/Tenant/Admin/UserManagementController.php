@@ -10,237 +10,144 @@ use App\Models\Tenant\User;
 use App\Services\Acl\PermissionNameResolver;
 use App\Services\ApiResponseService;
 use App\Services\LanguageService;
+use App\Services\Tenant\TenantUserService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
-use Spatie\Permission\Models\Permission;
 
 class UserManagementController extends Controller
 {
-    private const ADMIN_ROLE_NAMES = [RolesEnum::ADMIN->value, RolesEnum::DIRECTOR->value];
-
     public function __construct(
+        private readonly TenantUserService $userService,
         private readonly PermissionNameResolver $permissions,
-    ) {
-    }
+    ) {}
 
     /**
-     * List tenant users.
+     * Lista usuários do tenant com busca opcional, filtro de função e ordenação.
      */
     public function index(Request $request)
     {
-        $query = User::query()->with('roles');
+        $users = $this->userService->list(
+            search: $request->filled('search') ? $request->string('search')->toString() : null,
+            role: $request->filled('role') ? $request->string('role')->toString() : null,
+            sort: $request->string('sort', 'name')->toString(),
+            order: $request->string('order', 'asc')->toString(),
+            perPage: (int) $request->integer('per_page', 15),
+        );
 
-        if ($request->filled('search')) {
-            $search = $request->string('search')->toString();
-            $query->where(function ($builder) use ($search) {
-                $builder->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%");
-            });
-        }
-
-        if ($request->filled('role')) {
-            $query->role($request->string('role')->toString());
-        }
-
-        $sort = $request->string('sort', 'name')->toString();
-        $order = strtolower($request->string('order', 'asc')->toString()) === 'desc' ? 'desc' : 'asc';
-        if (!in_array($sort, ['id', 'name', 'email', 'created_at', 'updated_at'], true)) {
-            $sort = 'name';
-        }
-
-        $users = $query
-            ->orderBy($sort, $order)
-            ->paginate(min((int) $request->integer('per_page', 15), 100));
-
-        $users->through(function (User $user) use ($request) {
-            return (new UserResource($user))->toArray($request);
-        });
+        $users->through(fn (User $user) => (new UserResource($user))->toArray($request));
 
         return ApiResponseService::paginated($users, language()->t('USER_LIST_RETRIEVED'));
     }
 
     /**
-     * Show a single user.
+     * Exibe um único usuário.
      */
     public function show(int $id)
     {
         $user = User::with('roles')->find($id);
 
-        if (!$user) {
+        if (! $user) {
             return ApiResponseService::notFound(language()->t('USER_NOT_FOUND'));
         }
 
-        return ApiResponseService::success(
-            new UserResource($user),
-            language()->t('USER_RETRIEVED')
-        );
+        return ApiResponseService::success(new UserResource($user), language()->t('USER_RETRIEVED'));
     }
 
     /**
-     * Create a tenant user.
+     * Cria um usuário do tenant.
      */
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'     => ['required', 'string', 'max:255'],
-            'email'    => ['required', 'email', Rule::unique('users', 'email')],
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', Rule::unique('users', 'email')],
             'password' => ['required', Password::defaults()],
-            'role'     => [
-                'required',
-                'string',
-                Rule::in(array_column(RolesEnum::cases(), 'value')),
-            ],
-            'locale'   => ['sometimes', 'string', 'in:' . implode(',', LanguageService::SUPPORTED_LOCALES)],
+            'role' => ['required', 'string', Rule::in(array_column(RolesEnum::cases(), 'value'))],
+            'locale' => ['sometimes', 'string', 'in:'.implode(',', LanguageService::SUPPORTED_LOCALES)],
         ]);
 
-        $user = User::create([
-            'name'     => $validated['name'],
-            'email'    => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'locale'   => $validated['locale'] ?? 'pt-br',
-        ]);
+        $user = $this->userService->create($validated);
 
-        $user->syncRoles([$validated['role']]);
-
-        return ApiResponseService::created(
-            new UserResource($user->fresh(['roles', 'permissions'])),
-            language()->t('USER_CREATED_SUCCESSFULLY')
-        );
+        return ApiResponseService::created(new UserResource($user), language()->t('USER_CREATED_SUCCESSFULLY'));
     }
 
     /**
-     * Update a tenant user.
+     * Atualiza um usuário do tenant.
      */
     public function update(Request $request, int $id)
     {
         $user = User::with('roles')->find($id);
 
-        if (!$user) {
+        if (! $user) {
             return ApiResponseService::notFound(language()->t('USER_NOT_FOUND'));
         }
 
         $validated = $request->validate([
-            'name'     => ['sometimes', 'string', 'max:255'],
-            'email'    => ['sometimes', 'email', Rule::unique('users', 'email')->ignore($id)],
+            'name' => ['sometimes', 'string', 'max:255'],
+            'email' => ['sometimes', 'email', Rule::unique('users', 'email')->ignore($id)],
             'password' => ['sometimes', Password::defaults()],
-            'role'     => [
-                'sometimes',
-                'string',
-                Rule::in(array_column(RolesEnum::cases(), 'value')),
-            ],
-            'locale'   => ['sometimes', 'string', 'in:' . implode(',', LanguageService::SUPPORTED_LOCALES)],
+            'role' => ['sometimes', 'string', Rule::in(array_column(RolesEnum::cases(), 'value'))],
+            'locale' => ['sometimes', 'string', 'in:'.implode(',', LanguageService::SUPPORTED_LOCALES)],
         ]);
 
-        if (array_key_exists('password', $validated)) {
-            $validated['password'] = Hash::make($validated['password']);
-        }
+        $error = $this->userService->update($user, $validated, $request->user());
 
-        $user->update(collect($validated)->except(['role'])->all());
-
-        if (array_key_exists('role', $validated)) {
-            $nextRole = (string) $validated['role'];
-            $requestUser = $request->user();
-            $isSelfUpdate = $requestUser && (int) $requestUser->id === (int) $user->id;
-            $isCurrentlyAdminEligible = $user->hasAnyRole(self::ADMIN_ROLE_NAMES);
-            $willRemainAdminEligible = in_array($nextRole, self::ADMIN_ROLE_NAMES, true);
-
-            if ($isSelfUpdate && $isCurrentlyAdminEligible && !$willRemainAdminEligible) {
-                if ($this->adminEligibleCount() <= 1) {
-                    return ApiResponseService::error(
-                        'LAST_TENANT_ADMIN',
-                        language()->t('USER_ADMIN_CANT_REMOVE_LAST_ADMIN_ROLE'),
-                        null,
-                        400
-                    );
-                }
-            }
-
-            $user->syncRoles([$validated['role']]);
-        }
-
-        return ApiResponseService::success(
-            new UserResource($user->fresh('roles')), language()->t('USER_UPDATED_SUCCESSFULLY')
-        );
-    }
-
-    /**
-     * Delete a tenant user.
-     */
-    public function destroy(Request $request, int $id)
-    {
-        $user = User::with('roles')->find($id);
-
-        if (!$user) {
-            return ApiResponseService::notFound(language()->t('USER_NOT_FOUND'));
-        }
-
-        if ((int) $request->user()?->id === (int) $user->id) {
+        if ($error === 'LAST_TENANT_ADMIN') {
             return ApiResponseService::error(
-                'CANNOT_DELETE_SELF',
-                language()->t('USER_CANNOT_DELETE_OWN_ACCOUNT'),
+                'LAST_TENANT_ADMIN',
+                language()->t('USER_ADMIN_CANT_REMOVE_LAST_ADMIN_ROLE'),
                 null,
                 400
             );
         }
 
-        if ($user->hasAnyRole(self::ADMIN_ROLE_NAMES) && $this->adminEligibleCount() <= 1) {
-                return ApiResponseService::error(
-                    'LAST_TENANT_ADMIN',
-                    language()->t('USER_ADMIN_CANT_DELETE_LAST_ADMIN'),
-                    null,
-                    400
-                );
-        }
-
-        $user->delete();
-
-        return ApiResponseService::noContent();
-    }
-
-    public function updateModulePermissions(
-        UpdateUserModulePermissionsRequest $request,
-        int $id
-    ) {
-        $user = User::with('roles')->find($id);
-
-        if (!$user) {
-            return ApiResponseService::notFound(language()->t('USER_NOT_FOUND'));
-        }
-
-        $permissionsMap = (array) $request->input('permissions', []);
-        $flatPermissions = $this->permissions->expandModulePermissions($permissionsMap);
-
-        // Revoke existing direct permissions for the requested modules only
-        $moduleKeys = array_keys($permissionsMap);
-        $toRevoke   = $user->getDirectPermissions()
-            ->filter(fn (Permission $p) => collect($moduleKeys)
-                ->contains(fn (string $m) => str_starts_with($p->name, $m . '.')))
-            ->pluck('name')
-            ->all();
-
-        if (!empty($toRevoke)) {
-            $user->revokePermissionTo($toRevoke);
-        }
-
-        if (!empty($flatPermissions)) {
-            $user->givePermissionTo($flatPermissions);
-        }
-
         return ApiResponseService::success(
-            new UserResource($user->fresh(['roles', 'permissions'])),
-                language()->t('USER_PERMISSIONS_UPDATED_SUCCESSFULLY')
+            new UserResource($user->fresh('roles')),
+            language()->t('USER_UPDATED_SUCCESSFULLY')
         );
     }
 
-    private function adminEligibleCount(): int
+    /**
+     * Exclui um usuário do tenant.
+     */
+    public function destroy(Request $request, int $id)
     {
-        return User::query()
-            ->whereHas('roles', function ($query) {
-                $query->whereIn('name', self::ADMIN_ROLE_NAMES)
-                    ->where('guard_name', 'web');
-            })
-            ->count();
+        $user = User::with('roles')->find($id);
+
+        if (! $user) {
+            return ApiResponseService::notFound(language()->t('USER_NOT_FOUND'));
+        }
+
+        $error = $this->userService->delete($user, $request->user());
+
+        return match ($error) {
+            'CANNOT_DELETE_SELF' => ApiResponseService::error('CANNOT_DELETE_SELF', language()->t('USER_CANNOT_DELETE_OWN_ACCOUNT'), null, 400),
+            'LAST_TENANT_ADMIN' => ApiResponseService::error('LAST_TENANT_ADMIN', language()->t('USER_ADMIN_CANT_DELETE_LAST_ADMIN'), null, 400),
+            default => ApiResponseService::noContent(),
+        };
+    }
+
+    /**
+     * Atualiza as permissões diretas no nível de módulo para um usuário.
+     */
+    public function updateModulePermissions(UpdateUserModulePermissionsRequest $request, int $id)
+    {
+        $user = User::with('roles')->find($id);
+
+        if (! $user) {
+            return ApiResponseService::notFound(language()->t('USER_NOT_FOUND'));
+        }
+
+        $this->userService->updateModulePermissions(
+            $user,
+            (array) $request->input('permissions', []),
+            $this->permissions,
+        );
+
+        return ApiResponseService::success(
+            new UserResource($user->fresh(['roles', 'permissions'])),
+            language()->t('USER_PERMISSIONS_UPDATED_SUCCESSFULLY')
+        );
     }
 }

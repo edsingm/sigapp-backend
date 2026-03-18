@@ -2,10 +2,11 @@
 
 namespace App\Services\Tenant;
 
+use App\Enums\WorkflowStatus;
 use App\Models\Tenant\Legalizacao;
 use App\Models\Tenant\LegalizacaoDependencia;
-use App\Models\Tenant\LegalizacaoPendencia;
 use App\Models\Tenant\LegalizacaoEtapa;
+use App\Models\Tenant\LegalizacaoPendencia;
 use App\Models\Tenant\Terreno;
 use Exception;
 use Illuminate\Database\Eloquent\Collection;
@@ -17,8 +18,7 @@ class LegalizacaoService
 {
     public function __construct(
         protected LandWorkflowService $workflowService
-    ) {
-    }
+    ) {}
 
     /**
      * Listar legalizações com filtros e paginação
@@ -33,7 +33,7 @@ class LegalizacaoService
             'updatedBy',
         ]);
 
-        if (!empty($filtros['search'])) {
+        if (! empty($filtros['search'])) {
             $search = $filtros['search'];
             $query->where(function ($q) use ($search) {
                 $q->where('nome', 'like', "%{$search}%")
@@ -44,11 +44,11 @@ class LegalizacaoService
             });
         }
 
-        if (!empty($filtros['terreno_id'])) {
+        if (! empty($filtros['terreno_id'])) {
             $query->where('terreno_id', $filtros['terreno_id']);
         }
 
-        if (!empty($filtros['status'])) {
+        if (! empty($filtros['status'])) {
             $query->where('status', $filtros['status']);
         }
 
@@ -104,7 +104,7 @@ class LegalizacaoService
 
             $this->workflowService->transition(
                 $terreno,
-                'legalizando',
+                WorkflowStatus::LEGALIZANDO->value,
                 Auth::user(),
                 'legalization_created',
                 $dados['observacoes'] ?? null,
@@ -124,7 +124,7 @@ class LegalizacaoService
         $legalizacao->update($dados);
 
         if (isset($dados['status'])) {
-            $workflowStatus = 'legalizando';
+            $workflowStatus = WorkflowStatus::LEGALIZANDO->value;
 
             $this->workflowService->transition(
                 $legalizacao->terreno()->firstOrFail(),
@@ -154,13 +154,13 @@ class LegalizacaoService
     public function syncGantt(Legalizacao $legalizacao, array $dados): array
     {
         return DB::transaction(function () use ($legalizacao, $dados) {
-            if (!empty($dados['etapas'])) {
+            if (! empty($dados['etapas'])) {
                 foreach ($dados['etapas'] as $etapaData) {
                     $this->syncOrCreateEtapa($legalizacao, $etapaData);
                 }
             }
 
-            if (!empty($dados['dependencias'])) {
+            if (! empty($dados['dependencias'])) {
                 foreach ($dados['dependencias'] as $depData) {
                     $depData['legalizacao_id'] = $legalizacao->id;
                     $this->validarDependencia($depData);
@@ -168,11 +168,11 @@ class LegalizacaoService
                 }
             }
 
-            if (!empty($dados['deleted_etapa_ids'])) {
+            if (! empty($dados['deleted_etapa_ids'])) {
                 $this->deletarEtapas($dados['deleted_etapa_ids'], $legalizacao->id);
             }
 
-            if (!empty($dados['deleted_dependencia_ids'])) {
+            if (! empty($dados['deleted_dependencia_ids'])) {
                 $this->deletarDependencias($dados['deleted_dependencia_ids'], $legalizacao->id);
             }
 
@@ -190,7 +190,7 @@ class LegalizacaoService
         $normalized = $this->normalizarEtapaPayload($dados);
         $hasParentId = array_key_exists('parent_id', $dados);
 
-        if (!empty($dados['id'])) {
+        if (! empty($dados['id'])) {
             $etapa = LegalizacaoEtapa::where('legalizacao_id', $legalizacao->id)
                 ->findOrFail($dados['id']);
 
@@ -244,6 +244,9 @@ class LegalizacaoService
         ]);
     }
 
+    /**
+     * Normaliza os dados recebidos para o formato da etapa.
+     */
     protected function normalizarEtapaPayload(array $dados): array
     {
         $titulo = $dados['titulo'] ?? $dados['nome'] ?? null;
@@ -306,6 +309,9 @@ class LegalizacaoService
         return $payload;
     }
 
+    /**
+     * Verifica se o payload possui campos de custo no nível raiz.
+     */
     protected function etapaTemAlgumCampoDeCustoRaiz(array $dados): bool
     {
         return array_key_exists('tipo_custo', $dados)
@@ -314,7 +320,9 @@ class LegalizacaoService
     }
 
     /**
-     * @param array<int, mixed> $custos
+     * Normaliza a lista de custos associados a uma etapa.
+     *
+     * @param  array<int, mixed>  $custos
      * @return array<int, array<string, mixed>>
      */
     protected function normalizarCustosPayload(array $custos): array
@@ -322,7 +330,7 @@ class LegalizacaoService
         $normalizados = [];
 
         foreach ($custos as $custo) {
-            if (!is_array($custo)) {
+            if (! is_array($custo)) {
                 continue;
             }
 
@@ -344,6 +352,9 @@ class LegalizacaoService
         return $normalizados;
     }
 
+    /**
+     * Converte diversos formatos de entrada para booleano.
+     */
     protected function normalizarBoolean(mixed $value): bool
     {
         if (is_bool($value)) {
@@ -356,6 +367,7 @@ class LegalizacaoService
 
         if (is_string($value)) {
             $value = mb_strtolower(trim($value));
+
             return in_array($value, ['1', 'true', 'yes', 'sim'], true);
         }
 
@@ -363,8 +375,10 @@ class LegalizacaoService
     }
 
     /**
-     * @param array<int, array<string, mixed>> $custos
-     * @param array<string, mixed> $dadosOriginais
+     * Resume os custos da etapa para os campos legados (tipo, valor, pago).
+     *
+     * @param  array<int, array<string, mixed>>  $custos
+     * @param  array<string, mixed>  $dadosOriginais
      * @return array{tipo_custo: mixed, valor_custo: mixed, custo_pago: mixed}
      */
     protected function resumirCustos(array $custos, array $dadosOriginais): array
@@ -472,7 +486,7 @@ class LegalizacaoService
         $visitados = [];
         $stack = [$destinoId];
 
-        while (!empty($stack)) {
+        while (! empty($stack)) {
             $atual = array_pop($stack);
 
             if ($atual === $origemId) {
@@ -490,7 +504,7 @@ class LegalizacaoService
                 ->all();
 
             foreach ($proximos as $proximo) {
-                if (!in_array($proximo, $visitados, true)) {
+                if (! in_array($proximo, $visitados, true)) {
                     $stack[] = (int) $proximo;
                 }
             }
@@ -516,10 +530,10 @@ class LegalizacaoService
     {
         $query = Terreno::query()
             ->with(['cidade', 'responsavel'])
-            ->where('workflow_status_code', 'contrato_assinado')
+            ->where('workflow_status_code', WorkflowStatus::CONTRATO_ASSINADO->value)
             ->whereDoesntHave('legalizacao');
 
-        if (!empty($filtros['search'])) {
+        if (! empty($filtros['search'])) {
             $search = $filtros['search'];
             $query->where(function ($q) use ($search) {
                 $q->where('nome', 'like', "%{$search}%")
@@ -538,11 +552,11 @@ class LegalizacaoService
     {
         $terreno = Terreno::find($terrenoId);
 
-        if (!$terreno) {
+        if (! $terreno) {
             throw new Exception('Terreno não encontrado');
         }
 
-        if ($terreno->workflow_status_code !== 'contrato_assinado') {
+        if ($terreno->workflow_status_code !== WorkflowStatus::CONTRATO_ASSINADO->value) {
             throw new Exception('Somente terrenos com status "Contrato Assinado" podem iniciar legalização');
         }
 
@@ -569,7 +583,7 @@ class LegalizacaoService
     {
         DB::transaction(function () use ($legalizacao, $ordens) {
             foreach ($ordens as $ordemData) {
-                if (!isset($ordemData['id'], $ordemData['ordem'])) {
+                if (! isset($ordemData['id'], $ordemData['ordem'])) {
                     continue;
                 }
 
@@ -596,12 +610,12 @@ class LegalizacaoService
 
         if ($status === LegalizacaoEtapa::STATUS_CONCLUIDA) {
             $payload['percentual'] = 100;
-            if (!$etapa->fim_real) {
+            if (! $etapa->fim_real) {
                 $payload['fim_real'] = now()->toDateString();
             }
         }
 
-        if ($status === LegalizacaoEtapa::STATUS_EM_ANDAMENTO && !$etapa->inicio_real) {
+        if ($status === LegalizacaoEtapa::STATUS_EM_ANDAMENTO && ! $etapa->inicio_real) {
             $payload['inicio_real'] = now()->toDateString();
         }
 
@@ -620,7 +634,7 @@ class LegalizacaoService
             if ($temPendenciaCritica) {
                 $this->workflowService->transition(
                     $legalizacao->terreno()->firstOrFail(),
-                    'legalizando',
+                    WorkflowStatus::LEGALIZANDO->value,
                     Auth::user(),
                     'legalization_issue',
                     'Existem pendências críticas abertas.',

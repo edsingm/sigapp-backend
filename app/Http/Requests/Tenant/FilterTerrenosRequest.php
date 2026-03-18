@@ -6,11 +6,17 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class FilterTerrenosRequest extends FormRequest
 {
+    /**
+     * Determina se o usuário está autorizado a fazer esta requisição.
+     */
     public function authorize(): bool
     {
         return true;
     }
 
+    /**
+     * Prepara os dados para validação.
+     */
     protected function prepareForValidation(): void
     {
         $toArray = function ($value) {
@@ -55,6 +61,9 @@ class FilterTerrenosRequest extends FormRequest
         ]);
     }
 
+    /**
+     * Obtém as regras de validação que se aplicam à requisição.
+     */
     public function rules(): array
     {
         $sortFields = [

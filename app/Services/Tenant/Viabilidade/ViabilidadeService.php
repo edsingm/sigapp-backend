@@ -2,14 +2,15 @@
 
 namespace App\Services\Tenant\Viabilidade;
 
+use App\Enums\WorkflowStatus;
+use App\Models\Tenant\Terreno;
 use App\Models\Tenant\Viabilidade;
 use App\Models\Tenant\ViabilidadeAprovacao;
-use App\Models\Tenant\Terreno;
 use App\Services\Tenant\LandWorkflowService;
+use Exception;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Exception;
 
 class ViabilidadeService
 {
@@ -61,7 +62,6 @@ class ViabilidadeService
         ];
     }
 
-
     /**
      * Criar nova viabilidade e gerar DRE automaticamente
      */
@@ -91,7 +91,7 @@ class ViabilidadeService
             );
 
             $viabilidade->update([
-                'resultados_dre' => $dreResultados
+                'resultados_dre' => $dreResultados,
             ]);
 
             $this->advanceWorkflowForNewViability(
@@ -126,12 +126,12 @@ class ViabilidadeService
             );
 
             $viabilidade->update([
-                'resultados_dre' => $dreResultados
+                'resultados_dre' => $dreResultados,
             ]);
 
             return [
                 'viabilidade' => $viabilidade->fresh(['terreno', 'createdBy', 'updatedBy', 'secoes', 'aprovacoes']),
-                'dre_resultados' => $dreResultados
+                'dre_resultados' => $dreResultados,
             ];
         });
     }
@@ -154,33 +154,34 @@ class ViabilidadeService
 
             return [
                 'viabilidade' => $viabilidade,
-                'dre_resultados' => $dreResultados
+                'dre_resultados' => $dreResultados,
             ];
 
         } catch (Exception $e) {
             Log::error('Erro ao buscar viabilidade com DRE', [
                 'viabilidade_id' => $viabilidadeId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
-            throw new Exception('Erro ao buscar viabilidade: ' . $e->getMessage());
+            throw new Exception('Erro ao buscar viabilidade: '.$e->getMessage());
         }
     }
 
     private function precisaRecalcularDre($dreResultados): bool
     {
-        if (empty($dreResultados))
+        if (empty($dreResultados)) {
             return true;
+        }
 
         // Verifica se chaves principais da nova estrutura existem
-        if (!isset($dreResultados['indicadores']) || !isset($dreResultados['totais'])) {
+        if (! isset($dreResultados['indicadores']) || ! isset($dreResultados['totais'])) {
             return true;
         }
 
         $fluxo = $dreResultados['fluxo_mensal'] ?? [];
-        $primeiroMes = !empty($fluxo) ? reset($fluxo) : null;
+        $primeiroMes = ! empty($fluxo) ? reset($fluxo) : null;
 
         // Verifica se a estrutura mudou (ex: se não tem chave 'receitas' detalhada)
-        return $primeiroMes && !isset($primeiroMes['receitas']);
+        return $primeiroMes && ! isset($primeiroMes['receitas']);
     }
 
     /**
@@ -190,14 +191,14 @@ class ViabilidadeService
     {
         $query = Viabilidade::with(['terreno', 'createdBy', 'updatedBy']);
 
-        if (!empty($filtros['search'])) {
+        if (! empty($filtros['search'])) {
             $search = $filtros['search'];
             $query->whereHas('terreno', function ($q) use ($search) {
                 $q->where('nome', 'like', "%{$search}%");
             });
         }
 
-        if (!empty($filtros['terreno_id'])) {
+        if (! empty($filtros['terreno_id'])) {
             $query->where('terreno_id', $filtros['terreno_id']);
         }
 
@@ -215,7 +216,7 @@ class ViabilidadeService
             throw new Exception('ID do terreno é obrigatório');
         }
 
-        if (!Terreno::find($dados['terreno_id'])) {
+        if (! Terreno::find($dados['terreno_id'])) {
             throw new Exception('Terreno não encontrado');
         }
 
@@ -224,14 +225,14 @@ class ViabilidadeService
         $camposNumericos = Viabilidade::CAMPOS_FINANCEIROS;
 
         foreach ($camposNumericos as $campo) {
-            if (isset($dados[$campo]) && !is_numeric($dados[$campo])) {
+            if (isset($dados[$campo]) && ! is_numeric($dados[$campo])) {
                 throw new Exception("Campo {$campo} deve ser numérico");
             }
         }
 
         if (isset($dados['prazo_obra'])) {
             $prazosValidos = ['18', '24', '36', '48', '60'];
-            if (!in_array((string) $dados['prazo_obra'], $prazosValidos)) {
+            if (! in_array((string) $dados['prazo_obra'], $prazosValidos)) {
                 throw new Exception('Prazo de obra deve ser: 18, 24, 36, 48 ou 60 meses');
             }
         }
@@ -289,6 +290,7 @@ class ViabilidadeService
     public function excluirViabilidade(int $viabilidadeId): bool
     {
         $viabilidade = Viabilidade::findOrFail($viabilidadeId);
+
         return $viabilidade->delete();
     }
 
@@ -306,12 +308,12 @@ class ViabilidadeService
             $viabilidade->update([
                 'resultados_dre' => $dreResultados,
                 'updated_by' => Auth::id(),
-                'updated_at' => now()
+                'updated_at' => now(),
             ]);
 
             return [
                 'viabilidade' => $viabilidade->fresh(['terreno', 'createdBy', 'updatedBy']),
-                'dre_resultados' => $dreResultados
+                'dre_resultados' => $dreResultados,
             ];
         });
     }
@@ -332,13 +334,13 @@ class ViabilidadeService
         $user = Auth::user();
         $reasonNotes = "Viabilidade versão {$version} criada.";
 
-        if (($terreno->workflow_status_code ?? null) === 'aguardando_viabilidade') {
+        if (($terreno->workflow_status_code ?? null) === WorkflowStatus::AGUARDANDO_VIABILIDADE->value) {
             return;
         }
 
         $this->workflowService->transition(
             $terreno,
-            'aguardando_viabilidade',
+            WorkflowStatus::AGUARDANDO_VIABILIDADE->value,
             $user,
             'viability_created',
             $reasonNotes,

@@ -16,16 +16,16 @@ class EnforcePlanLimits
     }
 
     /**
-     * Handle an incoming request.
+     * Manipula uma requisição de entrada.
      */
     public function handle(Request $request, Closure $next, string $resource = null): Response
     {
-        // Only check on POST requests (creating resources)
+        // Verifica apenas em requisições POST (criação de recursos)
         if (!$request->isMethod('POST')) {
             return $next($request);
         }
 
-        // Skip if no tenant context
+        // Ignora se não houver contexto de tenant
         if (!tenancy()->initialized) {
             return $next($request);
         }
@@ -42,7 +42,7 @@ class EnforcePlanLimits
             );
         }
 
-        // Check resource-specific limits
+        // Verifica limites específicos do recurso
         if ($resource) {
             $limitExceeded = $this->checkResourceLimit($resource, $request);
 
@@ -64,7 +64,7 @@ class EnforcePlanLimits
     }
 
     /**
-     * Check if a resource limit is exceeded.
+     * Verifica se o limite de um recurso foi excedido.
      */
     protected function checkResourceLimit(string $resource, Request $request): bool
     {

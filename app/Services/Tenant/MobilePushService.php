@@ -9,6 +9,7 @@ use App\Models\Tenant\User;
 use App\Models\Tenant\Viabilidade;
 use App\Services\Acl\PermissionNameResolver;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -20,6 +21,9 @@ class MobilePushService
     ) {
     }
 
+    /**
+     * Registra ou atualiza um dispositivo móvel para um usuário.
+     */
     public function registerDevice(User $user, array $attributes): MobileDeviceInstallation
     {
         $device = MobileDeviceInstallation::query()->updateOrCreate(
@@ -41,6 +45,9 @@ class MobilePushService
         return $device->fresh();
     }
 
+    /**
+     * Remove o registro de um dispositivo móvel de um usuário.
+     */
     public function unregisterDevice(User $user, string $installationId): void
     {
         MobileDeviceInstallation::query()
@@ -49,6 +56,9 @@ class MobilePushService
             ->delete();
     }
 
+    /**
+     * Lista as notificações do usuário com paginação.
+     */
     public function paginateNotifications(User $user, int $perPage = 20): LengthAwarePaginator
     {
         return MobileNotification::query()
@@ -57,6 +67,9 @@ class MobilePushService
             ->paginate($perPage);
     }
 
+    /**
+     * Marca uma notificação como lida.
+     */
     public function markAsRead(User $user, string $notificationId): MobileNotification
     {
         $notification = MobileNotification::query()
@@ -70,6 +83,9 @@ class MobilePushService
         return $notification->fresh();
     }
 
+    /**
+     * Envia notificações para uma lista de usuários.
+     */
     public function notifyUsers(iterable $users, array $payload, ?string $dedupeKey = null): Collection
     {
         $notifications = collect();
@@ -114,6 +130,9 @@ class MobilePushService
         return $notifications;
     }
 
+    /**
+     * Envia notificações para todos os usuários que possuem uma determinada permissão.
+     */
     public function notifyUsersWithPermission(
         string $permission,
         array $payload,
@@ -130,6 +149,9 @@ class MobilePushService
         return $this->notifyUsers($users, $payload, $dedupeKey);
     }
 
+    /**
+     * Envia notificações para todos os usuários do sistema.
+     */
     public function notifyAllUsers(array $payload, ?User $exclude = null, ?string $dedupeKey = null): Collection
     {
         $users = User::query()
@@ -139,6 +161,9 @@ class MobilePushService
         return $this->notifyUsers($users, $payload, $dedupeKey);
     }
 
+    /**
+     * Notifica sobre etapas de legalização atrasadas no tenant atual.
+     */
     public function notifyOverdueLegalizacaoEtapasForCurrentTenant(): int
     {
         $today = now()->startOfDay();
@@ -203,6 +228,9 @@ class MobilePushService
         return $count;
     }
 
+    /**
+     * Realiza o envio técnico das notificações via API do Expo.
+     */
     protected function dispatchExpoPush(User $user, MobileNotification $notification): void
     {
         $tokens = MobileDeviceInstallation::query()

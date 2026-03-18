@@ -7,8 +7,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use App\Models\Tenant\User;
 use App\Services\ApiResponseService;
+use App\Services\Tenant\TenantUserService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
@@ -16,10 +16,10 @@ use Illuminate\Validation\Rules\Password;
 
 class UserController extends Controller
 {
-    private const ADMIN_ROLE_NAMES = [RolesEnum::ADMIN->value, RolesEnum::DIRECTOR->value];
+    public function __construct(private readonly TenantUserService $userService) {}
 
     /**
-     * List all users.
+     * Lista todos os usuários com busca opcional, filtro de função e ordenação.
      *
      * GET /api/v1/users
      */
@@ -27,43 +27,23 @@ class UserController extends Controller
     {
         $tenantId = tenant('id') ?? 'central';
         $filters = $request->only(['search', 'role', 'sort', 'order', 'per_page', 'page']);
-        $cacheKey = "tenant:{$tenantId}:users:index:" . md5(json_encode($filters));
+        $cacheKey = "tenant:{$tenantId}:users:index:".md5(json_encode($filters));
 
         $users = Cache::tags(["tenant:{$tenantId}:users"])->remember($cacheKey, now()->addMinutes(30), function () use ($request) {
-            $query = User::query();
-
-            // Search
-            if ($request->has('search')) {
-                $search = $request->get('search');
-                $query->where(function ($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%");
-                });
-            }
-
-            // Filter by role
-            if ($request->has('role')) {
-                $query->role($request->get('role'));
-            }
-
-            // Sort
-            if ($request->has('sort')) {
-                $order = $request->get('order', 'asc');
-                $query->orderBy($request->get('sort'), $order);
-            } else {
-                $query->orderBy('name');
-            }
-
-            $perPage = min($request->get('per_page', 15), 100);
-
-            return $query->paginate($perPage);
+            return $this->userService->list(
+                search: $request->get('search'),
+                role: $request->get('role'),
+                sort: $request->get('sort', 'name'),
+                order: $request->get('order', 'asc'),
+                perPage: (int) $request->get('per_page', 15),
+            );
         });
 
         return ApiResponseService::paginated($users);
     }
 
     /**
-     * Get a specific user.
+     * Busca um usuário específico.
      *
      * GET /api/v1/users/{id}
      */
@@ -71,18 +51,15 @@ class UserController extends Controller
     {
         $user = User::find($id);
 
-        if (!$user) {
+        if (! $user) {
             return ApiResponseService::notFound('Usuário não encontrado');
         }
 
-        return ApiResponseService::success(
-            new UserResource($user),
-            'Usuário recuperado com sucesso'
-        );
+        return ApiResponseService::success(new UserResource($user), 'Usuário recuperado com sucesso');
     }
 
     /**
-     * Create a new user.
+     * Cria um novo usuário.
      *
      * POST /api/v1/users
      */
@@ -95,26 +72,13 @@ class UserController extends Controller
             'role' => ['sometimes', 'string', Rule::in(array_column(RolesEnum::cases(), 'value'))],
         ]);
 
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-        ]);
+        $user = $this->userService->create($validated);
 
-        if (isset($validated['role'])) {
-            $user->assignRole($validated['role']);
-        } else {
-            $user->assignRole(RolesEnum::USER->value);
-        }
-
-        return ApiResponseService::created(
-            new UserResource($user),
-            'Usuário criado com sucesso'
-        );
+        return ApiResponseService::created(new UserResource($user), 'Usuário criado com sucesso');
     }
 
     /**
-     * Update a user.
+     * Atualiza um usuário.
      *
      * PUT /api/v1/users/{id}
      */
@@ -122,35 +86,28 @@ class UserController extends Controller
     {
         $user = User::find($id);
 
-        if (!$user) {
+        if (! $user) {
             return ApiResponseService::notFound('Usuário não encontrado');
         }
 
         $validated = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
-            'email' => ['sometimes', 'email', 'unique:users,email,' . $id],
+            'email' => ['sometimes', 'email', 'unique:users,email,'.$id],
             'password' => ['sometimes', Password::defaults()],
             'role' => ['sometimes', 'string', Rule::in(array_column(RolesEnum::cases(), 'value'))],
         ]);
 
-        if (isset($validated['password'])) {
-            $validated['password'] = Hash::make($validated['password']);
+        $error = $this->userService->update($user, $validated, $request->user());
+
+        if ($error === 'LAST_TENANT_ADMIN') {
+            return ApiResponseService::error('LAST_TENANT_ADMIN', 'Não é possível remover a função de administrador do último administrador', null, 400);
         }
 
-        $user->update($validated);
-
-        if (isset($validated['role'])) {
-            $user->syncRoles([$validated['role']]);
-        }
-
-        return ApiResponseService::success(
-            new UserResource($user->fresh()),
-            'Usuário atualizado com sucesso'
-        );
+        return ApiResponseService::success(new UserResource($user->fresh()), 'Usuário atualizado com sucesso');
     }
 
     /**
-     * Delete a user.
+     * Exclui um usuário.
      *
      * DELETE /api/v1/users/{id}
      */
@@ -158,45 +115,21 @@ class UserController extends Controller
     {
         $user = User::find($id);
 
-        if (!$user) {
+        if (! $user) {
             return ApiResponseService::notFound('Usuário não encontrado');
         }
 
-        // Prevent deleting self
-        if ($request->user()->id === $user->id) {
-            return ApiResponseService::error(
-                'CANNOT_DELETE_SELF',
-                'Você não pode excluir sua própria conta',
-                null,
-                400
-            );
-        }
+        $error = $this->userService->delete($user, $request->user());
 
-        if ($user->hasAnyRole(self::ADMIN_ROLE_NAMES)) {
-            $adminEligibleCount = User::query()
-                ->whereHas('roles', function ($query) {
-                    $query->whereIn('name', self::ADMIN_ROLE_NAMES)
-                        ->where('guard_name', 'web');
-                })
-                ->count();
-
-            if ($adminEligibleCount <= 1) {
-                return ApiResponseService::error(
-                    'LAST_TENANT_ADMIN',
-                    'Não é possível excluir o último administrador do tenant',
-                    null,
-                    400
-                );
-            }
-        }
-
-        $user->delete();
-
-        return ApiResponseService::noContent();
+        return match ($error) {
+            'CANNOT_DELETE_SELF' => ApiResponseService::error('CANNOT_DELETE_SELF', 'Você não pode excluir sua própria conta', null, 400),
+            'LAST_TENANT_ADMIN' => ApiResponseService::error('LAST_TENANT_ADMIN', 'Não é possível excluir o último administrador do tenant', null, 400),
+            default => ApiResponseService::noContent(),
+        };
     }
 
     /**
-     * Get users for select dropdown.
+     * Busca usuários para dropdown de seleção.
      *
      * GET /api/v1/users/for-select
      */
@@ -204,9 +137,7 @@ class UserController extends Controller
     {
         Gate::authorize('viewAny', \App\Models\Tenant\Terreno::class);
 
-        $users = User::select('id', 'name')
-            ->orderBy('name')
-            ->get();
+        $users = User::select('id', 'name')->orderBy('name')->get();
 
         return ApiResponseService::success($users, 'Usuários carregados com sucesso');
     }

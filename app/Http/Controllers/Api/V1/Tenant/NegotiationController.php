@@ -16,21 +16,26 @@ class NegotiationController extends Controller
     public function __construct(
         protected NegotiationService $service,
         protected LandWorkflowService $workflowService,
-    ) {
-    }
+    ) {}
 
+    /**
+     * Listar negociações.
+     */
     public function index(Request $request)
     {
         Gate::authorize('viewAny', Negociacao::class);
 
         $result = $this->service->listNegotiations($request->only(['status', 'search', 'per_page']));
-        $result->setCollection(
-            $result->getCollection()->map(fn (Negociacao $negociacao) => (new NegociacaoResource($negociacao))->resolve())
+        $result->through(
+            fn (Negociacao $negociacao) => (new NegociacaoResource($negociacao))->resolve()
         );
 
         return ApiResponseService::paginated($result, 'Negociações carregadas com sucesso');
     }
 
+    /**
+     * Criar uma nova negociação.
+     */
     public function store(Request $request)
     {
         Gate::authorize('create', Negociacao::class);
@@ -49,6 +54,9 @@ class NegotiationController extends Controller
         return ApiResponseService::created(new NegociacaoResource($negociacao), 'Negociação criada com sucesso');
     }
 
+    /**
+     * Exibir os detalhes de uma negociação específica.
+     */
     public function show(string $id)
     {
         $negociacao = Negociacao::with(['terreno', 'eventos', 'contratos.partes'])->findOrFail($id);
@@ -57,6 +65,9 @@ class NegotiationController extends Controller
         return ApiResponseService::success(new NegociacaoResource($negociacao));
     }
 
+    /**
+     * Atualizar uma negociação existente.
+     */
     public function update(Request $request, string $id)
     {
         $negociacao = Negociacao::findOrFail($id);
@@ -76,6 +87,9 @@ class NegotiationController extends Controller
         return ApiResponseService::success(new NegociacaoResource($updated), 'Negociação atualizada com sucesso');
     }
 
+    /**
+     * Adicionar um evento a uma negociação.
+     */
     public function addEvent(Request $request, string $id)
     {
         $negociacao = Negociacao::findOrFail($id);

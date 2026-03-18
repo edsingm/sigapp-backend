@@ -30,12 +30,12 @@ class Plan extends Model
     use HasFactory, CentralConnection;
 
     /**
-     * The table associated with the model.
+     * A tabela associada ao modelo.
      */
     protected $table = 'plans';
 
     /**
-     * The attributes that are mass assignable.
+     * Os atributos que podem ser atribuídos em massa.
      */
     protected $fillable = [
         'name',
@@ -50,7 +50,7 @@ class Plan extends Model
     ];
 
     /**
-     * The attributes that should be cast.
+     * Os atributos que devem ser convertidos.
      */
     protected function casts(): array
     {
@@ -64,7 +64,7 @@ class Plan extends Model
     }
 
     /**
-     * Get the tenants for the plan.
+     * Obtém os tenants do plano.
      */
     public function tenants(): HasMany
     {
@@ -72,7 +72,7 @@ class Plan extends Model
     }
 
     /**
-     * Scope for active plans.
+     * Escopo para planos ativos.
      */
     public function scopeActive(Builder $query): Builder
     {
@@ -80,7 +80,7 @@ class Plan extends Model
     }
 
     /**
-     * Scope for ordering by sort_order.
+     * Escopo para ordenação por sort_order.
      */
     public function scopeOrdered(Builder $query): Builder
     {
@@ -88,7 +88,7 @@ class Plan extends Model
     }
 
     /**
-     * Get the formatted price in BRL.
+     * Obtém o preço formatado em BRL.
      */
     public function getFormattedPriceAttribute(): string
     {
@@ -96,7 +96,7 @@ class Plan extends Model
     }
 
     /**
-     * Check if plan has unlimited users.
+     * Verifica se o plano tem usuários ilimitados.
      */
     public function hasUnlimitedUsers(): bool
     {
@@ -104,38 +104,56 @@ class Plan extends Model
     }
 
     /**
-     * Check if plan has unlimited terrenos.
+     * Verifica se o plano tem terrenos ilimitados.
      */
     public function hasUnlimitedTerrenos(): bool
     {
         return $this->getLimit('terrenos') === -1;
     }
 
+    /**
+     * Obtém as funcionalidades do plano.
+     */
     public function getFeaturesAttribute(): array
     {
         return app(PlanMatrixService::class)->features($this);
     }
 
+    /**
+     * Obtém os limites do plano.
+     */
     public function getLimitsAttribute(): array
     {
         return app(PlanMatrixService::class)->limits($this);
     }
 
+    /**
+     * Obtém o valor de uma funcionalidade específica.
+     */
     public function getFeature(string $key, mixed $default = null): mixed
     {
         return app(PlanMatrixService::class)->featureValue($this, $key, $default);
     }
 
+    /**
+     * Verifica se o plano possui uma funcionalidade específica.
+     */
     public function hasFeature(string $key): bool
     {
         return app(PlanMatrixService::class)->hasFeature($this, $key);
     }
 
+    /**
+     * Obtém o limite de uma chave específica.
+     */
     public function getLimit(string $key, int $default = 0): int
     {
         return app(PlanMatrixService::class)->getLimit($this, $key, $default);
     }
 
+    /**
+     * Verifica se o limite de uma chave específica é ilimitado.
+     */
     public function hasUnlimitedLimit(string $key): bool
     {
         return $this->getLimit($key) === -1;

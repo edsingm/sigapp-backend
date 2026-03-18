@@ -32,7 +32,6 @@ enum ModulesEnum: string
     case REPORTS = 'reports';
     case VIABILITY = 'viability';
 
-
     public function label(): string
     {
         return match ($this) {
@@ -42,7 +41,9 @@ enum ModulesEnum: string
             self::BROKERS => 'Corretores',
             self::DATA => 'Dados',
             self::DASHBOARD => 'Dashboard',
+            self::COMMITTEE => 'Comitês',
             self::LEGAL => 'Legalizações',
+            self::NEGOTIATION => 'Negociações',
             self::PROJECTS => 'Projetos',
             self::REPORTS => 'Relatórios',
             self::VIABILITY => 'Viabilidade'
@@ -50,34 +51,34 @@ enum ModulesEnum: string
     }
 
     /**
-     * Sub-modules (resources) within this module.
-     * Empty array means the module has no sub-modules and is accessed at the module level.
+     * Sub-módulos (recursos) dentro deste módulo.
+     * Array vazio significa que o módulo não possui sub-módulos e é acessado no nível do módulo.
      *
-     * To add resources to a module, declare them here. The permission seeder will
-     * automatically generate permissions for them in {module}.{resource}.{level} format.
+     * Para adicionar recursos a um módulo, declare-os aqui. O seeder de permissões irá
+     * gerar automaticamente permissões para eles no formato {módulo}.{recurso}.{nível}.
      *
      * @return array<int, string>
      */
     public function resources(): array
     {
         return match ($this) {
-            self::PROSPECTION => ['terrains','maps'],
-            default        => [],
+            self::PROSPECTION => ['terrains', 'maps'],
+            default => [],
         };
     }
 
     public function hasResources(): bool
     {
-        return !empty($this->resources());
+        return ! empty($this->resources());
     }
 
     /**
-     * Maps model classes that belong to this module.
-     * Key = fully-qualified model class name.
-     * Value = resource name within the module, or null when the module has no resources.
+     * Mapeia as classes de modelo que pertencem a este módulo.
+     * Chave = nome completo da classe do modelo.
+     * Valor = nome do recurso dentro do módulo, ou null quando o módulo não possui recursos.
      *
-     * When you add a new module, declare its models here and TenantPolicy
-     * will automatically pick them up — no changes needed in the policy.
+     * Ao adicionar um novo módulo, declare seus modelos aqui e o TenantPolicy
+     * os reconhecerá automaticamente — não são necessárias alterações na política.
      *
      * @return array<class-string, string|null>
      */
@@ -91,14 +92,14 @@ enum ModulesEnum: string
                 CorretorExterno::class => null,
             ],
             self::DATA => [
-                Regional::class       => null,
-                Produto::class        => null,
-                Proprietario::class   => null,
+                Regional::class => null,
+                Produto::class => null,
+                Proprietario::class => null,
                 TerrenoProduto::class => null,
-                Documento::class      => null,
+                Documento::class => null,
             ],
             self::LEGAL => [
-                Legalizacao::class      => null,
+                Legalizacao::class => null,
                 LegalizacaoEtapa::class => null,
             ],
             self::COMMITTEE => [
@@ -119,8 +120,8 @@ enum ModulesEnum: string
     }
 
     /**
-     * Flat map of [ModelClass => 'module.resource' | 'module'] for all cases.
-     * Used by TenantPolicy to resolve the permission string for a given model.
+     * Mapeamento simples de [ModelClass => 'module.resource' | 'module'] para todos os casos.
+     * Usado pelo TenantPolicy para resolver a string de permissão para um modelo dado.
      *
      * @return array<class-string, string>
      */

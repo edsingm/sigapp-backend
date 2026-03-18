@@ -16,6 +16,9 @@ use App\Services\Tenant\LandWorkflowService;
 
 class TerrenosExportController extends Controller
 {
+    /**
+     * Resolver o caminho do executável do Chrome para o Browsershot.
+     */
     private function resolveChromePath(): ?string
     {
         $candidates = array_filter([
@@ -36,6 +39,9 @@ class TerrenosExportController extends Controller
         return null;
     }
 
+    /**
+     * Aplicar configurações padrão ao Browsershot.
+     */
     private function applyBrowsershotDefaults($browsershot): void
     {
         $chromePath = $this->resolveChromePath();
@@ -46,6 +52,9 @@ class TerrenosExportController extends Controller
         $browsershot->noSandbox();
     }
 
+    /**
+     * Exportar a listagem de terrenos para PDF.
+     */
     public function exportPdf(FilterTerrenosRequest $request)
     {
         Gate::authorize('export', Terreno::class);
@@ -145,6 +154,9 @@ class TerrenosExportController extends Controller
             ->name('listagem-terrenos-' . now()->format('Y-m-d') . '.pdf');
     }
 
+    /**
+     * Exportar os detalhes de um único terreno para PDF.
+     */
     public function exportSinglePdf($id)
     {
         Gate::authorize('export', Terreno::class);
@@ -184,6 +196,9 @@ class TerrenosExportController extends Controller
             ->name('detalhe-terreno-' . $terreno->id . '-' . Str::slug($terreno->nome) . '.pdf');
     }
 
+    /**
+     * Exportar a listagem de terrenos para Excel.
+     */
     public function exportExcel(FilterTerrenosRequest $request)
     {
         Gate::authorize('export', Terreno::class);
@@ -202,9 +217,7 @@ class TerrenosExportController extends Controller
             'ano' => $request->input('ano'),
         ];
 
-        $filename = 'listagem-terrenos-' . now()->format('Y-m-d') . '.xlsx';
-
-        return Excel::download(new TerrenosExport($filters), $filename);
+        return Excel::download(new TerrenosExport($filters), 'listagem-terrenos-' . now()->format('Y-m-d') . '.xlsx');
     }
     public function checklistPdf(\Illuminate\Http\Request $request, $id)
     {

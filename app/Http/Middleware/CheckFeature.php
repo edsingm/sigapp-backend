@@ -16,7 +16,7 @@ class CheckFeature
     }
 
     /**
-     * Handle an incoming request.
+     * Manipula uma requisição de entrada.
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */

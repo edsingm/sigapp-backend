@@ -13,9 +13,11 @@ class MobileNotificationController extends Controller
 {
     public function __construct(
         protected MobilePushService $mobilePushService
-    ) {
-    }
+    ) {}
 
+    /**
+     * Listar notificações móveis.
+     */
     public function index(Request $request)
     {
         $data = $request->validate([
@@ -27,15 +29,16 @@ class MobileNotificationController extends Controller
             (int) ($data['per_page'] ?? 20)
         );
 
-        $notifications->setCollection(
-            $notifications->getCollection()->map(
-                fn ($notification) => (new MobileNotificationResource($notification))->resolve()
-            )
+        $notifications->through(
+            fn ($notification) => (new MobileNotificationResource($notification))->resolve()
         );
 
         return ApiResponseService::paginated($notifications, 'Notificações carregadas com sucesso');
     }
 
+    /**
+     * Marcar uma notificação como lida.
+     */
     public function read(Request $request, string $id)
     {
         try {

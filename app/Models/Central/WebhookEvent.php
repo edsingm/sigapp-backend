@@ -38,7 +38,7 @@ class WebhookEvent extends Model
     }
 
     /**
-     * Check if event was already processed.
+     * Verifica se o evento já foi processado.
      */
     public static function wasProcessed(string $eventId): bool
     {
@@ -48,7 +48,7 @@ class WebhookEvent extends Model
     }
 
     /**
-     * Mark event as processed.
+     * Marca o evento como processado.
      */
     public function markAsProcessed(): self
     {

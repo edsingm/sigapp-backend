@@ -10,6 +10,9 @@ use Illuminate\Support\Str;
 
 class TerrenoFilterService
 {
+    /**
+     * Aplica filtros avançados na consulta de terrenos e retorna os resultados paginados.
+     */
     public function filter(FilterTerrenosRequest $request)
     {
         $query = Terreno::query()

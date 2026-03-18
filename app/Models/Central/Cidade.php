@@ -14,12 +14,12 @@ class Cidade extends Model
     use HasFactory, CentralConnection;
 
     /**
-     * The table associated with the model.
+     * A tabela associada ao modelo.
      */
     protected $table = 'cidades';
 
     /**
-     * The attributes that are mass assignable.
+     * Os atributos que podem ser atribuídos em massa.
      */
     protected $fillable = [
         'code',
@@ -60,7 +60,7 @@ class Cidade extends Model
     ];
 
     /**
-     * Get the validation rules for the model.
+     * Obtém as regras de validação para o modelo.
      */
     public static function rules($id = null): array
     {

@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 class AdminController extends Controller
 {
     /**
-     * Admin Login
+     * Login do Administrador
      *
      * POST /api/v1/admin/login
      */
@@ -29,7 +29,7 @@ class AdminController extends Controller
         $user = User::where('email', $credentials['email'])->first();
 
         if (!$user || !Hash::check($credentials['password'], $user->password) || !$user->is_admin) {
-            Log::warning('Admin login rejected', [
+            Log::warning('Login de administrador rejeitado', [
                 'request_id' => $requestId,
                 'status' => 'rejected',
             ]);
@@ -42,7 +42,7 @@ class AdminController extends Controller
             );
         }
 
-        Log::info('Admin login accepted', [
+        Log::info('Login de administrador aceito', [
             'request_id' => $requestId,
             'user_id' => $user->id,
             'status' => 'accepted',
@@ -54,7 +54,7 @@ class AdminController extends Controller
 
         $tokenResult = $user->createToken(
             $credentials['device_name'] ?? 'admin-token',
-            ['admin'], // Add specific ability for admin
+            ['admin'], // Adiciona habilidade específica para admin
             now()->addHours(12)
         );
 
@@ -66,15 +66,15 @@ class AdminController extends Controller
     }
 
     /**
-     * Admin Dashboard Stats
+     * Estatísticas do Dashboard do Administrador
      *
      * GET /api/v1/admin/dashboard
      */
     public function dashboard()
     {
-        // For now, return some simple stats
-        // We can expand this later to fetch real counts from Tenant/Central tables
-        // Assuming we have access to Central models here since this runs in central context
+        // Por enquanto, retorna algumas estatísticas simples
+        // Podemos expandir isso mais tarde para buscar contagens reais das tabelas Tenant/Central
+        // Assumindo que temos acesso aos modelos Central aqui, já que isso roda no contexto central
 
         $totalTenants = \App\Models\Central\Tenant::count();
         $recentTenants = \App\Models\Central\Tenant::latest()->take(5)->get();
@@ -82,7 +82,7 @@ class AdminController extends Controller
         return ApiResponseService::success([
             'stats' => [
                 'total_tenants' => $totalTenants,
-                'active_tenants' => $totalTenants, // Placeholder logic
+                'active_tenants' => $totalTenants, // Lógica de espaço reservado
             ],
             'recent_tenants' => $recentTenants
         ], language()->t('DASHBOARD_DATA_RETRIEVED'));

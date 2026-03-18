@@ -7,7 +7,7 @@ use Illuminate\Foundation\Http\FormRequest;
 class StoreRegionalRequest extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
+     * Determina se o usuário está autorizado a fazer esta requisição.
      */
     public function authorize(): bool
     {
@@ -15,7 +15,7 @@ class StoreRegionalRequest extends FormRequest
     }
 
     /**
-     * Get the validation rules that apply to the request.
+     * Obtém as regras de validação que se aplicam à requisição.
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
@@ -23,6 +23,7 @@ class StoreRegionalRequest extends FormRequest
     {
         return [
             'nome' => 'required|string|max:255|unique:regionais,nome',
+            'email' => 'nullable|string|email|max:255|unique:regionais,email',
             'estado' => 'nullable|string|max:255',
             'cidade' => 'nullable|string|max:255',
             'endereco' => 'nullable|string|max:255',

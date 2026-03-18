@@ -22,7 +22,7 @@ class RoleController extends Controller
     }
 
     /**
-     * List roles for select inputs (id + name only, no heavy relations).
+     * Listar roles para inputs de seleção (apenas id + nome, sem relações pesadas).
      */
     public function forSelect()
     {
@@ -39,7 +39,7 @@ class RoleController extends Controller
     }
 
     /**
-     * List tenant roles.
+     * Listar roles do tenant.
      */
     public function index(Request $request)
     {
@@ -83,7 +83,7 @@ class RoleController extends Controller
     }
 
     /**
-     * Show a single tenant role.
+     * Exibir uma única role do tenant.
      */
     public function show(int $id)
     {
@@ -120,7 +120,7 @@ class RoleController extends Controller
     }
 
     /**
-     * Create a tenant role.
+     * Criar uma role do tenant.
      */
     public function store(Request $request)
     {
@@ -168,7 +168,7 @@ class RoleController extends Controller
     }
 
     /**
-     * Update a tenant role.
+     * Atualizar uma role do tenant.
      */
     public function update(Request $request, int $id)
     {
@@ -254,7 +254,7 @@ class RoleController extends Controller
     }
 
     /**
-     * Delete a tenant role.
+     * Excluir uma role do tenant.
      */
     public function destroy(int $id)
     {

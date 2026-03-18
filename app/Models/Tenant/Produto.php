@@ -12,7 +12,7 @@ class Produto extends Model
     use HasFactory, SoftDeletes;
 
     /**
-     * The "booted" method of the model.
+     * O método "booted" do modelo.
      */
     protected static function booted(): void
     {
@@ -33,7 +33,7 @@ class Produto extends Model
     }
 
     /**
-     * The attributes that are mass assignable.
+     * Os atributos que podem ser atribuídos em massa.
      *
      * @var array<int, string>
      */

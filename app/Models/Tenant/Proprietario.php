@@ -15,7 +15,7 @@ class Proprietario extends Model
     protected $table = 'terreno_proprietarios';
 
     /**
-     * The "booted" method of the model.
+     * O método "booted" do modelo.
      */
     protected static function booted(): void
     {
@@ -33,7 +33,7 @@ class Proprietario extends Model
     }
 
     /**
-     * Constants for person type
+     * Constantes para o tipo de pessoa
      */
     const TIPO_FISICA = 'fisica';
     const TIPO_JURIDICA = 'juridica';
@@ -74,7 +74,7 @@ class Proprietario extends Model
     ];
 
     /**
-     * Relacionamento com Area
+     * Relacionamento com o Terreno
      */
     public function terreno(): BelongsTo
     {
@@ -82,7 +82,7 @@ class Proprietario extends Model
     }
 
     /**
-     * Relacionamento com User (criador)
+     * Relacionamento com o Usuário (criador)
      */
     public function createdBy(): BelongsTo
     {
@@ -90,7 +90,7 @@ class Proprietario extends Model
     }
 
     /**
-     * Relacionamento com User (atualizador)
+     * Relacionamento com o Usuário (atualizador)
      */
     public function updatedBy(): BelongsTo
     {
@@ -98,7 +98,7 @@ class Proprietario extends Model
     }
 
     /**
-     * Helper para formatar CPF ou CNPJ
+     * Auxiliar para formatar CPF ou CNPJ
      */
     private function formatarCpfCnpj($value, $tipo): string
     {
@@ -115,7 +115,7 @@ class Proprietario extends Model
     }
 
     /**
-     * Accessor para formatar CPF/CNPJ
+     * Acessor para formatar CPF/CNPJ
      */
     public function getCpfCnpjFormatadoAttribute(): string
     {
@@ -123,7 +123,7 @@ class Proprietario extends Model
     }
 
     /**
-     * Accessor para formatar CPF/CNPJ do cônjuge
+     * Acessor para formatar CPF/CNPJ do cônjuge
      */
     public function getConjugeCpfCnpjFormatadoAttribute(): string
     {
@@ -131,7 +131,7 @@ class Proprietario extends Model
     }
 
     /**
-     * Accessor para formatar telefone
+     * Acessor para formatar telefone
      */
     public function getTelefoneFormatadoAttribute(): string
     {

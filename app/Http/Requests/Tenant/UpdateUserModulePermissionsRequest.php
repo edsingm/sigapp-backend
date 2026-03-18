@@ -9,12 +9,17 @@ use Illuminate\Validation\Rule;
 
 class UpdateUserModulePermissionsRequest extends FormRequest
 {
+    /**
+     * Determina se o usuário está autorizado a fazer esta requisição.
+     */
     public function authorize(): bool
     {
         return true;
     }
 
     /**
+     * Obtém as regras de validação que se aplicam à requisição.
+     *
      * @return array<string, mixed>
      */
     public function rules(): array
@@ -52,6 +57,8 @@ class UpdateUserModulePermissionsRequest extends FormRequest
     }
 
     /**
+     * Obtém as mensagens de erro para as regras de validação definidas.
+     *
      * @return array<string, string>
      */
     public function messages(): array

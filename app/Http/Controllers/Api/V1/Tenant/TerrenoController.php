@@ -24,6 +24,9 @@ class TerrenoController extends Controller
     ) {
     }
 
+    /**
+     * Lista terrenos com filtros e cache.
+     */
     public function index(Request $request)
     {
         Gate::authorize('viewAny', Terreno::class);
@@ -58,6 +61,9 @@ class TerrenoController extends Controller
         return $cacheStore->remember($cacheKey, now()->addMinutes(30), $resolver);
     }
 
+    /**
+     * Cria um novo terreno.
+     */
     public function store(StoreTerrenoRequest $request)
     {
         Gate::authorize('create', Terreno::class);
@@ -75,6 +81,9 @@ class TerrenoController extends Controller
         );
     }
 
+    /**
+     * Exibe um terreno específico.
+     */
     public function show(string $id)
     {
         $terreno = Terreno::find($id);
@@ -90,6 +99,9 @@ class TerrenoController extends Controller
         );
     }
 
+    /**
+     * Atualiza um terreno.
+     */
     public function update(UpdateTerrenoRequest $request, string $id)
     {
         $terreno = Terreno::find($id);
@@ -112,6 +124,9 @@ class TerrenoController extends Controller
         );
     }
 
+    /**
+     * Excluir um terreno.
+     */
     public function destroy(string $id)
     {
         $terreno = Terreno::find($id);
@@ -126,6 +141,9 @@ class TerrenoController extends Controller
         return ApiResponseService::noContent();
     }
 
+    /**
+     * Filtrar terrenos com lógica avançada.
+     */
     public function filter(FilterTerrenosRequest $request, TerrenoFilterService $service)
     {
         Gate::authorize('viewAny', Terreno::class);
@@ -159,6 +177,9 @@ class TerrenoController extends Controller
         }
     }
 
+    /**
+     * Armazenar uma nova informação (nota) para o terreno.
+     */
     public function storeInfo(Request $request, string $id)
     {
         $terreno = Terreno::findOrFail($id);
@@ -180,6 +201,9 @@ class TerrenoController extends Controller
         ], 201);
     }
 
+    /**
+     * Obter todas as informações (notas) de um terreno.
+     */
     public function getInformacoes(string $id)
     {
         $terreno = Terreno::findOrFail($id);
@@ -195,6 +219,9 @@ class TerrenoController extends Controller
         ]);
     }
 
+    /**
+     * Atualizar uma informação (nota) existente.
+     */
     public function updateInfo(Request $request, string $infoId)
     {
         $info = TerrenoInfos::findOrFail($infoId);
@@ -215,6 +242,9 @@ class TerrenoController extends Controller
         ]);
     }
 
+    /**
+     * Excluir uma informação (nota).
+     */
     public function destroyInfo(string $infoId)
     {
         $info = TerrenoInfos::findOrFail($infoId);
@@ -228,6 +258,9 @@ class TerrenoController extends Controller
         ], 204);
     }
 
+    /**
+     * Listar terrenos para seleção.
+     */
     public function forSelect()
     {
         Gate::authorize('viewAny', Terreno::class);
@@ -239,6 +272,9 @@ class TerrenoController extends Controller
         return response()->json($terrenos);
     }
 
+    /**
+     * Carregar relações detalhadas para o recurso de terreno.
+     */
     protected function loadDetailRelations(Terreno $terreno): Terreno
     {
         return $terreno->fresh([

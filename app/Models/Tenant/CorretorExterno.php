@@ -10,7 +10,7 @@ class CorretorExterno extends Model
     use HasFactory;
 
     /**
-     * The "booted" method of the model.
+     * O método "booted" do modelo.
      */
     protected static function booted(): void
     {
@@ -28,12 +28,12 @@ class CorretorExterno extends Model
     }
 
     /**
-     * The table associated with the model.
+     * A tabela associada ao modelo.
      */
     protected $table = 'corretores_externos';
 
     /**
-     * The attributes that are mass assignable.
+     * Os atributos que podem ser atribuídos em massa.
      */
     protected $fillable = [
         'nome',
@@ -43,12 +43,12 @@ class CorretorExterno extends Model
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
+     * Os atributos que devem ser ocultos para serialização.
      */
     protected $hidden = [];
 
     /**
-     * The attributes that should be cast.
+     * Os atributos que devem ser convertidos.
      */
     protected $casts = [
         'creci' => 'integer',
@@ -57,7 +57,7 @@ class CorretorExterno extends Model
     ];
 
     /**
-     * Get the validation rules for the model.
+     * Obtém as regras de validação para o modelo.
      */
     public static function rules($id = null): array
     {
@@ -70,7 +70,7 @@ class CorretorExterno extends Model
     }
 
     /**
-     * Get the validation messages for the model.
+     * Obtém as mensagens de validação para o modelo.
      */
     public static function messages(): array
     {
@@ -90,7 +90,7 @@ class CorretorExterno extends Model
     }
 
     /**
-     * Scope a query to search corretores by name or email.
+     * Escopo de consulta para buscar corretores por nome ou email.
      */
     public function scopeSearch($query, $search)
     {
@@ -103,7 +103,7 @@ class CorretorExterno extends Model
     }
 
     /**
-     * Get the formatted CRECI number.
+     * Obtém o número do CRECI formatado.
      */
     public function getCreciFormatadoAttribute(): ?string
     {
@@ -111,7 +111,7 @@ class CorretorExterno extends Model
     }
 
     /**
-     * Get the formatted phone number.
+     * Obtém o número de telefone formatado.
      */
     public function getTelefoneFormatadoAttribute(): string
     {

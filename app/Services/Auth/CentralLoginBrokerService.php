@@ -22,7 +22,7 @@ class CentralLoginBrokerService
     }
 
     /**
-     * Attempt central broker login across active tenants.
+     * Tenta o login no broker central em todos os tenants ativos.
      *
      * @return array<string, mixed>
      */
@@ -68,7 +68,7 @@ class CentralLoginBrokerService
     }
 
     /**
-     * Complete central broker login when user selects a tenant.
+     * Finaliza o login no broker central quando o usuário seleciona um tenant.
      *
      * @return array<string, mixed>|null
      */
@@ -97,7 +97,7 @@ class CentralLoginBrokerService
     }
 
     /**
-     * Redeem a one-time transfer ticket in tenant context and create a Sanctum token.
+     * Resgata um ticket de transferência de uso único no contexto do tenant e cria um token do Sanctum.
      *
      * @return array<string, mixed>|null
      */
@@ -163,7 +163,7 @@ class CentralLoginBrokerService
     }
 
     /**
-     * Cleanup expired/used broker records.
+     * Limpa registros expirados/usados do broker.
      *
      * @return array<string, int>
      */

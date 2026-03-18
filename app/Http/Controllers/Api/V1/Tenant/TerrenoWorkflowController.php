@@ -17,6 +17,9 @@ class TerrenoWorkflowController extends Controller
     ) {
     }
 
+    /**
+     * Exibir o status atual e as opções de workflow para um terreno.
+     */
     public function show(string $id)
     {
         $terreno = Terreno::findOrFail($id);
@@ -42,6 +45,9 @@ class TerrenoWorkflowController extends Controller
         ]);
     }
 
+    /**
+     * Atualizar o status do workflow de um terreno (transição de status).
+     */
     public function update(Request $request, string $id)
     {
         $terreno = Terreno::findOrFail($id);
@@ -67,6 +73,9 @@ class TerrenoWorkflowController extends Controller
         );
     }
 
+    /**
+     * Atualizar os dados de qualificação de um terreno no workflow.
+     */
     public function updateQualification(Request $request, string $id)
     {
         $terreno = Terreno::findOrFail($id);

@@ -9,6 +9,9 @@ use Illuminate\Support\Str;
 
 class PostController extends Controller
 {
+    /**
+     * Lista todos os artigos com paginação.
+     */
     public function index()
     {
         $posts = Post::with('author:id,name')
@@ -21,6 +24,9 @@ class PostController extends Controller
         ]);
     }
 
+    /**
+     * Cria um novo artigo.
+     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -34,7 +40,7 @@ class PostController extends Controller
             'published' => 'boolean',
         ]);
 
-        $validated['author_id'] = auth()->id();
+        $validated['author_id'] = $request->user()->id;
         $validated['slug'] = Str::slug($validated['title']);
 
         $post = Post::create($validated);
@@ -46,6 +52,9 @@ class PostController extends Controller
         ], 201);
     }
 
+    /**
+     * Exibe os detalhes de um artigo específico.
+     */
     public function show(Post $post)
     {
         return response()->json([
@@ -54,6 +63,9 @@ class PostController extends Controller
         ]);
     }
 
+    /**
+     * Atualiza um artigo existente.
+     */
     public function update(Request $request, Post $post)
     {
         $validated = $request->validate([
@@ -80,6 +92,9 @@ class PostController extends Controller
         ]);
     }
 
+    /**
+     * Exclui um artigo.
+     */
     public function destroy(Post $post)
     {
         $post->delete();

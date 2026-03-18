@@ -2,6 +2,7 @@
 
 namespace App\Services\Tenant;
 
+use App\Enums\WorkflowStatus;
 use App\Http\Resources\Tenant\ComiteRevisaoResource;
 use App\Http\Resources\Tenant\ContratoResource;
 use App\Http\Resources\Tenant\EntityActivityResource;
@@ -24,9 +25,11 @@ class ProjetoService
     public function __construct(
         protected LegalizacaoService $legalizacaoService,
         protected LandWorkflowService $workflowService,
-    ) {
-    }
+    ) {}
 
+    /**
+     * Lista os projetos com filtros e paginação.
+     */
     public function listar(array $filters = []): LengthAwarePaginator
     {
         $query = Projeto::query()
@@ -41,11 +44,11 @@ class ProjetoService
                 'prontoParaRegistroPor',
             ]);
 
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->where('status', $filters['status']);
         }
 
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
             $search = $filters['search'];
             $query->where(function (Builder $builder) use ($search) {
                 $builder
@@ -69,15 +72,18 @@ class ProjetoService
         return $paginator;
     }
 
+    /**
+     * Lista terrenos que podem iniciar um novo projeto (contrato assinado e sem projeto ativo).
+     */
     public function listarTerrenosElegiveis(array $filters = []): LengthAwarePaginator
     {
         $query = Terreno::query()
             ->select('terrenos.*')
             ->with(['cidade', 'responsavel', 'proprietarios', 'informacoes'])
-            ->where('workflow_status_code', 'contrato_assinado')
+            ->where('workflow_status_code', WorkflowStatus::CONTRATO_ASSINADO->value)
             ->whereDoesntHave('projetoAtivo');
 
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
             $search = $filters['search'];
             $query->where(function (Builder $builder) use ($search) {
                 $builder
@@ -91,6 +97,9 @@ class ProjetoService
             ->paginate($filters['per_page'] ?? 10);
     }
 
+    /**
+     * Cria um novo projeto vinculado a um terreno.
+     */
     public function criar(array $data): Projeto
     {
         return DB::transaction(function () use ($data) {
@@ -106,7 +115,7 @@ class ProjetoService
                 'updated_by' => Auth::id(),
             ]);
 
-            if (!$terreno->legalizacao) {
+            if (! $terreno->legalizacao) {
                 $this->legalizacaoService->criar([
                     'terreno_id' => $terreno->id,
                     'nome' => "Legalização - {$terreno->nome}",
@@ -115,7 +124,7 @@ class ProjetoService
             } else {
                 $this->workflowService->transition(
                     $terreno,
-                    'legalizando',
+                    WorkflowStatus::LEGALIZANDO->value,
                     Auth::user(),
                     'project_started',
                     'Projeto iniciado a partir do terreno com contrato assinado.',
@@ -126,6 +135,9 @@ class ProjetoService
         });
     }
 
+    /**
+     * Busca os detalhes de um projeto por ID, incluindo todos os relacionamentos.
+     */
     public function buscar(int $id): Projeto
     {
         $projeto = Projeto::query()
@@ -189,6 +201,9 @@ class ProjetoService
         ]);
     }
 
+    /**
+     * Atualiza os dados de um projeto.
+     */
     public function atualizar(Projeto $projeto, array $data): Projeto
     {
         $payload = [
@@ -203,7 +218,7 @@ class ProjetoService
             $payload['responsavel_id'] = $data['responsavel_id'];
         }
 
-        if (array_key_exists('status', $data) && !in_array($projeto->status, [Projeto::STATUS_FINALIZADO, Projeto::STATUS_CANCELADO], true)) {
+        if (array_key_exists('status', $data) && ! in_array($projeto->status, [Projeto::STATUS_FINALIZADO, Projeto::STATUS_CANCELADO], true)) {
             $payload['status'] = $data['status'];
         }
 
@@ -214,6 +229,9 @@ class ProjetoService
         return $this->buscar($projeto->id);
     }
 
+    /**
+     * Cancela um projeto ativo.
+     */
     public function cancelar(Projeto $projeto): Projeto
     {
         $projeto->update([
@@ -224,12 +242,15 @@ class ProjetoService
         return $this->buscar($projeto->id);
     }
 
+    /**
+     * Finaliza o projeto após a conclusão da legalização.
+     */
     public function marcarProntoParaRegistro(Projeto $projeto): Projeto
     {
         $projeto = $this->buscar($projeto->id);
         $legalizacao = $projeto->terreno?->legalizacao;
 
-        if (!$legalizacao || $legalizacao->status !== 'concluido') {
+        if (! $legalizacao || $legalizacao->status !== 'concluido') {
             throw new \RuntimeException('A legalização precisa estar concluída antes de finalizar o projeto.');
         }
 
@@ -241,7 +262,7 @@ class ProjetoService
 
             $this->workflowService->transition(
                 $projeto->terreno,
-                'legalizado_finalizado',
+                WorkflowStatus::LEGALIZADO_FINALIZADO->value,
                 Auth::user(),
                 'project_finished',
                 'Projeto finalizado após cumprimento das etapas da legalização.',
@@ -251,11 +272,14 @@ class ProjetoService
         });
     }
 
+    /**
+     * Retorna as ações permitidas no workflow do projeto para o usuário atual.
+     */
     public function workflow(Projeto $projeto, ?User $user): array
     {
         $terreno = $projeto->terreno;
         $legalizacao = $terreno?->legalizacao;
-        $projectIsActive = !in_array($projeto->status, [
+        $projectIsActive = ! in_array($projeto->status, [
             Projeto::STATUS_FINALIZADO,
             Projeto::STATUS_CANCELADO,
             Projeto::STATUS_PRONTO_PARA_REGISTRO,
@@ -264,12 +288,15 @@ class ProjetoService
         return [
             'can_request_viability_approval' => false,
             'can_approve_viability' => false,
-            'can_start_legalizacao' => $projectIsActive && !$legalizacao && $terreno?->workflow_status_code === 'contrato_assinado',
+            'can_start_legalizacao' => $projectIsActive && ! $legalizacao && $terreno?->workflow_status_code === WorkflowStatus::CONTRATO_ASSINADO->value,
             'can_mark_ready_for_registry' => $projectIsActive && $legalizacao?->status === 'concluido',
             'next_step' => $this->nextStep($projeto, $legalizacao),
         ];
     }
 
+    /**
+     * Prepara o payload completo para a área de trabalho do projeto.
+     */
     public function workspacePayload(Projeto $projeto, ?User $user): array
     {
         $terreno = $projeto->terreno;
@@ -288,6 +315,9 @@ class ProjetoService
         ];
     }
 
+    /**
+     * Atualiza o status do projeto com base nas relações (legalização, workflow do terreno).
+     */
     public function refreshStatus(Projeto $projeto): Projeto
     {
         if (in_array($projeto->status, [
@@ -314,13 +344,16 @@ class ProjetoService
         return $projeto;
     }
 
+    /**
+     * Valida se o terreno pode iniciar um projeto.
+     */
     protected function validarTerrenoElegivel(int $terrenoId): Terreno
     {
         $terreno = Terreno::query()
             ->with(['legalizacao'])
             ->findOrFail($terrenoId);
 
-        if ($terreno->workflow_status_code !== 'contrato_assinado') {
+        if ($terreno->workflow_status_code !== WorkflowStatus::CONTRATO_ASSINADO->value) {
             throw new \RuntimeException('Somente terrenos com status "Contrato Assinado" podem iniciar um projeto.');
         }
 
@@ -329,6 +362,9 @@ class ProjetoService
         return $terreno;
     }
 
+    /**
+     * Garante que não existam múltiplos projetos ativos para o mesmo terreno.
+     */
     protected function validarProjetoAtivoUnico(int $terrenoId): void
     {
         $exists = Projeto::query()
@@ -344,19 +380,25 @@ class ProjetoService
         }
     }
 
+    /**
+     * Resolve o status lógico do projeto com base no estado do terreno e legalização.
+     */
     protected function resolveStatusFromRelations(?Terreno $terreno): string
     {
-        if (in_array($terreno?->workflow_status_code, ['legalizado_finalizado'], true)) {
+        if (in_array($terreno?->workflow_status_code, [WorkflowStatus::LEGALIZADO_FINALIZADO->value], true)) {
             return Projeto::STATUS_FINALIZADO;
         }
 
-        if ($terreno?->legalizacao || $terreno?->workflow_status_code === 'legalizando') {
+        if ($terreno?->legalizacao || $terreno?->workflow_status_code === WorkflowStatus::LEGALIZANDO->value) {
             return Projeto::STATUS_EM_LEGALIZACAO;
         }
 
         return Projeto::STATUS_EM_VIABILIDADE;
     }
 
+    /**
+     * Determina a próxima etapa sugerida para o projeto.
+     */
     protected function nextStep(Projeto $projeto, mixed $legalizacao): string
     {
         if (in_array($projeto->status, [Projeto::STATUS_FINALIZADO, Projeto::STATUS_PRONTO_PARA_REGISTRO], true)) {
@@ -367,7 +409,7 @@ class ProjetoService
             return 'Projeto cancelado.';
         }
 
-        if (!$legalizacao) {
+        if (! $legalizacao) {
             return 'Iniciar a legalização do terreno.';
         }
 

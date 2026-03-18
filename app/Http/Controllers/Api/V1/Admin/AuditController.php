@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 class AuditController extends Controller
 {
     /**
-     * List all audit logs.
+     * Lista todos os logs de auditoria.
      */
     public function index(Request $request)
     {
@@ -18,7 +18,7 @@ class AuditController extends Controller
 
         if ($request->has('action')) {
             $action = $request->get('action');
-            // Support prefix filtering (e.g. 'tenant.signup' matches 'tenant.signup_started', etc.)
+            // Suporte para filtragem por prefixo (ex: 'tenant.signup' corresponde a 'tenant.signup_started', etc.)
             if (str_contains($action, '*') || !str_contains($action, '_')) {
                 $query->where('action', 'LIKE', rtrim($action, '*') . '%');
             } else {

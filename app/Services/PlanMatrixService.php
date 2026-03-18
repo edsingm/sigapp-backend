@@ -8,7 +8,7 @@ use InvalidArgumentException;
 class PlanMatrixService
 {
     /**
-     * Resolve a configured plan matrix entry by plan model or slug.
+     * Resolve uma entrada da matriz de planos configurada pelo modelo do plano ou slug.
      *
      * @return array{features: array<string, mixed>, limits: array<string, int>}
      */

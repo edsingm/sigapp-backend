@@ -2,21 +2,21 @@
 
 namespace App\Http\Controllers\Api\V1\Tenant;
 
+use App\Enums\WorkflowStatus;
 use App\Http\Controllers\Controller;
-use App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService;
+use App\Http\Requests\Tenant\ViabilidadeRequest;
+use App\Models\Tenant\Viabilidade;
 use App\Services\Acl\PermissionNameResolver;
+use App\Services\Tenant\LandWorkflowService;
 use App\Services\Tenant\MobilePushService;
 use App\Services\Tenant\Viabilidade\ViabilidadeService;
-use App\Models\Tenant\Viabilidade;
-use App\Http\Requests\Tenant\ViabilidadeRequest;
-use Illuminate\Http\Request;
+use Exception;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Spatie\LaravelPdf\Facades\Pdf;
-use Exception;
-use App\Services\Tenant\LandWorkflowService;
 
 class ViabilidadeController extends Controller
 {
@@ -27,26 +27,22 @@ class ViabilidadeController extends Controller
         protected MobilePushService $mobilePushService,
         protected LandWorkflowService $workflowService,
         protected PermissionNameResolver $permissions,
-    )
-    {
+    ) {
         $this->viabilidadeService = $viabilidadeService;
     }
 
     /**
      * Ativar uma viabilidade (mudar status de rascunho para ativo)
-     *
-     * @param int $id
-     * @return JsonResponse
      */
     public function ativar(int $id): JsonResponse
     {
         try {
             $user = request()->user();
 
-            if (!$user) {
+            if (! $user) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Usuário não autenticado.'
+                    'message' => 'Usuário não autenticado.',
                 ], 401);
             }
 
@@ -72,7 +68,7 @@ class ViabilidadeController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Viabilidade salva com sucesso',
-                'data' => $viabilidade->load(['terreno', 'createdBy', 'updatedBy'])
+                'data' => $viabilidade->load(['terreno', 'createdBy', 'updatedBy']),
             ]);
 
         } catch (Exception $e) {
@@ -82,16 +78,19 @@ class ViabilidadeController extends Controller
 
             Log::error('Erro no ViabilidadeController::ativar', [
                 'viabilidade_id' => $id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Erro ao salvar viabilidade'
+                'message' => 'Erro ao salvar viabilidade',
             ], 500);
         }
     }
 
+    /**
+     * Solicitar aprovação de uma viabilidade.
+     */
     public function solicitarAprovacao(Request $request, int $id): JsonResponse
     {
         try {
@@ -113,7 +112,7 @@ class ViabilidadeController extends Controller
             ]);
             $this->workflowService->transition(
                 $viabilidade->terreno()->firstOrFail(),
-                'aguardando_viabilidade',
+                WorkflowStatus::AGUARDANDO_VIABILIDADE->value,
                 $request->user(),
                 'viability_submitted',
                 $validated['approval_notes'] ?? null,
@@ -168,11 +167,17 @@ class ViabilidadeController extends Controller
         }
     }
 
+    /**
+     * Aprovar uma viabilidade.
+     */
     public function aprovar(Request $request, int $id): JsonResponse
     {
         return $this->decidirAprovacao($request, $id, 'aprovada');
     }
 
+    /**
+     * Reprovar uma viabilidade.
+     */
     public function reprovar(Request $request, int $id): JsonResponse
     {
         return $this->decidirAprovacao($request, $id, 'reprovada');
@@ -180,9 +185,6 @@ class ViabilidadeController extends Controller
 
     /**
      * Listar todas as viabilidades
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function index(Request $request): JsonResponse
     {
@@ -191,7 +193,7 @@ class ViabilidadeController extends Controller
 
             $tenantId = tenant('id') ?? 'central';
             $filtros = $request->only(['search', 'terreno_id', 'per_page', 'page']);
-            $cacheKey = "tenant:{$tenantId}:viabilidades:index:" . md5(json_encode($filtros));
+            $cacheKey = "tenant:{$tenantId}:viabilidades:index:".md5(json_encode($filtros));
 
             $viabilidades = Cache::tags(["tenant:{$tenantId}:viabilidades"])->remember($cacheKey, now()->addMinutes(30), function () use ($filtros) {
                 return $this->viabilidadeService->listarTodasViabilidades($filtros);
@@ -199,7 +201,7 @@ class ViabilidadeController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $viabilidades
+                'data' => $viabilidades,
             ]);
 
         } catch (Exception $e) {
@@ -208,21 +210,18 @@ class ViabilidadeController extends Controller
             }
 
             Log::error('Erro no ViabilidadeController::index', [
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Erro ao listar viabilidades'
+                'message' => 'Erro ao listar viabilidades',
             ], 500);
         }
     }
 
     /**
      * Criar nova viabilidade e gerar DRE
-     *
-     * @param ViabilidadeRequest $request
-     * @return JsonResponse
      */
     public function store(ViabilidadeRequest $request): JsonResponse
     {
@@ -235,10 +234,11 @@ class ViabilidadeController extends Controller
             // Criar viabilidade com DRE
             $resultado = $this->viabilidadeService->criarViabilidadeComDre($dados);
             Log::info('Viabilidade criada com sucesso', $resultado);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Viabilidade criada com sucesso',
-                'data' => $resultado
+                'data' => $resultado,
             ], 201);
 
         } catch (Exception $e) {
@@ -250,21 +250,18 @@ class ViabilidadeController extends Controller
                 'request_data' => $request->validated(),
                 'error' => $e->getMessage(),
                 'file' => $e->getFile(),
-                'line' => $e->getLine()
+                'line' => $e->getLine(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 422);
         }
     }
 
     /**
      * Buscar viabilidade com DRE por ID
-     *
-     * @param int $id
-     * @return JsonResponse
      */
     public function show(int $id): JsonResponse
     {
@@ -276,7 +273,7 @@ class ViabilidadeController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $resultado
+                'data' => $resultado,
             ]);
 
         } catch (Exception $e) {
@@ -286,22 +283,18 @@ class ViabilidadeController extends Controller
 
             Log::error('Erro no ViabilidadeController::show', [
                 'viabilidade_id' => $id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Viabilidade não encontrada'
+                'message' => 'Viabilidade não encontrada',
             ], 404);
         }
     }
 
     /**
      * Atualizar viabilidade e recalcular DRE
-     *
-     * @param ViabilidadeRequest $request
-     * @param int $id
-     * @return JsonResponse
      */
     public function update(ViabilidadeRequest $request, int $id): JsonResponse
     {
@@ -318,7 +311,7 @@ class ViabilidadeController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Viabilidade atualizada com sucesso',
-                'data' => $resultado
+                'data' => $resultado,
             ]);
 
         } catch (Exception $e) {
@@ -329,12 +322,12 @@ class ViabilidadeController extends Controller
             Log::error('Erro no ViabilidadeController::update', [
                 'viabilidade_id' => $id,
                 'request_data' => $request->validated(),
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 422);
         }
     }
@@ -378,7 +371,7 @@ class ViabilidadeController extends Controller
             $this->viabilidadeService->registrarAprovacao($viabilidade, $decision, $validated['approval_notes'] ?? null);
             $this->workflowService->transition(
                 $viabilidade->terreno()->firstOrFail(),
-                $decision === 'aprovada' ? 'viabilidade_aprovada' : 'em_analise',
+                $decision === 'aprovada' ? WorkflowStatus::VIABILIDADE_APROVADA->value : WorkflowStatus::EM_ANALISE->value,
                 $request->user(),
                 'viability_decided',
                 $validated['approval_notes'] ?? null,
@@ -445,8 +438,7 @@ class ViabilidadeController extends Controller
     /**
      * Listar viabilidades de uma área
      *
-     * @param int $areaId
-     * @return JsonResponse
+     * @param  int  $areaId
      */
     public function byTerreno(int $terrenoId): JsonResponse
     {
@@ -457,7 +449,7 @@ class ViabilidadeController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $viabilidades
+                'data' => $viabilidades,
             ]);
 
         } catch (Exception $e) {
@@ -467,21 +459,18 @@ class ViabilidadeController extends Controller
 
             Log::error('Erro no ViabilidadeController::byTerreno', [
                 'terreno_id' => $terrenoId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Erro ao buscar viabilidades da área'
+                'message' => 'Erro ao buscar viabilidades da área',
             ], 500);
         }
     }
 
     /**
      * Buscar viabilidade mais recente de um terreno
-     *
-     * @param int $terrenoId
-     * @return JsonResponse
      */
     public function latest(int $terrenoId): JsonResponse
     {
@@ -490,16 +479,16 @@ class ViabilidadeController extends Controller
 
             $viabilidade = $this->viabilidadeService->buscarViabilidadeAtual($terrenoId);
 
-            if (!$viabilidade) {
+            if (! $viabilidade) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Nenhuma viabilidade encontrada para este terreno'
+                    'message' => 'Nenhuma viabilidade encontrada para este terreno',
                 ], 404);
             }
 
             return response()->json([
                 'success' => true,
-                'data' => $viabilidade
+                'data' => $viabilidade,
             ]);
 
         } catch (Exception $e) {
@@ -509,21 +498,18 @@ class ViabilidadeController extends Controller
 
             Log::error('Erro no ViabilidadeController::latest', [
                 'terreno_id' => $terrenoId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Erro ao buscar viabilidade mais recente'
+                'message' => 'Erro ao buscar viabilidade mais recente',
             ], 500);
         }
     }
 
     /**
      * Duplicar viabilidade
-     *
-     * @param int $id
-     * @return JsonResponse
      */
     public function duplicate(int $id): JsonResponse
     {
@@ -536,7 +522,7 @@ class ViabilidadeController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Viabilidade duplicada com sucesso',
-                'data' => $novaViabilidade->load(['terreno', 'createdBy', 'updatedBy'])
+                'data' => $novaViabilidade->load(['terreno', 'createdBy', 'updatedBy']),
             ], 201);
 
         } catch (Exception $e) {
@@ -546,21 +532,18 @@ class ViabilidadeController extends Controller
 
             Log::error('Erro no ViabilidadeController::duplicate', [
                 'viabilidade_id' => $id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 422);
         }
     }
 
     /**
      * Excluir viabilidade
-     *
-     * @param int $id
-     * @return JsonResponse
      */
     public function destroy(int $id): JsonResponse
     {
@@ -573,13 +556,13 @@ class ViabilidadeController extends Controller
             if ($resultado) {
                 return response()->json([
                     'success' => true,
-                    'message' => 'Viabilidade excluída com sucesso'
+                    'message' => 'Viabilidade excluída com sucesso',
                 ]);
             }
 
             return response()->json([
                 'success' => false,
-                'message' => 'Erro ao excluir viabilidade'
+                'message' => 'Erro ao excluir viabilidade',
             ], 500);
 
         } catch (Exception $e) {
@@ -589,21 +572,18 @@ class ViabilidadeController extends Controller
 
             Log::error('Erro no ViabilidadeController::destroy', [
                 'viabilidade_id' => $id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 422);
         }
     }
 
     /**
      * Comparar duas viabilidades
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function compare(Request $request): JsonResponse
     {
@@ -613,10 +593,10 @@ class ViabilidadeController extends Controller
             $viabilidade1Id = $request->input('viabilidade_1_id');
             $viabilidade2Id = $request->input('viabilidade_2_id');
 
-            if (!$viabilidade1Id || !$viabilidade2Id) {
+            if (! $viabilidade1Id || ! $viabilidade2Id) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'IDs das duas viabilidades são obrigatórios'
+                    'message' => 'IDs das duas viabilidades são obrigatórios',
                 ], 422);
             }
 
@@ -624,7 +604,7 @@ class ViabilidadeController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $comparacao
+                'data' => $comparacao,
             ]);
 
         } catch (Exception $e) {
@@ -634,21 +614,18 @@ class ViabilidadeController extends Controller
 
             Log::error('Erro no ViabilidadeController::compare', [
                 'request_data' => $request->all(),
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 422);
         }
     }
 
     /**
      * Gerar DRE para uma viabilidade específica
-     *
-     * @param int $id
-     * @return JsonResponse
      */
     public function gerarDre(int $id): JsonResponse
     {
@@ -660,7 +637,7 @@ class ViabilidadeController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $resultado['dre_resultados']
+                'data' => $resultado['dre_resultados'],
             ]);
 
         } catch (Exception $e) {
@@ -670,21 +647,18 @@ class ViabilidadeController extends Controller
 
             Log::error('Erro no ViabilidadeController::gerarDre', [
                 'viabilidade_id' => $id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Erro ao gerar DRE: ' . $e->getMessage()
+                'message' => 'Erro ao gerar DRE: '.$e->getMessage(),
             ], 500);
         }
     }
 
     /**
      * Recalcular DRE de uma viabilidade existente
-     *
-     * @param int $id
-     * @return JsonResponse
      */
     public function recalcular(int $id): JsonResponse
     {
@@ -698,7 +672,7 @@ class ViabilidadeController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Viabilidade recalculada com sucesso',
-                'data' => $resultado
+                'data' => $resultado,
             ]);
 
         } catch (Exception $e) {
@@ -710,21 +684,18 @@ class ViabilidadeController extends Controller
                 'viabilidade_id' => $id,
                 'error' => $e->getMessage(),
                 'file' => $e->getFile(),
-                'line' => $e->getLine()
+                'line' => $e->getLine(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Erro ao recalcular viabilidade: ' . $e->getMessage()
+                'message' => 'Erro ao recalcular viabilidade: '.$e->getMessage(),
             ], 422);
         }
     }
 
     /**
      * Restaurar viabilidade excluída
-     *
-     * @param int $id
-     * @return JsonResponse
      */
     public function restore(int $id): JsonResponse
     {
@@ -736,7 +707,7 @@ class ViabilidadeController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Viabilidade restaurada com sucesso',
-                'data' => $viabilidade->load(['terreno', 'createdBy', 'updatedBy'])
+                'data' => $viabilidade->load(['terreno', 'createdBy', 'updatedBy']),
             ]);
 
         } catch (Exception $e) {
@@ -746,12 +717,12 @@ class ViabilidadeController extends Controller
 
             Log::error('Erro no ViabilidadeController::restore', [
                 'viabilidade_id' => $id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Erro ao restaurar viabilidade'
+                'message' => 'Erro ao restaurar viabilidade',
             ], 500);
         }
     }
@@ -759,7 +730,6 @@ class ViabilidadeController extends Controller
     /**
      * Exportar viabilidade para PDF
      *
-     * @param int $id
      * @return mixed
      */
     public function exportPdf(int $id)
@@ -772,13 +742,13 @@ class ViabilidadeController extends Controller
             $viabilidade = $resultado['viabilidade'];
             $dre = $resultado['dre_resultados'];
 
-            if (!$dre || !isset($dre['totais'])) {
+            if (! $dre || ! isset($dre['totais'])) {
                 // Tenta recalcular se estiver vazio
                 $resultado = $this->viabilidadeService->recalcularDre($viabilidade);
                 $dre = $resultado['dre_resultados'];
             }
 
-            if (!$dre) {
+            if (! $dre) {
                 throw new Exception('Não foi possível carregar ou gerar os dados do DRE para esta viabilidade.');
             }
 
@@ -793,7 +763,7 @@ class ViabilidadeController extends Controller
                 ->withBrowsershot(function ($browsershot) {
                     $browsershot->noSandbox();
                 })
-                ->name("viabilidade-{$id}-" . now()->format('Y-m-d') . ".pdf");
+                ->name("viabilidade-{$id}-".now()->format('Y-m-d').'.pdf');
 
         } catch (Exception $e) {
             if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
@@ -803,22 +773,19 @@ class ViabilidadeController extends Controller
             Log::error('Erro no ViabilidadeController::exportPdf', [
                 'viabilidade_id' => $id,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Erro ao exportar PDF: ' . $e->getMessage(),
-                'debug' => config('app.debug') ? $e->getMessage() : null
+                'message' => 'Erro ao exportar PDF: '.$e->getMessage(),
+                'debug' => config('app.debug') ? $e->getMessage() : null,
             ], 500);
         }
     }
 
     /**
      * Listar viabilidades para campos de seleção
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function forSelect(Request $request): JsonResponse
     {
@@ -837,16 +804,17 @@ class ViabilidadeController extends Controller
 
             $resultado = $viabilidades->map(function ($v) {
                 $data = $v->created_at->format('d/m/Y H:i');
+
                 return [
                     'id' => $v->id,
                     'label' => "Viabilidade #{$v->id} - {$v->terreno->nome} ({$data})",
-                    'terreno_id' => $v->terreno_id
+                    'terreno_id' => $v->terreno_id,
                 ];
             });
 
             return response()->json([
                 'success' => true,
-                'data' => $resultado
+                'data' => $resultado,
             ]);
 
         } catch (Exception $e) {
@@ -855,12 +823,12 @@ class ViabilidadeController extends Controller
             }
 
             Log::error('Erro no ViabilidadeController::forSelect', [
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Erro ao buscar viabilidades'
+                'message' => 'Erro ao buscar viabilidades',
             ], 500);
         }
     }

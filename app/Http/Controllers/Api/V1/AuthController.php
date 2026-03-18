@@ -10,18 +10,21 @@ use App\Models\Central\Tenant;
 use App\Models\User as CentralUser;
 use App\Services\ApiResponseService;
 use App\Services\Auth\CentralLoginBrokerService;
+use App\Services\Auth\TenantLoginService;
 use App\Services\Auth\TenantPasswordResetService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use OpenApi\Attributes as OA;
 
 class AuthController extends Controller
 {
-    public function login(LoginRequest $request, CentralLoginBrokerService $broker)
+    /**
+     * Realizar o login do usuário.
+     */
+    public function login(LoginRequest $request, CentralLoginBrokerService $broker, TenantLoginService $tenantLogin)
     {
-        if (!tenancy()->initialized) {
-            $tenantIdentifier = $this->resolveLocalTenantIdentifier($request);
+        if (! tenancy()->initialized) {
+            $tenantIdentifier = $tenantLogin->resolveLocalTenantIdentifier($request);
 
             if ($tenantIdentifier !== null) {
                 $tenant = Tenant::query()
@@ -29,14 +32,16 @@ class AuthController extends Controller
                     ->orWhere('slug', $tenantIdentifier)
                     ->first();
 
-                if (!$tenant) {
+                if (! $tenant) {
                     return ApiResponseService::notFound('TENANT_NOT_FOUND');
                 }
 
                 tenancy()->initialize($tenant);
 
                 try {
-                    return $this->attemptTenantLogin($request->validated(), $request);
+                    return $this->respondToTenantLogin(
+                        $tenantLogin->attempt($request->validated(), $request)
+                    );
                 } finally {
                     if (tenancy()->initialized) {
                         tenancy()->end();
@@ -52,80 +57,21 @@ class AuthController extends Controller
             );
 
             if (($result['next_action'] ?? null) === 'unauthorized') {
-                return ApiResponseService::error(
-                    'UNAUTHORIZED',
-                    'INVALID_CREDENTIALS',
-                    null,
-                    401
-                );
+                return ApiResponseService::error('UNAUTHORIZED', 'INVALID_CREDENTIALS', null, 401);
             }
 
             return ApiResponseService::success(
                 $result,
-                ($result['next_action'] ?? null) === 'choose_tenant'
-                    ? 'CHOOSE_TENANT'
-                    : 'REDIRECT_READY'
+                ($result['next_action'] ?? null) === 'choose_tenant' ? 'CHOOSE_TENANT' : 'REDIRECT_READY'
             );
         }
 
-        return $this->attemptTenantLogin($request->validated(), $request);
+        return $this->respondToTenantLogin($tenantLogin->attempt($request->validated(), $request));
     }
 
     /**
-     * @param array<string, mixed> $credentials
+     * Selecionar um tenant após o login central.
      */
-    private function attemptTenantLogin(array $credentials, Request $request)
-    {
-        $user = \App\Models\Tenant\User::query()
-            ->where('email', $credentials['email'])
-            ->first();
-
-        if (!$user || !Hash::check($credentials['password'], $user->password)) {
-            return ApiResponseService::error(
-                'UNAUTHORIZED',
-                'INVALID_CREDENTIALS',
-                null,
-                401
-            );
-        }
-
-        if ($request->has('device_name')) {
-            $user->tokens()->where('name', $credentials['device_name'])->delete();
-        }
-
-        $tokenResult = $user->createToken(
-            $credentials['device_name'] ?? 'tenant-api-token',
-            ['tenant-api'],
-            now()->addDays(7)
-        );
-
-        return ApiResponseService::success([
-            'user' => new UserResource($user),
-            'token' => $tokenResult->plainTextToken,
-            'abilities' => ['tenant-api'],
-            'expires_at' => $tokenResult->accessToken->expires_at?->toIso8601String(),
-        ], 'LOGIN_SUCCESS');
-    }
-
-    private function resolveLocalTenantIdentifier(Request $request): ?string
-    {
-        if (!app()->environment(['local', 'testing'])) {
-            return null;
-        }
-
-        $fromBody = $request->input('tenant_identifier');
-        if (is_string($fromBody) && trim($fromBody) !== '') {
-            return trim($fromBody);
-        }
-
-        $fromHeader = $request->header('X-Tenant');
-        if (is_string($fromHeader) && trim($fromHeader) !== '') {
-            return trim($fromHeader);
-        }
-
-        return null;
-    }
-
     public function selectTenant(Request $request, CentralLoginBrokerService $broker)
     {
         $data = $request->validate([
@@ -141,18 +87,16 @@ class AuthController extends Controller
             $request
         );
 
-        if (!$result) {
-            return ApiResponseService::error(
-                'BROKER_SESSION_INVALID',
-                'INVALID_SESSION',
-                null,
-                410
-            );
+        if (! $result) {
+            return ApiResponseService::error('BROKER_SESSION_INVALID', 'INVALID_SESSION', null, 410);
         }
 
         return ApiResponseService::success($result, 'REDIRECT_READY');
     }
 
+    /**
+     * Trocar um ticket por um token de acesso.
+     */
     public function exchangeTicket(Request $request, CentralLoginBrokerService $broker)
     {
         $data = $request->validate([
@@ -166,13 +110,8 @@ class AuthController extends Controller
             $request
         );
 
-        if (!$result) {
-            return ApiResponseService::error(
-                'INVALID_TRANSFER_TICKET',
-                'INVALID_TICKET',
-                null,
-                401
-            );
+        if (! $result) {
+            return ApiResponseService::error('INVALID_TRANSFER_TICKET', 'INVALID_TICKET', null, 401);
         }
 
         return ApiResponseService::success([
@@ -183,6 +122,9 @@ class AuthController extends Controller
         ], 'LOGIN_SUCCESS');
     }
 
+    /**
+     * Enviar link de recuperação de senha.
+     */
     public function forgotPassword(Request $request, TenantPasswordResetService $passwordResetService)
     {
         $data = $request->validate([
@@ -195,12 +137,12 @@ class AuthController extends Controller
             $passwordResetService->sendResetLinkAcrossActiveTenants((string) $data['email']);
         }
 
-        return ApiResponseService::success(
-            null,
-            'PASSWORD_RECOVERY_EMAIL_SEND'
-        );
+        return ApiResponseService::success(null, 'PASSWORD_RECOVERY_EMAIL_SEND');
     }
 
+    /**
+     * Redefinir a senha do usuário.
+     */
     public function resetPassword(Request $request, TenantPasswordResetService $passwordResetService)
     {
         $data = $request->validate([
@@ -220,28 +162,10 @@ class AuthController extends Controller
             );
 
             return match ($status) {
-                Password::PASSWORD_RESET => ApiResponseService::success(
-                    null,
-                    'PASSWORD_RECOVERY_RESET_SUCCESS'
-                ),
-                Password::INVALID_TOKEN => ApiResponseService::error(
-                    'INVALID_RESET_TOKEN',
-                    'PASSWORD_RECOVERY_INVALID_TOKEN',
-                    null,
-                    422
-                ),
-                Password::INVALID_USER => ApiResponseService::error(
-                    'INVALID_RESET_USER',
-                    'PASSWORD_RECOVERY_INVALID_USER',
-                    null,
-                    422
-                ),
-                default => ApiResponseService::error(
-                    'PASSWORD_RESET_FAILED',
-                    'PASSWORD_RECOVERY_RESET_FAILED',
-                    ['status' => $status],
-                    422
-                ),
+                Password::PASSWORD_RESET => ApiResponseService::success(null, 'PASSWORD_RECOVERY_RESET_SUCCESS'),
+                Password::INVALID_TOKEN => ApiResponseService::error('INVALID_RESET_TOKEN', 'PASSWORD_RECOVERY_INVALID_TOKEN', null, 422),
+                Password::INVALID_USER => ApiResponseService::error('INVALID_RESET_USER', 'PASSWORD_RECOVERY_INVALID_USER', null, 422),
+                default => ApiResponseService::error('PASSWORD_RESET_FAILED', 'PASSWORD_RECOVERY_RESET_FAILED', ['status' => $status], 422),
             };
         };
 
@@ -249,7 +173,7 @@ class AuthController extends Controller
             return $executeReset();
         }
 
-        if (!is_string($tenantIdentifier) || $tenantIdentifier === '') {
+        if (! is_string($tenantIdentifier) || $tenantIdentifier === '') {
             return ApiResponseService::validationError([
                 'tenant_identifier' => [language()->t('PASSWORD_RECOVERY_TENANT_REQUIRED')],
             ]);
@@ -260,7 +184,7 @@ class AuthController extends Controller
             ->orWhere('slug', $tenantIdentifier)
             ->first();
 
-        if (!$tenant) {
+        if (! $tenant) {
             return ApiResponseService::notFound('TENANT_NOT_FOUND');
         }
 
@@ -275,6 +199,9 @@ class AuthController extends Controller
         }
     }
 
+    /**
+     * Realizar o logout do usuário (apenas o token atual).
+     */
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
@@ -282,6 +209,9 @@ class AuthController extends Controller
         return ApiResponseService::success(null, 'LOGOUT_SUCCESS');
     }
 
+    /**
+     * Realizar o logout do usuário em todos os dispositivos.
+     */
     public function logoutAll(Request $request)
     {
         $request->user()->tokens()->delete();
@@ -289,12 +219,12 @@ class AuthController extends Controller
         return ApiResponseService::success(null, 'LOGOUT_ALL_DEVICES_SUCCESS');
     }
 
-    public function refresh(Request $request)
+    public function refresh(Request $request, TenantLoginService $tenantLogin)
     {
         $user = $request->user();
         $currentToken = $request->user()->currentAccessToken();
 
-        if (!$currentToken) {
+        if (! $currentToken) {
             return ApiResponseService::unauthorized('INVALID_TOKEN');
         }
 
@@ -302,15 +232,12 @@ class AuthController extends Controller
         $abilities = is_array($currentToken->abilities) && $currentToken->abilities !== []
             ? $currentToken->abilities
             : ($user instanceof CentralUser ? ['admin'] : ['tenant-api']);
-        $expiresAt = $this->refreshedTokenExpiration($user, $abilities);
+
+        $expiresAt = $tenantLogin->tokenExpiration($user, $abilities);
 
         $currentToken->delete();
 
-        $tokenResult = $user->createToken(
-            $tokenName,
-            $abilities,
-            $expiresAt
-        );
+        $tokenResult = $user->createToken($tokenName, $abilities, $expiresAt);
 
         return ApiResponseService::success([
             'token' => $tokenResult->plainTextToken,
@@ -322,28 +249,28 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
-        if ($user instanceof CentralUser && !tenancy()->initialized) {
-            return ApiResponseService::success(
-                new CentralUserResource($user),
-                'USER_RETRIEVED'
-            );
+        if ($user instanceof CentralUser && ! tenancy()->initialized) {
+            return ApiResponseService::success(new CentralUserResource($user), 'USER_RETRIEVED');
         }
 
-        return ApiResponseService::success(
-            new UserResource($user),
-            'USER_RETRIEVED'
-        );
+        return ApiResponseService::success(new UserResource($user), 'USER_RETRIEVED');
     }
 
     /**
-     * @param  array<int, string>  $abilities
+     * Constrói uma resposta HTTP a partir do resultado de TenantLoginService::attempt().
      */
-    protected function refreshedTokenExpiration(mixed $user, array $abilities)
+    private function respondToTenantLogin(array $result)
     {
-        $isAdminToken = $user instanceof CentralUser
-            && in_array('admin', $abilities, true);
+        if (! $result['success']) {
+            return ApiResponseService::error('UNAUTHORIZED', 'INVALID_CREDENTIALS', null, 401);
+        }
 
-        return $isAdminToken ? now()->addHours(12) : now()->addDays(7);
+        return ApiResponseService::success([
+            'user' => new UserResource($result['user']),
+            'token' => $result['token'],
+            'abilities' => $result['abilities'],
+            'expires_at' => $result['expires_at'],
+        ], 'LOGIN_SUCCESS');
     }
 }
 
@@ -353,6 +280,4 @@ class AuthController extends Controller
     description: 'API REST para SaaS multi-tenant SIGAPP'
 )]
 #[OA\Server(url: '/')]
-final class OpenApiSpec
-{
-}
+final class OpenApiSpec {}

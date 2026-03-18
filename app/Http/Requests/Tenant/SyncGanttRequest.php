@@ -7,11 +7,17 @@ use Illuminate\Validation\Rule;
 
 class SyncGanttRequest extends FormRequest
 {
+    /**
+     * Determina se o usuário está autorizado a fazer esta requisição.
+     */
     public function authorize(): bool
     {
         return true;
     }
 
+    /**
+     * Prepara os dados para validação.
+     */
     protected function prepareForValidation(): void
     {
         $etapas = $this->input('etapas');
@@ -74,6 +80,11 @@ class SyncGanttRequest extends FormRequest
         ]);
     }
 
+    /**
+     * Obtém as regras de validação que se aplicam à requisição.
+     *
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     */
     public function rules(): array
     {
         $legalizacaoId = $this->route('id');
@@ -120,6 +131,9 @@ class SyncGanttRequest extends FormRequest
         ];
     }
 
+    /**
+     * Obtém as mensagens de erro para as regras de validação definidas.
+     */
     public function messages(): array
     {
         return [
@@ -146,6 +160,8 @@ class SyncGanttRequest extends FormRequest
     }
 
     /**
+     * Normaliza os custos para o formato esperado.
+     *
      * @param array<int, mixed> $custos
      * @return array<int, array<string, mixed>>
      */
@@ -176,6 +192,9 @@ class SyncGanttRequest extends FormRequest
         return $normalizados;
     }
 
+    /**
+     * Verifica se a etapa possui algum campo de custo raiz.
+     */
     protected function etapaTemAlgumCampoDeCustoRaiz(array $etapa): bool
     {
         return array_key_exists('tipo_custo', $etapa)
@@ -183,6 +202,9 @@ class SyncGanttRequest extends FormRequest
             || array_key_exists('custo_pago', $etapa);
     }
 
+    /**
+     * Normaliza um valor para booleano.
+     */
     protected function normalizarBoolean(mixed $value): bool
     {
         if (is_bool($value)) {

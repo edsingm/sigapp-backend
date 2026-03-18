@@ -10,11 +10,17 @@ use Illuminate\Support\Facades\Log;
 
 class TenantUserDirectoryService
 {
+    /**
+     * Normaliza o e-mail para minúsculas e remove espaços.
+     */
     public function normalizeEmail(string $email): string
     {
         return mb_strtolower(trim($email));
     }
 
+    /**
+     * Sincroniza um usuário do tenant com o diretório central.
+     */
     public function syncUser(TenantUser $user): void
     {
         $tenant = tenant();
@@ -38,6 +44,9 @@ class TenantUserDirectoryService
         });
     }
 
+    /**
+     * Remove um usuário do tenant do diretório central.
+     */
     public function deleteUser(TenantUser $user): void
     {
         $tenant = tenant();
@@ -55,6 +64,8 @@ class TenantUserDirectoryService
     }
 
     /**
+     * Busca candidatos por e-mail no diretório central.
+     *
      * @return Collection<int, TenantUserDirectory>
      */
     public function candidatesForEmail(string $email): Collection
@@ -68,6 +79,9 @@ class TenantUserDirectoryService
             ->get();
     }
 
+    /**
+     * Reconstrói o diretório de usuários de todos os tenants.
+     */
     public function rebuild(): void
     {
         tenancy()->central(fn () => TenantUserDirectory::query()->delete());

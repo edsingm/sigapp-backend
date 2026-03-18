@@ -9,11 +9,11 @@ use Symfony\Component\HttpFoundation\Response;
 class ForceJsonResponse
 {
     /**
-     * Handle an incoming request.
+     * Manipula uma requisição de entrada.
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Force Accept header to JSON only if not already set to something specific
+        // Força o cabeçalho Accept para JSON apenas se não estiver configurado para algo específico
         if (!$request->headers->has('Accept') || $request->header('Accept') === '*/*') {
             $request->headers->set('Accept', 'application/json');
         }

@@ -17,8 +17,8 @@ class TenantAclSyncService
     ];
 
     /**
-     * Sync system permissions and roles for the current tenant context,
-     * applying JSON templates from database/rbacTemplates/.
+     * Sincroniza as permissões e funções do sistema para o contexto do tenant atual,
+     * aplicando templates JSON de database/rbacTemplates/.
      *
      * @return array<string, int|string|null>
      */
@@ -34,7 +34,7 @@ class TenantAclSyncService
             return ['tenant_id' => null, 'permissions_synced' => 0, 'roles_synced' => 0];
         }
 
-        // 1. Sync permissions
+        // 1. Sincroniza permissões
         $allPermissions = $this->generateAllPermissions();
 
         $synced = 0;
@@ -45,7 +45,7 @@ class TenantAclSyncService
             }
         }
 
-        // 2. Sync roles and apply templates
+        // 2. Sincroniza funções (roles) e aplica templates
         $rolesSynced = 0;
 
         foreach (RolesEnum::cases() as $roleEnum) {
@@ -75,7 +75,7 @@ class TenantAclSyncService
     }
 
     /**
-     * Generates all permission names from ModulesEnum in dot-notation format.
+     * Gera todos os nomes de permissão do ModulesEnum no formato de notação de ponto.
      *
      * @return array<int, string>
      */
@@ -102,7 +102,7 @@ class TenantAclSyncService
     }
 
     /**
-     * Converts a template permissions map into cumulative flat permission names.
+     * Converte um mapa de permissões de template em nomes de permissão planos cumulativos.
      *
      * @param  array<string, string|array<string, string>|null> $modulePermissions
      * @return array<int, string>

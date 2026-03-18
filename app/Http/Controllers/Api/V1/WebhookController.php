@@ -28,7 +28,7 @@ class WebhookController extends CashierController
     }
 
     /**
-     * Handle incoming Stripe webhooks.
+     * Manipula webhooks recebidos do Stripe.
      */
     public function handleWebhook(Request $request)
     {
@@ -57,7 +57,7 @@ class WebhookController extends CashierController
             );
 
             if ($event->processed_at) {
-                Log::info('Stripe webhook already processed', [
+                Log::info('Webhook do Stripe já processado', [
                     'event_id' => $eventId,
                     'type' => $event->type,
                 ]);
@@ -83,7 +83,7 @@ class WebhookController extends CashierController
     }
 
     /**
-     * Handle checkout.session.completed event.
+     * Manipula o evento checkout.session.completed.
      */
     protected function handleCheckoutSessionCompleted(array $payload)
     {

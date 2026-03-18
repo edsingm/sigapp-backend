@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\TenantStatus;
 use App\Services\ApiResponseService;
 use Closure;
 use Illuminate\Http\Request;
@@ -10,24 +11,24 @@ use Symfony\Component\HttpFoundation\Response;
 class CheckSubscriptionStatus
 {
     /**
-     * Handle an incoming request.
+     * Manipula uma requisição de entrada.
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!tenancy()->initialized) {
+        if (! tenancy()->initialized) {
             return $next($request);
         }
 
         $tenant = tenancy()->tenant;
 
-        // Check if tenant is active
-        if (!$tenant->isActive()) {
+        // Verifica se o tenant está ativo
+        if (! $tenant->isActive()) {
             return ApiResponseService::error(
                 'SUBSCRIPTION_INACTIVE',
                 match ($tenant->status) {
-                    'pending' => 'Assinatura pendente de pagamento',
-                    'suspended' => 'Assinatura suspensa por falta de pagamento',
-                    'cancelled' => 'Assinatura cancelada',
+                    TenantStatus::PENDING->value => 'Assinatura pendente de pagamento',
+                    TenantStatus::SUSPENDED->value => 'Assinatura suspensa por falta de pagamento',
+                    TenantStatus::CANCELLED->value => 'Assinatura cancelada',
                     default => 'Assinatura inativa',
                 },
                 [
@@ -39,8 +40,8 @@ class CheckSubscriptionStatus
             );
         }
 
-        // Check if trial has ended without active subscription
-        if ($tenant->trialEnded() && !$tenant->stripe_subscription_id) {
+        // Verifica se o período de teste terminou sem uma assinatura ativa
+        if ($tenant->trialEnded() && ! $tenant->stripe_subscription_id) {
             return ApiResponseService::error(
                 'TRIAL_ENDED',
                 'Período de teste encerrado. Por favor, assine um plano para continuar.',

@@ -14,7 +14,7 @@ class UserController extends Controller
 {
     use LogsAudit;
     /**
-     * List all users (admins).
+     * Lista todos os usuários (admins).
      */
     public function index(Request $request)
     {
@@ -26,7 +26,7 @@ class UserController extends Controller
     }
 
     /**
-     * Create a new administrative user.
+     * Cria um novo usuário administrativo.
      */
     public function store(Request $request)
     {
@@ -52,7 +52,7 @@ class UserController extends Controller
     }
 
     /**
-     * Update a user.
+     * Atualiza um usuário.
      */
     public function update(Request $request, $id)
     {
@@ -79,7 +79,7 @@ class UserController extends Controller
     }
 
     /**
-     * Delete a user.
+     * Exclui um usuário.
      */
     public function destroy(Request $request, $id)
     {

@@ -2,7 +2,9 @@
 
 namespace App\Jobs;
 
+use App\Enums\TenantStatus;
 use App\Models\Central\Tenant;
+use App\Notifications\TenantWelcomeNotification;
 use App\Traits\LogsAudit;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
@@ -12,39 +14,36 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 
-class CreateFullTenantJob implements ShouldQueue, ShouldBeUnique
+class CreateFullTenantJob implements ShouldBeUnique, ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, LogsAudit;
+    use Dispatchable, InteractsWithQueue, LogsAudit, Queueable, SerializesModels;
 
     /**
-     * Number of times the job may be attempted.
+     * Número de vezes que o job pode ser tentado.
      */
     public int $tries = 3;
 
     /**
-     * The number of seconds to wait before retrying the job.
+     * O número de segundos a aguardar antes de tentar o job novamente.
      */
     public int $backoff = 60;
 
     /**
-     * Keep the unique lock long enough to cover Stripe retries.
+     * Mantém o bloqueio exclusivo por tempo suficiente para cobrir as tentativas do Stripe.
      */
     public int $uniqueFor = 900;
 
     /**
-     * Create a new job instance.
+     * Cria uma nova instância do job.
      */
     public function __construct(
         public Tenant $tenant
-    ) {
-    }
+    ) {}
 
     /**
-     * Execute the job.
+     * Executa o job.
      */
     public function handle(): void
     {
@@ -65,7 +64,7 @@ class CreateFullTenantJob implements ShouldQueue, ShouldBeUnique
             return;
         }
 
-        // Audit: creation started
+        // Auditoria: criação iniciada
         $this->auditTrail('tenant.creation_started', "Job de criação iniciado para tenant '{$this->tenant->name}'.");
 
         try {
@@ -79,28 +78,28 @@ class CreateFullTenantJob implements ShouldQueue, ShouldBeUnique
 
             $this->restoreCentralConnection($centralConnection);
 
-            // Step 4: Generate encryption key
+            // Passo 4: Gera a chave de criptografia
             $this->tenant->generateEncryptionKey();
 
-            // Step 5: Activate tenant
+            // Passo 5: Ativa o tenant
             $this->tenant->activate();
 
-            // Step 6: Clear admin credentials (security)
+            // Passo 6: Limpa as credenciais de admin (segurança)
             $this->tenant->update([
                 'admin_password' => null,
                 'database_created' => true,
             ]);
 
-            // Step 7: Send welcome email
+            // Passo 7: Envia o e-mail de boas-vindas
             $this->sendWelcomeEmail();
 
-            // Step 8: Cache tenant info
+            // Passo 8: Armazena informações do tenant em cache
             $this->cacheTenantInfo();
 
-            // Audit: creation completed
+            // Auditoria: criação concluída
             $this->restoreCentralConnection($centralConnection);
             $this->auditTrail('tenant.creation_completed', "Tenant '{$this->tenant->name}' criado e ativado com sucesso.", [
-                'status'      => 'active',
+                'status' => TenantStatus::ACTIVE->value,
             ]);
 
             Log::info('CreateFullTenantJob concluído com sucesso', [
@@ -114,13 +113,13 @@ class CreateFullTenantJob implements ShouldQueue, ShouldBeUnique
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            // Audit: creation failed
+            // Auditoria: criação falhou
             $this->restoreCentralConnection($centralConnection);
-            $this->auditTrail('tenant.creation_failed', 'Job de criação falhou: ' . \Illuminate\Support\Str::limit($e->getMessage(), 200), [
-                'error'       => $e->getMessage(),
+            $this->auditTrail('tenant.creation_failed', 'Job de criação falhou: '.\Illuminate\Support\Str::limit($e->getMessage(), 200), [
+                'error' => $e->getMessage(),
                 'error_class' => get_class($e),
-                'attempt'     => $this->attempts(),
-                'max_tries'   => $this->tries,
+                'attempt' => $this->attempts(),
+                'max_tries' => $this->tries,
             ]);
 
             throw $e;
@@ -129,18 +128,17 @@ class CreateFullTenantJob implements ShouldQueue, ShouldBeUnique
 
     public function uniqueId(): string
     {
-        return 'tenant-provisioning:' . $this->tenant->getKey();
+        return 'tenant-provisioning:'.$this->tenant->getKey();
     }
 
     /**
-     * Create (or ensure) the tenant schema/database.
+     * Cria (ou garante) o esquema/banco de dados do tenant.
      */
     protected function createDatabase(): void
     {
         $this->tenant->database()->makeCredentials();
         $databaseName = $this->tenant->database()->getName();
         $manager = $this->tenant->database()->manager();
-
 
         if ($manager->databaseExists($databaseName)) {
             Log::warning('Schema/banco do tenant ja existe', ['database' => $databaseName]);
@@ -152,14 +150,14 @@ class CreateFullTenantJob implements ShouldQueue, ShouldBeUnique
     }
 
     /**
-     * Run tenant migrations.
+     * Executa as migrações do tenant.
      */
     protected function runMigrations(): void
     {
         $this->tenant->run(function () {
-            // Manual fix: ensure tenant connection exists using Tenancy's generated config.
-            if (!config('database.connections.tenant')) {
-                Log::warning('Tenant connection config missing. Manually configuring.');
+            // Correção manual: garante que a conexão do tenant exista usando a configuração gerada pelo Tenancy.
+            if (! config('database.connections.tenant')) {
+                Log::warning('Configuração de conexão do tenant ausente. Configurando manualmente.');
                 config(['database.connections.tenant' => $this->tenant->database()->connection()]);
                 DB::purge('tenant');
                 DB::setDefaultConnection('tenant');
@@ -173,12 +171,12 @@ class CreateFullTenantJob implements ShouldQueue, ShouldBeUnique
     }
 
     /**
-     * Seed tenant data (create admin user, roles, etc).
+     * Semeia os dados do tenant (cria usuário admin, cargos, etc).
      */
     protected function seedTenantData(): void
     {
         $this->tenant->run(function () {
-            $seeder = new \Database\Seeders\Tenant\TenantSeeder();
+            $seeder = new \Database\Seeders\Tenant\TenantSeeder;
             $seeder->run();
         });
     }
@@ -201,11 +199,25 @@ class CreateFullTenantJob implements ShouldQueue, ShouldBeUnique
     }
 
     /**
-     * Send welcome email to admin.
+     * Envia e-mail de boas-vindas para o admin.
      */
     protected function sendWelcomeEmail(): void
     {
-        // TODO: Implement welcome email with Resend
+        if (! $this->tenant->admin_email) {
+            Log::warning('Email de boas-vindas não enviado: admin_email ausente', [
+                'tenant_id' => $this->tenant->id,
+            ]);
+
+            return;
+        }
+
+        $notification = new TenantWelcomeNotification(
+            tenantName: $this->tenant->name,
+            appUrl: config('app.frontend_url', config('app.url')),
+        );
+
+        $this->tenant->notify($notification);
+
         Log::info('Email de boas-vindas enviado', [
             'tenant_id' => $this->tenant->id,
             'email' => $this->tenant->admin_email,
@@ -213,11 +225,11 @@ class CreateFullTenantJob implements ShouldQueue, ShouldBeUnique
     }
 
     /**
-     * Cache tenant info in Redis.
+     * Armazena informações do tenant em cache no Redis.
      */
     protected function cacheTenantInfo(): void
     {
-        $cacheKey = 'tenant:' . $this->tenant->slug;
+        $cacheKey = 'tenant:'.$this->tenant->slug;
 
         cache()->put($cacheKey, [
             'id' => $this->tenant->id,
@@ -229,7 +241,7 @@ class CreateFullTenantJob implements ShouldQueue, ShouldBeUnique
     }
 
     /**
-     * Handle a job failure.
+     * Lida com a falha do job.
      */
     public function failed(\Throwable $exception): void
     {
@@ -238,11 +250,11 @@ class CreateFullTenantJob implements ShouldQueue, ShouldBeUnique
             'error' => $exception->getMessage(),
         ]);
 
-        // Audit: permanent failure
-        $this->auditTrail('tenant.creation_failed', "Job de criação falhou definitivamente para tenant '{$this->tenant->name}' após {$this->tries} tentativas.",[
-            'error'             => $exception->getMessage() ?? '',
-            'error_class'       => get_class($exception) ?? '',
-            'max_tries'         => $this->tries ?? 0,
+        // Auditoria: falha permanente
+        $this->auditTrail('tenant.creation_failed', "Job de criação falhou definitivamente para tenant '{$this->tenant->name}' após {$this->tries} tentativas.", [
+            'error' => $exception->getMessage() ?? '',
+            'error_class' => get_class($exception) ?? '',
+            'max_tries' => $this->tries ?? 0,
             'permanent_failure' => true,
         ]);
     }
@@ -250,11 +262,11 @@ class CreateFullTenantJob implements ShouldQueue, ShouldBeUnique
     private function auditTrail(string $action, string $description, array $metadata = []): void
     {
         $this->audit($action, $description, array_merge([
-            'tenant_id'         => $this->tenant->id ?? null,
-            'tenant_slug'       => $this->tenant->slug ?? null,
-            'tenant_name'       => $this->tenant->name ?? null,
-            'plan_id'           => $this->tenant->plan_id ?? null,
-            'admin_email'       => $this->tenant->admin_email ?? null
+            'tenant_id' => $this->tenant->id ?? null,
+            'tenant_slug' => $this->tenant->slug ?? null,
+            'tenant_name' => $this->tenant->name ?? null,
+            'plan_id' => $this->tenant->plan_id ?? null,
+            'admin_email' => $this->tenant->admin_email ?? null,
         ], $metadata));
 
     }

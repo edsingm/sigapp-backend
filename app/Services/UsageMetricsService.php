@@ -10,7 +10,7 @@ use App\Models\Tenant\User;
 class UsageMetricsService
 {
     /**
-     * Get the count of users in the current tenant.
+     * Obtém a contagem de usuários no tenant atual.
      */
     public function getUserCount(): int
     {
@@ -22,7 +22,7 @@ class UsageMetricsService
     }
 
     /**
-     * Get the count of terrenos in the current tenant.
+     * Obtém a contagem de terrenos no tenant atual.
      */
     public function getTerrenoCount(): int
     {
@@ -34,7 +34,7 @@ class UsageMetricsService
     }
 
     /**
-     * Get the count of produtos in the current tenant.
+     * Obtém a contagem de produtos no tenant atual.
      */
     public function getProdutoCount(): int
     {
@@ -46,7 +46,7 @@ class UsageMetricsService
     }
 
     /**
-     * Get the storage used in bytes.
+     * Obtém o armazenamento usado em bytes.
      */
     public function getStorageUsedBytes(): int
     {
@@ -58,7 +58,7 @@ class UsageMetricsService
     }
 
     /**
-     * Get the storage used in GB.
+     * Obtém o armazenamento usado em GB.
      */
     public function getStorageUsed(): float
     {
@@ -66,7 +66,7 @@ class UsageMetricsService
     }
 
     /**
-     * Get all usage metrics for the current tenant.
+     * Obtém todas as métricas de uso para o tenant atual.
      */
     public function getMetrics(): array
     {
@@ -97,7 +97,7 @@ class UsageMetricsService
     }
 
     /**
-     * Get usage percentages.
+     * Obtém as porcentagens de uso.
      */
     public function getUsagePercentages(): array
     {
@@ -126,7 +126,7 @@ class UsageMetricsService
     }
 
     /**
-     * Check if any limit is approaching (80% or more).
+     * Verifica se algum limite está se aproximando (80% ou mais).
      */
     public function isApproachingLimits(): bool
     {

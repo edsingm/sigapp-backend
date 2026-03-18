@@ -21,7 +21,7 @@ class TenantController extends Controller
     }
 
     /**
-     * Get current tenant info.
+     * Obter informações do tenant atual.
      *
      * GET /api/v1/tenant
      */
@@ -39,7 +39,7 @@ class TenantController extends Controller
     }
 
     /**
-     * Get tenant usage metrics.
+     * Obtém métricas de uso do tenant.
      *
      * GET /api/v1/tenant/usage
      */
@@ -55,7 +55,7 @@ class TenantController extends Controller
     }
 
     /**
-     * Get subscription status.
+     * Obtém o status da assinatura.
      *
      * GET /api/v1/tenant/subscription
      */
@@ -181,6 +181,11 @@ class TenantController extends Controller
         ], language()->t('SIGNATURE_DATA_RETRIEVED'));
     }
 
+    /**
+     * Criar uma sessão do portal de faturamento.
+     *
+     * GET /api/v1/tenant/billing-portal
+     */
     public function billingPortal()
     {
         Gate::authorize('viewAny', Terreno::class);

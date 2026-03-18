@@ -13,13 +13,13 @@ use Illuminate\Support\Carbon;
 class DashboardController extends Controller
 {
     /**
-     * Get admin dashboard statistics.
+     * Obtém estatísticas do dashboard administrativo.
      *
      * GET /api/v1/admin/dashboard
      */
     public function index()
     {
-        // Core tenant stats
+        // Estatísticas principais de tenants
         $totalTenants = Tenant::count();
         $activeTenants = Tenant::where('status', Tenant::STATUS_ACTIVE)->count();
         $pendingTenants = Tenant::where('status', Tenant::STATUS_PENDING)->count();
@@ -27,7 +27,7 @@ class DashboardController extends Controller
         $cancelledTenants = Tenant::where('status', Tenant::STATUS_CANCELLED)->count();
         $todayTenants = Tenant::whereDate('created_at', today())->count();
 
-        // Trial stats
+        // Estatísticas de trial
         $trialTenants = Tenant::whereNotNull('trial_ends_at')
             ->where('trial_ends_at', '>', now())
             ->count();
@@ -36,7 +36,7 @@ class DashboardController extends Controller
             ->whereNotIn('status', [Tenant::STATUS_ACTIVE])
             ->count();
 
-        // MRR calculation (from active subscriptions with plans)
+        // Cálculo de MRR (a partir de assinaturas ativas com planos)
         $mrr = Tenant::where('status', Tenant::STATUS_ACTIVE)
             ->whereNotNull('plan_id')
             ->with('plan')
@@ -45,7 +45,7 @@ class DashboardController extends Controller
                 return $tenant->plan?->price ?? 0;
             });
 
-        // Tenants per plan distribution
+        // Distribuição de tenants por plano
         $tenantsByPlan = Plan::withCount(['tenants' => function ($query) {
             $query->where('status', Tenant::STATUS_ACTIVE);
         }])
@@ -58,7 +58,7 @@ class DashboardController extends Controller
                 'price' => $plan->price,
             ]);
 
-        // Tenants created per day (last 30 days) for chart
+        // Tenants criados por dia (últimos 30 dias) para gráfico
         $tenantsTrend = collect();
         for ($i = 29; $i >= 0; $i--) {
             $date = Carbon::today()->subDays($i);
@@ -69,13 +69,13 @@ class DashboardController extends Controller
             ]);
         }
 
-        // Recent tenants
+        // Tenants recentes
         $recentTenants = Tenant::with('plan')
             ->latest()
             ->take(5)
             ->get(['id', 'name', 'slug', 'status', 'plan_id', 'trial_ends_at', 'created_at', 'admin_email']);
 
-        // Recent activity
+        // Atividade recente
         $recentActivity = AuditLog::with('user')
             ->latest()
             ->take(10)

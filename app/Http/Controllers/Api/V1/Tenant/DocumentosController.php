@@ -34,6 +34,9 @@ class DocumentosController extends Controller
         'dwg',
     ];
 
+    /**
+     * Listar documentos.
+     */
     public function index(Request $request): JsonResponse
     {
         Gate::authorize('viewAny', Documento::class);
@@ -82,6 +85,9 @@ class DocumentosController extends Controller
         });
     }
 
+    /**
+     * Armazenar um novo documento.
+     */
     public function store(Request $request): JsonResponse
     {
         Gate::authorize('create', Documento::class);
@@ -160,6 +166,9 @@ class DocumentosController extends Controller
         ], 201);
     }
 
+    /**
+     * Exibir os detalhes de um documento específico.
+     */
     public function show(int $id): JsonResponse
     {
         $documento = Documento::with(['terreno:id,nome', 'createdBy:id,name', 'updatedBy:id,name'])
@@ -171,6 +180,9 @@ class DocumentosController extends Controller
         ]);
     }
 
+    /**
+     * Atualizar um documento existente.
+     */
     public function update(Request $request, int $id): JsonResponse
     {
         $documento = Documento::findOrFail($id);
@@ -220,6 +232,9 @@ class DocumentosController extends Controller
         ]);
     }
 
+    /**
+     * Excluir um documento.
+     */
     public function destroy(int $id): JsonResponse
     {
         $documento = Documento::findOrFail($id);
@@ -236,6 +251,9 @@ class DocumentosController extends Controller
         ]);
     }
 
+    /**
+     * Baixar o arquivo do documento.
+     */
     public function download(int $id)
     {
         $documento = Documento::findOrFail($id);
@@ -260,6 +278,9 @@ class DocumentosController extends Controller
         );
     }
 
+    /**
+     * Visualizar o arquivo do documento no navegador.
+     */
     public function view(int $id)
     {
         $documento = Documento::findOrFail($id);
@@ -286,6 +307,9 @@ class DocumentosController extends Controller
         );
     }
 
+    /**
+     * Listar os tipos de documentos disponíveis.
+     */
     public function tipos(): JsonResponse
     {
         Gate::authorize('viewAny', Documento::class);
@@ -309,6 +333,9 @@ class DocumentosController extends Controller
         ]);
     }
 
+    /**
+     * Listar as categorias de documentos disponíveis.
+     */
     public function categorias(): JsonResponse
     {
         Gate::authorize('viewAny', Documento::class);

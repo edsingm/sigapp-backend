@@ -8,17 +8,17 @@ use Illuminate\Console\Command;
 class CleanupCentralLoginBroker extends Command
 {
     /**
-     * The name and signature of the console command.
+     * O nome e a assinatura do comando de console.
      */
     protected $signature = 'auth:cleanup-central-login-broker';
 
     /**
-     * The console command description.
+     * A descrição do comando de console.
      */
     protected $description = 'Remove tickets e sessões expiradas/usadas do broker de login central';
 
     /**
-     * Execute the console command.
+     * Executa o comando de console.
      */
     public function handle(CentralLoginBrokerService $service): int
     {

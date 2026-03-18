@@ -9,7 +9,7 @@ use App\Http\Resources\UserResource;
 class DepartamentoResource extends JsonResource
 {
     /**
-     * Transform the resource into an array.
+     * Transformar o recurso em um array.
      *
      * @return array<string, mixed>
      */

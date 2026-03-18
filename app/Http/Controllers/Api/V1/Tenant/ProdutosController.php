@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Gate;
 class ProdutosController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Exibe uma listagem do recurso.
      */
     public function index(Request $request): JsonResponse
     {
@@ -34,7 +34,7 @@ class ProdutosController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Armazena um recurso recém-criado.
      */
     public function store(StoreProdutoRequest $request): JsonResponse
     {
@@ -51,7 +51,7 @@ class ProdutosController extends Controller
     }
 
     /**
-     * Display the specified resource.
+     * Exibe o recurso especificado.
      */
     public function show(string $id): JsonResponse
     {
@@ -65,7 +65,7 @@ class ProdutosController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
+     * Atualiza o recurso especificado.
      */
     public function update(UpdateProdutoRequest $request, string $id): JsonResponse
     {
@@ -83,7 +83,7 @@ class ProdutosController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Remove o recurso especificado.
      */
     public function destroy(string $id): JsonResponse
     {
@@ -98,7 +98,7 @@ class ProdutosController extends Controller
     }
 
     /**
-     * Restore the specified resource from storage.
+     * Restaura o recurso especificado.
      */
     public function restore(string $id): JsonResponse
     {
@@ -113,6 +113,9 @@ class ProdutosController extends Controller
         ]);
     }
 
+    /**
+     * Listar produtos para seleção.
+     */
     public function produtosForSelect(Request $request): JsonResponse
     {
         Gate::authorize('viewAny', Produto::class);

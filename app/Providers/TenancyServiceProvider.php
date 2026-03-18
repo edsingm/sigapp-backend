@@ -15,29 +15,29 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Route;
 
 /**
- * Tenancy for Laravel.
+ * Tenancy para Laravel.
  *
- * Documentation: https://tenancyforlaravel.com
+ * Documentação: https://tenancyforlaravel.com
  *
- * We can sustainably develop Tenancy for Laravel thanks to our sponsors.
- * Big thanks to everyone listed here: https://github.com/sponsors/stancl
+ * Podemos desenvolver o Tenancy para Laravel de forma sustentável graças aos nossos patrocinadores.
+ * Um grande agradecimento a todos listados aqui: https://github.com/sponsors/stancl
  *
- * You can also support us, and save time, by purchasing these products:
- *   Exclusive content for sponsors: https://sponsors.tenancyforlaravel.com
- *   Multi-Tenant SaaS boilerplate: https://portal.archte.ch/boilerplate
- *   Multi-Tenant Laravel in Production e-book: https://portal.archte.ch/book
+ * Você também pode nos apoiar e economizar tempo adquirindo estes produtos:
+ *   Conteúdo exclusivo para patrocinadores: https://sponsors.tenancyforlaravel.com
+ *   Boilerplate SaaS Multi-Tenant: https://portal.archte.ch/boilerplate
+ *   E-book Multi-Tenant Laravel em Produção: https://portal.archte.ch/book
  *
- * All of these products can also be accessed at https://portal.archte.ch
+ * Todos esses produtos também podem ser acessados em https://portal.archte.ch
  */
 class TenancyServiceProvider extends ServiceProvider
 {
-    // By default, no namespace is used to support the callable array syntax.
+    // Por padrão, nenhum namespace é usado para suportar a sintaxe de array chamável.
     public static string $controllerNamespace = '';
 
     public function events()
     {
         return [
-                // Tenant events
+                // Eventos de Tenant
             Events\CreatingTenant::class => [],
             Events\TenantCreated::class => [
                 JobPipeline::make([
@@ -46,8 +46,8 @@ class TenancyServiceProvider extends ServiceProvider
                     // Jobs\SeedDatabase::class,
                     // Jobs\CreateStorageSymlinks::class,
 
-                    // Your own jobs to prepare the tenant.
-                    // Provision API keys, create S3 buckets, anything you want!
+                    // Seus próprios jobs para preparar o tenant.
+                    // Provisionar chaves de API, criar buckets S3, o que você quiser!
                 ])->send(function (Events\TenantCreated $event) {
                     return $event->tenant;
                 })->shouldBeQueued(false),
@@ -79,17 +79,17 @@ class TenancyServiceProvider extends ServiceProvider
                 // ResourceSyncing\Listeners\DeleteAllTenantMappings::class,
             ],
 
-                // Maintenance mode events não disponíveis na v3.9
+                // Eventos de modo de manutenção não disponíveis na v3.9
                 // Events\TenantMaintenanceModeEnabled::class => [],
                 // Events\TenantMaintenanceModeDisabled::class => [],
 
-                // Pending tenant events não disponíveis na v3.9
+                // Eventos de tenant pendente não disponíveis na v3.9
                 // Events\CreatingPendingTenant::class => [],
                 // Events\PendingTenantCreated::class => [],
                 // Events\PullingPendingTenant::class => [],
                 // Events\PendingTenantPulled::class => [],
 
-                // Domain events
+                // Eventos de domínio
             Events\CreatingDomain::class => [],
             Events\DomainCreated::class => [],
             Events\SavingDomain::class => [],
@@ -99,14 +99,14 @@ class TenancyServiceProvider extends ServiceProvider
             Events\DeletingDomain::class => [],
             Events\DomainDeleted::class => [],
 
-                // Database events
+                // Eventos de banco de dados
             Events\DatabaseCreated::class => [],
             Events\DatabaseMigrated::class => [],
             Events\DatabaseSeeded::class => [],
             Events\DatabaseRolledBack::class => [],
             Events\DatabaseDeleted::class => [],
 
-                // Tenancy events
+                // Eventos de Tenancy
             Events\InitializingTenancy::class => [],
             Events\TenancyInitialized::class => [
                 Listeners\BootstrapTenancy::class,
@@ -122,7 +122,7 @@ class TenancyServiceProvider extends ServiceProvider
             Events\RevertingToCentralContext::class => [],
             Events\RevertedToCentralContext::class => [],
 
-            // Resource syncing não disponível na v3.9
+            // Sincronização de recursos não disponível na v3.9
             // ResourceSyncing\Events\SyncedResourceSaved::class => [
             //     ResourceSyncing\Listeners\UpdateOrCreateSyncedResource::class,
             // ],
@@ -142,11 +142,11 @@ class TenancyServiceProvider extends ServiceProvider
             //     ResourceSyncing\Listeners\DeleteResourceInTenant::class,
             // ],
 
-            // Fired only when a synced resource is changed (as a result of syncing)
-            // in a different DB than DB from which* change originates (to avoid infinite loops)
+            // Disparado apenas quando um recurso sincronizado é alterado (como resultado da sincronização)
+            // em um banco de dados diferente do banco de dados de onde a alteração se origina (para evitar loops infinitos)
             // ResourceSyncing\Events\SyncedResourceSavedInForeignDatabase::class => [],
 
-            // Storage symlinks events não disponíveis na v3.9
+            // Eventos de links simbólicos de armazenamento não disponíveis na v3.9
             // Events\CreatingStorageSymlink::class => [],
             // Events\StorageSymlinkCreated::class => [],
             // Events\RemovingStorageSymlink::class => [],
@@ -155,8 +155,8 @@ class TenancyServiceProvider extends ServiceProvider
     }
 
     /**
-     * Set \Stancl\Tenancy\Bootstrappers\RootUrlBootstrapper::$rootUrlOverride here
-     * to override the root URL used in CLI while in tenant context.
+     * Defina \Stancl\Tenancy\Bootstrappers\RootUrlBootstrapper::$rootUrlOverride aqui
+     * para sobrescrever a URL raiz usada no CLI enquanto estiver no contexto do tenant.
      *
      * @see \Stancl\Tenancy\Bootstrappers\RootUrlBootstrapper
      */
@@ -174,10 +174,10 @@ class TenancyServiceProvider extends ServiceProvider
         //     $scheme = str($originalRootUrl)->before('://');
         //
         //     if (str_contains($tenantDomain, '.')) {
-        //         // Domain identification
+        //         // Identificação por domínio
         //         return $scheme . '://' . $tenantDomain . '/';
         //     } else {
-        //         // Subdomain identification
+        //         // Identificação por subdomínio
         //         $originalDomain = str($originalRootUrl)->after($scheme . '://')->before('/');
         //         return $scheme . '://' . $tenantDomain . '.' . $originalDomain . '/';
         //     }
@@ -200,14 +200,14 @@ class TenancyServiceProvider extends ServiceProvider
         $this->makeTenancyMiddlewareHighestPriority();
         $this->overrideUrlInTenantContext();
 
-        // // Include soft deleted resources in synced resource queries.
+        // // Incluir recursos excluídos logicamente (soft deleted) em consultas de recursos sincronizados.
         // ResourceSyncing\Listeners\UpdateOrCreateSyncedResource::$scopeGetModelQuery = function (Builder $query) {
         //     if ($query->hasMacro('withTrashed')) {
         //         $query->withTrashed();
         //     }
         // };
 
-        // // To make Livewire v3 work with Tenancy, make the update route universal.
+        // // Para fazer o Livewire v3 funcionar com Tenancy, torne a rota de atualização universal.
         // Livewire::setUpdateRoute(function ($handle) {
         //     return Route::post('/livewire/update', $handle)->middleware(['web', 'universal', \Stancl\Tenancy\Tenancy::defaultMiddleware()]);
         // });
@@ -240,9 +240,9 @@ class TenancyServiceProvider extends ServiceProvider
     }
 
     /**
-     * Clone routes as tenant.
+     * Clonar rotas como tenant.
      *
-     * This is used primarily for integrating packages.
+     * Isso é usado principalmente para integrar pacotes.
      *
      * @see CloneRoutesAsTenant
      */

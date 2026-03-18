@@ -14,6 +14,9 @@ class MobileDeviceController extends Controller
     ) {
     }
 
+    /**
+     * Registrar um novo dispositivo móvel.
+     */
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -34,6 +37,9 @@ class MobileDeviceController extends Controller
         return ApiResponseService::success($device, 'Dispositivo registrado com sucesso');
     }
 
+    /**
+     * Remover um dispositivo móvel registrado.
+     */
     public function destroy(Request $request, string $installationId)
     {
         $this->mobilePushService->unregisterDevice($request->user(), $installationId);

@@ -16,21 +16,26 @@ class CommitteeController extends Controller
     public function __construct(
         protected CommitteeService $service,
         protected LandWorkflowService $workflowService,
-    ) {
-    }
+    ) {}
 
+    /**
+     * Listar revisões de comitê.
+     */
     public function index(Request $request)
     {
         Gate::authorize('viewAny', ComiteRevisao::class);
 
         $result = $this->service->list($request->only(['status', 'search', 'per_page']));
-        $result->setCollection(
-            $result->getCollection()->map(fn (ComiteRevisao $review) => (new ComiteRevisaoResource($review))->resolve())
+        $result->through(
+            fn (ComiteRevisao $review) => (new ComiteRevisaoResource($review))->resolve()
         );
 
         return ApiResponseService::paginated($result, 'Revisões de comitê carregadas com sucesso');
     }
 
+    /**
+     * Criar uma nova revisão de comitê.
+     */
     public function store(Request $request)
     {
         Gate::authorize('create', ComiteRevisao::class);
@@ -48,6 +53,9 @@ class CommitteeController extends Controller
         return ApiResponseService::created(new ComiteRevisaoResource($review), 'Comitê criado com sucesso');
     }
 
+    /**
+     * Exibir os detalhes de uma revisão de comitê específica.
+     */
     public function show(string $id)
     {
         $review = ComiteRevisao::findOrFail($id);
@@ -56,6 +64,9 @@ class CommitteeController extends Controller
         return ApiResponseService::success(new ComiteRevisaoResource($this->service->show($review)));
     }
 
+    /**
+     * Criar ou atualizar o parecer de um departamento.
+     */
     public function upsertDepartmentReview(Request $request, string $id)
     {
         $review = ComiteRevisao::findOrFail($id);
@@ -79,6 +90,9 @@ class CommitteeController extends Controller
         return ApiResponseService::success(new ComiteRevisaoResource($updated), 'Parecer registrado com sucesso');
     }
 
+    /**
+     * Finalizar a decisão do comitê.
+     */
     public function finalize(Request $request, string $id)
     {
         $review = ComiteRevisao::findOrFail($id);

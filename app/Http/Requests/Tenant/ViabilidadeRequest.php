@@ -7,7 +7,7 @@ use Illuminate\Foundation\Http\FormRequest;
 class ViabilidadeRequest extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
+     * Determina se o usuário está autorizado a fazer esta requisição.
      */
     public function authorize(): bool
     {
@@ -15,7 +15,7 @@ class ViabilidadeRequest extends FormRequest
     }
 
     /**
-     * Get the validation rules that apply to the request.
+     * Obtém as regras de validação que se aplicam à requisição.
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
@@ -69,7 +69,7 @@ class ViabilidadeRequest extends FormRequest
     }
 
     /**
-     * Get custom attributes for validator errors.
+     * Obtém os atributos personalizados para erros do validador.
      *
      * @return array<string, string>
      */
@@ -106,7 +106,7 @@ class ViabilidadeRequest extends FormRequest
     }
 
     /**
-     * Get custom messages for validator errors.
+     * Obtém as mensagens personalizadas para erros do validador.
      *
      * @return array<string, string>
      */
@@ -123,7 +123,7 @@ class ViabilidadeRequest extends FormRequest
     }
 
     /**
-     * Prepare the data for validation.
+     * Prepara os dados para validação.
      */
     protected function prepareForValidation(): void
     {

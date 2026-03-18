@@ -10,11 +10,11 @@ use Symfony\Component\HttpFoundation\Response;
 class AddTenantContextToLogs
 {
     /**
-     * Handle an incoming request.
+     * Manipula uma requisição de entrada.
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Add tenant context if available
+        // Adiciona o contexto do tenant se disponível
         if (tenancy()->initialized) {
             $tenant = tenancy()->tenant;
 
@@ -25,7 +25,7 @@ class AddTenantContextToLogs
             ]);
         }
 
-        // Add request context
+        // Adiciona o contexto da requisição
         Log::withContext([
             'request_id' => $request->header('X-Request-ID') ?? uniqid('req_'),
             'ip' => $request->ip(),

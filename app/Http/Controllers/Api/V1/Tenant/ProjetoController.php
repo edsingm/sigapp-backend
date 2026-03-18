@@ -22,9 +22,11 @@ class ProjetoController extends Controller
     public function __construct(
         protected ProjetoService $service,
         protected MobilePushService $mobilePushService
-    ) {
-    }
+    ) {}
 
+    /**
+     * Listar projetos.
+     */
     public function index(Request $request)
     {
         Gate::authorize('viewAny', Projeto::class);
@@ -32,19 +34,17 @@ class ProjetoController extends Controller
         try {
             $tenantId = tenant('id') ?? 'central';
             $filters = $request->only(['search', 'status', 'per_page', 'page']);
-            $cacheKey = "tenant:{$tenantId}:projetos:index:" . md5(json_encode($filters));
+            $cacheKey = "tenant:{$tenantId}:projetos:index:".md5(json_encode($filters));
 
             $result = \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:projetos"])
                 ->remember($cacheKey, now()->addMinutes(15), function () use ($filters) {
                     return $this->service->listar($filters);
                 });
 
-            $result->setCollection(
-                $result->getCollection()->map(fn (Projeto $projeto) => [
-                    ...((new ProjetoResource($projeto))->resolve()),
-                    'workflow' => $this->service->workflow($projeto, request()->user()),
-                ])
-            );
+            $result->through(fn (Projeto $projeto) => [
+                ...((new ProjetoResource($projeto))->resolve()),
+                'workflow' => $this->service->workflow($projeto, request()->user()),
+            ]);
 
             return ApiResponseService::paginated($result, 'Projetos carregados com sucesso');
         } catch (\Throwable $e) {
@@ -56,6 +56,9 @@ class ProjetoController extends Controller
         }
     }
 
+    /**
+     * Listar terrenos elegíveis para novos projetos.
+     */
     public function eligibleTerrenos(Request $request)
     {
         Gate::authorize('viewAny', Terreno::class);
@@ -64,8 +67,8 @@ class ProjetoController extends Controller
             $filters = $request->only(['search', 'per_page', 'page']);
             $result = $this->service->listarTerrenosElegiveis($filters);
 
-            $result->setCollection(
-                $result->getCollection()->map(fn ($terreno) => (new TerrenoResource($terreno))->resolve())
+            $result->through(
+                fn ($terreno) => (new TerrenoResource($terreno))->resolve()
             );
 
             return ApiResponseService::paginated($result, 'Terrenos elegíveis carregados com sucesso');
@@ -78,6 +81,9 @@ class ProjetoController extends Controller
         }
     }
 
+    /**
+     * Criar um novo projeto.
+     */
     public function store(StoreProjetoRequest $request)
     {
         Gate::authorize('create', Projeto::class);
@@ -101,6 +107,9 @@ class ProjetoController extends Controller
         }
     }
 
+    /**
+     * Exibir os detalhes de um projeto específico.
+     */
     public function show(string $id, Request $request)
     {
         try {
@@ -123,6 +132,9 @@ class ProjetoController extends Controller
         }
     }
 
+    /**
+     * Atualizar um projeto existente.
+     */
     public function update(UpdateProjetoRequest $request, string $id)
     {
         try {
@@ -148,6 +160,9 @@ class ProjetoController extends Controller
         }
     }
 
+    /**
+     * Marcar um projeto como pronto para registro.
+     */
     public function markReady(MarkProjetoReadyRequest $request, string $id)
     {
         try {
@@ -187,6 +202,9 @@ class ProjetoController extends Controller
         }
     }
 
+    /**
+     * Cancelar um projeto.
+     */
     public function cancel(string $id, Request $request)
     {
         try {
@@ -212,6 +230,9 @@ class ProjetoController extends Controller
         }
     }
 
+    /**
+     * Limpar os caches relacionados a projetos.
+     */
     protected function flushProjetoCaches(): void
     {
         $tenantId = tenant('id') ?? 'central';

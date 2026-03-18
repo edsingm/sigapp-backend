@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
 class AclController extends Controller
 {
     /**
-     * Get system permission catalog grouped by module.
+     * Obtém o catálogo de permissões do sistema agrupado por módulo.
      */
     public function catalog()
     {
@@ -52,7 +52,7 @@ class AclController extends Controller
     }
 
     /**
-     * Get the role/permission matrix template for a plan.
+     * Obtém o modelo de matriz de cargo/permissão para um plano.
      */
     public function planRoleMatrix(Request $request, int $planId)
     {

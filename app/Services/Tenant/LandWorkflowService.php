@@ -2,6 +2,7 @@
 
 namespace App\Services\Tenant;
 
+use App\Enums\WorkflowStatus;
 use App\Models\Tenant\Contrato;
 use App\Models\Tenant\EntityActivity;
 use App\Models\Tenant\Projeto;
@@ -15,61 +16,66 @@ use RuntimeException;
 class LandWorkflowService
 {
     public const STAGE_CAPTACAO = 'captacao';
+
     public const STAGE_VIABILIDADE = 'viabilidade';
+
     public const STAGE_COMITE = 'comite';
+
     public const STAGE_NEGOCIACAO = 'negociacao_contrato';
+
     public const STAGE_LEGALIZACAO = 'legalizacao';
+
     public const STAGE_ENCERRAMENTO = 'encerramento';
 
     /**
+     * Retorna a lista de todos os status de workflow disponíveis.
+     *
      * @return array<string, array{stage: string, label: string}>
      */
     public static function statuses(): array
     {
-        return [
-            'em_analise' => ['stage' => self::STAGE_CAPTACAO, 'label' => 'Em análise'],
-            'aguardando_viabilidade' => ['stage' => self::STAGE_VIABILIDADE, 'label' => 'Aguardando viabilidade'],
-            'viabilidade_aprovada' => ['stage' => self::STAGE_VIABILIDADE, 'label' => 'Viabilidade aprovada'],
-            'aguardando_comite' => ['stage' => self::STAGE_COMITE, 'label' => 'Aguardando comitê'],
-            'negociacao_minuta' => ['stage' => self::STAGE_NEGOCIACAO, 'label' => 'Negociação/Minuta'],
-            'contrato_assinado' => ['stage' => self::STAGE_NEGOCIACAO, 'label' => 'Contrato assinado'],
-            'legalizando' => ['stage' => self::STAGE_LEGALIZACAO, 'label' => 'Legalizando'],
-            'legalizado_finalizado' => ['stage' => self::STAGE_ENCERRAMENTO, 'label' => 'Legalizado/Finalizado'],
-            'descartado' => ['stage' => self::STAGE_ENCERRAMENTO, 'label' => 'Descartado'],
-            'arquivado' => ['stage' => self::STAGE_ENCERRAMENTO, 'label' => 'Arquivado'],
-        ];
+        return collect(WorkflowStatus::cases())->mapWithKeys(fn (WorkflowStatus $s) => [
+            $s->value => ['stage' => $s->stage(), 'label' => $s->label()],
+        ])->all();
     }
 
     /**
+     * Retorna a matriz de transições permitidas entre status.
+     *
      * @return array<string, array<int, string>>
      */
     public static function transitionMatrix(): array
     {
         return [
-            'em_analise' => ['aguardando_viabilidade', 'descartado', 'arquivado'],
-            'aguardando_viabilidade' => ['viabilidade_aprovada', 'em_analise', 'descartado', 'arquivado'],
-            'viabilidade_aprovada' => ['aguardando_comite', 'em_analise', 'arquivado'],
-            'aguardando_comite' => ['negociacao_minuta', 'em_analise', 'arquivado'],
-            'negociacao_minuta' => ['contrato_assinado', 'em_analise', 'arquivado'],
-            'contrato_assinado' => ['legalizando', 'arquivado'],
-            'legalizando' => ['legalizado_finalizado', 'arquivado'],
-            'legalizado_finalizado' => ['arquivado'],
-            'descartado' => ['em_analise', 'arquivado'],
-            'arquivado' => [],
+            WorkflowStatus::EM_ANALISE->value => [WorkflowStatus::AGUARDANDO_VIABILIDADE->value, WorkflowStatus::DESCARTADO->value, WorkflowStatus::ARQUIVADO->value],
+            WorkflowStatus::AGUARDANDO_VIABILIDADE->value => [WorkflowStatus::VIABILIDADE_APROVADA->value, WorkflowStatus::EM_ANALISE->value, WorkflowStatus::DESCARTADO->value, WorkflowStatus::ARQUIVADO->value],
+            WorkflowStatus::VIABILIDADE_APROVADA->value => [WorkflowStatus::AGUARDANDO_COMITE->value, WorkflowStatus::EM_ANALISE->value, WorkflowStatus::ARQUIVADO->value],
+            WorkflowStatus::AGUARDANDO_COMITE->value => [WorkflowStatus::NEGOCIACAO_MINUTA->value, WorkflowStatus::EM_ANALISE->value, WorkflowStatus::ARQUIVADO->value],
+            WorkflowStatus::NEGOCIACAO_MINUTA->value => [WorkflowStatus::CONTRATO_ASSINADO->value, WorkflowStatus::EM_ANALISE->value, WorkflowStatus::ARQUIVADO->value],
+            WorkflowStatus::CONTRATO_ASSINADO->value => [WorkflowStatus::LEGALIZANDO->value, WorkflowStatus::ARQUIVADO->value],
+            WorkflowStatus::LEGALIZANDO->value => [WorkflowStatus::LEGALIZADO_FINALIZADO->value, WorkflowStatus::ARQUIVADO->value],
+            WorkflowStatus::LEGALIZADO_FINALIZADO->value => [WorkflowStatus::ARQUIVADO->value],
+            WorkflowStatus::DESCARTADO->value => [WorkflowStatus::EM_ANALISE->value, WorkflowStatus::ARQUIVADO->value],
+            WorkflowStatus::ARQUIVADO->value => [],
         ];
     }
 
+    /**
+     * Inicializa o workflow de um terreno se ainda não possuir status.
+     */
     public function initialize(Terreno $terreno, ?User $user = null): void
     {
         if ($terreno->workflow_status_code) {
             return;
         }
 
-        $this->applyWorkflowState($terreno, 'em_analise', $user, null, null);
+        $this->applyWorkflowState($terreno, WorkflowStatus::EM_ANALISE->value, $user, null, null);
     }
 
     /**
-     * @param array<string, mixed> $context
+     * Realiza a transição de status de um terreno.
+     *
+     * @param  array<string, mixed>  $context
      */
     public function transition(
         Terreno $terreno,
@@ -80,10 +86,10 @@ class LandWorkflowService
         array $context = [],
     ): Terreno {
         $targetStatus = $this->normalizeStatus($targetStatus);
-        $currentStatus = $this->normalizeStatus($terreno->workflow_status_code ?: 'em_analise');
+        $currentStatus = $this->normalizeStatus($terreno->workflow_status_code ?: WorkflowStatus::EM_ANALISE->value);
         $allowed = self::transitionMatrix()[$currentStatus] ?? [];
 
-        if (!in_array($targetStatus, $allowed, true) && $currentStatus !== $targetStatus) {
+        if (! in_array($targetStatus, $allowed, true) && $currentStatus !== $targetStatus) {
             throw new RuntimeException("Transição inválida de {$currentStatus} para {$targetStatus}.");
         }
 
@@ -140,6 +146,9 @@ class LandWorkflowService
         });
     }
 
+    /**
+     * Sincroniza o status do terreno com base no preenchimento dos requisitos mínimos.
+     */
     public function syncReadiness(Terreno $terreno, ?User $user = null, ?string $reasonCode = 'terrain_readiness_synced'): Terreno
     {
         $terreno = $terreno->fresh([
@@ -152,19 +161,30 @@ class LandWorkflowService
             'legalizacao.pendencias',
         ]);
 
-        if (!$terreno) {
+        if (! $terreno) {
             throw new RuntimeException('Terreno não encontrado para sincronizar workflow.');
         }
 
-        $currentStatus = $this->normalizeStatus($terreno->workflow_status_code ?: 'em_analise');
+        $currentStatus = $this->normalizeStatus($terreno->workflow_status_code ?: WorkflowStatus::EM_ANALISE->value);
 
-        if (in_array($currentStatus, ['viabilidade_aprovada', 'aguardando_comite', 'negociacao_minuta', 'contrato_assinado', 'legalizando', 'legalizado_finalizado', 'descartado', 'arquivado'], true)) {
+        $lockedStatuses = [
+            WorkflowStatus::VIABILIDADE_APROVADA->value,
+            WorkflowStatus::AGUARDANDO_COMITE->value,
+            WorkflowStatus::NEGOCIACAO_MINUTA->value,
+            WorkflowStatus::CONTRATO_ASSINADO->value,
+            WorkflowStatus::LEGALIZANDO->value,
+            WorkflowStatus::LEGALIZADO_FINALIZADO->value,
+            WorkflowStatus::DESCARTADO->value,
+            WorkflowStatus::ARQUIVADO->value,
+        ];
+
+        if (in_array($currentStatus, $lockedStatuses, true)) {
             return $terreno;
         }
 
         $targetStatus = $this->hasMinimumReadiness($terreno)
-            ? 'aguardando_viabilidade'
-            : 'em_analise';
+            ? WorkflowStatus::AGUARDANDO_VIABILIDADE->value
+            : WorkflowStatus::EM_ANALISE->value;
 
         if ($currentStatus === $targetStatus) {
             return $terreno;
@@ -175,13 +195,15 @@ class LandWorkflowService
             $targetStatus,
             $user,
             $reasonCode,
-            $targetStatus === 'aguardando_viabilidade'
+            $targetStatus === WorkflowStatus::AGUARDANDO_VIABILIDADE->value
                 ? 'Pré-requisitos mínimos preenchidos para iniciar viabilidade.'
                 : 'Checklist mínimo incompleto; terreno voltou para análise.',
         );
     }
 
     /**
+     * Retorna o checklist de prontidão do terreno para cada etapa do workflow.
+     *
      * @return array<int, array<string, mixed>>
      */
     public function checklist(Terreno $terreno): array
@@ -230,14 +252,18 @@ class LandWorkflowService
     }
 
     /**
+     * Retorna as transições disponíveis a partir do status atual.
+     *
      * @return array<int, string>
      */
     public function availableTransitions(Terreno $terreno): array
     {
-        return self::transitionMatrix()[$this->normalizeStatus($terreno->workflow_status_code ?: 'em_analise')] ?? [];
+        return self::transitionMatrix()[$this->normalizeStatus($terreno->workflow_status_code ?: WorkflowStatus::EM_ANALISE->value)] ?? [];
     }
 
     /**
+     * Retorna as opções de transição, indicando quais estão bloqueadas por pré-requisitos.
+     *
      * @return array{available: array<int, string>, blocked: array<string, string>}
      */
     public function transitionOptions(Terreno $terreno): array
@@ -261,51 +287,53 @@ class LandWorkflowService
     }
 
     /**
-     * @param array<string, mixed> $context
+     * Valida se os pré-requisitos para uma transição foram atendidos.
+     *
+     * @param  array<string, mixed>  $context
      */
     protected function assertPrerequisites(Terreno $terreno, string $targetStatus, array $context = []): void
     {
-        if ($targetStatus === 'aguardando_viabilidade' && !$this->hasMinimumReadiness($terreno)) {
+        if ($targetStatus === WorkflowStatus::AGUARDANDO_VIABILIDADE->value && ! $this->hasMinimumReadiness($terreno)) {
             throw new RuntimeException('Cadastre proprietário, corretor e ao menos um produto antes de seguir para viabilidade.');
         }
 
-        if ($targetStatus === 'viabilidade_aprovada' && $terreno->viabilidadeAtual?->approval_status !== 'aprovada') {
+        if ($targetStatus === WorkflowStatus::VIABILIDADE_APROVADA->value && $terreno->viabilidadeAtual?->approval_status !== 'aprovada') {
             throw new RuntimeException('Não é possível aprovar o terreno sem uma viabilidade aprovada.');
         }
 
-        if ($targetStatus === 'aguardando_comite' && $terreno->viabilidadeAtual?->approval_status !== 'aprovada') {
+        if ($targetStatus === WorkflowStatus::AGUARDANDO_COMITE->value && $terreno->viabilidadeAtual?->approval_status !== 'aprovada') {
             throw new RuntimeException('Não é possível enviar ao comitê sem viabilidade aprovada.');
         }
 
-        if ($targetStatus === 'negociacao_minuta') {
+        if ($targetStatus === WorkflowStatus::NEGOCIACAO_MINUTA->value) {
             $decision = $terreno->comiteAtual?->final_decision;
 
-            if (!in_array($decision, ['aprovado_comite', 'aprovado_com_ressalvas'], true)) {
+            if (! in_array($decision, ['aprovado_comite', 'aprovado_com_ressalvas'], true)) {
                 throw new RuntimeException('Não é possível iniciar negociação/minuta sem comitê aprovado.');
             }
         }
 
-        if ($targetStatus === 'contrato_assinado') {
+        if ($targetStatus === WorkflowStatus::CONTRATO_ASSINADO->value) {
             /** @var Contrato|null $contract */
             $contract = $context['contract'] ?? $terreno->contratoAtual;
 
-            if (!$contract || !$contract->contract_type || !$contract->signed_at || !$contract->file_path || !$contract->partes()->exists()) {
+            if (! $contract || ! $contract->contract_type || ! $contract->signed_at || ! $contract->file_path || ! $contract->partes()->exists()) {
                 throw new RuntimeException('Contrato assinado exige tipo, data, partes vinculadas e documento anexado.');
             }
         }
 
-        if ($targetStatus === 'legalizando') {
+        if ($targetStatus === WorkflowStatus::LEGALIZANDO->value) {
             $contract = $terreno->contratoAtual;
 
-            if (!$contract || !$contract->signed_at) {
+            if (! $contract || ! $contract->signed_at) {
                 throw new RuntimeException('Inicie o projeto somente após contrato assinado.');
             }
         }
 
-        if ($targetStatus === 'legalizado_finalizado') {
+        if ($targetStatus === WorkflowStatus::LEGALIZADO_FINALIZADO->value) {
             $legalizacao = $terreno->legalizacao;
 
-            if (!$legalizacao) {
+            if (! $legalizacao) {
                 throw new RuntimeException('Não existe processo de legalização aberto.');
             }
 
@@ -329,6 +357,9 @@ class LandWorkflowService
         }
     }
 
+    /**
+     * Aplica o novo estado de workflow ao terreno e registra no histórico.
+     */
     protected function applyWorkflowState(
         Terreno $terreno,
         string $targetStatus,
@@ -340,7 +371,7 @@ class LandWorkflowService
         $targetStatus = $this->normalizeStatus($targetStatus);
         $statusMeta = self::statuses()[$targetStatus] ?? null;
 
-        if (!$statusMeta) {
+        if (! $statusMeta) {
             throw new RuntimeException("Status de workflow desconhecido: {$targetStatus}");
         }
 
@@ -391,11 +422,13 @@ class LandWorkflowService
     }
 
     /**
-     * @param array<string, mixed> $context
+     * Executa efeitos colaterais após uma transição de status bem-sucedida.
+     *
+     * @param  array<string, mixed>  $context
      */
     protected function applySideEffects(Terreno $terreno, ?User $user, string $targetStatus, array $context = []): void
     {
-        if ($targetStatus === 'negociacao_minuta' && ($terreno->comiteAtual?->final_decision === 'aprovado_com_ressalvas')) {
+        if ($targetStatus === WorkflowStatus::NEGOCIACAO_MINUTA->value && ($terreno->comiteAtual?->final_decision === 'aprovado_com_ressalvas')) {
             $pendencias = $terreno->comiteAtual?->pendencias()->count() ?? 0;
 
             if ($pendencias === 0) {
@@ -414,7 +447,7 @@ class LandWorkflowService
             }
         }
 
-        if ($targetStatus === 'legalizando') {
+        if ($targetStatus === WorkflowStatus::LEGALIZANDO->value) {
             Projeto::where('terreno_id', $terreno->id)
                 ->where('status', Projeto::STATUS_EM_VIABILIDADE)
                 ->update([
@@ -423,7 +456,7 @@ class LandWorkflowService
                 ]);
         }
 
-        if ($targetStatus === 'legalizado_finalizado') {
+        if ($targetStatus === WorkflowStatus::LEGALIZADO_FINALIZADO->value) {
             Projeto::where('terreno_id', $terreno->id)
                 ->whereNotIn('status', [Projeto::STATUS_CANCELADO, Projeto::STATUS_FINALIZADO])
                 ->update([
@@ -432,7 +465,7 @@ class LandWorkflowService
                 ]);
         }
 
-        if (in_array($targetStatus, ['descartado', 'arquivado'], true)) {
+        if (in_array($targetStatus, WorkflowStatus::closure(), true)) {
             Projeto::where('terreno_id', $terreno->id)
                 ->whereNotIn('status', [Projeto::STATUS_CANCELADO, Projeto::STATUS_FINALIZADO])
                 ->update([
@@ -442,6 +475,9 @@ class LandWorkflowService
         }
     }
 
+    /**
+     * Verifica se o terreno possui os requisitos mínimos preenchidos.
+     */
     protected function hasMinimumReadiness(Terreno $terreno): bool
     {
         return $terreno->proprietarios()->exists()
@@ -449,12 +485,13 @@ class LandWorkflowService
             && $terreno->terrenoProdutos()->exists();
     }
 
+    /**
+     * Normaliza o código do status para um valor válido.
+     */
     protected function normalizeStatus(?string $status): string
     {
-        if (!$status) {
-            return 'em_analise';
-        }
-
-        return array_key_exists($status, self::statuses()) ? $status : 'em_analise';
+        return WorkflowStatus::tryFrom($status ?? '') !== null
+            ? $status
+            : WorkflowStatus::EM_ANALISE->value;
     }
 }

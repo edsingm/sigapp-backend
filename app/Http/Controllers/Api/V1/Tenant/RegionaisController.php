@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Gate;
 class RegionaisController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Exibe uma listagem do recurso.
      */
     public function index(Request $request): JsonResponse
     {
@@ -45,7 +45,7 @@ class RegionaisController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Armazena um recurso recém-criado.
      */
     public function store(StoreRegionalRequest $request): JsonResponse
     {
@@ -66,7 +66,7 @@ class RegionaisController extends Controller
     }
 
     /**
-     * Display the specified resource.
+     * Exibe o recurso especificado.
      */
     public function show(string $id): JsonResponse
     {
@@ -80,7 +80,7 @@ class RegionaisController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
+     * Atualiza o recurso especificado.
      */
     public function update(UpdateRegionalRequest $request, string $id): JsonResponse
     {
@@ -99,7 +99,7 @@ class RegionaisController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Remove o recurso especificado.
      */
     public function destroy(string $id): JsonResponse
     {

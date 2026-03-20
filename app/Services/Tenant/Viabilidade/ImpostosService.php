@@ -89,6 +89,8 @@ class ImpostosService
             if (isset($produto['financeiro'])) {
                 $pis += $produto['financeiro']['imposto_pis'] ?? 0;
                 $cofins += $produto['financeiro']['imposto_cofins'] ?? 0;
+                $iss += $produto['financeiro']['imposto_iss'] ?? 0;
+                $outrasDeducoes += $produto['financeiro']['outras_deducoes'] ?? 0;
                 $irpj += $produto['financeiro']['irrpj'] ?? 0;
                 $csll += $produto['financeiro']['csll'] ?? 0;
             }

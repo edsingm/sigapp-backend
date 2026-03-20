@@ -92,7 +92,8 @@ class ViabilidadeUnificadoService
             // 5. Iterar mês a mês
             $fluxo = [];
             $saldoAcumulado = 0;
-            $fluxoTir = [];
+            $fluxoTir = [];       // fluxo com CEF (exposição real)
+            $fluxoTirSemCef = []; // fluxo sem CEF (TIR operacional do projeto)
             $totais = [
                 'receita' => 0,
                 'custo_direto' => 0,
@@ -115,6 +116,10 @@ class ViabilidadeUnificadoService
                 $lucroMes = $receitas['total'] - $despesas['total'];
                 $saldoAcumulado += $lucroMes;
 
+                // TIR sem CEF: usa apenas Recursos Próprios (planilha usa esta base para TIR operacional)
+                $receitaRpMes = $receitas['detalhes']['Recursos Próprios'] ?? 0;
+                $lucroSemCefMes = $receitaRpMes - $despesas['total'];
+
                 // Obter unidades vendidas no mês atual
                 $unidadesVendidasMes = ceil($this->cacheVendasPorMes[$mes] ?? 0);
 
@@ -130,6 +135,7 @@ class ViabilidadeUnificadoService
                 ];
 
                 $fluxoTir[] = ['data' => $data->copy(), 'valor' => $lucroMes];
+                $fluxoTirSemCef[] = ['data' => $data->copy(), 'valor' => $lucroSemCefMes];
 
                 // Acumular totais detalhados
                 $totais['receita'] += $receitas['total'];
@@ -144,8 +150,11 @@ class ViabilidadeUnificadoService
             $indicadoresVso = $this->calcularIndicadoresVso($fluxo, $dadosProdutos);
             $indicadoresVsoJanelas = $this->calcularIndicadoresVsoJanelas($fluxo, $dadosProdutos);
 
+            // tir_operacional usa fluxo com CEF (único com cruzamento de sinal viável com 80% CEF)
+            // tir_sem_cef disponível para análise sem financiamento (pode retornar 0 se sem cruzamento)
             $indicadores = [
                 'tir_operacional' => $this->calcularTir($fluxoTir),
+                'tir_sem_cef' => $this->calcularTir($fluxoTirSemCef),
                 'exposicao_maxima_operacional' => collect($fluxo)->min('saldo_acumulado'),
                 'margem_liquida' => $totais['receita'] > 0 ? ($totais['lucro'] / $totais['receita']) : 0,
             ];
@@ -855,6 +864,8 @@ class ViabilidadeUnificadoService
                     'correcao_anualPosChave' => $produto->correcao_anualPosChave ?? 0,
                     'imposto_pis' => $imps['imposto_pis'],
                     'imposto_cofins' => $imps['imposto_cofins'],
+                    'imposto_iss' => $imps['imposto_iss'],
+                    'outras_deducoes' => $imps['outras_deducoes'],
                     'irrpj' => $imps['irrpj'],
                     'csll' => $imps['csll'],
                 ],
@@ -1783,7 +1794,7 @@ class ViabilidadeUnificadoService
         ];
     }
 
-    private function calcularTir(array $fluxo, float $estimativa = 0.1): float
+    private function calcularTir(array $fluxo, float $estimativa = 0.01): float
     {
         $temPositivo = false;
         $temNegativo = false;
@@ -1799,21 +1810,28 @@ class ViabilidadeUnificadoService
             return 0;
         }
 
-        $taxa = $estimativa;
-        for ($i = 0; $i < 100; $i++) {
-            $f = $df = 0;
-            foreach ($fluxo as $t => $item) {
-                $f += $item['valor'] / pow(1 + $taxa, $t);
-                $df -= $t * $item['valor'] / pow(1 + $taxa, $t + 1);
+        // Tenta múltiplas estimativas para aumentar chance de convergência
+        foreach ([0.005, 0.01, 0.02, 0.05] as $estimativaInicial) {
+            $taxa = $estimativaInicial;
+            for ($i = 0; $i < 200; $i++) {
+                $f = $df = 0;
+                foreach ($fluxo as $t => $item) {
+                    $fator = pow(1 + $taxa, $t);
+                    $f += $item['valor'] / $fator;
+                    $df -= $t * $item['valor'] / ($fator * (1 + $taxa));
+                }
+                if (abs($df) < 1e-10) {
+                    break;
+                }
+                $proximaTaxa = $taxa - ($f / $df);
+                if ($proximaTaxa <= -1) {
+                    break; // taxa inválida
+                }
+                if (abs($proximaTaxa - $taxa) < 1e-8) {
+                    return pow(1 + $proximaTaxa, 12) - 1;
+                }
+                $taxa = $proximaTaxa;
             }
-            if (abs($df) < 0.00001) {
-                break;
-            }
-            $proximaTaxa = $taxa - ($f / $df);
-            if (abs($proximaTaxa - $taxa) < 0.00001) {
-                return pow(1 + $proximaTaxa, 12) - 1;
-            }
-            $taxa = $proximaTaxa;
         }
 
         return 0;

@@ -4,7 +4,7 @@ namespace App\Services\Tenant\Viabilidade;
 
 /**
  * ImpostosService - Centraliza todos os cálculos de impostos e tributos
- * 
+ *
  * Responsabilidades:
  * - Cálculo de PIS, COFINS, ISS
  * - Cálculo de IRPJ, CSLL
@@ -15,11 +15,10 @@ class ImpostosService
 {
     /**
      * Calcula tributos mensais sobre uma receita
-     * 
-     * @param float $receita Receita do mês
-     * @param float $jurosCorrecao Juros e correção do mês (base diferente para alguns impostos)
-     * @param array $params Parâmetros da viabilidade
-     * @return array
+     *
+     * @param  float  $receita  Receita do mês
+     * @param  float  $jurosCorrecao  Juros e correção do mês (base diferente para alguns impostos)
+     * @param  array  $params  Parâmetros da viabilidade
      */
     public function calcularTributosMensais(float $receita, float $jurosCorrecao, array $params): array
     {
@@ -36,12 +35,12 @@ class ImpostosService
 
     /**
      * Calcula tributos mensais proporcional por produto
-     * 
-     * @param float $receitaMes Receita total do mês
-     * @param float $jurosCorrecaoMes Juros e correção do mês
-     * @param array $produtos Lista de produtos com seus dados
-     * @param float $vgvTotal VGV total do projeto
-     * @param array $params Parâmetros da viabilidade
+     *
+     * @param  float  $receitaMes  Receita total do mês
+     * @param  float  $jurosCorrecaoMes  Juros e correção do mês
+     * @param  array  $produtos  Lista de produtos com seus dados
+     * @param  float  $vgvTotal  VGV total do projeto
+     * @param  array  $params  Parâmetros da viabilidade
      * @return float Total de tributos do mês
      */
     public function calcularTributosPorProduto(
@@ -71,9 +70,9 @@ class ImpostosService
 
     /**
      * Calcula impostos para a DRE completa (visão consolidada)
-     * 
-     * @param array $produtos Dados dos produtos processados
-     * @param float $vgvSemTerrenista VGV sem valor do terrenista
+     *
+     * @param  array  $produtos  Dados dos produtos processados
+     * @param  float  $vgvSemTerrenista  VGV sem valor do terrenista
      * @return array Impostos detalhados
      */
     public function calcularImpostosDre(array $produtos, float $vgvSemTerrenista): array
@@ -109,12 +108,11 @@ class ImpostosService
 
     /**
      * Calcula impostos sobre VGV de um produto individual
-     * 
-     * @param float $vgvSemTerrenista VGV sem valor do terrenista
-     * @param float $percentualTributos Percentual de tributos do produto
-     * @param float $percentualIss Percentual de ISS do produto
-     * @param float $percentualOutros Percentual de outros impostos
-     * @return array
+     *
+     * @param  float  $vgvSemTerrenista  VGV sem valor do terrenista
+     * @param  float  $percentualTributos  Percentual de tributos do produto
+     * @param  float  $percentualIss  Percentual de ISS do produto
+     * @param  float  $percentualOutros  Percentual de outros impostos
      */
     public function calcularImpostosProduto(
         float $vgvSemTerrenista,
@@ -146,40 +144,69 @@ class ImpostosService
 
     /**
      * Calcula o custo de juros PJ (antecipação de recebíveis)
-     * 
-     * @param float $valorObra Valor total da obra
-     * @param int $mesesPrazo Prazo em meses
-     * @param string $tipoJuros 'simples' ou 'composto'
-     * @return array
+     *
+     * @param  float  $valorObra  Valor total da obra
+     * @param  int  $mesesPrazo  Prazo em meses
+     * @param  string  $tipoJuros  'simples' ou 'composto'
      */
     public function calcularJurosPJ(
         float $valorObra,
         int $mesesPrazo,
-        string $tipoJuros = 'composto'
+        string $tipoJuros = 'composto',
+        ?float $taxaAnual = null,
+        ?float $percentualAntecipado = null,
+        float $valorBaseAdicional = 0,
+        int $carenciaMeses = 0,
+        int $amortizacaoParcelas = 0
     ): array {
-        $percentualAntecipado = 0.10; // 10%
-        $taxaAnual = config('viabilidade.defaults.juros_pj', 15.23) / 100;
-        $taxaMensal = $taxaAnual / 12;
+        $percentualAntecipado = $percentualAntecipado ?? (config('viabilidade.defaults.percentual_antecipacao_pj', 10) / 100);
+        $taxaAnual = $taxaAnual ?? (config('viabilidade.defaults.taxa_juros_pj', 10.5) / 100);
+        $taxaMensal = $tipoJuros === 'simples' ? ($taxaAnual / 12) : (pow(1 + $taxaAnual, 1 / 12) - 1);
+        $carenciaMeses = max(0, $carenciaMeses);
+        $amortizacaoParcelas = max(0, $amortizacaoParcelas);
+        $prazoEfetivo = max(1, $mesesPrazo);
+        $baseAntecipacao = max(0, $valorObra + max(0, $valorBaseAdicional));
+        $valorAntecipado = $baseAntecipacao * max(0, $percentualAntecipado);
+        $saldoDevedor = $valorAntecipado;
+        $jurosTotais = 0.0;
 
-        $valorAntecipado = $valorObra * $percentualAntecipado;
-
-        if ($tipoJuros === 'simples') {
-            $juros = $valorAntecipado * $taxaMensal * $mesesPrazo;
-            $totalPagar = $valorAntecipado + $juros;
-        } else {
-            $totalPagar = $valorAntecipado * pow(1 + $taxaMensal, $mesesPrazo);
-            $juros = $totalPagar - $valorAntecipado;
+        if ($carenciaMeses > 0) {
+            for ($i = 0; $i < $carenciaMeses; $i++) {
+                $jurosTotais += $saldoDevedor * $taxaMensal;
+            }
         }
+
+        if ($amortizacaoParcelas > 0) {
+            $amortizacaoMensal = $valorAntecipado / $amortizacaoParcelas;
+            for ($i = 0; $i < $amortizacaoParcelas; $i++) {
+                $jurosMes = $saldoDevedor * $taxaMensal;
+                $jurosTotais += $jurosMes;
+                $saldoDevedor = max(0, $saldoDevedor - $amortizacaoMensal);
+            }
+            $prazoEfetivo = $carenciaMeses + $amortizacaoParcelas;
+        } else {
+            if ($tipoJuros === 'simples') {
+                $jurosTotais += $valorAntecipado * $taxaMensal * $mesesPrazo;
+            } else {
+                $montante = $valorAntecipado * pow(1 + $taxaMensal, $mesesPrazo);
+                $jurosTotais += ($montante - $valorAntecipado);
+            }
+            $prazoEfetivo = max(1, $carenciaMeses + $mesesPrazo);
+        }
+
+        $totalPagar = $valorAntecipado + $jurosTotais;
 
         return [
             'valor_obra' => $valorObra,
             'valor_antecipado' => round($valorAntecipado, 2),
             'taxa_mensal' => $taxaMensal,
-            'prazo_meses' => $mesesPrazo,
+            'prazo_meses' => $prazoEfetivo,
             'tipo_juros' => $tipoJuros,
-            'juros_totais' => round($juros, 2),
+            'carencia_meses' => $carenciaMeses,
+            'amortizacao_parcelas' => $amortizacaoParcelas,
+            'juros_totais' => round($jurosTotais, 2),
             'valor_total_pagar' => round($totalPagar, 2),
-            'parcela_mensal' => round($totalPagar / $mesesPrazo, 2),
+            'parcela_mensal' => round($totalPagar / $prazoEfetivo, 2),
         ];
     }
 }

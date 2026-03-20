@@ -61,7 +61,7 @@ class TenantController extends Controller
      */
     public function subscription()
     {
-        Gate::authorize('viewAny', Terreno::class);
+        abort_unless(auth()->user()->isAdmin(), 403);
 
         $tenant = tenancy()->tenant;
         $tenant->load('plan');
@@ -188,7 +188,7 @@ class TenantController extends Controller
      */
     public function billingPortal()
     {
-        Gate::authorize('viewAny', Terreno::class);
+        abort_unless(auth()->user()->isAdmin(), 403);
 
         $tenant = tenancy()->tenant;
 

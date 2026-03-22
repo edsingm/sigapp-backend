@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\V1\Tenant\ContractController;
 use App\Http\Controllers\Api\V1\Tenant\NegotiationController;
 use App\Http\Controllers\Api\V1\Tenant\ProjetoController;
 use App\Http\Controllers\Api\V1\Tenant\TerrenoWorkflowController;
+use App\Http\Controllers\Api\V1\Tenant\AiController;
 use App\Http\Controllers\Api\V1\CidadesController;
 use App\Http\Controllers\Api\V1\LanguageController;
 use App\Http\Middleware\AddTenantContextToLogs;
@@ -198,6 +199,11 @@ Route::middleware([
                     Route::post('/viabilidades/{id}/recalcular', [ViabilidadeController::class, 'recalcular']);
                     Route::post('/viabilidades/{id}/restore', [ViabilidadeController::class, 'restore']);
                     Route::apiResource('viabilidades', ViabilidadeController::class);
+                });
+
+                // AI
+                Route::middleware('check.feature:ai')->group(function () {
+                    Route::post('/ai/sig-ai', [AiController::class, 'chat']);
                 });
 
                 // Projetos

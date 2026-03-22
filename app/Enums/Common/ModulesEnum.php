@@ -31,6 +31,7 @@ enum ModulesEnum: string
     case PROJECTS = 'projects';
     case REPORTS = 'reports';
     case VIABILITY = 'viability';
+    case AI = 'ai';
 
     public function label(): string
     {
@@ -46,7 +47,8 @@ enum ModulesEnum: string
             self::NEGOTIATION => 'Negociações',
             self::PROJECTS => 'Projetos',
             self::REPORTS => 'Relatórios',
-            self::VIABILITY => 'Viabilidade'
+            self::VIABILITY => 'Viabilidades',
+            self::AI => 'IA',
         };
     }
 
@@ -115,6 +117,7 @@ enum ModulesEnum: string
             self::VIABILITY => [
                 Viabilidade::class => null,
             ],
+            self::AI => [],
             default => [],
         };
     }

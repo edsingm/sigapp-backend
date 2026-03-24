@@ -31,7 +31,16 @@ class ListTerrenosTool implements Tool
 
         $query = Terreno::query()
             ->with([
-                'viabilidadeAtual:id,terreno_id,version,status,approval_status,updated_at',
+                'viabilidadeAtual' => static function ($q): void {
+                    $q->select([
+                        'viabilidades.id',
+                        'viabilidades.terreno_id',
+                        'viabilidades.version',
+                        'viabilidades.status',
+                        'viabilidades.approval_status',
+                        'viabilidades.updated_at',
+                    ]);
+                },
             ])
             ->select([
                 'id',
@@ -108,11 +117,11 @@ class ListTerrenosTool implements Tool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'search' => $schema->string()->nullable(),
-            'workflow_stage' => $schema->string()->nullable(),
-            'workflow_status_code' => $schema->string()->nullable(),
-            'cidade_code' => $schema->string()->nullable(),
-            'limit' => $schema->integer()->nullable(),
+            'search' => $schema->string(),
+            'workflow_stage' => $schema->string(),
+            'workflow_status_code' => $schema->string(),
+            'cidade_code' => $schema->string(),
+            'limit' => $schema->integer(),
         ];
     }
 }

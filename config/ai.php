@@ -15,7 +15,7 @@ return [
 
     'default' => 'openai',
     'default_for_images' => 'gemini',
-    'default_for_audio' => 'openai',
+    'default_for_audio' => 'gemini',
     'default_for_transcription' => 'openai',
     'default_for_embeddings' => 'openai',
     'default_for_reranking' => 'cohere',
@@ -35,6 +35,12 @@ return [
         'embeddings' => [
             'cache' => false,
             'store' => env('CACHE_STORE', 'database'),
+        ],
+    ],
+
+    'models' => [
+        'gemini' => [
+            'agent' => env('AI_GEMINI_AGENT_MODEL', 'gemini-2.5-flash-native-audio-dialog'),
         ],
     ],
 

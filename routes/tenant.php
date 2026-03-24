@@ -203,6 +203,8 @@ Route::middleware([
 
                 // AI
                 Route::middleware('check.feature:ai')->group(function () {
+                    Route::get('/ai/conversations', [AiController::class, 'conversations']);
+                    Route::get('/ai/conversations/{id}/messages', [AiController::class, 'conversationMessages']);
                     Route::post('/ai/sig-ai', [AiController::class, 'chat']);
                 });
 

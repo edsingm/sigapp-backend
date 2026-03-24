@@ -157,7 +157,7 @@ class GetTerrenoDetailsTool implements Tool
     {
         return [
             'terreno_id' => $schema->integer()->required(),
-            'include_viabilidades' => $schema->boolean()->nullable(),
+            'include_viabilidades' => $schema->boolean(),
         ];
     }
 }

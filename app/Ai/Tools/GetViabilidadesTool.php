@@ -40,6 +40,7 @@ class GetViabilidadesTool implements Tool
                 'approval_status',
                 'approval_requested_at',
                 'approval_decided_at',
+                'resultados_dre',
                 'created_at',
                 'updated_at',
             ])
@@ -85,6 +86,7 @@ class GetViabilidadesTool implements Tool
                     'approval_status' => $viabilidade->approval_status,
                     'approval_requested_at' => optional($viabilidade->approval_requested_at)?->toAtomString(),
                     'approval_decided_at' => optional($viabilidade->approval_decided_at)?->toAtomString(),
+                    'resultados_dre' => $viabilidade->resultados_dre,
                     'created_at' => optional($viabilidade->created_at)?->toAtomString(),
                     'updated_at' => optional($viabilidade->updated_at)?->toAtomString(),
                 ];
@@ -101,11 +103,11 @@ class GetViabilidadesTool implements Tool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'terreno_id' => $schema->integer()->nullable(),
-            'status' => $schema->string()->nullable(),
-            'approval_status' => $schema->string()->nullable(),
-            'somente_atual' => $schema->boolean()->nullable(),
-            'limit' => $schema->integer()->nullable(),
+            'terreno_id' => $schema->integer(),
+            'status' => $schema->string(),
+            'approval_status' => $schema->string(),
+            'somente_atual' => $schema->boolean(),
+            'limit' => $schema->integer(),
         ];
     }
 }

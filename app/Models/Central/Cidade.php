@@ -36,6 +36,8 @@ class Cidade extends Model
         'per_capta_income',
         'property_maximum_value',
         'buyer_demand',
+        'own_property',
+        'rented_property',
     ];
 
     /**
@@ -55,6 +57,8 @@ class Cidade extends Model
         'per_capta_income' => 'decimal:2',
         'property_maximum_value' => 'decimal:2',
         'buyer_demand' => 'decimal:2',
+        'own_property' => 'integer',
+        'rented_property' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -79,6 +83,8 @@ class Cidade extends Model
             'per_capta_income' => 'nullable|numeric|min:0',
             'property_maximum_value' => 'nullable|numeric|min:0',
             'buyer_demand' => 'nullable|numeric|between:0,100',
+            'own_property' => 'nullable|integer|min:0',
+            'rented_property' => 'nullable|integer|min:0',
         ];
     }
 

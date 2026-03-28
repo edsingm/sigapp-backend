@@ -2,6 +2,11 @@
 
 use Illuminate\Support\Str;
 
+$pgsqlSearchPath = trim((string) env('DB_SEARCH_PATH', 'public')) ?: 'public';
+$centralSearchPath = trim((string) env('CENTRAL_DB_SEARCH_PATH', $pgsqlSearchPath)) ?: 'public';
+$tenantHostSearchPath = trim((string) env('TENANCY_HOST_SEARCH_PATH', 'public')) ?: 'public';
+$tenantTemplateSearchPath = trim((string) env('TENANCY_TEMPLATE_SEARCH_PATH', 'public')) ?: 'public';
+
 return [
 
     /*
@@ -94,7 +99,8 @@ return [
             'charset' => env('DB_CHARSET', 'utf8'),
             'prefix' => '',
             'prefix_indexes' => true,
-            'search_path' => 'public',
+            'search_path' => $pgsqlSearchPath,
+            'schema' => $pgsqlSearchPath,
             'sslmode' => env('DB_SSLMODE', 'prefer'),
         ],
 
@@ -109,7 +115,8 @@ return [
             'charset' => env('CENTRAL_DB_CHARSET', env('DB_CHARSET', 'utf8')),
             'prefix' => '',
             'prefix_indexes' => true,
-            'search_path' => env('CENTRAL_DB_SEARCH_PATH', 'public'),
+            'search_path' => $centralSearchPath,
+            'schema' => $centralSearchPath,
             'sslmode' => env('CENTRAL_DB_SSLMODE', env('DB_SSLMODE', 'prefer')),
         ],
 
@@ -124,7 +131,8 @@ return [
             'charset' => env('TENANCY_DB_CHARSET', env('CENTRAL_DB_CHARSET', env('DB_CHARSET', 'utf8'))),
             'prefix' => '',
             'prefix_indexes' => true,
-            'search_path' => env('TENANCY_HOST_SEARCH_PATH', 'public'),
+            'search_path' => $tenantHostSearchPath,
+            'schema' => $tenantHostSearchPath,
             'sslmode' => env('TENANCY_DB_SSLMODE', env('CENTRAL_DB_SSLMODE', env('DB_SSLMODE', 'prefer'))),
         ],
 
@@ -139,7 +147,8 @@ return [
             'charset' => env('TENANCY_DB_CHARSET', env('CENTRAL_DB_CHARSET', env('DB_CHARSET', 'utf8'))),
             'prefix' => '',
             'prefix_indexes' => true,
-            'search_path' => env('TENANCY_TEMPLATE_SEARCH_PATH', 'public'),
+            'search_path' => $tenantTemplateSearchPath,
+            'schema' => $tenantTemplateSearchPath,
             'sslmode' => env('TENANCY_DB_SSLMODE', env('CENTRAL_DB_SSLMODE', env('DB_SSLMODE', 'prefer'))),
         ],
 

@@ -4,6 +4,7 @@ namespace App\Ai\Tools;
 
 use App\Models\Tenant\Terreno;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\Support\Facades\Gate;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
@@ -28,6 +29,10 @@ class GetTerrenoDetailsTool implements Tool
 
         if ($terrenoId <= 0) {
             return 'Informe um terreno_id válido.';
+        }
+
+        if (Gate::denies('viewAny', Terreno::class)) {
+            return 'Acesso negado: você não tem permissão para acessar terrenos.';
         }
 
         $terreno = Terreno::query()
@@ -67,6 +72,10 @@ class GetTerrenoDetailsTool implements Tool
 
         if (! $terreno) {
             return "Terreno {$terrenoId} não encontrado.";
+        }
+
+        if (Gate::denies('view', $terreno)) {
+            return "Acesso negado: você não tem permissão para visualizar o terreno {$terrenoId}.";
         }
 
         $payload = [

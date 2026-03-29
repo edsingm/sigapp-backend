@@ -135,9 +135,9 @@ class UserController extends Controller
      */
     public function usersForSelect()
     {
-        Gate::authorize('viewAny', \App\Models\Tenant\Terreno::class);
+        Gate::authorize('viewAny', User::class);
 
-        $users = User::select('id', 'name')->orderBy('name')->get();
+        $users = User::select('id', 'name')->orderBy('name')->limit(200)->get();
 
         return ApiResponseService::success($users, 'Usuários carregados com sucesso');
     }

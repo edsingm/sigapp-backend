@@ -61,7 +61,7 @@ class AiController extends Controller
     public function chat(Request $request): mixed
     {
         $request->validate([
-            'message'         => ['required', 'string'],
+            'message'         => ['required', 'string', 'max:2000'],
             'conversation_id' => ['nullable', 'string', 'uuid'],
         ]);
 

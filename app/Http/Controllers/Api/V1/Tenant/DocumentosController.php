@@ -65,12 +65,18 @@ class DocumentosController extends Controller
             }
 
             if ($request->filled('search')) {
-                $query->where('nome', 'like', '%' . $request->search . '%');
+                $search = Str::limit((string) $request->search, 100, '');
+                $query->where('nome', 'like', '%' . $search . '%');
             }
 
-            $sortBy = $request->get('sort_by', 'created_at');
-            $sortDir = $request->get('sort_dir', 'desc');
-            $perPage = $request->get('per_page', 15);
+            $allowedSortColumns = ['created_at', 'updated_at', 'nome', 'tipo', 'categoria', 'status', 'tamanho'];
+            $sortBy = in_array($request->get('sort_by'), $allowedSortColumns, true)
+                ? $request->get('sort_by')
+                : 'created_at';
+            $sortDir = in_array(strtolower((string) $request->get('sort_dir', 'desc')), ['asc', 'desc'], true)
+                ? strtolower((string) $request->get('sort_dir', 'desc'))
+                : 'desc';
+            $perPage = min((int) $request->get('per_page', 15), 100);
             $documentos = $query->orderBy($sortBy, $sortDir)->paginate($perPage);
 
             return response()->json([
@@ -94,7 +100,13 @@ class DocumentosController extends Controller
 
         $validated = $request->validate([
             'terreno_id' => 'required|exists:terrenos,id',
-            'arquivo' => ['required', 'file', 'max:3072'],
+            'arquivo' => [
+                'required',
+                'file',
+                'max:3072',
+                // Valida pelo conteúdo real do arquivo (MIME), não pela extensão informada pelo cliente
+                'mimes:pdf,jpg,jpeg,png,webp,doc,docx,xls,xlsx,ppt,pptx,kml,kmz,dwg',
+            ],
             'nome' => 'nullable|string|max:255',
             'tipo' => [
                 'nullable',
@@ -128,28 +140,28 @@ class DocumentosController extends Controller
         ]);
 
         $file = $request->file('arquivo');
-        $extension = strtolower($file->getClientOriginalExtension());
-        if (!in_array($extension, $this->allowedExtensions, true)) {
+
+        // Usa extensão derivada do MIME type real, nunca da extensão informada pelo cliente
+        $extension = strtolower((string) ($file->guessExtension() ?? ''));
+        if ($extension === '' || !in_array($extension, $this->allowedExtensions, true)) {
             return response()->json([
                 'message' => 'Tipo de arquivo não permitido.',
-                'errors' => ['arquivo' => ['Extensão não permitida: ' . $extension]],
+                'errors' => ['arquivo' => ['Tipo de conteúdo não reconhecido ou não permitido.']],
             ], 422);
         }
 
-        $originalName = $file->getClientOriginalName();
-        $baseName = pathinfo($originalName, PATHINFO_FILENAME);
-        $safeBaseName = Str::slug($baseName) ?: 'documento';
-        $fileName = now()->format('YmdHis') . '_' . Str::lower((string) Str::uuid()) . '_' . $safeBaseName;
-
-        if ($extension !== '') {
-            $fileName .= '.' . $extension;
-        }
+        $baseName = Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) ?: 'documento';
+        $safeBaseName = Str::limit($baseName, 80, '');
+        $fileName = now()->format('YmdHis') . '_' . Str::lower((string) Str::uuid()) . '_' . $safeBaseName . '.' . $extension;
 
         $path = $file->storeAs('documentos', $fileName, self::STORAGE_DISK);
 
+        // Nome de exibição: usa o fornecido ou deriva do nome original (sanitizado e limitado)
+        $displayName = $validated['nome'] ?? Str::limit($file->getClientOriginalName(), 200, '');
+
         $documento = Documento::create([
             'terreno_id' => $validated['terreno_id'],
-            'nome' => $validated['nome'] ?? $originalName,
+            'nome' => $displayName,
             'tipo' => $validated['tipo'] ?? 'outros',
             'categoria' => $validated['categoria'] ?? null,
             'descricao' => $validated['descricao'] ?? null,

@@ -189,9 +189,12 @@ Route::middleware([
                     Route::post('/viabilidades/compare', [ViabilidadeController::class, 'compare']);
                     Route::get('/viabilidades/{id}/export-pdf', [ViabilidadeController::class, 'exportPdf'])
                         ->middleware('check.feature:exports.pdf');
-                    Route::post('/viabilidades/{id}/solicitar-aprovacao', [ViabilidadeController::class, 'solicitarAprovacao']);
-                    Route::post('/viabilidades/{id}/aprovar', [ViabilidadeController::class, 'aprovar']);
-                    Route::post('/viabilidades/{id}/reprovar', [ViabilidadeController::class, 'reprovar']);
+                    Route::post('/viabilidades/{id}/solicitar-aprovacao', [ViabilidadeController::class, 'solicitarAprovacao'])
+                        ->middleware('throttle:viabilidade-approval');
+                    Route::post('/viabilidades/{id}/aprovar', [ViabilidadeController::class, 'aprovar'])
+                        ->middleware('throttle:viabilidade-approval');
+                    Route::post('/viabilidades/{id}/reprovar', [ViabilidadeController::class, 'reprovar'])
+                        ->middleware('throttle:viabilidade-approval');
                     Route::post('/viabilidades/{id}/ativar', [ViabilidadeController::class, 'ativar']);
                     Route::post('/viabilidades/{id}/duplicate', [ViabilidadeController::class, 'duplicate']);
                     Route::post('/viabilidades/{id}/gerar-dre', [ViabilidadeController::class, 'gerarDre'])
@@ -243,6 +246,7 @@ Route::middleware([
                 // Cidades e Estados
                 Route::middleware('check.feature:territorial_base')->group(function () {
                     Route::get('/cidades/estados', [CidadesController::class, 'index']);
+                    Route::get('/cidades/buscar', [CidadesController::class, 'buscar']);
                     Route::get('/cidades/dados', [CidadesController::class, 'dados']);
                     Route::get('/cidades/{estado}', [CidadesController::class, 'getCities']);
                 });
@@ -298,8 +302,8 @@ Route::middleware([
 
     });
 
-    // Tenant health check
-    Route::get('/api/health', function () {
+    // Tenant health check (requer autenticação para não vazar dados do tenant)
+    Route::middleware(['auth:sanctum'])->get('/api/health', function () {
         $tenant = tenancy()->tenant;
 
         return response()->json([

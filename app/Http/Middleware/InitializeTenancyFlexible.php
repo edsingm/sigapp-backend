@@ -56,7 +56,7 @@ class InitializeTenancyFlexible
                 'success' => false,
                 'error' => [
                     'code' => 'TENANT_NOT_FOUND',
-                    'message' => "Tenant '{$tenantSlug}' não encontrado.",
+                    'message' => 'Tenant não encontrado.',
                 ],
             ], 404);
         }
@@ -92,7 +92,11 @@ class InitializeTenancyFlexible
         }
 
         if (app()->environment(['local', 'testing']) && $request->hasHeader('X-Tenant')) {
-            return $request->header('X-Tenant');
+            $headerValue = (string) $request->header('X-Tenant', '');
+            // Aceita apenas slugs alfanuméricos com hífen (sem injeção de caracteres especiais)
+            if (preg_match('/^[a-z0-9\-]{1,63}$/i', $headerValue)) {
+                return strtolower($headerValue);
+            }
         }
 
         return null;

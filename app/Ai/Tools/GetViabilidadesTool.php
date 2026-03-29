@@ -2,8 +2,10 @@
 
 namespace App\Ai\Tools;
 
+use App\Models\Tenant\Terreno;
 use App\Models\Tenant\Viabilidade;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\Support\Facades\Gate;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
@@ -28,6 +30,10 @@ class GetViabilidadesTool implements Tool
         $approvalStatus = trim((string) ($request['approval_status'] ?? ''));
         $somenteAtual = filter_var($request['somente_atual'] ?? false, FILTER_VALIDATE_BOOL);
         $limit = max(1, min((int) ($request['limit'] ?? 20), 100));
+
+        if (Gate::denies('viewAny', Terreno::class)) {
+            return 'Acesso negado: você não tem permissão para acessar viabilidades.';
+        }
 
         $query = Viabilidade::query()
             ->with(['terreno:id,nome,endereco,cidade_code,estado'])

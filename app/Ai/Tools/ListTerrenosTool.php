@@ -4,6 +4,7 @@ namespace App\Ai\Tools;
 
 use App\Models\Tenant\Terreno;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\Support\Facades\Gate;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
@@ -23,6 +24,10 @@ class ListTerrenosTool implements Tool
      */
     public function handle(Request $request): Stringable|string
     {
+        if (Gate::denies('viewAny', Terreno::class)) {
+            return 'Acesso negado: você não tem permissão para listar terrenos.';
+        }
+
         $search = trim((string) ($request['search'] ?? ''));
         $workflowStage = trim((string) ($request['workflow_stage'] ?? ''));
         $workflowStatus = trim((string) ($request['workflow_status_code'] ?? ''));

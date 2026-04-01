@@ -10,7 +10,6 @@ use App\Services\ApiResponseService;
 use App\Services\Tenant\TenantUserService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
@@ -131,12 +130,13 @@ class UserController extends Controller
     /**
      * Busca usuários para dropdown de seleção.
      *
+     * Retorna apenas id e name — dados não sensíveis acessíveis a qualquer
+     * usuário autenticado do tenant para preencher campos de "responsável".
+     *
      * GET /api/v1/users/for-select
      */
     public function usersForSelect()
     {
-        Gate::authorize('viewAny', User::class);
-
         $users = User::select('id', 'name')->orderBy('name')->limit(200)->get();
 
         return ApiResponseService::success($users, 'Usuários carregados com sucesso');

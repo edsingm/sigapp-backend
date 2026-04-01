@@ -79,6 +79,7 @@ Route::middleware([
             Route::post('/auth/logout-all', [AuthController::class, 'logoutAll']);
             Route::post('/auth/refresh', [AuthController::class, 'refresh']);
             Route::get('/auth/me', [AuthController::class, 'me']);
+            Route::put('/auth/me', [AuthController::class, 'updateMe']);
 
             // Locale
             Route::put('/locale', [LanguageController::class, 'set']);

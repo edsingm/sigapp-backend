@@ -12,8 +12,11 @@ use App\Services\ApiResponseService;
 use App\Services\Auth\CentralLoginBrokerService;
 use App\Services\Auth\TenantLoginService;
 use App\Services\Auth\TenantPasswordResetService;
+use App\Services\LanguageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password as PasswordRule;
 use OpenApi\Attributes as OA;
 
 class AuthController extends Controller
@@ -254,6 +257,36 @@ class AuthController extends Controller
         }
 
         return ApiResponseService::success(new UserResource($user), 'USER_RETRIEVED');
+    }
+
+    /**
+     * Atualiza o perfil do próprio usuário autenticado (autoatendimento).
+     *
+     * Qualquer usuário autenticado pode atualizar nome, e-mail, locale e senha
+     * da sua própria conta, sem necessidade de papel administrativo.
+     *
+     * PUT /api/v1/auth/me
+     */
+    public function updateMe(Request $request)
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'name'     => ['sometimes', 'string', 'max:255'],
+            'email'    => ['sometimes', 'email', Rule::unique('users', 'email')->ignore($user->id)],
+            'locale'   => ['sometimes', 'string', 'in:' . implode(',', LanguageService::SUPPORTED_LOCALES)],
+            'password' => ['sometimes', 'confirmed', PasswordRule::defaults()],
+        ]);
+
+        $user->fill(collect($validated)->except('password')->toArray());
+
+        if (isset($validated['password'])) {
+            $user->password = $validated['password'];
+        }
+
+        $user->save();
+
+        return ApiResponseService::success(new UserResource($user->fresh('roles')), 'USER_UPDATED_SUCCESSFULLY');
     }
 
     /**

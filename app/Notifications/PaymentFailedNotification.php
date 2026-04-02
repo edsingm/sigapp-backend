@@ -6,17 +6,18 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class TenantWelcomeNotification extends Notification
+class PaymentFailedNotification extends Notification
 {
     use Queueable;
 
     public function __construct(
         private readonly string $tenantName,
-        private readonly string $appUrl,
+        private readonly int $attemptCount,
+        private readonly ?string $invoiceUrl,
     ) {}
 
     /**
-     * @return list<string>
+     * @return array<int, string>
      */
     public function via(object $notifiable): array
     {
@@ -26,10 +27,11 @@ class TenantWelcomeNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject("Bem-vindo ao SIG.APP — {$this->tenantName}")
-            ->view('emails.tenant-welcome', [
+            ->subject('SIG.APP — Falha no pagamento da sua assinatura')
+            ->view('emails.payment-failed', [
                 'tenantName' => $this->tenantName,
-                'appUrl' => $this->appUrl,
+                'attemptCount' => $this->attemptCount,
+                'invoiceUrl' => $this->invoiceUrl,
             ]);
     }
 }

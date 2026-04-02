@@ -6,23 +6,26 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\FilterTerrenosRequest;
 use App\Http\Requests\Tenant\StoreTerrenoRequest;
 use App\Http\Requests\Tenant\UpdateTerrenoRequest;
+use App\Http\Requests\Tenant\UploadKmzRequest;
 use App\Http\Resources\Tenant\TerrenoInfoResource;
 use App\Http\Resources\Tenant\TerrenoResource;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\TerrenoInfos;
 use App\Services\ApiResponseService;
+use App\Services\Tenant\KmzParserService;
 use App\Services\Tenant\LandWorkflowService;
 use App\Services\Tenant\TerrenoFilterService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 
 class TerrenoController extends Controller
 {
     public function __construct(
-        protected LandWorkflowService $workflowService
-    ) {
-    }
+        protected LandWorkflowService $workflowService,
+        protected KmzParserService $kmzParser,
+    ) {}
 
     /**
      * Lista terrenos com filtros e cache.
@@ -35,8 +38,8 @@ class TerrenoController extends Controller
         $forceRefresh = $request->boolean('force_refresh', false);
         $filters = $request->only(['search', 'per_page', 'page']);
 
-        $cacheKey = "tenant:{$tenantId}:terrenos:index:" . md5(json_encode($filters));
-        $cacheStore = \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:terrenos"]);
+        $cacheKey = "tenant:{$tenantId}:terrenos:index:".md5(json_encode($filters));
+        $cacheStore = Cache::tags(["tenant:{$tenantId}:terrenos"]);
 
         $resolver = function () use ($request) {
             $query = Terreno::query();
@@ -55,6 +58,7 @@ class TerrenoController extends Controller
             $cacheStore->forget($cacheKey);
             $freshData = $resolver();
             $cacheStore->put($cacheKey, $freshData, now()->addMinutes(30));
+
             return $freshData;
         }
 
@@ -88,7 +92,7 @@ class TerrenoController extends Controller
     {
         $terreno = Terreno::find($id);
 
-        if (!$terreno) {
+        if (! $terreno) {
             return ApiResponseService::notFound('Terreno não encontrado');
         }
 
@@ -106,7 +110,7 @@ class TerrenoController extends Controller
     {
         $terreno = Terreno::find($id);
 
-        if (!$terreno) {
+        if (! $terreno) {
             return ApiResponseService::notFound('Terreno não encontrado');
         }
 
@@ -131,7 +135,7 @@ class TerrenoController extends Controller
     {
         $terreno = Terreno::find($id);
 
-        if (!$terreno) {
+        if (! $terreno) {
             return ApiResponseService::notFound('Terreno não encontrado');
         }
 
@@ -151,9 +155,9 @@ class TerrenoController extends Controller
             $tenantId = tenant('id') ?? 'central';
             $forceRefresh = $request->boolean('force_refresh', false);
             $filters = $request->except(['force_refresh']);
-            $cacheKey = "tenant:{$tenantId}:terrenos:filter:" . md5(json_encode($filters));
-            $cacheStore = \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:terrenos"]);
-            $resolver = fn() => $service->filter($request);
+            $cacheKey = "tenant:{$tenantId}:terrenos:filter:".md5(json_encode($filters));
+            $cacheStore = Cache::tags(["tenant:{$tenantId}:terrenos"]);
+            $resolver = fn () => $service->filter($request);
 
             if ($forceRefresh) {
                 $cacheStore->forget($cacheKey);
@@ -165,14 +169,14 @@ class TerrenoController extends Controller
 
             return $this->respondWithPagination($paginator, TerrenoResource::class);
         } catch (\Exception $e) {
-            Log::error('Erro ao filtrar terrenos: ' . $e->getMessage(), [
+            Log::error('Erro ao filtrar terrenos: '.$e->getMessage(), [
                 'params' => $request->all(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
                 'message' => 'Erro ao buscar terrenos',
-                'error' => config('app.debug') ? $e->getMessage() : 'Ocorreu um erro interno'
+                'error' => config('app.debug') ? $e->getMessage() : 'Ocorreu um erro interno',
             ], 500);
         }
     }
@@ -256,6 +260,40 @@ class TerrenoController extends Controller
         return response()->json([
             'message' => 'Informação removida com sucesso!',
         ], 204);
+    }
+
+    /**
+     * Importa coordenadas de polígono a partir de um arquivo .kml ou .kmz.
+     */
+    public function importKmz(UploadKmzRequest $request, string $id)
+    {
+        $terreno = Terreno::find($id);
+
+        if (! $terreno) {
+            return ApiResponseService::notFound('Terreno não encontrado');
+        }
+
+        $this->authorize('update', $terreno);
+
+        try {
+            $coords = $this->kmzParser->parse($request->file('arquivo'));
+        } catch (\RuntimeException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'errors' => ['arquivo' => [$e->getMessage()]],
+            ], 422);
+        }
+
+        $terreno->update([
+            'polygon_coords' => $coords,
+            'updated_by' => $request->user()->id,
+        ]);
+
+        return ApiResponseService::success(
+            new TerrenoResource($this->loadDetailRelations($terreno)),
+            'Coordenadas importadas com sucesso'
+        );
     }
 
     /**

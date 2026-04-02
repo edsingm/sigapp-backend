@@ -9,6 +9,7 @@ use App\Http\Resources\TenantResource;
 use App\Services\ApiResponseService;
 use App\Services\Billing\TenantBillingService;
 use App\Services\UsageMetricsService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 
@@ -179,6 +180,81 @@ class TenantController extends Controller
             'invoices' => $invoices,
             'stripe_error' => app()->environment('local') ? $stripeError : null,
         ], language()->t('SIGNATURE_DATA_RETRIEVED'));
+    }
+
+    /**
+     * Cria um Setup Intent do Stripe para atualizar o método de pagamento.
+     *
+     * O frontend usa o client_secret retornado com o Stripe.js para coletar
+     * os novos dados do cartão sem que eles trafeguem pelo servidor.
+     *
+     * POST /api/v1/tenant/billing/setup-intent
+     */
+    public function createSetupIntent(): \Illuminate\Http\JsonResponse
+    {
+        abort_unless(auth()->user()?->isAdmin(), 403);
+
+        $tenant = tenancy()->tenant;
+
+        if (! $tenant->stripe_id) {
+            return ApiResponseService::conflict('BILLING_NOT_CONFIGURED');
+        }
+
+        try {
+            $intent = $tenant->createSetupIntent();
+
+            return ApiResponseService::success([
+                'client_secret' => $intent->client_secret,
+            ], 'SETUP_INTENT_CREATED');
+        } catch (\Exception $e) {
+            Log::warning('Erro ao criar Setup Intent', [
+                'tenant_id' => $tenant->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return ApiResponseService::error(
+                'SETUP_INTENT_ERROR',
+                'UNKNOWN_ERROR',
+                app()->environment('local') ? $e->getMessage() : null,
+                500
+            );
+        }
+    }
+
+    /**
+     * Atualiza o método de pagamento padrão do tenant.
+     *
+     * Recebe o payment_method_id gerado pelo Stripe.js após o Setup Intent ser confirmado.
+     *
+     * POST /api/v1/tenant/billing/payment-method
+     */
+    public function updateDefaultPaymentMethod(Request $request): \Illuminate\Http\JsonResponse
+    {
+        abort_unless(auth()->user()?->isAdmin(), 403);
+
+        $request->validate([
+            'payment_method_id' => ['required', 'string', 'starts_with:pm_'],
+        ]);
+
+        $tenant = tenancy()->tenant;
+
+        try {
+            $tenant->updateDefaultPaymentMethod($request->input('payment_method_id'));
+
+            return ApiResponseService::success(null, 'PAYMENT_METHOD_UPDATED');
+        } catch (\Exception $e) {
+            Log::warning('Erro ao atualizar método de pagamento', [
+                'tenant_id' => $tenant->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return ApiResponseService::error(
+                'PAYMENT_METHOD_UPDATE_ERROR',
+                'UNKNOWN_ERROR',
+                app()->environment('local') ? $e->getMessage() : null,
+                500
+            );
+        }
     }
 
     /**

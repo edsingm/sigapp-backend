@@ -4,6 +4,7 @@ namespace App\Services\Billing;
 
 use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
+use App\Notifications\PaymentFailedNotification;
 use Carbon\Carbon;
 use Laravel\Cashier\Cashier;
 use Stripe\StripeClient;
@@ -59,7 +60,7 @@ class TenantBillingService
         }
 
         $tenantData = $tenant->getAttribute('data');
-        if (!is_array($tenantData)) {
+        if (! is_array($tenantData)) {
             $tenantData = [];
         }
 
@@ -71,7 +72,7 @@ class TenantBillingService
 
     public function matchesSignupCheckoutSession(Tenant $tenant, ?string $sessionId): bool
     {
-        if (!is_string($sessionId) || $sessionId === '') {
+        if (! is_string($sessionId) || $sessionId === '') {
             return false;
         }
 
@@ -117,7 +118,7 @@ class TenantBillingService
 
     public function syncPlanFromPriceId(Tenant $tenant, ?string $priceId): void
     {
-        if (!$priceId) {
+        if (! $priceId) {
             return;
         }
 
@@ -128,10 +129,22 @@ class TenantBillingService
         }
     }
 
+    /**
+     * Aplica o status da assinatura do Stripe ao tenant.
+     *
+     * - active/trialing  → ativa o tenant
+     * - past_due         → notifica o usuário (Stripe ainda está em retry, não suspende)
+     * - unpaid/incomplete_expired → suspende
+     * - canceled         → cancela
+     * - outros           → noop
+     */
     public function applyStripeSubscriptionStatus(Tenant $tenant, ?string $stripeStatus): string
     {
         return match ($stripeStatus) {
             'active', 'trialing' => tap(self::STATUS_ACTIVE, fn () => $tenant->activate()),
+            'past_due' => tap(self::STATUS_NOOP, fn () => $tenant->notify(
+                new PaymentFailedNotification($tenant->name, 0, null)
+            )),
             'unpaid', 'incomplete_expired' => tap(self::STATUS_SUSPENDED, fn () => $tenant->suspend()),
             'canceled' => tap(self::STATUS_CANCELLED, fn () => $tenant->cancel()),
             default => self::STATUS_NOOP,
@@ -146,17 +159,21 @@ class TenantBillingService
             'stripe_id' => $stripeSubscription->id,
         ]);
 
+        $trialEndsAt = $stripeSubscription->trial_end
+            ? Carbon::createFromTimestamp($stripeSubscription->trial_end)
+            : null;
+
+        $endsAt = $stripeSubscription->cancel_at
+            ? Carbon::createFromTimestamp($stripeSubscription->cancel_at)
+            : null;
+
         $subscription->fill([
             'type' => 'default',
             'stripe_status' => $stripeSubscription->status,
             'stripe_price' => $stripeSubscription->items->data[0]->price->id ?? null,
             'quantity' => $stripeSubscription->items->data[0]->quantity ?? 1,
-            'trial_ends_at' => $stripeSubscription->trial_end
-                ? Carbon::createFromTimestamp($stripeSubscription->trial_end)
-                : null,
-            'ends_at' => $stripeSubscription->cancel_at
-                ? Carbon::createFromTimestamp($stripeSubscription->cancel_at)
-                : null,
+            'trial_ends_at' => $trialEndsAt,
+            'ends_at' => $endsAt,
         ]);
         $subscription->save();
 
@@ -169,11 +186,23 @@ class TenantBillingService
                 'quantity' => $item->quantity ?? 1,
             ]);
         }
+
+        // Sincroniza trial_ends_at do Stripe de volta para a coluna do tenant,
+        // corrigindo possível dessincronização entre o valor local (calculado no signup)
+        // e o valor real registrado no Stripe (contado a partir do checkout completion).
+        if ($stripeSubscription->trial_end) {
+            if (! $tenant->trial_ends_at || ! $tenant->trial_ends_at->eq($trialEndsAt)) {
+                $tenant->update(['trial_ends_at' => $trialEndsAt]);
+            }
+        } elseif ($tenant->trial_ends_at && $stripeSubscription->status !== 'trialing') {
+            // Trial encerrado no Stripe mas ainda definido localmente — limpa
+            $tenant->update(['trial_ends_at' => null]);
+        }
     }
 
     public function reconcileTenantActivation(Tenant $tenant): array
     {
-        if ($tenant->onTrial() && !$tenant->stripe_subscription_id) {
+        if ($tenant->onTrial() && ! $tenant->stripe_subscription_id) {
             $tenant->activate();
 
             return [
@@ -183,7 +212,7 @@ class TenantBillingService
             ];
         }
 
-        if (!$tenant->stripe_subscription_id) {
+        if (! $tenant->stripe_subscription_id) {
             return [
                 'eligible' => false,
                 'source' => 'missing_subscription_reference',

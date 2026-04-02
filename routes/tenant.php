@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\Tenant\TenantController;
+use App\Http\Controllers\Api\V1\Tenant\PlanSwapController;
 use App\Http\Controllers\Api\V1\Tenant\Admin\PermissionController as AdminPermissionController;
 use App\Http\Controllers\Api\V1\Tenant\Admin\RoleController as AdminRoleController;
 use App\Http\Controllers\Api\V1\Tenant\Admin\UserManagementController as AdminUserManagementController;
@@ -87,6 +88,14 @@ Route::middleware([
             Route::get('/tenant/subscription', [TenantController::class, 'subscription']);
             Route::post('/tenant/billing-portal', [TenantController::class, 'billingPortal']);
 
+            // Billing — troca de plano e atualização de método de pagamento
+            // Acessíveis mesmo com assinatura suspensa (tenant pode reativar/atualizar sem bloqueio)
+            Route::middleware('tenant.admin')->group(function () {
+                Route::post('/tenant/subscription/swap', [PlanSwapController::class, 'swap']);
+                Route::post('/tenant/billing/setup-intent', [TenantController::class, 'createSetupIntent']);
+                Route::post('/tenant/billing/payment-method', [TenantController::class, 'updateDefaultPaymentMethod']);
+            });
+
             Route::middleware(CheckSubscriptionStatus::class)->group(function () {
 
                 // Tenant info
@@ -130,6 +139,7 @@ Route::middleware([
                     Route::get('/terrenos/{id}/workflow', [TerrenoWorkflowController::class, 'show']);
                     Route::post('/terrenos/{id}/workflow', [TerrenoWorkflowController::class, 'update']);
                     Route::put('/terrenos/{id}/qualificacao', [TerrenoWorkflowController::class, 'updateQualification']);
+                    Route::post('/terrenos/{id}/import-kmz', [TerrenoController::class, 'importKmz']);
                     Route::apiResource('terrenos', TerrenoController::class)->except(['store']);
                 });
 

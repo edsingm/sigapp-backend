@@ -94,6 +94,14 @@ RateLimiter::for('password-reset-submit', function (Request $request) {
         ->response(fn() => \App\Services\ApiResponseService::tooManyRequests('Muitas tentativas de redefinição. Tente novamente em 1 minuto.'));
 });
 
+RateLimiter::for('signup-status', function (Request $request) {
+    $sessionId = (string) $request->route('sessionId', '');
+
+    return Limit::perMinute(30)
+        ->by('signup-status:'.$request->ip().':'.sha1($sessionId))
+        ->response(fn () => \App\Services\ApiResponseService::tooManyRequests('Muitas consultas de status. Aguarde 1 minuto.'));
+});
+
 RateLimiter::for('viabilidade-approval', function (Request $request) {
     $user = $request->user();
     $tenantId = tenancy()->initialized ? (string) tenant('id') : 'no-tenant';
@@ -130,7 +138,8 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
 
                     // Signup
                     Route::post('/signup', [SignupController::class, 'store']);
-                    Route::get('/signup/{sessionId}/status', [SignupController::class, 'status']);
+                    Route::get('/signup/{sessionId}/status', [SignupController::class, 'status'])
+                        ->middleware('throttle:signup-status');
 
                     // Stripe Webhook (no CSRF, no throttle)
                     Route::post('/webhook/stripe', [WebhookController::class, 'handleWebhook'])

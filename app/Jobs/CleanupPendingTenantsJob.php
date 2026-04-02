@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Central\Tenant;
+use App\Notifications\AbandonedCheckoutNotification;
 use App\Services\Billing\TenantBillingService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -10,6 +11,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 
 class CleanupPendingTenantsJob implements ShouldQueue
 {
@@ -48,7 +50,7 @@ class CleanupPendingTenantsJob implements ShouldQueue
                             $billingService->expireCheckoutSession($checkoutSessionId);
                         }
 
-                        if ($sessionStatus === 'complete' || !empty($session->subscription)) {
+                        if ($sessionStatus === 'complete' || ! empty($session->subscription)) {
                             Log::warning('Cleanup ignorado: checkout já concluído ou com assinatura associada.', [
                                 'tenant_id' => $tenant->id,
                                 'session_id' => $checkoutSessionId,
@@ -89,13 +91,36 @@ class CleanupPendingTenantsJob implements ShouldQueue
                     'created_at' => $tenant->created_at,
                 ]);
 
-                // Deleta os domínios primeiro
-                $tenant->domains()->delete();
+                // Captura dados necessários ANTES da deleção
+                $adminEmail = $tenant->admin_email;
+                $tenantName = $tenant->name;
+                $planSlug = $tenant->plan?->slug ?? '';
 
-                // Deleta o tenant
+                // Deleta os domínios primeiro, depois o tenant
+                $tenant->domains()->delete();
                 $tenant->delete();
 
                 $count++;
+
+                // Envia email de reengajamento após a deleção.
+                // Usa Notification::route() porque o model já foi deletado.
+                if ($adminEmail) {
+                    try {
+                        $signupUrl = rtrim((string) config('app.frontend_url', config('app.url')), '/')
+                            .'/cadastro'
+                            .($planSlug ? '?plan='.$planSlug : '');
+
+                        Notification::route('mail', $adminEmail)
+                            ->notify(new AbandonedCheckoutNotification($tenantName, $planSlug, $signupUrl));
+                    } catch (\Exception $e) {
+                        Log::warning('Falha ao enviar email de reengajamento para tenant removido.', [
+                            'admin_email' => $adminEmail,
+                            'tenant_name' => $tenantName,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+
             } catch (\Exception $e) {
                 Log::error('Erro ao remover tenant pending', [
                     'tenant_id' => $tenant->id,

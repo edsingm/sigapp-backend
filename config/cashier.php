@@ -105,7 +105,7 @@ return [
 
         'options' => [
             // Supported: 'letter', 'legal', 'A4'
-            'paper' => env('CASHIER_PAPER', 'letter'),
+            'paper' => env('CASHIER_PAPER', 'A4'),
 
             'remote_enabled' => env('CASHIER_REMOTE_ENABLED', false),
         ],

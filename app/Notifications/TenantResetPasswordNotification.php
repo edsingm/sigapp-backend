@@ -28,10 +28,9 @@ class TenantResetPasswordNotification extends Notification
     {
         return (new MailMessage)
             ->subject('Redefina sua senha no SIG.APP')
-            ->greeting('Olá!')
-            ->line('Recebemos uma solicitação para redefinir a senha da sua conta.')
-            ->action('Redefinir senha', $this->resetUrl)
-            ->line("Este link expira em {$this->expireMinutes} minutos.")
-            ->line('Se você não solicitou a redefinição, pode ignorar este e-mail com segurança.');
+            ->view('emails.tenant-reset-password', [
+                'resetUrl' => $this->resetUrl,
+                'expireMinutes' => $this->expireMinutes,
+            ]);
     }
 }

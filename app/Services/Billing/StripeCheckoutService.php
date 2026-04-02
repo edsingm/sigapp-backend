@@ -35,6 +35,9 @@ class StripeCheckoutService
     /**
      * Cria uma sessão de Checkout do Stripe para uma assinatura.
      *
+     * Ao omitir `payment_method_types`, o Stripe usa automaticamente todos os métodos
+     * habilitados no Dashboard para a moeda BRL (cartão, Boleto, Pix, etc.).
+     *
      * @param  array<string, mixed>  $sessionOptions  Opções extras mescladas ao payload da sessão.
      */
     public function createSubscriptionSession(
@@ -48,7 +51,6 @@ class StripeCheckoutService
         return Cashier::stripe()->checkout->sessions->create(array_merge([
             'customer' => $customerId,
             'client_reference_id' => (string) $tenant->id,
-            'payment_method_types' => ['card'],
             'mode' => 'subscription',
             'line_items' => [
                 [
@@ -62,6 +64,11 @@ class StripeCheckoutService
                     'tenant_id' => $tenant->id,
                 ],
             ],
+            // Permite códigos de desconto/cupom no checkout
+            'allow_promotion_codes' => true,
+            // Coleta Tax ID (CNPJ/CPF) e endereço do cliente
+            'tax_id_collection' => ['enabled' => true],
+            'customer_update' => ['name' => 'auto', 'address' => 'auto'],
             'success_url' => $this->signupSuccessUrl(),
             'cancel_url' => $this->signupCancelUrl($plan->slug),
             'metadata' => [
@@ -73,6 +80,8 @@ class StripeCheckoutService
 
     /**
      * Cria um Produto + Preço no Stripe em tempo de execução quando o plano não possui um stripe_price_id.
+     *
+     * Usa idempotency keys para evitar criação duplicada em caso de retry.
      */
     public function createPriceOnTheFly(Plan $plan): string
     {
@@ -82,17 +91,25 @@ class StripeCheckoutService
             'price_in_cents' => $plan->price,
         ]);
 
-        $product = Cashier::stripe()->products->create([
-            'name' => $plan->name,
-            'description' => $plan->description,
-        ]);
+        $idempotencyBase = 'plan-'.$plan->id.'-'.$plan->slug;
 
-        $price = Cashier::stripe()->prices->create([
-            'product' => $product->id,
-            'unit_amount' => $plan->price,
-            'currency' => config('cashier.currency', 'brl'),
-            'recurring' => ['interval' => 'month'],
-        ]);
+        $product = Cashier::stripe()->products->create(
+            [
+                'name' => $plan->name,
+                'description' => $plan->description,
+            ],
+            ['idempotency_key' => 'product-'.$idempotencyBase]
+        );
+
+        $price = Cashier::stripe()->prices->create(
+            [
+                'product' => $product->id,
+                'unit_amount' => $plan->price,
+                'currency' => config('cashier.currency', 'brl'),
+                'recurring' => ['interval' => 'month'],
+            ],
+            ['idempotency_key' => 'price-'.$idempotencyBase.'-'.$plan->price]
+        );
 
         $plan->update(['stripe_price_id' => $price->id]);
 

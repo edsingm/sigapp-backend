@@ -5,8 +5,11 @@ namespace App\Http\Controllers\Api\V1;
 use App\Jobs\CreateFullTenantJob;
 use App\Models\Central\Tenant;
 use App\Models\Central\WebhookEvent;
+use App\Notifications\PaymentFailedNotification;
+use App\Notifications\TrialEndingNotification;
 use App\Services\Billing\TenantBillingService;
 use App\Traits\LogsAudit;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -32,7 +35,7 @@ class WebhookController extends CashierController
      */
     public function handleWebhook(Request $request)
     {
-        if ($this->requiresSignedWebhook() && !$this->hasWebhookSecret()) {
+        if ($this->requiresSignedWebhook() && ! $this->hasWebhookSecret()) {
             Log::critical('Stripe webhook recusado: STRIPE_WEBHOOK_SECRET ausente fora de local/testing.');
 
             return response()->json([
@@ -43,11 +46,11 @@ class WebhookController extends CashierController
         $payload = json_decode($request->getContent(), true);
         $eventId = $payload['id'] ?? null;
 
-        if (!is_string($eventId) || $eventId === '') {
+        if (! is_string($eventId) || $eventId === '') {
             return parent::handleWebhook($request);
         }
 
-        return Cache::lock('stripe-webhook:' . $eventId, 30)->block(5, function () use ($eventId, $payload, $request) {
+        return Cache::lock('stripe-webhook:'.$eventId, 30)->block(5, function () use ($eventId, $payload, $request) {
             $event = WebhookEvent::query()->firstOrCreate(
                 ['event_id' => $eventId],
                 [
@@ -90,7 +93,7 @@ class WebhookController extends CashierController
         $session = (array) data_get($payload, 'data.object', []);
         $tenantId = data_get($session, 'metadata.tenant_id');
 
-        if (!$tenantId) {
+        if (! $tenantId) {
             $this->audit('tenant.checkout_validation_failed', 'Checkout concluído sem tenant_id válido.', [
                 'session_id' => $session['id'] ?? null,
                 'customer' => $session['customer'] ?? null,
@@ -102,7 +105,7 @@ class WebhookController extends CashierController
 
         $tenant = Tenant::find($tenantId);
 
-        if (!$tenant) {
+        if (! $tenant) {
             $this->audit('tenant.checkout_validation_failed', "Checkout concluído mas tenant ID '{$tenantId}' não encontrado no banco.", [
                 'tenant_id' => $tenantId,
                 'session_id' => $session['id'] ?? null,
@@ -140,7 +143,7 @@ class WebhookController extends CashierController
 
         $signupContractAcceptance = $this->billingService->getSignupContractAcceptance($tenant);
         $signupContractAccepted = (bool) data_get($signupContractAcceptance, 'accepted', false);
-        if (!$signupContractAccepted) {
+        if (! $signupContractAccepted) {
             Log::warning('Checkout completed para tenant sem aceite de contrato registrado no signup', [
                 'tenant_id' => $tenant->id,
                 'tenant_slug' => $tenant->slug,
@@ -159,10 +162,25 @@ class WebhookController extends CashierController
             ]);
         }
 
-        $tenant->update([
-            'stripe_subscription_id' => $session['subscription'] ?? null,
-            'stripe_id' => $session['customer'] ?? null,
-        ]);
+        // Guard para métodos de pagamento assíncronos (Boleto, etc.):
+        // Boleto gera checkout.session.completed mas com payment_status='unpaid'.
+        // O provisionamento só deve ocorrer após a confirmação do pagamento via invoice.paid.
+        $paymentStatus = data_get($session, 'payment_status');
+        if ($paymentStatus !== 'paid' && $paymentStatus !== 'no_payment_required') {
+            Log::info('Checkout concluído mas pagamento pendente (método assíncrono)', [
+                'tenant_id' => $tenant->id,
+                'payment_status' => $paymentStatus,
+                'session_id' => $session['id'] ?? null,
+            ]);
+
+            // Armazena os IDs para que o invoice.paid possa provisionar corretamente
+            $tenant->update([
+                'stripe_subscription_id' => $session['subscription'] ?? null,
+                'stripe_id' => $session['customer'] ?? null,
+            ]);
+
+            return $this->successMethod();
+        }
 
         Log::info('Checkout completed, disparando CreateFullTenantJob', [
             'tenant_id' => $tenant->id,
@@ -181,8 +199,8 @@ class WebhookController extends CashierController
             'customer_id' => $session['customer'] ?? null,
         ]);
 
-        // Manual Sync: Ensure subscription is recorded (fix for race condition)
-        if (!empty($session['subscription'])) {
+        // Sincroniza o estado de billing (stripe_id, stripe_subscription_id, plano, subscription table)
+        if (! empty($session['subscription'])) {
             try {
                 $this->reconcileTenantBillingState(
                     $tenant,
@@ -215,22 +233,18 @@ class WebhookController extends CashierController
         }
 
         $defaultConnection = (string) config('queue.default', 'sync');
-        if (!app()->isLocal() && $defaultConnection === 'sync') {
+        if (! app()->isLocal() && $defaultConnection === 'sync') {
             throw new \RuntimeException('QUEUE_CONNECTION assíncrona é obrigatória fora do ambiente local.');
         }
 
         if (app()->isLocal() && $defaultConnection === 'sync') {
-            // `dispatchAfterResponse` is more reliable than the background queue driver
-            // in local dev and still keeps the webhook response fast.
             CreateFullTenantJob::dispatchAfterResponse($tenant);
 
             return;
         }
 
-        $queueConnection = $defaultConnection;
-
         CreateFullTenantJob::dispatch($tenant)
-            ->onConnection($queueConnection)
+            ->onConnection($defaultConnection)
             ->onQueue('tenant-provisioning');
     }
 
@@ -261,28 +275,47 @@ class WebhookController extends CashierController
 
     /**
      * Handle invoice.payment_failed event.
+     *
+     * Notifica o usuário em toda falha. Suspende após 3 tentativas.
      */
     protected function handleInvoicePaymentFailed(array $payload)
     {
-        $invoice = (object) $payload['data']['object'];
-        $customerId = $invoice->customer;
+        $invoice = (array) data_get($payload, 'data.object', []);
+        $customerId = data_get($invoice, 'customer');
+        $attempts = (int) data_get($invoice, 'attempt_count', 0);
+        $invoiceUrl = data_get($invoice, 'hosted_invoice_url');
 
         $tenant = Tenant::where('stripe_id', $customerId)->first();
 
-        if ($tenant && ($invoice->attempt_count ?? 0) >= 3) {
+        if (! $tenant) {
+            return $this->successMethod();
+        }
+
+        // Notifica o usuário em toda falha de pagamento
+        $tenant->notify(new PaymentFailedNotification($tenant->name, $attempts, $invoiceUrl));
+
+        $this->audit('tenant.payment_notification_sent', "Notificação de falha de pagamento enviada (tentativa {$attempts}).", [
+            'tenant_id' => $tenant->id,
+            'tenant_slug' => $tenant->slug,
+            'attempt_count' => $attempts,
+            'invoice_id' => data_get($invoice, 'id'),
+        ]);
+
+        if ($attempts >= 3) {
             $tenant->suspend();
+
             Log::warning('Tenant suspenso por falta de pagamento', [
                 'tenant_id' => $tenant->id,
-                'attempts' => $invoice->attempt_count ?? 0,
+                'attempts' => $attempts,
             ]);
 
-            $this->audit('tenant.payment_failed', "Pagamento falhou {$invoice->attempt_count}x para tenant '{$tenant->name}'. Tenant suspenso.", [
+            $this->audit('tenant.payment_failed', "Pagamento falhou {$attempts}x para tenant '{$tenant->name}'. Tenant suspenso.", [
                 'tenant_id' => $tenant->id,
                 'tenant_slug' => $tenant->slug,
                 'tenant_name' => $tenant->name,
                 'customer_id' => $customerId,
-                'attempt_count' => $invoice->attempt_count ?? 0,
-                'invoice_id' => $invoice->id ?? null,
+                'attempt_count' => $attempts,
+                'invoice_id' => data_get($invoice, 'id'),
                 'reason' => 'payment_failed_suspended',
             ]);
         }
@@ -384,9 +417,70 @@ class WebhookController extends CashierController
         return $this->successMethod();
     }
 
+    /**
+     * Handle customer.subscription.trial_will_end event.
+     *
+     * Disparado pelo Stripe 3 dias antes do fim do trial.
+     * Requer que o evento esteja registrado no Dashboard do Stripe.
+     */
+    protected function handleCustomerSubscriptionTrialWillEnd(array $payload)
+    {
+        $subscription = (array) data_get($payload, 'data.object', []);
+        $customerId = data_get($subscription, 'customer');
+        $trialEnd = data_get($subscription, 'trial_end');
+
+        $tenant = Tenant::where('stripe_id', $customerId)->first();
+
+        if (! $tenant || ! $trialEnd) {
+            return $this->successMethod();
+        }
+
+        $trialEndsAt = Carbon::createFromTimestamp($trialEnd);
+
+        $tenant->notify(new TrialEndingNotification($tenant->name, $trialEndsAt));
+
+        $this->audit('tenant.trial_ending_notified', "Notificação de fim do período de teste enviada.", [
+            'tenant_id' => $tenant->id,
+            'tenant_slug' => $tenant->slug,
+            'trial_ends_at' => $trialEndsAt->toIso8601String(),
+        ]);
+
+        return $this->successMethod();
+    }
+
+    /**
+     * Handle charge.dispute.created event (chargeback).
+     *
+     * Requer que o evento esteja registrado no Dashboard do Stripe.
+     */
+    protected function handleChargeDisputeCreated(array $payload)
+    {
+        $dispute = (array) data_get($payload, 'data.object', []);
+        $chargeId = data_get($dispute, 'charge');
+        $amount = data_get($dispute, 'amount');
+        $reason = data_get($dispute, 'reason');
+        $disputeId = data_get($dispute, 'id');
+
+        Log::critical('Chargeback criado no Stripe', [
+            'dispute_id' => $disputeId,
+            'charge_id' => $chargeId,
+            'amount' => $amount,
+            'reason' => $reason,
+        ]);
+
+        $this->audit('stripe.dispute_created', 'Chargeback recebido do Stripe.', [
+            'dispute_id' => $disputeId,
+            'charge_id' => $chargeId,
+            'amount' => $amount,
+            'reason' => $reason,
+        ]);
+
+        return $this->successMethod();
+    }
+
     protected function requiresSignedWebhook(): bool
     {
-        return !app()->environment(['local', 'testing']);
+        return ! app()->environment(['local', 'testing']);
     }
 
     protected function hasWebhookSecret(): bool
@@ -432,7 +526,7 @@ class WebhookController extends CashierController
     protected function hydrateMissingSignupCheckoutReference(Tenant $tenant, array $session): void
     {
         $receivedSessionId = $session['id'] ?? null;
-        if (!is_string($receivedSessionId) || $receivedSessionId === '') {
+        if (! is_string($receivedSessionId) || $receivedSessionId === '') {
             return;
         }
 
@@ -456,7 +550,7 @@ class WebhookController extends CashierController
         string $source,
         array $context = []
     ): void {
-        if (!$subscriptionId) {
+        if (! $subscriptionId) {
             Log::warning('Evento Stripe sem subscription_id para reconciliação do tenant', array_merge([
                 'tenant_id' => $tenant->id,
                 'source' => $source,
@@ -490,7 +584,7 @@ class WebhookController extends CashierController
             'database_created' => (bool) $tenant->database_created,
         ], $context));
 
-        if (in_array($stripeStatus, ['active', 'trialing'], true) && !$tenant->database_created) {
+        if (in_array($stripeStatus, ['active', 'trialing'], true) && ! $tenant->database_created) {
             $this->dispatchTenantProvisioning($tenant->fresh());
         }
     }

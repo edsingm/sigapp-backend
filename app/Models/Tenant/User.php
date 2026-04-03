@@ -57,7 +57,7 @@ class User extends Authenticatable
     }
 
     /**
-     * The attributes that are mass assignable.
+     * Os atributos que podem ser atribuídos em massa.
      */
     protected $fillable = [
         'name',
@@ -68,7 +68,7 @@ class User extends Authenticatable
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
+     * Os atributos que devem ser ocultos para serialização.
      */
     protected $hidden = [
         'password',
@@ -76,7 +76,7 @@ class User extends Authenticatable
     ];
 
     /**
-     * The attributes that should be cast.
+     * Os atributos que devem ser convertidos.
      */
     protected function casts(): array
     {
@@ -88,7 +88,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user is a super admin.
+     * Verifica se o usuário é um super administrador.
      */
     public function isSuperAdmin(): bool
     {
@@ -104,7 +104,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the plan for the current tenant
+     * Obtém o plano do tenant atual
      *
      * @return Plan|null
      */

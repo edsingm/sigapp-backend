@@ -34,6 +34,9 @@ class DocumentosController extends Controller
         'dwg',
     ];
 
+    /**
+     * Listar documentos.
+     */
     public function index(Request $request): JsonResponse
     {
         Gate::authorize('viewAny', Documento::class);
@@ -62,12 +65,18 @@ class DocumentosController extends Controller
             }
 
             if ($request->filled('search')) {
-                $query->where('nome', 'like', '%' . $request->search . '%');
+                $search = Str::limit((string) $request->search, 100, '');
+                $query->where('nome', 'like', '%' . $search . '%');
             }
 
-            $sortBy = $request->get('sort_by', 'created_at');
-            $sortDir = $request->get('sort_dir', 'desc');
-            $perPage = $request->get('per_page', 15);
+            $allowedSortColumns = ['created_at', 'updated_at', 'nome', 'tipo', 'categoria', 'status', 'tamanho'];
+            $sortBy = in_array($request->get('sort_by'), $allowedSortColumns, true)
+                ? $request->get('sort_by')
+                : 'created_at';
+            $sortDir = in_array(strtolower((string) $request->get('sort_dir', 'desc')), ['asc', 'desc'], true)
+                ? strtolower((string) $request->get('sort_dir', 'desc'))
+                : 'desc';
+            $perPage = min((int) $request->get('per_page', 15), 100);
             $documentos = $query->orderBy($sortBy, $sortDir)->paginate($perPage);
 
             return response()->json([
@@ -82,13 +91,22 @@ class DocumentosController extends Controller
         });
     }
 
+    /**
+     * Armazenar um novo documento.
+     */
     public function store(Request $request): JsonResponse
     {
         Gate::authorize('create', Documento::class);
 
         $validated = $request->validate([
             'terreno_id' => 'required|exists:terrenos,id',
-            'arquivo' => ['required', 'file', 'max:3072'],
+            'arquivo' => [
+                'required',
+                'file',
+                'max:3072',
+                // Valida pelo conteúdo real do arquivo (MIME), não pela extensão informada pelo cliente
+                'mimes:pdf,jpg,jpeg,png,webp,doc,docx,xls,xlsx,ppt,pptx,kml,kmz,dwg',
+            ],
             'nome' => 'nullable|string|max:255',
             'tipo' => [
                 'nullable',
@@ -122,39 +140,28 @@ class DocumentosController extends Controller
         ]);
 
         $file = $request->file('arquivo');
-        $tenant = tenant();
-        $limitService = new \App\Services\LimitEnforcementService($tenant);
-        $sizeInKb = (int) ceil($file->getSize() / 1024);
 
-        if (!$limitService->canUploadFile($sizeInKb)) {
-            return response()->json([
-                'message' => 'Limite de armazenamento atingido para o seu plano.',
-                'error' => 'LIMIT_EXCEEDED',
-            ], 403);
-        }
-
-        $extension = strtolower($file->getClientOriginalExtension());
-        if (!in_array($extension, $this->allowedExtensions, true)) {
+        // Usa extensão derivada do MIME type real, nunca da extensão informada pelo cliente
+        $extension = strtolower((string) ($file->guessExtension() ?? ''));
+        if ($extension === '' || !in_array($extension, $this->allowedExtensions, true)) {
             return response()->json([
                 'message' => 'Tipo de arquivo não permitido.',
-                'errors' => ['arquivo' => ['Extensão não permitida: ' . $extension]],
+                'errors' => ['arquivo' => ['Tipo de conteúdo não reconhecido ou não permitido.']],
             ], 422);
         }
 
-        $originalName = $file->getClientOriginalName();
-        $baseName = pathinfo($originalName, PATHINFO_FILENAME);
-        $safeBaseName = Str::slug($baseName) ?: 'documento';
-        $fileName = now()->format('YmdHis') . '_' . Str::lower((string) Str::uuid()) . '_' . $safeBaseName;
-
-        if ($extension !== '') {
-            $fileName .= '.' . $extension;
-        }
+        $baseName = Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) ?: 'documento';
+        $safeBaseName = Str::limit($baseName, 80, '');
+        $fileName = now()->format('YmdHis') . '_' . Str::lower((string) Str::uuid()) . '_' . $safeBaseName . '.' . $extension;
 
         $path = $file->storeAs('documentos', $fileName, self::STORAGE_DISK);
 
+        // Nome de exibição: usa o fornecido ou deriva do nome original (sanitizado e limitado)
+        $displayName = $validated['nome'] ?? Str::limit($file->getClientOriginalName(), 200, '');
+
         $documento = Documento::create([
             'terreno_id' => $validated['terreno_id'],
-            'nome' => $validated['nome'] ?? $originalName,
+            'nome' => $displayName,
             'tipo' => $validated['tipo'] ?? 'outros',
             'categoria' => $validated['categoria'] ?? null,
             'descricao' => $validated['descricao'] ?? null,
@@ -171,6 +178,9 @@ class DocumentosController extends Controller
         ], 201);
     }
 
+    /**
+     * Exibir os detalhes de um documento específico.
+     */
     public function show(int $id): JsonResponse
     {
         $documento = Documento::with(['terreno:id,nome', 'createdBy:id,name', 'updatedBy:id,name'])
@@ -182,6 +192,9 @@ class DocumentosController extends Controller
         ]);
     }
 
+    /**
+     * Atualizar um documento existente.
+     */
     public function update(Request $request, int $id): JsonResponse
     {
         $documento = Documento::findOrFail($id);
@@ -231,6 +244,9 @@ class DocumentosController extends Controller
         ]);
     }
 
+    /**
+     * Excluir um documento.
+     */
     public function destroy(int $id): JsonResponse
     {
         $documento = Documento::findOrFail($id);
@@ -247,6 +263,9 @@ class DocumentosController extends Controller
         ]);
     }
 
+    /**
+     * Baixar o arquivo do documento.
+     */
     public function download(int $id)
     {
         $documento = Documento::findOrFail($id);
@@ -271,6 +290,9 @@ class DocumentosController extends Controller
         );
     }
 
+    /**
+     * Visualizar o arquivo do documento no navegador.
+     */
     public function view(int $id)
     {
         $documento = Documento::findOrFail($id);
@@ -297,6 +319,9 @@ class DocumentosController extends Controller
         );
     }
 
+    /**
+     * Listar os tipos de documentos disponíveis.
+     */
     public function tipos(): JsonResponse
     {
         Gate::authorize('viewAny', Documento::class);
@@ -320,6 +345,9 @@ class DocumentosController extends Controller
         ]);
     }
 
+    /**
+     * Listar as categorias de documentos disponíveis.
+     */
     public function categorias(): JsonResponse
     {
         Gate::authorize('viewAny', Documento::class);

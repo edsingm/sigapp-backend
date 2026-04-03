@@ -9,6 +9,9 @@ use Symfony\Component\HttpFoundation\Response;
 
 class SetUserLocale
 {
+    /**
+     * Manipula uma requisição de entrada.
+     */
     public function handle(Request $request, Closure $next): Response
     {
         LanguageService::resolveFromUser();

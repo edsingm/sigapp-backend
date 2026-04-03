@@ -19,6 +19,9 @@ class ProprietariosController extends Controller
     ) {
     }
 
+    /**
+     * Listar proprietários.
+     */
     public function index(Request $request): JsonResponse
     {
         Gate::authorize('viewAny', Proprietario::class);
@@ -45,6 +48,9 @@ class ProprietariosController extends Controller
         });
     }
 
+    /**
+     * Armazenar um novo proprietário.
+     */
     public function store(StoreProprietarioRequest $request): JsonResponse
     {
         Gate::authorize('create', Proprietario::class);
@@ -65,6 +71,9 @@ class ProprietariosController extends Controller
         ], 201);
     }
 
+    /**
+     * Exibir os detalhes de um proprietário específico.
+     */
     public function show(Proprietario $proprietario): JsonResponse
     {
         Gate::authorize('view', $proprietario);
@@ -75,6 +84,9 @@ class ProprietariosController extends Controller
         ]);
     }
 
+    /**
+     * Atualizar um proprietário existente.
+     */
     public function update(UpdateProprietarioRequest $request, Proprietario $proprietario): JsonResponse
     {
         Gate::authorize('update', $proprietario);
@@ -93,6 +105,9 @@ class ProprietariosController extends Controller
         ]);
     }
 
+    /**
+     * Excluir um proprietário.
+     */
     public function destroy(Proprietario $proprietario): JsonResponse
     {
         Gate::authorize('delete', $proprietario);

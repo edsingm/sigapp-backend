@@ -10,7 +10,7 @@ use App\Services\ApiResponseService;
 class LoginRequest extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
+     * Determina se o usuário está autorizado a fazer esta requisição.
      */
     public function authorize(): bool
     {
@@ -18,7 +18,7 @@ class LoginRequest extends FormRequest
     }
 
     /**
-     * Get the validation rules that apply to the request.
+     * Obtém as regras de validação que se aplicam à requisição.
      */
     public function rules(): array
     {
@@ -31,7 +31,7 @@ class LoginRequest extends FormRequest
     }
 
     /**
-     * Get custom messages for validator errors.
+     * Obtém as mensagens personalizadas para erros do validador.
      */
     public function messages(): array
     {
@@ -43,7 +43,7 @@ class LoginRequest extends FormRequest
     }
 
     /**
-     * Handle a failed validation attempt.
+     * Manipula uma tentativa de validação com falha.
      */
     protected function failedValidation(Validator $validator): void
     {

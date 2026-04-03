@@ -16,9 +16,11 @@ class ContractController extends Controller
     public function __construct(
         protected NegotiationService $service,
         protected LandWorkflowService $workflowService,
-    ) {
-    }
+    ) {}
 
+    /**
+     * Listar contratos.
+     */
     public function index(Request $request)
     {
         Gate::authorize('viewAny', Contrato::class);
@@ -30,13 +32,16 @@ class ContractController extends Controller
         }
 
         $result = $query->orderByDesc('created_at')->paginate($request->integer('per_page', 10));
-        $result->setCollection(
-            $result->getCollection()->map(fn (Contrato $contract) => (new ContratoResource($contract))->resolve())
+        $result->through(
+            fn (Contrato $contract) => (new ContratoResource($contract))->resolve()
         );
 
         return ApiResponseService::paginated($result, 'Contratos carregados com sucesso');
     }
 
+    /**
+     * Criar um novo contrato.
+     */
     public function store(Request $request)
     {
         Gate::authorize('create', Contrato::class);
@@ -47,6 +52,9 @@ class ContractController extends Controller
         return ApiResponseService::created(new ContratoResource($contract), 'Contrato criado com sucesso');
     }
 
+    /**
+     * Exibir os detalhes de um contrato específico.
+     */
     public function show(string $id)
     {
         $contract = Contrato::with(['terreno', 'negociacao', 'partes'])->findOrFail($id);
@@ -55,6 +63,9 @@ class ContractController extends Controller
         return ApiResponseService::success(new ContratoResource($contract));
     }
 
+    /**
+     * Atualizar um contrato existente.
+     */
     public function update(Request $request, string $id)
     {
         $contract = Contrato::with('partes')->findOrFail($id);
@@ -66,6 +77,9 @@ class ContractController extends Controller
         return ApiResponseService::success(new ContratoResource($updated), 'Contrato atualizado com sucesso');
     }
 
+    /**
+     * Registrar a assinatura de um contrato.
+     */
     public function sign(Request $request, string $id)
     {
         $contract = Contrato::with('partes')->findOrFail($id);
@@ -76,6 +90,9 @@ class ContractController extends Controller
         return ApiResponseService::success(new ContratoResource($signed), 'Contrato assinado com sucesso');
     }
 
+    /**
+     * Validar os dados da requisição para contrato.
+     */
     protected function validatedPayload(Request $request): array
     {
         return $request->validate([

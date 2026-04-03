@@ -10,11 +10,11 @@ use App\Models\Central\Tenant;
 use Stancl\Tenancy\Tenancy;
 
 /**
- * Flexible tenant identification middleware.
+ * Middleware de identificação flexível de tenant.
  *
- * Resolves tenant from:
- * 1. Subdomain (e.g., ed2.localhost or ed2.sigapp.com.br)
- * 2. X-Tenant header (fallback, useful for API clients)
+ * Resolve o tenant a partir de:
+ * 1. Subdomínio (ex: ed2.localhost ou ed2.sigapp.com.br)
+ * 2. Cabeçalho X-Tenant (fallback, útil para clientes de API)
  */
 class InitializeTenancyFlexible
 {
@@ -25,9 +25,12 @@ class InitializeTenancyFlexible
         $this->tenancy = $tenancy;
     }
 
+    /**
+     * Manipula uma requisição de entrada.
+     */
     public function handle(Request $request, Closure $next)
     {
-        // Skip OPTIONS requests (CORS preflight)
+        // Ignora requisições OPTIONS (CORS preflight)
         if ($request->method() === 'OPTIONS') {
             return $next($request);
         }
@@ -53,7 +56,7 @@ class InitializeTenancyFlexible
                 'success' => false,
                 'error' => [
                     'code' => 'TENANT_NOT_FOUND',
-                    'message' => "Tenant '{$tenantSlug}' não encontrado.",
+                    'message' => 'Tenant não encontrado.',
                 ],
             ], 404);
         }
@@ -68,17 +71,17 @@ class InitializeTenancyFlexible
         $host = $request->getHost();
         $centralDomains = config('tenancy.identification.central_domains', []);
 
-        // Check if host is a subdomain of a central domain
+        // Verifica se o host é um subdomínio de um domínio central
         foreach ($centralDomains as $centralDomain) {
             $centralDomain = strtolower($centralDomain);
             $hostLower = strtolower($host);
 
             if ($centralDomain === $hostLower) {
-                // Exact match = central domain, no subdomain
+                // Correspondência exata = domínio central, sem subdomínio
                 continue;
             }
 
-            // Check if host ends with .centralDomain (e.g., ed2.localhost or ed2.sigapp.com.br)
+            // Verifica se o host termina com .centralDomain (ex: ed2.localhost ou ed2.sigapp.com.br)
             $suffix = '.' . $centralDomain;
             if (str_ends_with($hostLower, $suffix)) {
                 $subdomain = substr($hostLower, 0, -strlen($suffix));
@@ -89,7 +92,11 @@ class InitializeTenancyFlexible
         }
 
         if (app()->environment(['local', 'testing']) && $request->hasHeader('X-Tenant')) {
-            return $request->header('X-Tenant');
+            $headerValue = (string) $request->header('X-Tenant', '');
+            // Aceita apenas slugs alfanuméricos com hífen (sem injeção de caracteres especiais)
+            if (preg_match('/^[a-z0-9\-]{1,63}$/i', $headerValue)) {
+                return strtolower($headerValue);
+            }
         }
 
         return null;

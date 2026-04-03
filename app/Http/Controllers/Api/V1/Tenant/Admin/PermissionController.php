@@ -16,7 +16,7 @@ use Spatie\Permission\PermissionRegistrar;
 class PermissionController extends Controller
 {
     /**
-     * List tenant permissions.
+     * Listar permissões do tenant.
      */
     public function index(Request $request)
     {
@@ -50,7 +50,7 @@ class PermissionController extends Controller
     }
 
     /**
-     * Show a single tenant permission.
+     * Exibir uma única permissão do tenant.
      */
     public function show(int $id)
     {
@@ -79,7 +79,7 @@ class PermissionController extends Controller
     }
 
     /**
-     * Create a tenant permission.
+     * Criar uma permissão do tenant.
      */
     public function store(Request $request)
     {
@@ -111,7 +111,7 @@ class PermissionController extends Controller
     }
 
     /**
-     * Update a tenant permission.
+     * Atualizar uma permissão do tenant.
      */
     public function update(Request $request, int $id)
     {
@@ -166,7 +166,7 @@ class PermissionController extends Controller
     }
 
     /**
-     * Delete a tenant permission.
+     * Excluir uma permissão do tenant.
      */
     public function destroy(int $id)
     {
@@ -213,8 +213,8 @@ class PermissionController extends Controller
     }
 
     /**
-     * Checks if a permission name is a system-generated permission (dot-notation format).
-     * System permissions cannot be renamed or deleted.
+     * Verifica se o nome da permissão é uma permissão gerada pelo sistema (formato dot-notation).
+     * Permissões de sistema não podem ser renomeadas ou excluídas.
      */
     private function isSystemPermission(string $name): bool
     {

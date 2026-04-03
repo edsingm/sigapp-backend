@@ -8,7 +8,7 @@ use App\Models\Veiculo;
 class StoreRequisicaoVeiculoRequest extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
+     * Determina se o usuário está autorizado a fazer esta requisição.
      */
     public function authorize(): bool
     {
@@ -16,7 +16,7 @@ class StoreRequisicaoVeiculoRequest extends FormRequest
     }
 
     /**
-     * Get the validation rules that apply to the request.
+     * Obtém as regras de validação que se aplicam à requisição.
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
@@ -36,7 +36,7 @@ class StoreRequisicaoVeiculoRequest extends FormRequest
     }
 
     /**
-     * Get custom messages for validator errors.
+     * Obtém as mensagens personalizadas para erros do validador.
      *
      * @return array<string, string>
      */
@@ -62,7 +62,7 @@ class StoreRequisicaoVeiculoRequest extends FormRequest
     }
 
     /**
-     * Configure the validator instance.
+     * Configura a instância do validador.
      *
      * @param  \Illuminate\Validation\Validator  $validator
      * @return void

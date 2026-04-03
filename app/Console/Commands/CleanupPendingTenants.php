@@ -8,17 +8,17 @@ use Illuminate\Console\Command;
 class CleanupPendingTenants extends Command
 {
     /**
-     * The name and signature of the console command.
+     * O nome e a assinatura do comando de console.
      */
     protected $signature = 'tenants:cleanup-pending';
 
     /**
-     * The console command description.
+     * A descrição do comando de console.
      */
     protected $description = 'Remove tenants com status pending há mais de 24 horas após limpeza segura no Stripe';
 
     /**
-     * Execute the console command.
+     * Executa o comando de console.
      */
     public function handle(): int
     {

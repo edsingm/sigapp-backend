@@ -94,6 +94,18 @@ RateLimiter::for('password-reset-submit', function (Request $request) {
         ->response(fn() => \App\Services\ApiResponseService::tooManyRequests('Muitas tentativas de redefinição. Tente novamente em 1 minuto.'));
 });
 
+RateLimiter::for('viabilidade-approval', function (Request $request) {
+    $user = $request->user();
+    $tenantId = tenancy()->initialized ? (string) tenant('id') : 'no-tenant';
+    $key = $user
+        ? "viabilidade-approval:{$tenantId}:user:{$user->id}"
+        : "viabilidade-approval:{$tenantId}:ip:{$request->ip()}";
+
+    return Limit::perMinute(10)
+        ->by($key)
+        ->response(fn() => \App\Services\ApiResponseService::tooManyRequests('Muitas ações de aprovação em curto período. Aguarde 1 minuto.'));
+});
+
 // All API routes use JSON
 Route::middleware([ForceJsonResponse::class])->group(function () {
 

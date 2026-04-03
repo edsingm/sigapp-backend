@@ -7,6 +7,9 @@ use App\Models\Tenant\User;
 
 class PermissionNameResolver
 {
+    /**
+     * Mapa de métodos HTTP para níveis de permissão.
+     */
     private const METHOD_LEVEL_MAP = [
         'GET' => 'viewer',
         'POST' => 'editor',
@@ -15,12 +18,18 @@ class PermissionNameResolver
         'DELETE' => 'manager',
     ];
 
+    /**
+     * Hierarquia de níveis de permissão (cumulativa).
+     */
     private const LEVEL_HIERARCHY = [
         'viewer' => ['viewer'],
         'editor' => ['viewer', 'editor'],
         'manager' => ['viewer', 'editor', 'manager'],
     ];
 
+    /**
+     * Resolve o nome da permissão baseada na requisição HTTP.
+     */
     public function forRequest(string $module, ?string $resource, string $method): string
     {
         $level = self::METHOD_LEVEL_MAP[strtoupper($method)] ?? 'viewer';
@@ -30,6 +39,9 @@ class PermissionNameResolver
             : "{$module}.{$level}";
     }
 
+    /**
+     * Resolve o nome da permissão para um modelo e habilidade específica.
+     */
     public function forModel(string|object $modelOrClass, string $ability): ?string
     {
         $class = is_object($modelOrClass) ? get_class($modelOrClass) : $modelOrClass;
@@ -43,6 +55,8 @@ class PermissionNameResolver
     }
 
     /**
+     * Expande um mapa de permissões de módulos em uma lista plana de permissões.
+     *
      * @param  array<string, string|array<string, string>|null>  $modulePermissions
      * @return array<int, string>
      */
@@ -83,11 +97,17 @@ class PermissionNameResolver
         return array_values(array_unique($permissions));
     }
 
+    /**
+     * Verifica se o usuário possui a permissão informada.
+     */
     public function userCan(User $user, string $permission): bool
     {
         return $user->isAdmin() || $user->can($permission);
     }
 
+    /**
+     * Determina o nível de permissão baseado na habilidade (ação).
+     */
     private function abilityLevel(string $ability): string
     {
         return match (true) {

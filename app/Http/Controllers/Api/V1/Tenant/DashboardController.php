@@ -4,105 +4,60 @@ namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Http\Controllers\Controller;
 use App\Models\Tenant\Terreno;
-use App\Models\Tenant\TerrenoProduto;
-use App\Services\Tenant\LandWorkflowService;
-use App\Support\Database\SqlDateParts;
+use App\Services\Dashboard\DashboardQueryService;
 use App\Traits\HasDashboardCache;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
 
 /**
- * DashboardControllerV2
- * 
- * Versão 2 do controller com suporte a filtros avançados
- * 
- * @package App\Http\Controllers\Api
+ * DashboardController
+ *
+ * Controller enxuto: apenas autorização, cache e formatação de resposta HTTP.
+ * Toda a lógica de consulta reside no DashboardQueryService.
  */
 class DashboardController extends Controller
 {
     use HasDashboardCache;
+
+    private const OVERVIEW_CACHE_VERSION = 'v2';
+
+    private const OVERVIEW_CACHE_TTL_DEFAULT = 120;
+
+    private const OVERVIEW_CACHE_TTL_MIN = 15;
+
+    private const OVERVIEW_CACHE_TTL_MAX = 600;
+
+    public function __construct(private readonly DashboardQueryService $dashboard) {}
 
     private function authorizeDashboardAccess(): void
     {
         Gate::authorize('viewAny', Terreno::class);
     }
 
-    private const OVERVIEW_CACHE_VERSION = 'v2';
-    private const OVERVIEW_CACHE_TTL_DEFAULT = 120;
-    private const OVERVIEW_CACHE_TTL_MIN = 15;
-    private const OVERVIEW_CACHE_TTL_MAX = 600;
-
-    private const NEGOCIACAO_ATIVA_STATUSES = [
-        'negociacao_minuta',
-    ];
-
-    private const CONTRATO_ASSINADO_E_POSTERIORES = [
-        'contrato_assinado',
-        'legalizando',
-        'legalizado_finalizado',
-    ];
-
     private function shouldForceRefresh(Request $request): bool
     {
         return $request->boolean('force_refresh', false);
     }
 
-    private function negotiationStatuses(): array
-    {
-        return self::NEGOCIACAO_ATIVA_STATUSES;
-    }
-
-    private function signedDealStatuses(): array
-    {
-        return self::CONTRATO_ASSINADO_E_POSTERIORES;
-    }
-
-    private function workflowStatusLabel(?string $statusCode): string
-    {
-        if (!$statusCode) {
-            return 'Sem Status';
-        }
-
-        return LandWorkflowService::statuses()[$statusCode]['label'] ?? $statusCode;
-    }
-
-    private function workflowStatusColor(?string $statusCode): string
-    {
-        return match ($statusCode) {
-            'em_analise' => '#0EA5E9',
-            'aguardando_viabilidade' => '#F59E0B',
-            'viabilidade_aprovada' => '#10B981',
-            'aguardando_comite' => '#06B6D4',
-            'negociacao_minuta' => '#8B5CF6',
-            'contrato_assinado' => '#047857',
-            'legalizando' => '#65A30D',
-            'legalizado_finalizado' => '#0F766E',
-            'descartado' => '#E11D48',
-            'arquivado' => '#475569',
-            default => '#94A3B8',
-        };
-    }
-
     /**
-     * Helper para cachear métodos do dashboard
+     * Armazena em cache um callback do dashboard com chave baseada no nome do método + filtros.
      */
-    private function cacheDashboardMethod(string $methodName, Request $request, callable $callback)
+    private function cacheDashboardMethod(string $methodName, Request $request, callable $callback): mixed
     {
         $tenantId = tenant('id') ?? 'central';
         $filters = $request->except(['force_refresh']);
-        
+
         $cacheKey = implode(':', [
             'dashboard',
             $methodName,
             'v1',
             app()->environment(),
             $tenantId,
-            md5(json_encode($filters))
+            md5(json_encode($filters)),
         ]);
 
         $cacheTag = $this->getDashboardCacheTag();
@@ -115,114 +70,33 @@ class DashboardController extends Controller
             $cacheStore->forget($cacheKey);
             $data = $callback();
             $cacheStore->put($cacheKey, $data, now()->addHours(1));
+
             return $data;
         }
 
-        // Cache por 1 hora
         return $cacheStore->remember($cacheKey, now()->addHours(1), $callback);
     }
 
     /**
-     * Cards do Dashboard - Retorna dados resumidos para exibição nos cards principais
-     * 
-     * @param Request $request
-     * @return JsonResponse
+     * Cards do Dashboard - dados resumidos para exibição nos cards principais.
      */
     public function cards(Request $request): JsonResponse
     {
         $this->authorizeDashboardAccess();
 
-        $data = $this->cacheDashboardMethod('cards', $request, function () {
-            // Total de terrenos cadastrados
-            $totalTerrenos = Terreno::count();
+        $data = $this->cacheDashboardMethod('cards', $request, fn () => $this->dashboard->cards());
 
-            // Total de terrenos em negociação ativa
-            $totalOpcao = Terreno::whereIn('workflow_status_code', $this->negotiationStatuses())->count();
-
-            // Total de unidades das áreas em negociação ativa
-            $totalUnidadesOpcao = TerrenoProduto::join('terrenos', 'terreno_produtos.terreno_id', '=', 'terrenos.id')
-                ->whereIn('terrenos.workflow_status_code', $this->negotiationStatuses())
-                ->whereNull('terrenos.deleted_at')
-                ->sum('terreno_produtos.unidades');
-
-            // Distribuição por cidade (top 20 para não sobrecarregar)
-            $porCidade = Terreno::select('cidade_code', DB::raw('COUNT(*) as total'))
-                ->with('cidade:code,city,state_code')
-                ->whereNotNull('cidade_code')
-                ->where('cidade_code', '!=', '')
-                ->groupBy('cidade_code')
-                ->orderByDesc('total')
-                ->limit(20)
-                ->get()
-                ->map(function ($item) {
-                    return [
-                        'cidade' => $item->cidade?->city ?? 'Não Informada',
-                        'estado' => $item->cidade?->state_code ?? '-',
-                        'total' => $item->total,
-                    ];
-                });
-
-            return [
-                'total_terrenos' => $totalTerrenos,
-                'total_opcao' => $totalOpcao,
-                'total_unidades_opcao' => (int) $totalUnidadesOpcao,
-                'distribuicao_cidades' => $porCidade,
-            ];
-        });
-
-        return response()->json([
-            'success' => true,
-            'data' => $data,
-        ], 200);
+        return response()->json(['success' => true, 'data' => $data]);
     }
 
     /**
-     * Gráfico de Status - Retorna total de terrenos agrupados por status
-     * Com suporte a filtro por ano
-     * 
-     * @param Request $request
-     * @return JsonResponse
+     * Gráfico de Status - total de terrenos agrupados por status.
      */
     public function statusChart(Request $request): JsonResponse
     {
         $this->authorizeDashboardAccess();
 
-        $data = $this->cacheDashboardMethod('statusChart', $request, function () use ($request) {
-            $ano = $request->input('ano');
-            $incluirAnos = $request->boolean('incluir_anos', false);
-
-            // Buscar todos os anos disponíveis
-            $anosDisponiveis = Terreno::select(DB::raw('DISTINCT ' . SqlDateParts::year('created_at') . ' as ano'))
-                ->whereNotNull('created_at')
-                ->orderBy('ano', 'desc')
-                ->pluck('ano')
-                ->toArray();
-
-            // Query base
-            $query = Terreno::select('workflow_status_code', DB::raw('COUNT(*) as total'));
-
-            // Filtro por ano
-            if ($ano) {
-                $query->whereYear('created_at', $ano);
-            }
-
-            $statusData = $query
-                ->groupBy('workflow_status_code')
-                ->get()
-                ->map(function ($item) {
-                    return [
-                        'status_code' => $item->workflow_status_code,
-                        'status_nome' => $this->workflowStatusLabel($item->workflow_status_code),
-                        'status_cor' => $this->workflowStatusColor($item->workflow_status_code),
-                        'total' => $item->total,
-                    ];
-                });
-
-            return [
-                'status_data' => $statusData,
-                'anos_disponiveis' => $anosDisponiveis,
-            ];
-        });
+        $data = $this->cacheDashboardMethod('statusChart', $request, fn () => $this->dashboard->statusChart($request->input('ano')));
 
         return response()->json([
             'success' => true,
@@ -231,183 +105,32 @@ class DashboardController extends Controller
                 'anos_disponiveis' => $data['anos_disponiveis'],
             ],
             'data' => $data['status_data'],
-        ], 200);
+        ]);
     }
 
     /**
-     * Cadastros Mensais - Retorna quantidade de terrenos cadastrados por mês
-     * Com suporte a filtro por ano
-     * 
-     * @param Request $request
-     * @return JsonResponse
-     * 
-     * Query params opcionais:
-     * - meses: número de meses para buscar (padrão: 12)
-     * - ano: filtrar por ano específico
-     * - data_inicio: data de início do período (formato: Y-m-d)
-     * - data_fim: data de fim do período (formato: Y-m-d)
+     * Cadastros Mensais - quantidade de terrenos cadastrados por mês.
      */
     public function cadastrosMensais(Request $request): JsonResponse
     {
         $this->authorizeDashboardAccess();
 
-        $data = $this->cacheDashboardMethod('cadastrosMensais', $request, function () use ($request) {
-            $meses = $request->input('meses', 12);
-            $ano = $request->input('ano');
-            $dataInicio = $request->input('data_inicio');
-            $dataFim = $request->input('data_fim');
-
-            $query = Terreno::select(
-                DB::raw(SqlDateParts::yearAs('created_at', 'ano')),
-                DB::raw(SqlDateParts::monthAs('created_at', 'mes')),
-                DB::raw('COUNT(*) as total')
-            );
-
-            // Filtro por ano específico
-            if ($ano) {
-                $query->whereYear('created_at', $ano);
-            } elseif ($dataInicio && $dataFim) {
-                $query->whereBetween('created_at', [
-                    Carbon::parse($dataInicio)->startOfDay(),
-                    Carbon::parse($dataFim)->endOfDay()
-                ]);
-            } else {
-                // Default: últimos N meses
-                $query->where('created_at', '>=', Carbon::now()->subMonths($meses)->startOfMonth());
-            }
-
-            $cadastros = $query
-                ->groupBy(DB::raw(SqlDateParts::year('created_at')), DB::raw(SqlDateParts::month('created_at')))
-                ->orderBy('ano', 'asc')
-                ->orderBy('mes', 'asc')
-                ->get()
-                ->map(function ($item) {
-                    return [
-                        'ano' => $item->ano,
-                        'mes' => $item->mes,
-                        'mes_nome' => Carbon::create($item->ano, $item->mes)->translatedFormat('F'),
-                        'periodo' => Carbon::create($item->ano, $item->mes)->format('Y-m'),
-                        'total' => $item->total,
-                    ];
-                });
-
-            return [
-                'cadastros' => $cadastros,
-                'filters' => [
-                    'ano' => $ano ?? null,
-                    'meses' => $ano ? null : $meses,
-                ],
-            ];
-        });
+        $data = $this->cacheDashboardMethod('cadastrosMensais', $request, fn () => $this->dashboard->cadastrosMensais(
+            ano: $request->input('ano'),
+            meses: (int) $request->input('meses', 12),
+            dataInicio: $request->input('data_inicio'),
+            dataFim: $request->input('data_fim'),
+        ));
 
         return response()->json([
             'success' => true,
             'filters' => $data['filters'],
             'data' => $data['cadastros'],
-        ], 200);
+        ]);
     }
 
     /**
-     * Terrenos por Responsável - Retorna total de terrenos agrupados por responsável
-     * Com suporte a filtros por geral, ano e mês do ano
-     * 
-     * @param Request $request
-     * @return JsonResponse
-     * 
-     * Query params opcionais:
-     * - filtro: 'geral' | 'ano' | 'mes' (padrão: 'geral')
-     * - ano: ano para filtro (obrigatório se filtro='ano' ou 'mes')
-     * - mes: mês para filtro (obrigatório se filtro='mes')
-     * - limit: limitar quantidade de resultados (padrão: sem limite)
-     */
-    public function terrenosPorResponsavel(Request $request): JsonResponse
-    {
-        $this->authorizeDashboardAccess();
-
-        try {
-            $filtro = $request->input('filtro', 'geral');
-            $ano = $request->input('ano');
-            $mes = $request->input('mes');
-            $limit = $request->input('limit');
-
-            // Validação
-            if (in_array($filtro, ['ano', 'mes']) && !$ano) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Ano é obrigatório para filtros "ano" ou "mes"',
-                ], 422);
-            }
-
-            if ($filtro === 'mes' && !$mes) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Mês é obrigatório para filtro "mes"',
-                ], 422);
-            }
-
-            $query = Terreno::select('responsavel_id', DB::raw('COUNT(*) as total'))
-                ->with('responsavel:id,name,email')
-                ->whereNotNull('responsavel_id');
-
-            // Aplicar filtro
-            if ($filtro === 'ano' && $ano) {
-                $query->whereYear('created_at', $ano);
-            } elseif ($filtro === 'mes' && $ano && $mes) {
-                $query->whereYear('created_at', $ano)
-                    ->whereMonth('created_at', $mes);
-            }
-            // 'geral' não adiciona filtro de data
-
-            $query->groupBy('responsavel_id')
-                ->orderByDesc('total');
-
-            if ($limit && is_numeric($limit) && $limit > 0) {
-                $query->limit((int) $limit);
-            }
-
-            $terrenos = $query->get()->map(function ($item) {
-                return [
-                    'responsavel_id' => $item->responsavel_id,
-                    'responsavel_nome' => $item->responsavel?->name ?? 'Não informado',
-                    'responsavel_email' => $item->responsavel?->email ?? null,
-                    'total' => $item->total,
-                ];
-            });
-
-            return response()->json([
-                'success' => true,
-                'filters' => [
-                    'filtro' => $filtro,
-                    'ano' => $ano ?? null,
-                    'mes' => $mes ?? null,
-                    'mes_nome' => $mes ? Carbon::create(2024, $mes)->translatedFormat('F') : null,
-                ],
-                'data' => $terrenos,
-            ], 200);
-
-        } catch (\Exception $e) {
-            Log::error('Erro ao buscar terrenos por responsável: ' . $e->getMessage());
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao buscar terrenos por responsável',
-                'error' => config('app.debug') ? $e->getMessage() : 'Erro interno do servidor',
-            ], 500);
-        }
-    }
-
-    /**
-     * Top 10 Cidades - Retorna as 10 cidades com mais cadastros
-     * Com suporte a filtros por geral, ano e mês do ano
-     * 
-     * @param Request $request
-     * @return JsonResponse
-     * 
-     * Query params opcionais:
-     * - filtro: 'geral' | 'ano' | 'mes' (padrão: 'geral')
-     * - ano: ano para filtro (obrigatório se filtro='ano' ou 'mes')
-     * - mes: mês para filtro (obrigatório se filtro='mes')
-     * - limit: número de cidades a retornar (padrão: 10)
+     * Top Cidades - total de terrenos agrupados por cidade.
      */
     public function topCidades(Request $request): JsonResponse
     {
@@ -416,53 +139,22 @@ class DashboardController extends Controller
         $filtro = $request->input('filtro', 'geral');
         $ano = $request->input('ano');
         $mes = $request->input('mes');
-        $limit = $request->input('limit', 10);
+        $limit = (int) $request->input('limit', 10);
 
-        // Validação
-        if (in_array($filtro, ['ano', 'mes']) && !$ano) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Ano é obrigatório para filtros "ano" ou "mes"',
-            ], 422);
+        if (in_array($filtro, ['ano', 'mes']) && ! $ano) {
+            return response()->json(['success' => false, 'message' => 'Ano é obrigatório para filtros "ano" ou "mes"'], 422);
         }
 
-        if ($filtro === 'mes' && !$mes) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Mês é obrigatório para filtro "mes"',
-            ], 422);
+        if ($filtro === 'mes' && ! $mes) {
+            return response()->json(['success' => false, 'message' => 'Mês é obrigatório para filtro "mes"'], 422);
         }
 
-        $data = $this->cacheDashboardMethod('topCidades', $request, function () use ($filtro, $ano, $mes, $limit) {
-            $query = Terreno::select('cidade_code', DB::raw('COUNT(*) as total'))
-                ->with('cidade:code,city,state_code')
-                ->whereNotNull('cidade_code')
-                ->where('cidade_code', '!=', '');
-
-            // Aplicar filtro
-            if ($filtro === 'ano' && $ano) {
-                $query->whereYear('created_at', $ano);
-            } elseif ($filtro === 'mes' && $ano && $mes) {
-                $query->whereYear('created_at', $ano)
-                    ->whereMonth('created_at', $mes);
-            }
-            // 'geral' não adiciona filtro de data
-
-            return $query
-                ->groupBy('cidade_code')
-                ->orderByDesc('total')
-                ->limit((int) $limit)
-                ->get()
-                ->map(function ($item, $index) {
-                    return [
-                        'posicao' => $index + 1,
-                        'cidade_code' => $item->cidade_code,
-                        'cidade' => $item->cidade?->city,
-                        'estado' => $item->cidade?->state_code,
-                        'total' => $item->total,
-                    ];
-                });
-        });
+        $data = $this->cacheDashboardMethod('topCidades', $request, fn () => $this->dashboard->topCidades(
+            filtro: $filtro,
+            ano: $ano,
+            mes: $mes,
+            limit: $limit
+        ));
 
         return response()->json([
             'success' => true,
@@ -474,188 +166,55 @@ class DashboardController extends Controller
                 'limit' => $limit,
             ],
             'data' => $data,
-        ], 200);
+        ]);
     }
 
     /**
-     * VGV Anual - Retorna a soma do VGV das áreas com status 'opção' agrupado por ano
-     * 
-     * @return JsonResponse
+     * VGV Anual - soma do VGV das áreas com opção agrupado por ano.
      */
     public function vgvAnual(Request $request): JsonResponse
     {
         $this->authorizeDashboardAccess();
 
-        $data = $this->cacheDashboardMethod('vgvAnual', $request, function () {
-            return Terreno::leftJoin('terreno_produtos', 'terreno_produtos.terreno_id', '=', 'terrenos.id')
-                ->whereNotNull('terrenos.data_opcao')
-                ->whereNull('terrenos.deleted_at')
-                ->select(
-                    DB::raw(SqlDateParts::yearAs('COALESCE(terrenos.data_opcao, terrenos.created_at)', 'ano')),
-                    DB::raw('SUM(COALESCE(terreno_produtos.valor, 0) * COALESCE(terreno_produtos.unidades, 0)) as vgv_total'),
-                    DB::raw('SUM(COALESCE(terreno_produtos.unidades, 0)) as total_unidades'),
-                    DB::raw('COUNT(DISTINCT terrenos.id) as total_terrenos')
-                )
-                ->groupBy(DB::raw(SqlDateParts::year('COALESCE(terrenos.data_opcao, terrenos.created_at)')))
-                ->orderBy('ano', 'desc')
-                ->get()
-                ->map(function ($item) {
-                    return [
-                        'ano' => $item->ano,
-                        'vgv_total' => (float) $item->vgv_total,
-                        'vgv_formatado' => 'R$ ' . number_format($item->vgv_total, 2, ',', '.'),
-                        'total_unidades' => (int) $item->total_unidades,
-                        'total_terrenos' => $item->total_terrenos,
-                        'total_areas' => $item->total_terrenos,
-                    ];
-                });
-        });
+        $data = $this->cacheDashboardMethod('vgvAnual', $request, fn () => $this->dashboard->vgvAnual());
 
-        return response()->json([
-            'success' => true,
-            'data' => $data,
-        ], 200);
+        return response()->json(['success' => true, 'data' => $data]);
     }
 
     /**
-     * Unidades Fechadas por Ano - Retorna a soma de unidades de terrenos com status 'fechado' por ano
-     * 
-     * @return JsonResponse
+     * Unidades Fechadas Anual - soma de unidades de terrenos fechados por ano.
      */
     public function unidadesFechadasAnual(Request $request): JsonResponse
     {
         $this->authorizeDashboardAccess();
 
-        $data = $this->cacheDashboardMethod('unidadesFechadasAnual', $request, function () {
-            return TerrenoProduto::join('terrenos', 'terreno_produtos.terreno_id', '=', 'terrenos.id')
-                ->whereIn('terrenos.workflow_status_code', $this->signedDealStatuses())
-                ->whereNull('terrenos.deleted_at')
-                ->select(
-                    DB::raw(SqlDateParts::yearAs('terrenos.data_contrato', 'ano')),
-                    DB::raw('SUM(COALESCE(terreno_produtos.unidades, 0)) as total_unidades'),
-                    DB::raw('COUNT(DISTINCT terrenos.id) as total_terrenos')
-                )
-                ->whereNotNull('terrenos.data_contrato')
-                ->groupBy(DB::raw(SqlDateParts::year('terrenos.data_contrato')))
-                ->orderBy('ano', 'desc')
-                ->get()
-                ->map(function ($item) {
-                    return [
-                        'ano' => $item->ano,
-                        'total_unidades' => (int) $item->total_unidades,
-                        'total_terrenos' => $item->total_terrenos,
-                        'total_areas' => $item->total_terrenos,
-                    ];
-                });
-        });
+        $data = $this->cacheDashboardMethod('unidadesFechadasAnual', $request, fn () => $this->dashboard->unidadesFechadasAnual());
 
-        return response()->json([
-            'success' => true,
-            'data' => $data,
-        ], 200);
+        return response()->json(['success' => true, 'data' => $data]);
     }
 
     /**
-     * Cadastros Mensais por Responsável - Retorna quantidade mensal de cadastros por responsável
-     * Com suporte a filtro por ano
-     * 
-     * @param Request $request
-     * @return JsonResponse
-     * 
-     * Query params opcionais:
-     * - meses: número de meses para buscar (padrão: 12)
-     * - ano: filtrar por ano específico
-     * - data_inicio: data de início do período (formato: Y-m-d)
-     * - data_fim: data de fim do período (formato: Y-m-d)
-     * - responsavel_id: filtrar por responsável específico
+     * Cadastros Mensais por Responsável - quantidade mensal de cadastros agrupada por responsável.
      */
     public function cadastrosMensaisPorResponsavel(Request $request): JsonResponse
     {
         $this->authorizeDashboardAccess();
 
-        $meses = $request->input('meses', 12);
+        $meses = (int) $request->input('meses', 12);
         $ano = $request->input('ano');
         $responsavelId = $request->input('responsavel_id');
 
-        // Validação básica
         if ($meses < 1 || $meses > 60) {
-            return response()->json([
-                'success' => false,
-                'message' => 'O parâmetro meses deve estar entre 1 e 60',
-            ], 422);
+            return response()->json(['success' => false, 'message' => 'O parâmetro meses deve estar entre 1 e 60'], 422);
         }
 
-        $data = $this->cacheDashboardMethod('cadastrosMensaisPorResponsavel', $request, function () use ($request, $meses, $ano, $responsavelId) {
-            $dataInicio = $request->input('data_inicio');
-            $dataFim = $request->input('data_fim');
-
-            $query = Terreno::select(
-                'responsavel_id',
-                DB::raw(SqlDateParts::yearAs('created_at', 'ano')),
-                DB::raw(SqlDateParts::monthAs('created_at', 'mes')),
-                DB::raw('COUNT(*) as total')
-            )
-                ->with('responsavel:id,name')
-                ->whereNotNull('responsavel_id');
-
-            // Filtro por responsável específico
-            if ($responsavelId) {
-                $query->where('responsavel_id', $responsavelId);
-            }
-
-            // Filtro por período
-            if ($ano) {
-                $query->whereYear('created_at', $ano);
-            } elseif ($dataInicio && $dataFim) {
-                $query->whereBetween('created_at', [
-                    Carbon::parse($dataInicio)->startOfDay(),
-                    Carbon::parse($dataFim)->endOfDay()
-                ]);
-            } else {
-                $query->where('created_at', '>=', Carbon::now()->subMonths($meses)->startOfMonth());
-            }
-
-            $cadastros = $query
-                ->groupBy(
-                    'responsavel_id',
-                    DB::raw(SqlDateParts::year('created_at')),
-                    DB::raw(SqlDateParts::month('created_at'))
-                )
-                ->orderBy('ano', 'desc')
-                ->orderBy('mes', 'desc')
-                ->orderByDesc('total')
-                ->get()
-                ->map(function ($item) {
-                    return [
-                        'responsavel_id' => $item->responsavel_id,
-                        'responsavel_nome' => $item->responsavel?->name ?? 'Não informado',
-                        'ano' => $item->ano,
-                        'mes' => $item->mes,
-                        'mes_nome' => Carbon::create($item->ano, $item->mes)->translatedFormat('F'),
-                        'periodo' => Carbon::create($item->ano, $item->mes)->format('Y-m'),
-                        'total' => $item->total,
-                    ];
-                });
-
-            // Agrupar por responsável para facilitar a visualização
-            return $cadastros->groupBy('responsavel_id')->map(function ($items, $responsavelId) {
-                $primeiro = $items->first();
-                return [
-                    'responsavel_id' => $responsavelId,
-                    'responsavel_nome' => $primeiro['responsavel_nome'],
-                    'total_geral' => $items->sum('total'),
-                    'mensal' => $items->map(function ($item) {
-                        return [
-                            'ano' => $item['ano'],
-                            'mes' => $item['mes'],
-                            'mes_nome' => $item['mes_nome'],
-                            'periodo' => $item['periodo'],
-                            'total' => $item['total'],
-                        ];
-                    })->values(),
-                ];
-            })->sortByDesc('total_geral')->values();
-        });
+        $data = $this->cacheDashboardMethod('cadastrosMensaisPorResponsavel', $request, fn () => $this->dashboard->cadastrosMensaisPorResponsavel(
+            ano: $ano,
+            meses: $meses,
+            dataInicio: $request->input('data_inicio'),
+            dataFim: $request->input('data_fim'),
+            responsavelId: $responsavelId,
+        ));
 
         return response()->json([
             'success' => true,
@@ -665,182 +224,57 @@ class DashboardController extends Controller
                 'responsavel_id' => $responsavelId ?? null,
             ],
             'data' => $data,
-        ], 200);
+        ]);
     }
 
     /**
-     * Resumo Geral - Endpoint único que retorna todos os dados do dashboard
-     * Útil para carregamento inicial do dashboard
-     * 
-     * @param Request $request
-     * @return JsonResponse
+     * Resumo Geral - dados consolidados do dashboard.
      */
     public function resumoGeral(Request $request): JsonResponse
     {
         $this->authorizeDashboardAccess();
 
-        $data = $this->cacheDashboardMethod('resumoGeral', $request, function () {
-            // Total de terrenos
-            $totalTerrenos = Terreno::count();
+        $data = $this->cacheDashboardMethod('resumoGeral', $request, fn () => $this->dashboard->resumoGeral());
 
-            // Total em negociação ativa
-            $totalOpcao = Terreno::whereIn('workflow_status_code', $this->negotiationStatuses())->count();
-
-            // Total com contrato assinado ou posterior
-            $totalFechados = Terreno::whereIn('workflow_status_code', $this->signedDealStatuses())->count();
-
-            // Total unidades em negociação ativa
-            $totalUnidadesOpcao = TerrenoProduto::whereHas(
-                'terreno',
-                fn($q) => $q->whereIn('workflow_status_code', $this->negotiationStatuses())
-            )->sum('unidades');
-
-            // Total unidades com contrato assinado ou posterior
-            $totalUnidadesFechadas = TerrenoProduto::whereHas(
-                'terreno',
-                fn($q) => $q->whereIn('workflow_status_code', $this->signedDealStatuses())
-            )->sum('unidades');
-
-            // Cadastros do mês atual
-            $cadastrosMesAtual = Terreno::whereYear('created_at', Carbon::now()->year)
-                ->whereMonth('created_at', Carbon::now()->month)
-                ->count();
-
-            // Top 5 responsáveis
-            $topResponsaveis = Terreno::select('responsavel_id', DB::raw('COUNT(*) as total'))
-                ->with('responsavel:id,name')
-                ->whereNotNull('responsavel_id')
-                ->groupBy('responsavel_id')
-                ->orderByDesc('total')
-                ->limit(5)
-                ->get()
-                ->map(fn($item) => [
-                    'nome' => $item->responsavel?->name ?? 'Não informado',
-                    'total' => $item->total,
-                ]);
-
-            // Distribuição por status
-            $distribuicaoStatus = Terreno::select('workflow_status_code', DB::raw('COUNT(*) as total'))
-                ->groupBy('workflow_status_code')
-                ->get()
-                ->map(fn($item) => [
-                    'status' => $this->workflowStatusLabel($item->workflow_status_code),
-                    'cor' => $this->workflowStatusColor($item->workflow_status_code),
-                    'total' => $item->total,
-                ]);
-
-            return [
-                'totais' => [
-                    'terrenos' => $totalTerrenos,
-                    'opcao' => $totalOpcao,
-                    'fechados' => $totalFechados,
-                    'unidades_opcao' => (int) $totalUnidadesOpcao,
-                    'unidades_fechadas' => (int) $totalUnidadesFechadas,
-                    'cadastros_mes_atual' => $cadastrosMesAtual,
-                ],
-                'top_responsaveis' => $topResponsaveis,
-                'distribuicao_status' => $distribuicaoStatus,
-            ];
-        });
-
-        return response()->json([
-            'success' => true,
-            'data' => $data,
-        ], 200);
+        return response()->json(['success' => true, 'data' => $data]);
     }
 
     /**
-     * Getter de anos disponíveis - Retorna todos os anos de cadastro do sistema
-     * 
-     * @return JsonResponse
+     * Anos Disponíveis - lista de anos com cadastros.
      */
     public function anosDisponiveis(): JsonResponse
     {
         $this->authorizeDashboardAccess();
 
-        $data = $this->cacheDashboardMethod('anosDisponiveis', request(), function () {
-            return Terreno::select(DB::raw('DISTINCT ' . SqlDateParts::year('created_at') . ' as ano'))
-                ->whereNotNull('created_at')
-                ->orderBy('ano', 'desc')
-                ->pluck('ano')
-                ->toArray();
-        });
+        $data = $this->cacheDashboardMethod('anosDisponiveis', request(), fn () => $this->dashboard->anosDisponiveis());
 
-        return response()->json([
-            'success' => true,
-            'data' => $data,
-        ], 200);
+        return response()->json(['success' => true, 'data' => $data]);
     }
 
     /**
-     * Terrenos Opção por Ano (Detalhado) - Retorna lista de terrenos em opção de um ano específico
-     * com VGV e unidades calculados.
-     * 
-     * @param Request $request
-     * @return JsonResponse
+     * Área Opção Detalhe - terrenos em opção de um ano específico com VGV e unidades.
      */
     public function areaOpcaoDetalhe(Request $request): JsonResponse
     {
         $this->authorizeDashboardAccess();
 
         $ano = $request->input('ano');
-        $limit = $request->input('limit');
+        $limit = $request->input('limit') ? (int) $request->input('limit') : null;
 
-        if (!$ano) {
-            return response()->json([
-                'success' => false,
-                'message' => 'O parâmetro ano é obrigatório',
-            ], 422);
+        if (! $ano) {
+            return response()->json(['success' => false, 'message' => 'O parâmetro ano é obrigatório'], 422);
         }
 
-        $data = $this->cacheDashboardMethod('areaOpcaoDetalhe', $request, function () use ($ano, $limit) {
-            $query = Terreno::query()
-                ->whereYear('data_opcao', $ano)
-                ->with(['cidade', 'responsavel'])
-                ->withSum('terrenoProdutos as total_unidades', 'unidades')
-                ->addSelect([
-                    'vgv_total' => TerrenoProduto::select(DB::raw('SUM(COALESCE(valor, 0) * COALESCE(unidades, 0))'))
-                        ->whereColumn('terreno_id', 'terrenos.id'),
-                ]);
+        $data = $this->cacheDashboardMethod('areaOpcaoDetalhe', $request, fn () => $this->dashboard->areaOpcaoDetalhe(
+            ano: $ano,
+            limit: $limit
+        ));
 
-            if ($limit) {
-                $query->limit((int) $limit);
-            }
-
-            return $query->orderByDesc('vgv_total')
-                ->get()
-                ->map(function ($item) {
-                    return [
-                        'id' => $item->id,
-                        'nome' => $item->nome,
-                        'cidade' => $item->cidade?->city,
-                        'estado' => $item->cidade?->state_code,
-                        'responsavel' => $item->responsavel?->name,
-                        'total_unidades' => (int) $item->total_unidades,
-                        'vgv_total' => (float) $item->vgv_total,
-                        'vgv_formatado' => 'R$ ' . number_format($item->vgv_total, 2, ',', '.'),
-                    ];
-                });
-        });
-
-        return response()->json([
-            'success' => true,
-            'data' => $data,
-        ], 200);
+        return response()->json(['success' => true, 'data' => $data]);
     }
 
     /**
-     * Overview do Dashboard - Endpoint agregador para reduzir múltiplas chamadas
-     *
-     * Query params opcionais:
-     * - include: lista separada por vírgula de blocos (ex: cards,anos_disponiveis,status_chart,...)
-     * - ano: filtro por ano
-     * - mes: filtro por mês
-     * - meses: período para cadastros mensais (padrão 12)
-     * - top_cidades_limit: limite de cidades (padrão 10)
-     * - area_opcao_limit: limite de áreas na opção (padrão 10)
-     * - responsavel_id: filtro para cadastros mensais por responsável
-     * - cache_ttl: segundos de cache (padrão 60)
+     * Overview do Dashboard - endpoint agregador para reduzir múltiplas chamadas.
      */
     public function overview(Request $request): JsonResponse
     {
@@ -854,116 +288,77 @@ class DashboardController extends Controller
             $topLimit = (int) $request->input('top_cidades_limit', $request->input('limit', 10));
             $areaLimit = (int) $request->input('area_opcao_limit', $request->input('limit', 10));
             $responsavelId = $request->input('responsavel_id');
-            $cacheTtlRaw = (int) $request->input(
-                'cache_ttl',
-                config('cache.dashboard_overview_ttl', self::OVERVIEW_CACHE_TTL_DEFAULT)
-            );
+            $cacheTtlRaw = (int) $request->input('cache_ttl', config('cache.dashboard_overview_ttl', self::OVERVIEW_CACHE_TTL_DEFAULT));
             $cacheTtl = max(self::OVERVIEW_CACHE_TTL_MIN, min(self::OVERVIEW_CACHE_TTL_MAX, $cacheTtlRaw));
 
-            $tenantId = tenancy()->initialized ? tenancy()->tenant->id : 'central';
+            $tenantId = tenant('id') ?? 'central';
             $includeForCache = $include;
             sort($includeForCache, SORT_STRING);
             $cacheKey = implode(':', [
-                'dashboard',
-                'overview',
-                self::OVERVIEW_CACHE_VERSION,
-                app()->environment(),
-                $tenantId,
+                'dashboard', 'overview', self::OVERVIEW_CACHE_VERSION,
+                app()->environment(), $tenantId,
                 md5(json_encode([
-                    'include' => $includeForCache,
-                    'ano' => $ano,
-                    'mes' => $mes,
-                    'meses' => $meses,
-                    'top_limit' => $topLimit,
-                    'area_limit' => $areaLimit,
-                    'responsavel_id' => $responsavelId,
+                    'include' => $includeForCache, 'ano' => $ano, 'mes' => $mes,
+                    'meses' => $meses, 'top_limit' => $topLimit,
+                    'area_limit' => $areaLimit, 'responsavel_id' => $responsavelId,
                 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)),
             ]);
 
             $cacheTag = $this->getDashboardCacheTag();
-            $cacheDriver = config('cache.default');
-            $supportsTags = in_array($cacheDriver, ['redis', 'memcached']);
+            $supportsTags = in_array(config('cache.default'), ['redis', 'memcached']);
+            $cacheStore = $supportsTags ? Cache::tags([$cacheTag]) : Cache::getFacadeRoot();
             $forceRefresh = $this->shouldForceRefresh($request);
 
-            $cacheStore = $supportsTags ? Cache::tags([$cacheTag]) : Cache::getFacadeRoot();
-
-            $resolver = function () use (
-                $include,
-                $request,
-                $ano,
-                $mes,
-                $meses,
-                $topLimit,
-                $areaLimit,
-                $responsavelId
-            ) {
+            $resolver = function () use ($include, $ano, $mes, $meses, $topLimit, $areaLimit, $responsavelId) {
                 $payload = [];
 
                 if ($this->shouldInclude($include, 'cards')) {
-                    $payload['cards'] = $this->extractResponseData($this->cards($request));
+                    $payload['cards'] = $this->dashboard->cards();
                 }
 
                 if ($this->shouldInclude($include, 'status_chart') || $this->shouldInclude($include, 'anos_disponiveis')) {
-                    $statusResponse = $this->statusChart($request);
-                    $statusPayload = $this->extractResponsePayload($statusResponse);
+                    $statusData = $this->dashboard->statusChart($ano);
                     if ($this->shouldInclude($include, 'status_chart')) {
-                        $payload['status_chart'] = $statusPayload['data'] ?? [];
+                        $payload['status_chart'] = $statusData['status_data'];
                     }
                     if ($this->shouldInclude($include, 'anos_disponiveis')) {
-                        $payload['anos_disponiveis'] = $statusPayload['filters']['anos_disponiveis'] ?? [];
+                        $payload['anos_disponiveis'] = $statusData['anos_disponiveis'];
                     }
                 }
 
                 if ($this->shouldInclude($include, 'cadastros_mensais')) {
-                    $cadastrosRequest = $request->duplicate();
-                    $cadastrosRequest->merge([
-                        'ano' => $ano,
-                        'meses' => $meses,
-                    ]);
-                    $payload['cadastros_mensais'] = $this->extractResponseData($this->cadastrosMensais($cadastrosRequest)) ?? [];
+                    $payload['cadastros_mensais'] = $this->dashboard->cadastrosMensais(
+                        ano: $ano, meses: $meses, dataInicio: null, dataFim: null
+                    )['cadastros'];
                 }
 
                 if ($this->shouldInclude($include, 'top_cidades')) {
-                    $topRequest = $request->duplicate();
                     $filtro = ($ano && $mes) ? 'mes' : ($ano ? 'ano' : 'geral');
-                    $topRequest->merge([
-                        'filtro' => $filtro,
-                        'ano' => $ano,
-                        'mes' => $ano ? $mes : null,
-                        'limit' => $topLimit,
-                    ]);
-                    $payload['top_cidades'] = $this->extractResponseData($this->topCidades($topRequest)) ?? [];
+                    $payload['top_cidades'] = $this->dashboard->topCidades(
+                        filtro: $filtro, ano: $ano, mes: $mes, limit: $topLimit
+                    );
                 }
 
                 if ($this->shouldInclude($include, 'vgv_anual')) {
-                    $payload['vgv_anual'] = $this->extractResponseData($this->vgvAnual($request)) ?? [];
+                    $payload['vgv_anual'] = $this->dashboard->vgvAnual();
                 }
 
                 if ($this->shouldInclude($include, 'unidades_fechadas_anual')) {
-                    $payload['unidades_fechadas_anual'] = $this->extractResponseData($this->unidadesFechadasAnual($request)) ?? [];
+                    $payload['unidades_fechadas_anual'] = $this->dashboard->unidadesFechadasAnual();
                 }
 
                 if ($this->shouldInclude($include, 'resumo')) {
-                    $payload['resumo'] = $this->extractResponseData($this->resumoGeral($request));
+                    $payload['resumo'] = $this->dashboard->resumoGeral();
                 }
 
                 if ($this->shouldInclude($include, 'cadastros_mensais_responsavel')) {
-                    $cadastrosRespRequest = $request->duplicate();
-                    $cadastrosRespRequest->merge([
-                        'ano' => $ano,
-                        'meses' => $meses,
-                        'responsavel_id' => $responsavelId,
-                    ]);
-                    $payload['cadastros_mensais_responsavel'] = $this->extractResponseData($this->cadastrosMensaisPorResponsavel($cadastrosRespRequest)) ?? [];
+                    $payload['cadastros_mensais_responsavel'] = $this->dashboard->cadastrosMensaisPorResponsavel(
+                        ano: $ano, meses: $meses, dataInicio: null, dataFim: null, responsavelId: $responsavelId
+                    );
                 }
 
                 if ($this->shouldInclude($include, 'area_opcao_detalhe') && $ano) {
-                    $areaRequest = $request->duplicate();
-                    $areaRequest->merge([
-                        'ano' => $ano,
-                        'limit' => $areaLimit,
-                    ]);
-                    $payload['area_opcao_detalhe'] = $this->extractResponseData($this->areaOpcaoDetalhe($areaRequest)) ?? [];
+                    $payload['area_opcao_detalhe'] = $this->dashboard->areaOpcaoDetalhe(ano: $ano, limit: $areaLimit);
                 } elseif ($this->shouldInclude($include, 'area_opcao_detalhe')) {
                     $payload['area_opcao_detalhe'] = [];
                 }
@@ -990,9 +385,9 @@ class DashboardController extends Controller
                     'responsavel_id' => $responsavelId ?? null,
                 ],
                 'data' => $data,
-            ], 200);
+            ]);
         } catch (\Exception $e) {
-            Log::error('Erro ao buscar overview do dashboard: ' . $e->getMessage());
+            Log::error('Erro ao buscar overview do dashboard: '.$e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -1004,22 +399,16 @@ class DashboardController extends Controller
 
     private function parseInclude(?string $raw): array
     {
-        if (!$raw) {
+        if (! $raw) {
             return [
-                'cards',
-                'anos_disponiveis',
-                'status_chart',
-                'cadastros_mensais',
-                'top_cidades',
-                'vgv_anual',
-                'resumo',
-                'cadastros_mensais_responsavel',
+                'cards', 'anos_disponiveis', 'status_chart', 'cadastros_mensais',
+                'top_cidades', 'vgv_anual', 'resumo', 'cadastros_mensais_responsavel',
                 'area_opcao_detalhe',
             ];
         }
 
         return collect(explode(',', $raw))
-            ->map(fn($i) => trim($i))
+            ->map(fn ($i) => trim($i))
             ->filter()
             ->unique()
             ->values()
@@ -1031,19 +420,45 @@ class DashboardController extends Controller
         return in_array('*', $include, true) || in_array($key, $include, true);
     }
 
-    private function extractResponsePayload(JsonResponse $response): array
+    /**
+     * Terrenos por Responsável - total de terrenos agrupados por responsável.
+     */
+    public function terrenosPorResponsavel(Request $request): JsonResponse
     {
-        $payload = $response->getData(true);
-        return is_array($payload) ? $payload : [];
-    }
+        $this->authorizeDashboardAccess();
 
-    private function extractResponseData(JsonResponse $response): array|null
-    {
-        $payload = $this->extractResponsePayload($response);
-        if (($payload['success'] ?? false) !== true) {
-            return null;
+        try {
+            $filtro = $request->input('filtro', 'geral');
+            $ano = $request->input('ano');
+            $mes = $request->input('mes');
+            $limit = $request->input('limit');
+
+            if (in_array($filtro, ['ano', 'mes']) && ! $ano) {
+                return response()->json(['success' => false, 'message' => 'Ano é obrigatório para filtros "ano" ou "mes"'], 422);
+            }
+
+            if ($filtro === 'mes' && ! $mes) {
+                return response()->json(['success' => false, 'message' => 'Mês é obrigatório para filtro "mes"'], 422);
+            }
+
+            $data = $this->cacheDashboardMethod('terrenosPorResponsavel', $request, fn () => $this->dashboard->terrenosPorResponsavel(
+                filtro: $filtro,
+                ano: $ano,
+                mes: $mes,
+                limit: $limit
+            ));
+
+            return response()->json([
+                'success' => true,
+                'filters' => [
+                    'filtro' => $filtro,
+                    'ano' => $ano,
+                    'mes' => $mes,
+                ],
+                'data' => $data,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
-
-        return $payload['data'] ?? null;
     }
 }

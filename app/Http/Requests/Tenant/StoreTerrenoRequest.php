@@ -2,16 +2,23 @@
 
 namespace App\Http\Requests\Tenant;
 
+use App\Enums\WorkflowStatus;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreTerrenoRequest extends FormRequest
 {
+    /**
+     * Determina se o usuário está autorizado a fazer esta requisição.
+     */
     public function authorize(): bool
     {
         return true;
     }
 
+    /**
+     * Obtém as regras de validação que se aplicam à requisição.
+     */
     public function rules(): array
     {
         return [
@@ -26,7 +33,7 @@ class StoreTerrenoRequest extends FormRequest
             'polygon_coords.*.lng' => 'required_with:polygon_coords|numeric',
             'static_map_url' => 'nullable|string',
             'area_calculada' => 'nullable|numeric',
-            'workflow_status_code' => ['nullable', 'string', Rule::in(['em_analise'])],
+            'workflow_status_code' => ['nullable', 'string', Rule::in([WorkflowStatus::EM_ANALISE->value])],
             'regional_id' => 'nullable|integer|exists:regionais,id',
             'cep' => 'nullable|string|max:10',
             'bairro' => 'nullable|string|max:255',
@@ -45,6 +52,9 @@ class StoreTerrenoRequest extends FormRequest
         ];
     }
 
+    /**
+     * Obtém as mensagens personalizadas para erros do validador.
+     */
     public function messages(): array
     {
         return [

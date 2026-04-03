@@ -47,16 +47,18 @@ class CidadesController extends Controller
      */
     public function buscar(Request $request): JsonResponse
     {
-        $termo = $request->query('termo');
-        if (!$termo) {
-            return response()->json([
-                'status' => 'ERROR',
-                'message' => language()->t('MISSING_SEARCH_TERM')
-            ], 400);
-        }
+        $request->validate([
+            'termo' => ['required', 'string', 'min:2', 'max:100'],
+        ]);
 
-        $cidades = Cidade::where('city', 'like', "%{$termo}%")
+        $termo = $request->query('termo');
+
+        $cidades = Cidade::whereRaw(
+                'unaccent(city) ILIKE unaccent(?)',
+                ["%{$termo}%"]
+            )
             ->orderBy('city')
+            ->limit(100)
             ->get(['code', 'city', 'state', 'state_code']);
 
         return response()->json([
@@ -70,13 +72,11 @@ class CidadesController extends Controller
      */
     public function dados(Request $request): JsonResponse
     {
+        $request->validate([
+            'cityCode' => ['required', 'string', 'max:20'],
+        ]);
+
         $cityCode = $request->query('cityCode');
-        if (!$cityCode) {
-            return response()->json([
-                'status' => 'ERROR',
-                'message' => language()->t('MISSING_CITY_CODE')
-            ], 400);
-        }
 
         $cidade = Cidade::where('code', $cityCode)->first();
         if (!$cidade) {

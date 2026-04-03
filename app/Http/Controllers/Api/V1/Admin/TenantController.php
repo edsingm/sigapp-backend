@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\PlanResource;
 use App\Models\Central\Tenant;
 use App\Services\ApiResponseService;
 use App\Services\Billing\TenantBillingService;
@@ -16,7 +17,7 @@ class TenantController extends Controller
     }
 
     /**
-     * List all tenants with pagination and filters.
+     * Lista todos os tenants com paginação e filtros.
      */
     public function index(Request $request)
     {
@@ -41,28 +42,30 @@ class TenantController extends Controller
     }
 
     /**
-     * Get specific tenant details.
+     * Obtém detalhes de um tenant específico.
      */
     public function show($id)
     {
         $tenant = Tenant::with(['plan'])->findOrFail($id);
 
-        // Get usage stats
+        // Obtém estatísticas de uso
         $stats = [
             'users_count' => 0,
             'terrenos_count' => 0,
-            'storage_used' => 0 // Placeholder
+            'products_count' => 0,
+            'storage_used' => 0 // Espaço reservado
         ];
 
         try {
-            // We need to switch to tenant context to get these counts
+            // Precisamos mudar para o contexto do tenant para obter essas contagens
             tenancy()->initialize($tenant);
 
             $stats['users_count'] = \App\Models\Tenant\User::count();
             $stats['terrenos_count'] = \App\Models\Tenant\Terreno::count();
+            $stats['products_count'] = \App\Models\Tenant\Produto::count();
         } catch (\Exception $e) {
-            // If database is not created or accessible, we return 0
-            // Log error if needed: \Log::error("Failed to get tenant stats: " . $e->getMessage());
+            // Se o banco de dados não estiver criado ou acessível, retornamos 0
+            // Logar erro se necessário: \Log::error("Failed to get tenant stats: " . $e->getMessage());
         } finally {
             if (tenancy()->initialized) {
                 tenancy()->end();
@@ -70,11 +73,12 @@ class TenantController extends Controller
         }
 
         $data = $tenant->toArray();
+        $data['plan'] = $tenant->plan ? (new PlanResource($tenant->plan))->resolve() : null;
         $data['stats'] = $stats;
         $data['on_trial'] = $tenant->onTrial();
         $data['trial_ended'] = $tenant->trialEnded();
 
-        // Financial Data (Stripe/Cashier)
+        // Dados Financeiros (Stripe/Cashier)
         $finance = [
             'has_payment_method' => false,
             'card_brand' => null,
@@ -82,7 +86,7 @@ class TenantController extends Controller
             'card_exp_month' => null,
             'card_exp_year' => null,
             'invoices' => [],
-            'subscription_status' => $tenant->status, // Default to local status
+            'subscription_status' => $tenant->status, // Padrão para status local
             'renews_at' => null,
             'canceled_at' => null,
             'error' => null
@@ -108,28 +112,28 @@ class TenantController extends Controller
                     $finance['canceled_at'] = $subscription->ends_at;
                 }
 
-                // Get last 5 invoices
+                // Obtém as últimas 5 faturas
                 $invoices = $tenant->invoicesIncludingPending(['limit' => 5]);
                 foreach ($invoices as $invoice) {
                     $finance['invoices'][] = [
                         'id' => $invoice->id,
                         'number' => $invoice->number,
-                        'total' => $invoice->total(), // Formatted string
+                        'total' => $invoice->total(), // String formatada
                         'status' => $invoice->status,
                         'created_at' => $invoice->created, // Timestamp
-                        'pdf' => $invoice->hosted_invoice_url, // URL to view invoice
-                        'download' => $invoice->invoice_pdf, // URL to download PDF
+                        'pdf' => $invoice->hosted_invoice_url, // URL para visualizar fatura
+                        'download' => $invoice->invoice_pdf, // URL para baixar PDF
                     ];
                 }
             } else {
-                // Not a Stripe tenant yet (Local Trial or Free)
+                // Ainda não é um tenant do Stripe (Trial Local ou Gratuito)
                 if ($tenant->onTrial()) {
                     $finance['subscription_status'] = 'trialing';
                     $finance['renews_at'] = $tenant->trial_ends_at ? $tenant->trial_ends_at->timestamp : null;
                 }
             }
         } catch (\Exception $e) {
-            // Log stripe error but don't fail the request
+            // Logar erro do Stripe mas não falhar a requisição
             // \Log::error("Stripe error for tenant {$tenant->id}: " . $e->getMessage());
             $finance['error'] = 'Erro ao carregar dados do Stripe: ' . $e->getMessage();
         }
@@ -140,7 +144,7 @@ class TenantController extends Controller
     }
 
     /**
-     * Activate a tenant.
+     * Ativa um tenant.
      */
     public function activate(Request $request, $id)
     {
@@ -165,7 +169,7 @@ class TenantController extends Controller
             return ApiResponseService::conflict('BILLING_STATE_INVALID');
         }
 
-        // Log action
+        // Registrar ação
         $this->audit('tenant.activated', "Tenant {$tenant->name} ({$tenant->id}) ativado após reconciliação de billing.", [
             'tenant_id' => $tenant->id,
             'source' => $reconciliation['source'] ?? null,
@@ -176,7 +180,7 @@ class TenantController extends Controller
     }
 
     /**
-     * Suspend a tenant.
+     * Suspende um tenant.
      */
     public function suspend(Request $request, $id)
     {
@@ -188,7 +192,7 @@ class TenantController extends Controller
 
         $tenant->suspend();
 
-        // Log action
+        // Registrar ação
         $this->audit('tenant.suspended', "Tenant {$tenant->name} ({$tenant->id}) suspenso manualmente.", [
             'tenant_id' => $tenant->id,
         ]);

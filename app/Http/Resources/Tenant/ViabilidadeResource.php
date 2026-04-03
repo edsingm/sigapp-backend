@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Resources\Tenant;
 
 use Illuminate\Http\Request;
@@ -7,7 +8,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class ViabilidadeResource extends JsonResource
 {
     /**
-     * Transform the resource into an array.
+     * Transformar o recurso em um array.
      *
      * @return array<string, mixed>
      */
@@ -23,19 +24,44 @@ class ViabilidadeResource extends JsonResource
             'infra_nao_incidente' => (float) $this->infra_nao_incidente,
             'porcentagem_lote_proprietario' => (float) $this->porcentagem_lote_proprietario,
             'prazo_obra' => (int) $this->prazo_obra,
+            'prazo_lancamento' => (int) $this->prazo_lancamento,
+            'prazo_incorporacao' => (int) $this->prazo_incorporacao,
             'pis_cofins' => (float) $this->pis_cofins,
             'iss' => (float) $this->iss,
             'outros_impostos' => (float) $this->outros_impostos,
             'comissao' => (float) $this->comissao,
             'incorporacao' => (float) $this->incorporacao,
+            'incorporacao_ri' => (float) $this->incorporacao_ri,
+            'incorporacao_entrega' => (float) $this->incorporacao_entrega,
+            'incorporacao_ate_lancamento' => (float) $this->incorporacao_ate_lancamento,
             'area_comum' => (float) $this->area_comum,
             'contrapartidas' => (float) $this->contrapartidas,
             'canteiro_mensal' => (float) $this->canteiro_mensal,
             'mo_administrativa' => (float) $this->mo_administrativa,
             'seguros' => (float) $this->seguros,
             'assistencia_tecnica' => (float) $this->assistencia_tecnica,
+            'assistencia_tecnica_curva' => $this->assistencia_tecnica_curva,
             'despesas_comerciais' => (float) $this->despesas_comerciais,
+            'stand_vendas' => (float) $this->stand_vendas,
+            'mobilia_decoracao' => (float) $this->mobilia_decoracao,
+            'gastos_mensais_stand' => (float) $this->gastos_mensais_stand,
+            'comissao_house_percentual' => (float) $this->comissao_house_percentual,
+            'comissao_imobiliarias_percentual' => (float) $this->comissao_imobiliarias_percentual,
+            'percentual_vendas_house' => (float) $this->percentual_vendas_house,
+            'ajuda_custo_gerente' => (float) $this->ajuda_custo_gerente,
+            'ajuda_custo_gerente_regional' => (float) $this->ajuda_custo_gerente_regional,
+            'reembolso_logistica' => (float) $this->reembolso_logistica,
+            'bonus_cca' => (float) $this->bonus_cca,
+            'bonus_gerente' => (float) $this->bonus_gerente,
+            'bonus_gerente_regional' => (float) $this->bonus_gerente_regional,
+            'bonus_credito' => (float) $this->bonus_credito,
+            'bonus_gestor_comercial' => (float) $this->bonus_gestor_comercial,
+            'pagamento_comissao_venda' => (float) $this->pagamento_comissao_venda,
+            'pagamento_comissao_desligamento' => (float) $this->pagamento_comissao_desligamento,
+            'parcelamento_comissao_meses' => (int) $this->parcelamento_comissao_meses,
             'marketing' => (float) $this->marketing,
+            'marketing_lancamento' => (float) $this->marketing_lancamento,
+            'marketing_inicio_antes_lancamento' => (int) $this->marketing_inicio_antes_lancamento,
             'itbi_iptu' => (float) $this->itbi_iptu,
             'registro' => (float) $this->registro,
             'medicao_contratacao' => (float) $this->medicao_contratacao,
@@ -43,6 +69,14 @@ class ViabilidadeResource extends JsonResource
             'produtos_cef' => (float) $this->produtos_cef,
             'outras_despesas_financeiras' => (float) $this->outras_despesas_financeiras,
             'despesas_onerosas_bancos' => (float) $this->despesas_onerosas_bancos,
+            'taxa_juros_pj' => (float) $this->taxa_juros_pj,
+            'percentual_antecipacao_pj' => (float) $this->percentual_antecipacao_pj,
+            'carencia_pj_meses' => (int) $this->carencia_pj_meses,
+            'amortizacao_pj_parcelas' => (int) $this->amortizacao_pj_parcelas,
+            'aporte_adicional_mensal' => (float) $this->aporte_adicional_mensal,
+            'devolucao_aporte_percentual' => (float) $this->devolucao_aporte_percentual,
+            'distribuicao_lucros_percentual_obra' => (float) $this->distribuicao_lucros_percentual_obra,
+            'taxa_exposicao_aplicada' => (float) $this->taxa_exposicao_aplicada,
             'status' => $this->status,
             'approval_status' => $this->approval_status ?? ($this->status === 'ativo' ? 'aprovada' : 'pendente'),
             'approval_requested_at' => $this->approval_requested_at?->toIso8601String(),
@@ -56,7 +90,7 @@ class ViabilidadeResource extends JsonResource
             'deleted_at' => $this->deleted_at?->format('Y-m-d H:i:s'),
 
             // Relacionamentos
-            'terreno' => $this->whenLoaded('terreno', fn() => [
+            'terreno' => $this->whenLoaded('terreno', fn () => [
                 'id' => $this->terreno->id,
                 'nome' => $this->terreno->nome,
             ]),
@@ -92,8 +126,3 @@ class ViabilidadeResource extends JsonResource
         ];
     }
 }
-
-
-
-
-?>

@@ -7,11 +7,17 @@ use Illuminate\Validation\Rule;
 
 class UpdateLegalizacaoEtapaRequest extends FormRequest
 {
+    /**
+     * Determina se o usuário está autorizado a fazer esta requisição.
+     */
     public function authorize(): bool
     {
         return true;
     }
 
+    /**
+     * Prepara os dados para validação.
+     */
     protected function prepareForValidation(): void
     {
         $merge = [];
@@ -61,6 +67,11 @@ class UpdateLegalizacaoEtapaRequest extends FormRequest
         }
     }
 
+    /**
+     * Obtém as regras de validação que se aplicam à requisição.
+     *
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     */
     public function rules(): array
     {
         $legalizacaoId = $this->route('legalizacaoId');
@@ -93,6 +104,9 @@ class UpdateLegalizacaoEtapaRequest extends FormRequest
         ];
     }
 
+    /**
+     * Obtém as mensagens de erro para as regras de validação definidas.
+     */
     public function messages(): array
     {
         return [
@@ -124,6 +138,8 @@ class UpdateLegalizacaoEtapaRequest extends FormRequest
     }
 
     /**
+     * Normaliza os custos para o formato esperado.
+     *
      * @param array<int, mixed> $custos
      * @return array<int, array<string, mixed>>
      */
@@ -154,6 +170,9 @@ class UpdateLegalizacaoEtapaRequest extends FormRequest
         return $normalizados;
     }
 
+    /**
+     * Verifica se existe algum campo de custo raiz na requisição.
+     */
     protected function temAlgumCampoDeCustoRaiz(): bool
     {
         return $this->exists('tipo_custo')
@@ -161,6 +180,9 @@ class UpdateLegalizacaoEtapaRequest extends FormRequest
             || $this->exists('custo_pago');
     }
 
+    /**
+     * Normaliza um valor para booleano.
+     */
     protected function normalizarBoolean(mixed $value): bool
     {
         if (is_bool($value)) {

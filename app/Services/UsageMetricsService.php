@@ -3,13 +3,14 @@
 namespace App\Services;
 
 use App\Models\Tenant\Documento;
+use App\Models\Tenant\Produto;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\User;
 
 class UsageMetricsService
 {
     /**
-     * Get the count of users in the current tenant.
+     * Obtém a contagem de usuários no tenant atual.
      */
     public function getUserCount(): int
     {
@@ -21,7 +22,7 @@ class UsageMetricsService
     }
 
     /**
-     * Get the count of terrenos in the current tenant.
+     * Obtém a contagem de terrenos no tenant atual.
      */
     public function getTerrenoCount(): int
     {
@@ -33,7 +34,19 @@ class UsageMetricsService
     }
 
     /**
-     * Get the storage used in bytes.
+     * Obtém a contagem de produtos no tenant atual.
+     */
+    public function getProdutoCount(): int
+    {
+        if (!tenancy()->initialized) {
+            return 0;
+        }
+
+        return Produto::count();
+    }
+
+    /**
+     * Obtém o armazenamento usado em bytes.
      */
     public function getStorageUsedBytes(): int
     {
@@ -45,7 +58,7 @@ class UsageMetricsService
     }
 
     /**
-     * Get the storage used in GB.
+     * Obtém o armazenamento usado em GB.
      */
     public function getStorageUsed(): float
     {
@@ -53,7 +66,7 @@ class UsageMetricsService
     }
 
     /**
-     * Get all usage metrics for the current tenant.
+     * Obtém todas as métricas de uso para o tenant atual.
      */
     public function getMetrics(): array
     {
@@ -63,23 +76,28 @@ class UsageMetricsService
         return [
             'users' => [
                 'current' => $this->getUserCount(),
-                'limit' => $plan?->max_users ?? 0,
-                'unlimited' => $plan?->hasUnlimitedUsers() ?? false,
+                'limit' => $plan?->getLimit('users') ?? 0,
+                'unlimited' => $plan?->hasUnlimitedLimit('users') ?? false,
             ],
             'terrenos' => [
                 'current' => $this->getTerrenoCount(),
-                'limit' => $plan?->max_terrenos ?? 0,
-                'unlimited' => $plan?->hasUnlimitedTerrenos() ?? false,
+                'limit' => $plan?->getLimit('terrenos') ?? 0,
+                'unlimited' => $plan?->hasUnlimitedLimit('terrenos') ?? false,
+            ],
+            'products' => [
+                'current' => $this->getProdutoCount(),
+                'limit' => $plan?->getLimit('products') ?? 0,
+                'unlimited' => $plan?->hasUnlimitedLimit('products') ?? false,
             ],
             'storage' => [
                 'used_gb' => $this->getStorageUsed(),
-                'limit_gb' => $plan?->max_storage_gb ?? 0,
+                'limit_gb' => $plan?->getLimit('storage_gb') ?? 0,
             ],
         ];
     }
 
     /**
-     * Get usage percentages.
+     * Obtém as porcentagens de uso.
      */
     public function getUsagePercentages(): array
     {
@@ -96,6 +114,11 @@ class UsageMetricsService
                 : ($metrics['terrenos']['limit'] > 0
                     ? round(($metrics['terrenos']['current'] / $metrics['terrenos']['limit']) * 100, 1)
                     : 100),
+            'products' => $metrics['products']['unlimited']
+                ? 0
+                : ($metrics['products']['limit'] > 0
+                    ? round(($metrics['products']['current'] / $metrics['products']['limit']) * 100, 1)
+                    : 100),
             'storage' => $metrics['storage']['limit_gb'] > 0
                 ? round(($metrics['storage']['used_gb'] / $metrics['storage']['limit_gb']) * 100, 1)
                 : 100,
@@ -103,7 +126,7 @@ class UsageMetricsService
     }
 
     /**
-     * Check if any limit is approaching (80% or more).
+     * Verifica se algum limite está se aproximando (80% ou mais).
      */
     public function isApproachingLimits(): bool
     {
@@ -111,6 +134,7 @@ class UsageMetricsService
 
         return $percentages['users'] >= 80
             || $percentages['terrenos'] >= 80
+            || $percentages['products'] >= 80
             || $percentages['storage'] >= 80;
     }
 }

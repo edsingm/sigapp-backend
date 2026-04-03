@@ -14,12 +14,12 @@ class Cidade extends Model
     use HasFactory, CentralConnection;
 
     /**
-     * The table associated with the model.
+     * A tabela associada ao modelo.
      */
     protected $table = 'cidades';
 
     /**
-     * The attributes that are mass assignable.
+     * Os atributos que podem ser atribuídos em massa.
      */
     protected $fillable = [
         'code',
@@ -36,6 +36,8 @@ class Cidade extends Model
         'per_capta_income',
         'property_maximum_value',
         'buyer_demand',
+        'own_property',
+        'rented_property',
     ];
 
     /**
@@ -55,12 +57,14 @@ class Cidade extends Model
         'per_capta_income' => 'decimal:2',
         'property_maximum_value' => 'decimal:2',
         'buyer_demand' => 'decimal:2',
+        'own_property' => 'integer',
+        'rented_property' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
 
     /**
-     * Get the validation rules for the model.
+     * Obtém as regras de validação para o modelo.
      */
     public static function rules($id = null): array
     {
@@ -79,6 +83,8 @@ class Cidade extends Model
             'per_capta_income' => 'nullable|numeric|min:0',
             'property_maximum_value' => 'nullable|numeric|min:0',
             'buyer_demand' => 'nullable|numeric|between:0,100',
+            'own_property' => 'nullable|integer|min:0',
+            'rented_property' => 'nullable|integer|min:0',
         ];
     }
 

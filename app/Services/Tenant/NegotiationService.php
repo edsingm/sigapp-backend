@@ -2,6 +2,7 @@
 
 namespace App\Services\Tenant;
 
+use App\Enums\WorkflowStatus;
 use App\Models\Tenant\Contrato;
 use App\Models\Tenant\ContratoParte;
 use App\Models\Tenant\EntityActivity;
@@ -15,15 +16,18 @@ use RuntimeException;
 
 class NegotiationService
 {
+    /**
+     * Lista as negociações com filtros e paginação.
+     */
     public function listNegotiations(array $filters = []): LengthAwarePaginator
     {
         $query = Negociacao::query()->with(['terreno', 'eventos', 'contratos.partes']);
 
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->where('status', $filters['status']);
         }
 
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
             $search = $filters['search'];
             $query->whereHas('terreno', function ($builder) use ($search) {
                 $builder->where('nome', 'like', "%{$search}%");
@@ -34,7 +38,9 @@ class NegotiationService
     }
 
     /**
-     * @param array<string, mixed> $data
+     * Cria uma nova negociação para um terreno.
+     *
+     * @param  array<string, mixed>  $data
      */
     public function createNegotiation(array $data, ?User $user, LandWorkflowService $workflowService): Negociacao
     {
@@ -42,13 +48,13 @@ class NegotiationService
             $terreno = Terreno::query()->with('comiteAtual')->findOrFail($data['terreno_id']);
             $decision = $terreno->comiteAtual?->final_decision;
 
-            if (!in_array($decision, ['aprovado_comite', 'aprovado_com_ressalvas'], true)) {
+            if (! in_array($decision, ['aprovado_comite', 'aprovado_com_ressalvas'], true)) {
                 throw new RuntimeException('Negociação exige comitê aprovado.');
             }
 
             $negociacao = Negociacao::create([
                 'terreno_id' => $terreno->id,
-                'status' => $data['status'] ?? 'negociacao_minuta',
+                'status' => $data['status'] ?? WorkflowStatus::NEGOCIACAO_MINUTA->value,
                 'proposal_value' => $data['proposal_value'] ?? null,
                 'business_model' => $data['business_model'] ?? null,
                 'started_at' => $data['started_at'] ?? now(),
@@ -64,7 +70,9 @@ class NegotiationService
     }
 
     /**
-     * @param array<string, mixed> $data
+     * Atualiza os dados de uma negociação existente.
+     *
+     * @param  array<string, mixed>  $data
      */
     public function updateNegotiation(Negociacao $negociacao, array $data, ?User $user, ?LandWorkflowService $workflowService = null): Negociacao
     {
@@ -92,7 +100,9 @@ class NegotiationService
     }
 
     /**
-     * @param array<string, mixed> $data
+     * Adiciona um evento ao histórico da negociação.
+     *
+     * @param  array<string, mixed>  $data
      */
     public function addEvent(Negociacao $negociacao, array $data, ?User $user): NegociacaoEvento
     {
@@ -107,7 +117,9 @@ class NegotiationService
     }
 
     /**
-     * @param array<string, mixed> $data
+     * Cria ou atualiza um contrato vinculado à negociação.
+     *
+     * @param  array<string, mixed>  $data
      */
     public function createOrUpdateContract(?Contrato $contract, array $data, ?User $user): Contrato
     {
@@ -119,20 +131,20 @@ class NegotiationService
             'signed_at' => $data['signed_at'] ?? null,
             'start_date' => $data['start_date'] ?? null,
             'end_date' => $data['end_date'] ?? null,
-            'status' => $data['status'] ?? ($contract?->status ?? 'negociacao_minuta'),
+            'status' => $data['status'] ?? ($contract?->status ?? WorkflowStatus::NEGOCIACAO_MINUTA->value),
             'file_path' => $data['file_path'] ?? null,
             'notes' => $data['notes'] ?? null,
             'updated_by' => $user?->id,
         ];
 
-        if (!$contract) {
+        if (! $contract) {
             $payload['created_by'] = $user?->id;
             $contract = Contrato::create($payload);
         } else {
             $contract->update($payload);
         }
 
-        if (!empty($data['partes']) && is_array($data['partes'])) {
+        if (! empty($data['partes']) && is_array($data['partes'])) {
             $contract->partes()->delete();
             foreach ($data['partes'] as $parte) {
                 ContratoParte::create([
@@ -149,21 +161,24 @@ class NegotiationService
         return $contract->fresh(['terreno', 'negociacao', 'partes']);
     }
 
+    /**
+     * Registra a assinatura do contrato e atualiza o workflow do terreno.
+     */
     public function signContract(Contrato $contract, ?User $user, LandWorkflowService $workflowService): Contrato
     {
-        if (!$contract->contract_type || !$contract->file_path || !$contract->partes()->exists()) {
+        if (! $contract->contract_type || ! $contract->file_path || ! $contract->partes()->exists()) {
             throw new RuntimeException('Contrato assinado exige tipo, partes e documento.');
         }
 
         $contract->update([
             'signed_at' => $contract->signed_at ?? now(),
-            'status' => 'contrato_assinado',
+            'status' => WorkflowStatus::CONTRATO_ASSINADO->value,
             'updated_by' => $user?->id,
         ]);
 
         $workflowService->transition(
             $contract->terreno()->firstOrFail(),
-            'contrato_assinado',
+            WorkflowStatus::CONTRATO_ASSINADO->value,
             $user,
             'contract_signed',
             $contract->notes,

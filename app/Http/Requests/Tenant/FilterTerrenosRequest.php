@@ -2,15 +2,22 @@
 
 namespace App\Http\Requests\Tenant;
 
+use App\Enums\WorkflowStatus;
 use Illuminate\Foundation\Http\FormRequest;
 
 class FilterTerrenosRequest extends FormRequest
 {
+    /**
+     * Determina se o usuário está autorizado a fazer esta requisição.
+     */
     public function authorize(): bool
     {
         return true;
     }
 
+    /**
+     * Prepara os dados para validação.
+     */
     protected function prepareForValidation(): void
     {
         $toArray = function ($value) {
@@ -55,6 +62,9 @@ class FilterTerrenosRequest extends FormRequest
         ]);
     }
 
+    /**
+     * Obtém as regras de validação que se aplicam à requisição.
+     */
     public function rules(): array
     {
         $sortFields = [
@@ -97,9 +107,9 @@ class FilterTerrenosRequest extends FormRequest
             'sort_by' => ['nullable', 'in:' . implode(',', $sortFields)],
             'sort_dir' => ['nullable', 'in:asc,desc'],
             'workflow_statuses' => ['nullable', 'array'],
-            'workflow_statuses.*' => ['string', 'max:100'],
+            'workflow_statuses.*' => ['string', 'in:' . implode(',', WorkflowStatus::values())],
             'page' => ['nullable', 'integer', 'min:1'],
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:10000'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
     }
 }

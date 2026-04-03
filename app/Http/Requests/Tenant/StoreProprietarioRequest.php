@@ -6,11 +6,17 @@ use Illuminate\Foundation\Http\FormRequest;
  
 class StoreProprietarioRequest extends FormRequest
 {
+    /**
+     * Determina se o usuário está autorizado a fazer esta requisição.
+     */
     public function authorize(): bool
     {
         return true;
     }
- 
+
+    /**
+     * Obtém as regras de validação que se aplicam à requisição.
+     */
     public function rules(): array
     {
         return [
@@ -38,6 +44,9 @@ class StoreProprietarioRequest extends FormRequest
         ];
     }
  
+    /**
+     * Obtém as mensagens personalizadas para erros do validador.
+     */
     public function messages(): array
     {
         return [

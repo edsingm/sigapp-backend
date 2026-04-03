@@ -7,11 +7,17 @@ use Illuminate\Validation\Rule;
 
 class StoreLegalizacaoEtapaRequest extends FormRequest
 {
+    /**
+     * Determina se o usuário está autorizado a fazer esta requisição.
+     */
     public function authorize(): bool
     {
         return true;
     }
 
+    /**
+     * Prepara os dados para validação.
+     */
     protected function prepareForValidation(): void
     {
         $merge = [];
@@ -63,6 +69,9 @@ class StoreLegalizacaoEtapaRequest extends FormRequest
         }
     }
 
+    /**
+     * Obtém as regras de validação que se aplicam à requisição.
+     */
     public function rules(): array
     {
         $legalizacaoId = $this->route('legalizacaoId');
@@ -94,6 +103,9 @@ class StoreLegalizacaoEtapaRequest extends FormRequest
         ];
     }
 
+    /**
+     * Obtém as mensagens personalizadas para erros do validador.
+     */
     public function messages(): array
     {
         return [

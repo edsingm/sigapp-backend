@@ -11,7 +11,7 @@ class Documento extends Model
     use HasFactory;
 
     /**
-     * The "booted" method of the model.
+     * O método "booted" do modelo.
      */
     protected static function booted(): void
     {
@@ -61,7 +61,7 @@ class Documento extends Model
         return $this->belongsTo(User::class, 'updated_by');
     }
 
-    // Scopes
+    // Escopos
     public function scopePendentes($query)
     {
         return $query->where('status', 'pendente');
@@ -87,7 +87,7 @@ class Documento extends Model
         return $query->where('tipo', $tipo);
     }
 
-    // Accessors
+    // Accessors (Acessores)
     public function getStatusLabelAttribute(): string
     {
         return match ($this->status) {

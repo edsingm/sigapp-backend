@@ -13,7 +13,7 @@ class Regional extends Model
     use HasFactory, SoftDeletes;
 
     /**
-     * The "booted" method of the model.
+     * O método "booted" do modelo.
      */
     protected static function booted(): void
     {
@@ -37,14 +37,14 @@ class Regional extends Model
     }
 
     /**
-     * The table associated with the model.
+     * A tabela associada ao modelo.
      *
      * @var string
      */
     protected $table = 'regionais';
 
     /**
-     * The attributes that are mass assignable.
+     * Os atributos que podem ser atribuídos em massa.
      *
      * @var array<int, string>
      */
@@ -63,7 +63,7 @@ class Regional extends Model
     ];
 
     /**
-     * The attributes that should be cast.
+     * Os atributos que devem ser convertidos.
      *
      * @var array<string, string>
      */
@@ -74,7 +74,7 @@ class Regional extends Model
     ];
 
     /**
-     * Get the responsible user for this regional.
+     * Obtém o usuário responsável por esta regional.
      */
     public function responsavel(): BelongsTo
     {
@@ -82,7 +82,7 @@ class Regional extends Model
     }
 
     /**
-     * Get the user who created this regional.
+     * Obtém o usuário que criou esta regional.
      */
     public function createdBy(): BelongsTo
     {
@@ -90,7 +90,7 @@ class Regional extends Model
     }
 
     /**
-     * Get the user who last updated this regional.
+     * Obtém o usuário que atualizou esta regional pela última vez.
      */
     public function updatedBy(): BelongsTo
     {
@@ -98,7 +98,7 @@ class Regional extends Model
     }
 
     /**
-     * Get the full address.
+     * Obtém o endereço completo.
      */
     public function getEnderecoCompletoAttribute(): string
     {
@@ -106,7 +106,7 @@ class Regional extends Model
     }
 
     /**
-     * Scope to filter by state.
+     * Escopo para filtrar por estado.
      */
     public function scopeByEstado($query, string $estado)
     {
@@ -114,7 +114,7 @@ class Regional extends Model
     }
 
     /**
-     * Scope to filter by city.
+     * Escopo para filtrar por cidade.
      */
     public function scopeByCidade($query, string $cidade)
     {
@@ -122,7 +122,7 @@ class Regional extends Model
     }
 
     /**
-     * Scope to search by name.
+     * Escopo para buscar por nome.
      */
     public function scopeSearch($query, string $term)
     {

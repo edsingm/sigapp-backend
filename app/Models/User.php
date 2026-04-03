@@ -15,7 +15,7 @@ class User extends Authenticatable
     use HasFactory, Notifiable, HasApiTokens, CentralConnection;
 
     /**
-     * The attributes that are mass assignable.
+     * Os atributos que podem ser atribuídos em massa.
      *
      * @var list<string>
      */
@@ -27,7 +27,7 @@ class User extends Authenticatable
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
+     * Os atributos que devem ser ocultos para serialização.
      *
      * @var list<string>
      */
@@ -37,7 +37,7 @@ class User extends Authenticatable
     ];
 
     /**
-     * Get the attributes that should be cast.
+     * Obtém os atributos que devem ser convertidos.
      *
      * @return array<string, string>
      */

@@ -9,23 +9,23 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Validates that the authenticated tenant user has the required permission
- * for the given module (and optional resource).
+ * Valida se o usuário autenticado do tenant possui a permissão necessária
+ * para o módulo fornecido (e recurso opcional).
  *
- * Permission format (dot-notation):
- *   With resource:    {module}.{resource}.{level}   e.g. prospection.terrains.viewer
- *   Without resource: {module}.{level}              e.g. viability.viewer
+ * Formato da permissão (notação de ponto):
+ *   Com recurso:      {modulo}.{recurso}.{nivel}   ex: prospection.terrains.viewer
+ *   Sem recurso:      {modulo}.{nivel}              ex: viability.viewer
  *
- * HTTP method → minimum required level:
+ * Método HTTP → nível mínimo exigido:
  *   GET            → viewer
  *   POST/PUT/PATCH → editor
  *   DELETE         → manager
  *
- * Usage in routes:
- *   permission.gate:{module}
- *   permission.gate:{module},{resource}
+ * Uso nas rotas:
+ *   permission.gate:{modulo}
+ *   permission.gate:{modulo},{recurso}
  *
- * The canonical ADMIN role bypasses all checks.
+ * O papel (role) ADMIN canônico ignora todas as verificações.
  */
 class PermissionGate
 {
@@ -34,6 +34,9 @@ class PermissionGate
     ) {
     }
 
+    /**
+     * Manipula uma requisição de entrada.
+     */
     public function handle(
         Request $request,
         Closure $next,

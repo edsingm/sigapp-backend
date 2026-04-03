@@ -27,7 +27,7 @@ use App\Services\Tenant\LandWorkflowService;
 class TerrenoResource extends JsonResource
 {
     /**
-     * Transform the resource into an array.
+     * Transformar o recurso em um array.
      *
      * @return array<string, mixed>
      */

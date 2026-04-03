@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Gate;
 class CorretoresExternosController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Listar os corretores externos.
      */
     public function index(Request $request): JsonResponse
     {
@@ -40,7 +40,7 @@ class CorretoresExternosController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Armazenar um novo corretor externo.
      */
     public function store(Request $request): JsonResponse
     {
@@ -57,7 +57,7 @@ class CorretoresExternosController extends Controller
     }
 
     /**
-     * Display the specified resource.
+     * Exibir os detalhes de um corretor externo específico.
      */
     public function show(string $id): JsonResponse
     {
@@ -67,7 +67,7 @@ class CorretoresExternosController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
+     * Atualizar um corretor externo existente.
      */
     public function update(Request $request, string $id): JsonResponse
     {
@@ -85,7 +85,7 @@ class CorretoresExternosController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Excluir um corretor externo.
      */
     public function destroy(string $id): JsonResponse
     {
@@ -99,6 +99,9 @@ class CorretoresExternosController extends Controller
         ]);
     }
 
+    /**
+     * Listar corretores externos para seleção.
+     */
     public function corretoresForSelect()
     {
         Gate::authorize('viewAny', CorretorExterno::class);

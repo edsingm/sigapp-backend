@@ -2,6 +2,7 @@
 
 namespace App\Models\Central;
 
+use App\Services\PlanMatrixService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -16,12 +17,11 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * @property string|null $stripe_price_id
  * @property int $price
  * @property int $trial_days
- * @property int $max_users
- * @property int $max_storage_gb
- * @property int $max_terrenos
  * @property bool $is_active
  * @property bool $is_popular
  * @property int $sort_order
+ * @property array<string, mixed> $features
+ * @property array<string, int> $limits
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
  */
@@ -30,12 +30,12 @@ class Plan extends Model
     use HasFactory, CentralConnection;
 
     /**
-     * The table associated with the model.
+     * A tabela associada ao modelo.
      */
     protected $table = 'plans';
 
     /**
-     * The attributes that are mass assignable.
+     * Os atributos que podem ser atribuídos em massa.
      */
     protected $fillable = [
         'name',
@@ -44,27 +44,19 @@ class Plan extends Model
         'stripe_price_id',
         'price',
         'trial_days',
-        'max_users',
-        'max_storage_gb',
-        'max_terrenos',
-        'entitlements',
         'is_active',
         'is_popular',
         'sort_order',
     ];
 
     /**
-     * The attributes that should be cast.
+     * Os atributos que devem ser convertidos.
      */
     protected function casts(): array
     {
         return [
             'price' => 'integer',
             'trial_days' => 'integer',
-            'max_users' => 'integer',
-            'max_storage_gb' => 'integer',
-            'max_terrenos' => 'integer',
-            'entitlements' => 'array',
             'is_active' => 'boolean',
             'is_popular' => 'boolean',
             'sort_order' => 'integer',
@@ -72,7 +64,7 @@ class Plan extends Model
     }
 
     /**
-     * Get the tenants for the plan.
+     * Obtém os tenants do plano.
      */
     public function tenants(): HasMany
     {
@@ -80,7 +72,7 @@ class Plan extends Model
     }
 
     /**
-     * Scope for active plans.
+     * Escopo para planos ativos.
      */
     public function scopeActive(Builder $query): Builder
     {
@@ -88,7 +80,7 @@ class Plan extends Model
     }
 
     /**
-     * Scope for ordering by sort_order.
+     * Escopo para ordenação por sort_order.
      */
     public function scopeOrdered(Builder $query): Builder
     {
@@ -96,7 +88,7 @@ class Plan extends Model
     }
 
     /**
-     * Get the formatted price in BRL.
+     * Obtém o preço formatado em BRL.
      */
     public function getFormattedPriceAttribute(): string
     {
@@ -104,55 +96,66 @@ class Plan extends Model
     }
 
     /**
-     * Check if plan has unlimited users.
+     * Verifica se o plano tem usuários ilimitados.
      */
     public function hasUnlimitedUsers(): bool
     {
-        return $this->max_users === -1;
+        return $this->getLimit('users') === -1;
     }
 
     /**
-     * Check if plan has unlimited terrenos.
+     * Verifica se o plano tem terrenos ilimitados.
      */
     public function hasUnlimitedTerrenos(): bool
     {
-        return $this->max_terrenos === -1;
-    }
-
-    public function getEntitlement(string $key, mixed $default = null): mixed
-    {
-        return data_get($this->entitlements ?? [], $key, $default);
-    }
-
-    public function hasEntitlement(string $key): bool
-    {
-        return $this->getEntitlement($key, null) !== null;
+        return $this->getLimit('terrenos') === -1;
     }
 
     /**
-     * Get derived plan flags from the canonical entitlements catalog.
+     * Obtém as funcionalidades do plano.
      */
-    public function getFeatureFlagsAttribute(): array
+    public function getFeaturesAttribute(): array
     {
-        $viabilityTier = (string) ($this->getEntitlement('viabilidade.tier', 'none') ?? 'none');
-
-        return [
-            'viability_enabled' => (bool) $this->getEntitlement('viabilidade.enabled', $viabilityTier !== 'none'),
-            'viability_full' => in_array($viabilityTier, ['full', 'advanced', 'pro', 'enterprise'], true),
-            'api_access' => (bool) $this->getEntitlement('api_access.enabled', false),
-            'sso_enabled' => (bool) $this->getEntitlement('sso.enabled', false),
-            'advanced_reports' => in_array((string) $this->getEntitlement('reports.tier', 'basic'), ['advanced', 'full', 'pro', 'enterprise'], true),
-            'export_pdf' => (bool) $this->getEntitlement('reports.export_pdf', false),
-            'dashboard_full' => in_array((string) $this->getEntitlement('dashboard.tier', 'basic'), ['advanced', 'full', 'pro', 'enterprise'], true),
-            'dre_full' => in_array((string) $this->getEntitlement('dre.tier', 'none'), ['advanced', 'full', 'pro', 'enterprise'], true),
-            'cash_flow' => (bool) $this->getEntitlement('cash_flow.enabled', false),
-            'kpis_indicators' => (bool) $this->getEntitlement('analytics.kpis.enabled', false)
-                || (bool) $this->getEntitlement('analytics.indicators.enabled', false),
-            'full_integrations' => (bool) $this->getEntitlement('integrations.full', false),
-            'priority_support' => (bool) $this->getEntitlement('support.priority', false),
-            'custom_roles' => (bool) $this->getEntitlement('acl.custom_roles.enabled', false),
-            'permission_management' => (bool) $this->getEntitlement('acl.permission_management.enabled', false),
-        ];
+        return app(PlanMatrixService::class)->features($this);
     }
 
+    /**
+     * Obtém os limites do plano.
+     */
+    public function getLimitsAttribute(): array
+    {
+        return app(PlanMatrixService::class)->limits($this);
+    }
+
+    /**
+     * Obtém o valor de uma funcionalidade específica.
+     */
+    public function getFeature(string $key, mixed $default = null): mixed
+    {
+        return app(PlanMatrixService::class)->featureValue($this, $key, $default);
+    }
+
+    /**
+     * Verifica se o plano possui uma funcionalidade específica.
+     */
+    public function hasFeature(string $key): bool
+    {
+        return app(PlanMatrixService::class)->hasFeature($this, $key);
+    }
+
+    /**
+     * Obtém o limite de uma chave específica.
+     */
+    public function getLimit(string $key, int $default = 0): int
+    {
+        return app(PlanMatrixService::class)->getLimit($this, $key, $default);
+    }
+
+    /**
+     * Verifica se o limite de uma chave específica é ilimitado.
+     */
+    public function hasUnlimitedLimit(string $key): bool
+    {
+        return $this->getLimit($key) === -1;
+    }
 }

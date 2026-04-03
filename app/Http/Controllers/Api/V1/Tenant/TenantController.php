@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Http\Controllers\Controller;
 use App\Models\Tenant\Terreno;
+use App\Http\Resources\PlanResource;
 use App\Http\Resources\TenantResource;
 use App\Services\ApiResponseService;
 use App\Services\Billing\TenantBillingService;
-use App\Services\TenantPlanAccessService;
 use App\Services\UsageMetricsService;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
@@ -16,13 +16,12 @@ class TenantController extends Controller
 {
     public function __construct(
         protected UsageMetricsService $usageService,
-        protected TenantPlanAccessService $planAccessService,
         protected TenantBillingService $billingService
     ) {
     }
 
     /**
-     * Get current tenant info.
+     * Obter informações do tenant atual.
      *
      * GET /api/v1/tenant
      */
@@ -40,7 +39,7 @@ class TenantController extends Controller
     }
 
     /**
-     * Get tenant usage metrics.
+     * Obtém métricas de uso do tenant.
      *
      * GET /api/v1/tenant/usage
      */
@@ -56,13 +55,13 @@ class TenantController extends Controller
     }
 
     /**
-     * Get subscription status.
+     * Obtém o status da assinatura.
      *
      * GET /api/v1/tenant/subscription
      */
     public function subscription()
     {
-        Gate::authorize('viewAny', Terreno::class);
+        abort_unless(auth()->user()->isAdmin(), 403);
 
         $tenant = tenancy()->tenant;
         $tenant->load('plan');
@@ -165,8 +164,7 @@ class TenantController extends Controller
 
         return ApiResponseService::success([
             'status' => $tenant->status,
-            'plan' => $tenant->plan?->name,
-            'plan_slug' => $tenant->plan?->slug,
+            'plan' => $tenant->plan ? new PlanResource($tenant->plan) : null,
             'on_trial' => $tenant->onTrial(),
             'trial_ends_at' => $tenant->trial_ends_at?->toIso8601String(),
             'trial_ended' => $tenant->trialEnded(),
@@ -179,15 +177,18 @@ class TenantController extends Controller
             ] : null,
             'stripe' => $stripeData,
             'invoices' => $invoices,
-            'entitlements' => $this->planAccessService->getEntitlements(),
-            'feature_flags' => $this->planAccessService->getPlanFlags(),
             'stripe_error' => app()->environment('local') ? $stripeError : null,
         ], language()->t('SIGNATURE_DATA_RETRIEVED'));
     }
 
+    /**
+     * Criar uma sessão do portal de faturamento.
+     *
+     * GET /api/v1/tenant/billing-portal
+     */
     public function billingPortal()
     {
-        Gate::authorize('viewAny', Terreno::class);
+        abort_unless(auth()->user()->isAdmin(), 403);
 
         $tenant = tenancy()->tenant;
 

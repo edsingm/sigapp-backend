@@ -1,0 +1,20 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\DB;
+
+return new class extends Migration
+{
+    /**
+     * Habilita a extensão unaccent do PostgreSQL para buscas sem dependência de acentuação.
+     */
+    public function up(): void
+    {
+        DB::statement('CREATE EXTENSION IF NOT EXISTS unaccent');
+    }
+
+    public function down(): void
+    {
+        DB::statement('DROP EXTENSION IF EXISTS unaccent');
+    }
+};

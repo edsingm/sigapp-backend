@@ -11,7 +11,7 @@ use Symfony\Component\HttpFoundation\Response;
 class EnsureTenantAdmin
 {
     /**
-     * Ensure the authenticated tenant user has admin privileges.
+     * Garante que o usuário autenticado do tenant possua privilégios de administrador.
      */
     public function handle(Request $request, Closure $next): Response
     {

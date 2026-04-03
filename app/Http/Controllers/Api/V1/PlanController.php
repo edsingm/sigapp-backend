@@ -10,7 +10,7 @@ use App\Services\ApiResponseService;
 class PlanController extends Controller
 {
     /**
-     * List all active plans.
+     * Lista todos os planos ativos.
      *
      * GET /api/v1/plans
      */
@@ -25,7 +25,7 @@ class PlanController extends Controller
     }
 
     /**
-     * Get a specific plan by slug.
+     * Obtém um plano específico pelo slug.
      *
      * GET /api/v1/plans/{slug}
      */

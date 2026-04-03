@@ -8,7 +8,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class PlanResource extends JsonResource
 {
     /**
-     * Transform the resource into an array.
+     * Transformar o recurso em um array.
      */
     public function toArray(Request $request): array
     {
@@ -20,14 +20,10 @@ class PlanResource extends JsonResource
             'price' => $this->price,
             'formatted_price' => $this->formatted_price,
             'trial_days' => $this->trial_days,
-            'max_users' => $this->max_users,
-            'max_storage_gb' => $this->max_storage_gb,
-            'max_terrenos' => $this->max_terrenos,
-            'entitlements' => $this->entitlements,
-            'feature_flags' => $this->feature_flags,
+            'features' => $this->features,
+            'limits' => $this->limits,
+            'is_active' => $this->is_active,
             'is_popular' => $this->is_popular,
-            'unlimited_users' => $this->hasUnlimitedUsers(),
-            'unlimited_terrenos' => $this->hasUnlimitedTerrenos(),
         ];
     }
 }

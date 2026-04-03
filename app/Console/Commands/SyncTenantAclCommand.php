@@ -9,14 +9,14 @@ use Illuminate\Console\Command;
 class SyncTenantAclCommand extends Command
 {
     /**
-     * The name and signature of the console command.
+     * O nome e a assinatura do comando.
      */
     protected $signature = 'tenants:acl-sync
         {--tenant= : ID ou slug do tenant}
         {--all : Sincroniza todos os tenants}';
 
     /**
-     * The console command description.
+     * A descrição do comando.
      */
     protected $description = 'Sincroniza permissões e roles padrão dos tenants com a matriz de plano';
 

@@ -8,6 +8,9 @@ use Illuminate\Http\Request;
 
 class BlogController extends Controller
 {
+    /**
+     * Listar todos os artigos publicados no blog.
+     */
     public function index(Request $request)
     {
         $query = Post::with('author:id,name')
@@ -37,17 +40,26 @@ class BlogController extends Controller
         ]);
     }
 
+    /**
+     * Exibir os detalhes de um artigo específico do blog pelo slug.
+     */
     public function show($slug)
     {
         $post = Post::with('author:id,name')
             ->where('slug', $slug)
             ->where('published', true)
+            ->whereNotNull('published_at')
+            ->where('published_at', '<=', now())
             ->firstOrFail();
 
         // Posts relacionados (mesma categoria, excluindo o atual)
-        $related = Post::where('category', $post->category)
+        $related = Post::with('author:id,name')
+            ->where('category', $post->category)
             ->where('id', '!=', $post->id)
             ->where('published', true)
+            ->whereNotNull('published_at')
+            ->where('published_at', '<=', now())
+            ->orderBy('published_at', 'desc')
             ->limit(3)
             ->get();
 
@@ -60,6 +72,9 @@ class BlogController extends Controller
         ]);
     }
 
+    /**
+     * Obter a lista de categorias únicas dos artigos publicados.
+     */
     public function categories()
     {
         $categories = Post::where('published', true)

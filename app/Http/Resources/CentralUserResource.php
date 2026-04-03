@@ -9,7 +9,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class CentralUserResource extends JsonResource
 {
     /**
-     * Transform the resource into an array.
+     * Transformar o recurso em um array.
      */
     public function toArray(Request $request): array
     {
@@ -28,8 +28,8 @@ class CentralUserResource extends JsonResource
     }
 
     /**
-     * Returns all modules at manager level as a flat array of permission strings.
-     * Used for SIGAPP admin users who have unrestricted access.
+     * Retorna todos os módulos no nível de gerente como um array simples de strings de permissão.
+     * Usado para usuários administradores do SIGAPP que possuem acesso irrestrito.
      */
     private function allModulesAsManager(): array
     {

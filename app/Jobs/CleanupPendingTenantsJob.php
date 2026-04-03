@@ -16,7 +16,7 @@ class CleanupPendingTenantsJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
-     * Execute the job.
+     * Executa o job.
      */
     public function handle(TenantBillingService $billingService): void
     {
@@ -89,10 +89,10 @@ class CleanupPendingTenantsJob implements ShouldQueue
                     'created_at' => $tenant->created_at,
                 ]);
 
-                // Delete domains first
+                // Deleta os domínios primeiro
                 $tenant->domains()->delete();
 
-                // Delete tenant
+                // Deleta o tenant
                 $tenant->delete();
 
                 $count++;

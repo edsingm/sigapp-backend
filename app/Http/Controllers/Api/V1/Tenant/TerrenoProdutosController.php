@@ -19,6 +19,9 @@ class TerrenoProdutosController extends Controller
     ) {
     }
 
+    /**
+     * Listar os produtos vinculados a terrenos.
+     */
     public function index(Request $request): JsonResponse
     {
         Gate::authorize('viewAny', TerrenoProduto::class);
@@ -55,6 +58,9 @@ class TerrenoProdutosController extends Controller
         return $cacheStore->remember($cacheKey, now()->addMinutes(30), $resolver);
     }
 
+    /**
+     * Vincular um novo produto a um terreno.
+     */
     public function store(StoreTerrenoProdutoRequest $request): JsonResponse
     {
         Gate::authorize('create', TerrenoProduto::class);
@@ -75,6 +81,9 @@ class TerrenoProdutosController extends Controller
         ], 201);
     }
 
+    /**
+     * Exibir os detalhes de um vínculo de produto específico.
+     */
     public function show(string $id): JsonResponse
     {
         $terrenoProduto = TerrenoProduto::with(['terreno', 'produto', 'createdBy', 'updatedBy'])
@@ -87,6 +96,9 @@ class TerrenoProdutosController extends Controller
         ]);
     }
 
+    /**
+     * Atualizar um vínculo de produto existente.
+     */
     public function update(UpdateTerrenoProdutoRequest $request, string $id): JsonResponse
     {
         $terrenoProduto = TerrenoProduto::findOrFail($id);
@@ -107,6 +119,9 @@ class TerrenoProdutosController extends Controller
         ]);
     }
 
+    /**
+     * Remover o vínculo de um produto com um terreno.
+     */
     public function destroy(Request $request, string $id): JsonResponse
     {
         $terrenoProduto = TerrenoProduto::findOrFail($id);
@@ -124,6 +139,9 @@ class TerrenoProdutosController extends Controller
         ]);
     }
 
+    /**
+     * Listar produtos vinculados a um terreno específico.
+     */
     public function byTerreno(string $terrenoId)
     {
         Gate::authorize('viewAny', TerrenoProduto::class);

@@ -10,7 +10,7 @@ abstract class Controller
     use AuthorizesRequests, LogsAudit;
     //
     /**
-     * Respond with pagination.
+     * Responde com paginação.
      *
      * @param \Illuminate\Contracts\Pagination\LengthAwarePaginator $paginator
      * @param string $resourceClass

@@ -98,7 +98,7 @@ class Terreno extends Model
     ];
 
     /**
-     * Get the user who is responsible for the area.
+     * Obtém o usuário responsável pela área.
      */
     public function responsavel(): BelongsTo
     {
@@ -106,7 +106,7 @@ class Terreno extends Model
     }
 
     /**
-     * Get the buyer for the area.
+     * Obtém o comprador da área.
      */
     public function comprador(): BelongsTo
     {
@@ -114,7 +114,7 @@ class Terreno extends Model
     }
 
     /**
-     * Get the user who created the terreno.
+     * Obtém o usuário que criou o terreno.
      */
     public function creator(): BelongsTo
     {
@@ -122,7 +122,7 @@ class Terreno extends Model
     }
 
     /**
-     * Get the user who updated the terreno.
+     * Obtém o usuário que atualizou o terreno.
      */
     public function updater(): BelongsTo
     {
@@ -130,7 +130,7 @@ class Terreno extends Model
     }
 
     /**
-     * Aliases for consistency across resources/services.
+     * Aliases para consistência entre recursos/serviços.
      */
     public function createdBy(): BelongsTo
     {
@@ -153,7 +153,7 @@ class Terreno extends Model
     }
 
     /**
-     * Central city reference (by IBGE code).
+     * Referência central da cidade (pelo código IBGE).
      */
     public function cidade(): BelongsTo
     {
@@ -161,7 +161,7 @@ class Terreno extends Model
     }
 
     /**
-     * Related collections.
+     * Coleções relacionadas.
      */
     public function terrenoProdutos(): HasMany
     {

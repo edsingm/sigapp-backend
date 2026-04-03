@@ -4,7 +4,7 @@ namespace App\Models\Central;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Stancl\Tenancy\Contracts\TenantWithDatabase;
 use Stancl\Tenancy\Database\Concerns\HasDatabase;
@@ -32,15 +32,15 @@ use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
  */
 class Tenant extends BaseTenant implements TenantWithDatabase
 {
-    use HasDatabase, HasDomains, HasFactory, \Laravel\Cashier\Billable;
+    use HasDatabase, HasDomains, HasFactory, \Laravel\Cashier\Billable, Notifiable;
 
     /**
-     * The table associated with the model.
+     * A tabela associada ao modelo.
      */
     protected $table = 'tenants';
 
     /**
-     * The attributes that are mass assignable.
+     * Os atributos que podem ser atribuídos em massa.
      */
     protected $fillable = [
         'name',
@@ -61,7 +61,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
+     * Os atributos que devem ser ocultos para serialização.
      */
     protected $hidden = [
         'admin_password',
@@ -69,7 +69,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     ];
 
     /**
-     * The attributes that should be cast.
+     * Os atributos que devem ser convertidos.
      */
     protected function casts(): array
     {
@@ -84,15 +84,18 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     }
 
     /**
-     * Status constants.
+     * Constantes de status.
      */
     public const STATUS_PENDING = 'pending';
+
     public const STATUS_ACTIVE = 'active';
+
     public const STATUS_SUSPENDED = 'suspended';
+
     public const STATUS_CANCELLED = 'cancelled';
 
     /**
-     * Get the plan associated with the tenant.
+     * Obtém o plano associado ao tenant.
      */
     public function plan()
     {
@@ -100,7 +103,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     }
 
     /**
-     * Get the tenant database/schema identifier.
+     * Obtém o identificador do banco de dados/schema do tenant.
      */
     public function getDatabaseName(): string
     {
@@ -108,7 +111,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     }
 
     /**
-     * Accessor for database name.
+     * Accessor para o nome do banco de dados.
      */
     public function getDatabaseNameAttribute(): string
     {
@@ -129,13 +132,13 @@ class Tenant extends BaseTenant implements TenantWithDatabase
             $normalizedSlug = 'tenant';
         }
 
-        $identifier = Str::of(Str::ascii(Str::lower($prefix . $normalizedSlug . $suffix)))
+        $identifier = Str::of(Str::ascii(Str::lower($prefix.$normalizedSlug.$suffix)))
             ->replaceMatches('/[^a-z0-9_]+/', '_')
             ->trim('_')
             ->value();
 
         if ($identifier === '' || preg_match('/^[0-9]/', $identifier)) {
-            $identifier = 'tenant_' . ltrim($identifier, '0123456789');
+            $identifier = 'tenant_'.ltrim($identifier, '0123456789');
             $identifier = rtrim($identifier, '_');
         }
 
@@ -145,11 +148,11 @@ class Tenant extends BaseTenant implements TenantWithDatabase
 
         $hash = substr(sha1($identifier), 0, 8);
 
-        return substr($identifier, 0, 54) . '_' . $hash;
+        return substr($identifier, 0, 54).'_'.$hash;
     }
 
     /**
-     * Scope for active tenants.
+     * Escopo para tenants ativos.
      */
     public function scopeActive(Builder $query): Builder
     {
@@ -157,7 +160,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     }
 
     /**
-     * Scope for pending tenants.
+     * Escopo para tenants pendentes.
      */
     public function scopePending(Builder $query): Builder
     {
@@ -165,7 +168,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     }
 
     /**
-     * Scope for expired pending tenants (more than 24 hours old).
+     * Escopo para tenants pendentes expirados (com mais de 24 horas).
      */
     public function scopeExpiredPending(Builder $query): Builder
     {
@@ -174,7 +177,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     }
 
     /**
-     * Check if tenant is active.
+     * Verifica se o tenant está ativo.
      */
     public function isActive(): bool
     {
@@ -182,7 +185,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     }
 
     /**
-     * Check if tenant is on trial.
+     * Verifica se o tenant está em período de teste.
      */
     public function onTrial(): bool
     {
@@ -190,7 +193,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     }
 
     /**
-     * Check if tenant has exceeded trial.
+     * Verifica se o tenant excedeu o período de teste.
      */
     public function trialEnded(): bool
     {
@@ -198,7 +201,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     }
 
     /**
-     * Activate the tenant.
+     * Ativa o tenant.
      */
     public function activate(): self
     {
@@ -211,7 +214,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     }
 
     /**
-     * Suspend the tenant.
+     * Suspende o tenant.
      */
     public function suspend(): self
     {
@@ -221,7 +224,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     }
 
     /**
-     * Cancel the tenant subscription.
+     * Cancela a assinatura do tenant.
      */
     public function cancel(): self
     {
@@ -231,7 +234,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     }
 
     /**
-     * Generate a unique encryption key for the tenant.
+     * Gera uma chave de criptografia exclusiva para o tenant.
      */
     public function generateEncryptionKey(): string
     {
@@ -242,21 +245,34 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     }
 
     /**
-     * Get contractual limits from the assigned plan.
+     * Obtém os limites contratuais do plano atribuído.
      */
     public function getMaxUsersAttribute(): int
     {
-        return $this->plan?->max_users ?? 0;
+        return $this->plan?->getLimit('users') ?? 0;
     }
 
     public function getMaxTerrenosAttribute(): int
     {
-        return $this->plan?->max_terrenos ?? 0;
+        return $this->plan?->getLimit('terrenos') ?? 0;
     }
 
     public function getMaxStorageGbAttribute(): int
     {
-        return $this->plan?->max_storage_gb ?? 0;
+        return $this->plan?->getLimit('storage_gb') ?? 0;
+    }
+
+    public function getMaxProductsAttribute(): int
+    {
+        return $this->plan?->getLimit('products') ?? 0;
+    }
+
+    /**
+     * Roteia as notificações para o endereço de e-mail do administrador.
+     */
+    public function routeNotificationForMail(): ?string
+    {
+        return $this->admin_email;
     }
 
     public static function getCustomColumns(): array

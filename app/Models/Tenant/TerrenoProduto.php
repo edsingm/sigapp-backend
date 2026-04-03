@@ -17,11 +17,10 @@ class TerrenoProduto extends Model
     protected $table = 'terreno_produtos';
 
     /**
-     * The "booted" method of the model.
+     * O método "booted" do modelo.
      */
     protected static function booted(): void
-    {
-        static::saved(function (TerrenoProduto $item) {
+    {        static::saved(function (TerrenoProduto $item) {
             $item->clearTenantCache('terreno_produtos');
         });
 
@@ -46,35 +45,35 @@ class TerrenoProduto extends Model
     ];
 
     /**
-     * Get the terreno that owns the terreno produto.
+     * Obtém o terreno proprietário do produto do terreno.
      */
     public function terreno(): BelongsTo
     {
         return $this->belongsTo(Terreno::class, 'terreno_id');
     }
     /**
-     * Get the product that owns the terreno produto.
+     * Obtém o produto proprietário do produto do terreno.
      */
     public function produto(): BelongsTo
     {
         return $this->belongsTo(Produto::class, 'produto_id');
     }
     /**
-     * Get the user who created the terreno produto.
+     * Obtém o usuário que criou o produto do terreno.
      */
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
     }
     /**
-     * Get the user who updated the area produto.
+     * Obtém o usuário que atualizou o produto da área.
      */
     public function updatedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
     }
     /**
-     * Get the area produtos by produto id.
+     * Obtém os produtos da área por ID do produto.
      */
     public function scopeProdutos($query, $produto_id)
     {

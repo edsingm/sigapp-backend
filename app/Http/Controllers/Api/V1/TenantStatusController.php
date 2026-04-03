@@ -15,6 +15,9 @@ class TenantStatusController extends Controller
         $this->tenantStatusService = $tenantStatusService;
     }
 
+    /**
+     * Obter estatísticas agregadas dos status dos terrenos por workflow.
+     */
     public function index()
     {
         $stats = $this->tenantStatusService->getAggregatedStats();

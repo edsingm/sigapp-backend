@@ -8,7 +8,7 @@ use Illuminate\Http\JsonResponse;
 class ApiResponseService
 {
     /**
-     * Return a success response.
+     * Retorna uma resposta de sucesso.
      */
     public static function success(
         mixed $data = null,
@@ -23,7 +23,7 @@ class ApiResponseService
     }
 
     /**
-     * Return a created response (201).
+     * Retorna uma resposta de recurso criado (201).
      */
     public static function created(
         mixed $data = null,
@@ -33,7 +33,7 @@ class ApiResponseService
     }
 
     /**
-     * Return a no content response (204).
+     * Retorna uma resposta sem conteúdo (204).
      */
     public static function noContent(): JsonResponse
     {
@@ -41,7 +41,7 @@ class ApiResponseService
     }
 
     /**
-     * Return a paginated response.
+     * Retorna uma resposta paginada.
      */
     public static function paginated(
         LengthAwarePaginator $paginator,
@@ -63,7 +63,7 @@ class ApiResponseService
     }
 
     /**
-     * Return an error response.
+     * Retorna uma resposta de erro.
      */
     public static function error(
         string $code,
@@ -87,7 +87,7 @@ class ApiResponseService
     }
 
     /**
-     * Return a validation error response.
+     * Retorna uma resposta de erro de validação.
      */
     public static function validationError(array $errors): JsonResponse
     {
@@ -100,7 +100,7 @@ class ApiResponseService
     }
 
     /**
-     * Return an unauthorized response.
+     * Retorna uma resposta de não autorizado.
      */
     public static function unauthorized(string $message = 'NOT_AUTHENTICATED'): JsonResponse
     {
@@ -108,7 +108,7 @@ class ApiResponseService
     }
 
     /**
-     * Return a forbidden response.
+     * Retorna uma resposta de proibido.
      */
     public static function forbidden(string $message = 'MISSING_PERMISSION'): JsonResponse
     {
@@ -116,7 +116,7 @@ class ApiResponseService
     }
 
     /**
-     * Return a not found response.
+     * Retorna uma resposta de não encontrado.
      */
     public static function notFound(string $message = 'RESOURCE_NOT_FOUND'): JsonResponse
     {
@@ -124,7 +124,7 @@ class ApiResponseService
     }
 
     /**
-     * Return a conflict response.
+     * Retorna uma resposta de conflito.
      */
     public static function conflict(string $message = 'RESOURCE_ALREADY_EXISTS'): JsonResponse
     {
@@ -132,7 +132,7 @@ class ApiResponseService
     }
 
     /**
-     * Return a too many requests response.
+     * Retorna uma resposta de excesso de requisições.
      */
     public static function tooManyRequests(string $message = 'TOO_MANY_REQUESTS_1_MINUTE'): JsonResponse
     {
@@ -140,7 +140,7 @@ class ApiResponseService
     }
 
     /**
-     * Return an internal server error response.
+     * Retorna uma resposta de erro interno do servidor.
      */
     public static function serverError(string $message = 'INTERNAL_SERVER_ERROR'): JsonResponse
     {

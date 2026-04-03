@@ -31,6 +31,7 @@ enum ModulesEnum: string
     case PROJECTS = 'projects';
     case REPORTS = 'reports';
     case VIABILITY = 'viability';
+    case AI = 'ai';
 
     public function label(): string
     {
@@ -46,7 +47,8 @@ enum ModulesEnum: string
             self::NEGOTIATION => language()->t('NEGOTIATION'),
             self::PROJECTS => language()->t('PROJECTS'),
             self::REPORTS => language()->t('REPORTS'),
-            self::VIABILITY => language()->t('VIABILITY')
+            self::VIABILITY => language()->t('VIABILITY'),
+            self::AI => language()->t('AI')
         };
     }
 
@@ -65,6 +67,7 @@ enum ModulesEnum: string
             self::DATA           => 100,
             self::REPORTS        => 110,
             self::ADMIN          => 120,
+            self::AI             => 130
         };
     }
 
@@ -78,20 +81,21 @@ enum ModulesEnum: string
             self::COMMITTEE,
             self::NEGOTIATION,
             self::LEGAL,
-            self::PROJECTS       => SectorsEnum::OPERATION,
+            self::PROJECTS,
+            self::AI             => SectorsEnum::OPERATION,
             self::CONFIGURATIONS,
             self::DATA           => SectorsEnum::CONFIGURATION,
             self::REPORTS        => SectorsEnum::INTELLIGENCE,
-            self::ADMIN          => SectorsEnum::ADMINISTRATION,
+            self::ADMIN          => SectorsEnum::ADMINISTRATION
         };
     }
 
     /**
-     * Sub-modules (resources) within this module.
-     * Empty array means the module has no sub-modules and is accessed at the module level.
+     * Sub-módulos (recursos) dentro deste módulo.
+     * Array vazio significa que o módulo não possui sub-módulos e é acessado no nível do módulo.
      *
-     * To add resources to a module, declare them here. The permission seeder will
-     * automatically generate permissions for them in {module}.{resource}.{level} format.
+     * Para adicionar recursos a um módulo, declare-os aqui. O seeder de permissões irá
+     * gerar automaticamente permissões para eles no formato {módulo}.{recurso}.{nível}.
      *
      * @return array<int, SubmodulesEnum>
      */
@@ -109,12 +113,12 @@ enum ModulesEnum: string
     }
 
     /**
-     * Maps model classes that belong to this module.
-     * Key = fully-qualified model class name.
-     * Value = resource name within the module, or null when the module has no resources.
+     * Mapeia as classes de modelo que pertencem a este módulo.
+     * Chave = nome completo da classe do modelo.
+     * Valor = nome do recurso dentro do módulo, ou null quando o módulo não possui recursos.
      *
-     * When you add a new module, declare its models here and TenantPolicy
-     * will automatically pick them up — no changes needed in the policy.
+     * Ao adicionar um novo módulo, declare seus modelos aqui e o TenantPolicy
+     * os reconhecerá automaticamente — não são necessárias alterações na política.
      *
      * @return array<class-string, string|null>
      */
@@ -128,14 +132,14 @@ enum ModulesEnum: string
                 CorretorExterno::class => null,
             ],
             self::DATA => [
-                Regional::class       => null,
-                Produto::class        => null,
-                Proprietario::class   => null,
+                Regional::class => null,
+                Produto::class => null,
+                Proprietario::class => null,
                 TerrenoProduto::class => null,
-                Documento::class      => null,
+                Documento::class => null,
             ],
             self::LEGAL => [
-                Legalizacao::class      => null,
+                Legalizacao::class => null,
                 LegalizacaoEtapa::class => null,
             ],
             self::COMMITTEE => [
@@ -151,13 +155,14 @@ enum ModulesEnum: string
             self::VIABILITY => [
                 Viabilidade::class => null,
             ],
+            self::AI => [],
             default => [],
         };
     }
 
     /**
-     * Flat map of [ModelClass => 'module.resource' | 'module'] for all cases.
-     * Used by TenantPolicy to resolve the permission string for a given model.
+     * Mapeamento simples de [ModelClass => 'module.resource' | 'module'] para todos os casos.
+     * Usado pelo TenantPolicy para resolver a string de permissão para um modelo dado.
      *
      * @return array<class-string, string>
      */

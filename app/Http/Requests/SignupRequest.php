@@ -10,7 +10,7 @@ use App\Services\ApiResponseService;
 class SignupRequest extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
+     * Determina se o usuário está autorizado a fazer esta requisição.
      */
     public function authorize(): bool
     {
@@ -18,7 +18,7 @@ class SignupRequest extends FormRequest
     }
 
     /**
-     * Get the validation rules that apply to the request.
+     * Obtém as regras de validação que se aplicam à requisição.
      */
     public function rules(): array
     {
@@ -30,7 +30,7 @@ class SignupRequest extends FormRequest
                 'string',
                 'min:3',
                 'max:63',
-                'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/', // kebab-case only
+                'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/', // apenas kebab-case
             ],
             'admin_name' => ['required', 'string', 'min:3', 'max:255'],
             'admin_email' => ['required', 'email', 'max:255'],
@@ -38,14 +38,14 @@ class SignupRequest extends FormRequest
                 'required',
                 'string',
                 'min:8',
-                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/', // At least one lowercase, uppercase, and digit
+                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/', // Pelo menos uma letra minúscula, uma maiúscula e um dígito
             ],
             'accept_usage_contract' => ['accepted'],
         ];
     }
 
     /**
-     * Get custom messages for validator errors.
+     * Obtém as mensagens personalizadas para erros do validador.
      */
     public function messages(): array
     {
@@ -67,7 +67,7 @@ class SignupRequest extends FormRequest
     }
 
     /**
-     * Handle a failed validation attempt.
+     * Manipula uma tentativa de validação com falha.
      */
     protected function failedValidation(Validator $validator): void
     {

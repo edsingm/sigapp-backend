@@ -37,7 +37,7 @@ class RolePermissionSeeder extends Seeder
         $this->command?->info('Permissions sincronizadas: ' . count($allPermissions));
 
         // 2. Sincroniza roles
-        $enumRoles = collect(RolesEnum::cases())->map(fn ($r) => $r->value);
+        $enumRoles = collect(RolesEnum::cases())->map(fn($r) => $r->value);
 
         foreach (RolesEnum::cases() as $roleEnum) {
             Role::firstOrCreate(['name' => $roleEnum->value, 'guard_name' => 'web']);
@@ -76,8 +76,8 @@ class RolePermissionSeeder extends Seeder
         $permissions = [];
 
         foreach (ModulesEnum::cases() as $module) {
-            if ($module->hasResources()) {
-                foreach ($module->resources() as $resource) {
+            if ($module->hasSubmodules()) {
+                foreach ($module->submodules() as $resource) {
                     foreach ($levels as $level) {
                         $permissions[] = "{$module->value}.{$resource}.{$level}";
                     }
@@ -134,4 +134,3 @@ class RolePermissionSeeder extends Seeder
         return $permissions;
     }
 }
-

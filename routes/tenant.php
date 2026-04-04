@@ -66,9 +66,6 @@ Route::middleware([
             Route::post('/auth/password/reset', [AuthController::class, 'resetPassword'])
                 ->middleware('throttle:password-reset-submit');
         });
-        // Modules
-        Route::get('/modules', [ModulesController::class, 'index']);
-
         // Authenticated tenant routes (always accessible after login)
         Route::middleware([
             'auth:sanctum',
@@ -85,6 +82,9 @@ Route::middleware([
 
             // Locale
             Route::put('/locale', [LanguageController::class, 'set']);
+
+            // Bootstrap: modules, plan and user RBAC for navbar/feature gating
+            Route::get('/start', [ModulesController::class, 'index']);
 
             Route::get('/tenant/subscription', [TenantController::class, 'subscription']);
             Route::post('/tenant/billing-portal', [TenantController::class, 'billingPortal']);

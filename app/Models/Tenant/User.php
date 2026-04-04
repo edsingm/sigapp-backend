@@ -8,7 +8,10 @@ use App\Models\Central\Tenant;
 use App\Notifications\TenantResetPasswordNotification;
 use App\Services\Auth\TenantPasswordResetService;
 use App\Services\Auth\TenantUserDirectoryService;
+use App\Models\Tenant\Department;
+use App\Models\Tenant\Position;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -65,6 +68,8 @@ class User extends Authenticatable
         'password',
         'email_verified_at',
         'locale',
+        'department_id',
+        'position_id',
     ];
 
     /**
@@ -90,6 +95,16 @@ class User extends Authenticatable
     /**
      * Verifica se o usuário é um super administrador.
      */
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class, 'department_id');
+    }
+
+    public function position(): BelongsTo
+    {
+        return $this->belongsTo(Position::class, 'position_id');
+    }
+
     public function isSuperAdmin(): bool
     {
         return $this->hasRole(RolesEnum::ADMIN->value);

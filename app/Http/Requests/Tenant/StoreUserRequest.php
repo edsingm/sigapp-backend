@@ -38,13 +38,14 @@ class StoreUserRequest extends FormRequest
                     }
                 }
             ],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'department_id' => ['nullable', 'exists:departamentos,id'],
-            'roles' => ['nullable', 'array'],
-            'roles.*' => ['exists:roles,id'],
-            'status' => ['nullable', 'string', 'in:Ativo,Inativo,Suspenso'],
-            'phone' => ['nullable', 'string', 'max:20'],
-            'cpf' => ['nullable', 'string', 'max:14', 'unique:users'],
+            'password'      => ['required', 'string', 'min:8', 'confirmed'],
+            'department_id' => ['required', 'integer', 'exists:departments,id'],
+            'position_id'   => ['required', 'integer', 'exists:positions,id'],
+            'roles'         => ['nullable', 'array'],
+            'roles.*'       => ['exists:roles,id'],
+            'status'        => ['nullable', 'string', 'in:Active,Inactive,Suspended'],
+            'phone'         => ['nullable', 'string', 'max:20'],
+            'cpf'           => ['nullable', 'string', 'max:14', 'unique:users'],
         ];
     }
 }

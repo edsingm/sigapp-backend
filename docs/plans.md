@@ -60,7 +60,7 @@ O `PlanMatrixService` reconstrói os arrays `features` e `limits` a partir dessa
 
 ### Models
 - `app/Models/Central/Entitlement.php` — model central com `CentralConnection`
-- `app/Models/Central/Plan.php` — adicionado `entitlements(): BelongsToMany`
+- `app/Models/Central/Plan.php` — adicionado `entitlements(): BelongsToMany`; `price` agora é `double` (BRL direto, ex: `97.00`); accessor `formatted_price` formata sem divisão por 100
 - `app/Models/Central/TenantEntitlement.php` — model central para entitlements extras por tenant
 - `app/Models/Central/Tenant.php` — adicionado `extraEntitlements(): HasMany` e `extra_monthly_cost` accessor
 
@@ -68,6 +68,7 @@ O `PlanMatrixService` reconstrói os arrays `features` e `limits` a partir dessa
 - `2026_04_03_000001_create_entitlements_table.php`
 - `2026_04_03_000002_create_plan_entitlements_table.php`
 - `2026_04_03_000003_create_tenant_entitlements_table.php`
+- `2026_04_04_000010_change_price_to_double_in_plans_table.php` — altera `plans.price` de `integer` para `double(8,2)`, representando o valor em BRL diretamente (ex: `97.00` = R$ 97,00)
 
 ### Repositories
 - `app/Repositories/Contracts/EntitlementRepositoryInterface.php`

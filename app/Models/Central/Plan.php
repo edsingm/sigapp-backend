@@ -16,7 +16,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * @property string $slug
  * @property string|null $description
  * @property string|null $stripe_price_id
- * @property int $price
+ * @property float $price
  * @property int $trial_days
  * @property bool $is_active
  * @property bool $is_popular
@@ -56,7 +56,7 @@ class Plan extends Model
     protected function casts(): array
     {
         return [
-            'price' => 'integer',
+            'price' => 'float',
             'trial_days' => 'integer',
             'is_active' => 'boolean',
             'is_popular' => 'boolean',
@@ -103,7 +103,7 @@ class Plan extends Model
      */
     public function getFormattedPriceAttribute(): string
     {
-        return 'R$ ' . number_format($this->price / 100, 2, ',', '.');
+        return 'R$ ' . number_format($this->price, 2, ',', '.');
     }
 
     /**

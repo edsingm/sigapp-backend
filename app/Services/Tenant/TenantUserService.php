@@ -30,7 +30,7 @@ class TenantUserService
         $order = strtolower($order) === 'desc' ? 'desc' : 'asc';
         $perPage = min($perPage, 100);
 
-        $query = User::query()->with('roles');
+        $query = User::query()->with(['roles', 'department', 'position']);
 
         if ($search !== null && $search !== '') {
             $query->where(function ($q) use ($search) {
@@ -54,16 +54,18 @@ class TenantUserService
     public function create(array $data): User
     {
         $user = User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
-            'locale' => $data['locale'] ?? 'pt-br',
+            'name'            => $data['name'],
+            'email'           => $data['email'],
+            'password'        => Hash::make($data['password']),
+            'locale'        => $data['locale'] ?? 'pt-br',
+            'department_id' => $data['department_id'] ?? null,
+            'position_id'   => $data['position_id'] ?? null,
         ]);
 
         $role = $data['role'] ?? RolesEnum::USER->value;
         $user->syncRoles([$role]);
 
-        return $user->fresh(['roles', 'permissions']);
+        return $user->fresh(['roles', 'permissions', 'department', 'position']);
     }
 
     /**
@@ -77,7 +79,7 @@ class TenantUserService
         $payload = collect($data)->except(['role'])->all();
 
         if (array_key_exists('password', $payload)) {
-            $payload['password'] = Hash::make($payload['password']);
+            $payload['password'] = Hash::make((string) $payload['password']);
         }
 
         $user->update($payload);
@@ -130,8 +132,8 @@ class TenantUserService
 
         $moduleKeys = array_keys($permissionsMap);
         $toRevoke = $user->getDirectPermissions()
-            ->filter(fn (Permission $p) => collect($moduleKeys)
-                ->contains(fn (string $m) => str_starts_with($p->name, $m.'.')))
+            ->filter(fn(Permission $p) => collect($moduleKeys)
+                ->contains(fn(string $m) => str_starts_with($p->name, $m . '.')))
             ->pluck('name')
             ->all();
 

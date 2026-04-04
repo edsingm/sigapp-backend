@@ -103,7 +103,7 @@ class AdminPlansApiTest extends TestCase
         $response = $this->adminJson('post', '/api/v1/admin/plans', [
             'name'       => 'Enterprise',
             'slug'       => 'enterprise',
-            'price'      => 99900,
+            'price'      => 999.00,
             'trial_days' => 14,
             'is_active'  => true,
         ]);
@@ -138,7 +138,7 @@ class AdminPlansApiTest extends TestCase
         $response = $this->adminJson('put', "/api/v1/admin/plans/{$plan->id}", [
             'name'       => 'Básico Atualizado',
             'slug'       => 'basico',
-            'price'      => 31900,
+            'price'      => 319.00,
             'trial_days' => 7,
         ]);
 

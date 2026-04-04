@@ -2,9 +2,11 @@
 
 namespace App\Providers;
 
-use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
-use App\Services\PlanMatrixService;
+use App\Repositories\Contracts\EntitlementRepositoryInterface;
+use App\Repositories\Contracts\PlanRepositoryInterface;
+use App\Repositories\EntitlementRepository;
+use App\Repositories\PlanRepository;
 use App\Models\Tenant\ComiteRevisao;
 use App\Models\Tenant\Contrato;
 use App\Models\Tenant\CorretorExterno;
@@ -21,7 +23,6 @@ use App\Models\Tenant\TerrenoProduto;
 use App\Models\Tenant\Viabilidade;
 use App\Policies\Tenant\TenantPolicy;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Cashier\Cashier;
 
@@ -33,6 +34,9 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         Cashier::ignoreRoutes();
+
+        $this->app->bind(EntitlementRepositoryInterface::class, EntitlementRepository::class);
+        $this->app->bind(PlanRepositoryInterface::class, PlanRepository::class);
     }
 
     /**
@@ -63,18 +67,6 @@ class AppServiceProvider extends ServiceProvider
 
         foreach ($tenantModels as $model) {
             Gate::policy($model, TenantPolicy::class);
-        }
-
-        if (app()->environment(['local', 'testing'])) {
-            try {
-                if (Schema::hasTable('plans')) {
-                    app(PlanMatrixService::class)->assertConfiguredSlugs(
-                        Plan::query()->active()->pluck('slug')->all()
-                    );
-                }
-            } catch (\Throwable) {
-                // Skip validation while the database is still bootstrapping.
-            }
         }
     }
 }

@@ -36,19 +36,57 @@ enum ModulesEnum: string
     public function label(): string
     {
         return match ($this) {
-            self::ADMIN => 'Administração',
-            self::CONFIGURATIONS => 'Configurações',
-            self::PROSPECTION => 'Prospecção',
-            self::BROKERS => 'Corretores',
-            self::DATA => 'Dados',
-            self::DASHBOARD => 'Dashboard',
-            self::COMMITTEE => 'Comitês',
-            self::LEGAL => 'Legalizações',
-            self::NEGOTIATION => 'Negociações',
-            self::PROJECTS => 'Projetos',
-            self::REPORTS => 'Relatórios',
-            self::VIABILITY => 'Viabilidades',
-            self::AI => 'IA',
+            self::ADMIN => language()->t('ADMIN'),
+            self::CONFIGURATIONS => language()->t('CONFIGURATIONS'),
+            self::PROSPECTION => language()->t('PROSPECTION'),
+            self::BROKERS => language()->t('BROKERS'),
+            self::DATA => language()->t('DATA'),
+            self::DASHBOARD => language()->t('DASHBOARD'),
+            self::COMMITTEE => language()->t('COMMITTEE'),
+            self::LEGAL => language()->t('LEGAL'),
+            self::NEGOTIATION => language()->t('NEGOTIATION'),
+            self::PROJECTS => language()->t('PROJECTS'),
+            self::REPORTS => language()->t('REPORTS'),
+            self::VIABILITY => language()->t('VIABILITY'),
+            self::AI => language()->t('AI')
+        };
+    }
+
+    public function order(): int
+    {
+        return match ($this) {
+            self::DASHBOARD      => 10,
+            self::PROSPECTION    => 20,
+            self::BROKERS        => 30,
+            self::VIABILITY      => 40,
+            self::COMMITTEE      => 50,
+            self::NEGOTIATION    => 60,
+            self::LEGAL          => 70,
+            self::PROJECTS       => 80,
+            self::CONFIGURATIONS => 90,
+            self::DATA           => 100,
+            self::REPORTS        => 110,
+            self::ADMIN          => 120,
+            self::AI             => 130
+        };
+    }
+
+    public function sector(): SectorsEnum
+    {
+        return match ($this) {
+            self::DASHBOARD      => SectorsEnum::PRINCIPAL,
+            self::PROSPECTION,
+            self::BROKERS,
+            self::VIABILITY,
+            self::COMMITTEE,
+            self::NEGOTIATION,
+            self::LEGAL,
+            self::PROJECTS,
+            self::AI             => SectorsEnum::OPERATION,
+            self::CONFIGURATIONS,
+            self::DATA           => SectorsEnum::CONFIGURATION,
+            self::REPORTS        => SectorsEnum::INTELLIGENCE,
+            self::ADMIN          => SectorsEnum::ADMINISTRATION
         };
     }
 
@@ -59,19 +97,19 @@ enum ModulesEnum: string
      * Para adicionar recursos a um módulo, declare-os aqui. O seeder de permissões irá
      * gerar automaticamente permissões para eles no formato {módulo}.{recurso}.{nível}.
      *
-     * @return array<int, string>
+     * @return array<int, SubmodulesEnum>
      */
-    public function resources(): array
+    public function submodules(): array
     {
         return match ($this) {
-            self::PROSPECTION => ['terrains', 'maps'],
-            default => [],
+            self::PROSPECTION => [SubmodulesEnum::TERRAINS, SubmodulesEnum::MAPS],
+            default           => [],
         };
     }
 
-    public function hasResources(): bool
+    public function hasSubmodules(): bool
     {
-        return ! empty($this->resources());
+        return !empty($this->submodules());
     }
 
     /**
@@ -88,7 +126,7 @@ enum ModulesEnum: string
     {
         return match ($this) {
             self::PROSPECTION => [
-                Terreno::class => 'terrains',
+                Terreno::class => SubmodulesEnum::TERRAINS->value,
             ],
             self::BROKERS => [
                 CorretorExterno::class => null,

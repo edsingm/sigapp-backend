@@ -150,7 +150,6 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
                     Route::get('/blog', [\App\Http\Controllers\Api\V1\BlogController::class, 'index']);
                     Route::get('/blog/categories', [\App\Http\Controllers\Api\V1\BlogController::class, 'categories']);
                     Route::get('/blog/{slug}', [\App\Http\Controllers\Api\V1\BlogController::class, 'show']);
-
                 });
 
                 // Authenticated routes (central app)
@@ -164,7 +163,6 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
                     Route::post('/auth/logout-all', [AuthController::class, 'logoutAll']);
                     Route::post('/auth/refresh', [AuthController::class, 'refresh']);
                     Route::get('/auth/me', [AuthController::class, 'me']);
-
                 });
 
                 Route::middleware(['auth:sanctum', 'user.admin', 'throttle:api-auth'])->group(function () {
@@ -181,6 +179,17 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
                         Route::post('/tenants/{id}/activate', [\App\Http\Controllers\Api\V1\Admin\TenantController::class, 'activate'])->name('tenants.activate');
                         Route::post('/tenants/{id}/suspend', [\App\Http\Controllers\Api\V1\Admin\TenantController::class, 'suspend'])->name('tenants.suspend');
 
+                        // Tenant Plan Management
+                        Route::post('/tenants/{id}/plan', [\App\Http\Controllers\Api\V1\Admin\TenantPlanController::class, 'assignPlan'])->name('tenants.plan.assign');
+                        Route::put('/tenants/{id}/plan/upgrade', [\App\Http\Controllers\Api\V1\Admin\TenantPlanController::class, 'upgradePlan'])->name('tenants.plan.upgrade');
+                        Route::put('/tenants/{id}/plan/downgrade', [\App\Http\Controllers\Api\V1\Admin\TenantPlanController::class, 'downgradePlan'])->name('tenants.plan.downgrade');
+
+                        // Tenant Extra Entitlements
+                        Route::get('/tenants/{id}/entitlements', [\App\Http\Controllers\Api\V1\Admin\TenantPlanController::class, 'extraEntitlements'])->name('tenants.entitlements.index');
+                        Route::post('/tenants/{id}/entitlements', [\App\Http\Controllers\Api\V1\Admin\TenantPlanController::class, 'addExtraEntitlement'])->name('tenants.entitlements.store');
+                        Route::put('/tenants/{id}/entitlements/{entitlementId}', [\App\Http\Controllers\Api\V1\Admin\TenantPlanController::class, 'updateExtraEntitlement'])->name('tenants.entitlements.update');
+                        Route::delete('/tenants/{id}/entitlements/{entitlementId}', [\App\Http\Controllers\Api\V1\Admin\TenantPlanController::class, 'removeExtraEntitlement'])->name('tenants.entitlements.destroy');
+
                         // Users
                         Route::apiResource('users', \App\Http\Controllers\Api\V1\Admin\UserController::class);
 
@@ -190,8 +199,15 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
                         // ACL Catalog / Plan Role Matrix (read-only, foundation for UI de gestão)
                         Route::get('/acl/catalog', [\App\Http\Controllers\Api\V1\Admin\AclController::class, 'catalog']);
                         Route::get('/acl/plans/{planId}/role-matrix', [\App\Http\Controllers\Api\V1\Admin\AclController::class, 'planRoleMatrix']);
-                    });
 
+                        // Plans — CRUD admin
+                        Route::apiResource('plans', \App\Http\Controllers\Api\V1\Admin\PlanAdminController::class);
+                        Route::put('/plans/{plan}/entitlements', [\App\Http\Controllers\Api\V1\Admin\PlanAdminController::class, 'syncEntitlements'])
+                            ->name('admin.plans.entitlements.sync');
+
+                        // Entitlements — CRUD admin
+                        Route::apiResource('entitlements', \App\Http\Controllers\Api\V1\Admin\EntitlementController::class);
+                    });
                 });
 
                 // Public Admin Login
@@ -201,7 +217,6 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
         }
         // End of API v1 prefix
     });
-
 });
 
 // Health check endpoint

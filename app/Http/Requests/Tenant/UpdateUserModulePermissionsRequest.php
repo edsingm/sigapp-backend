@@ -34,10 +34,10 @@ class UpdateUserModulePermissionsRequest extends FormRequest
         foreach (ModulesEnum::cases() as $module) {
             $key = "permissions.{$module->value}";
 
-            if ($module->hasResources()) {
+            if ($module->hasSubmodules()) {
                 $rules[$key] = ['sometimes', 'array'];
 
-                foreach ($module->resources() as $resource) {
+                foreach ($module->submodules() as $resource) {
                     $rules["{$key}.{$resource}"] = [
                         'sometimes',
                         'nullable',

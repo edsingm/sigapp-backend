@@ -4,45 +4,58 @@ namespace Tests\Unit\Services;
 
 use App\Models\Central\Plan;
 use App\Services\PlanMatrixService;
-use InvalidArgumentException;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class PlanMatrixServiceTest extends TestCase
 {
-    public function test_it_resolves_normalized_features_and_limits_for_each_plan(): void
+    use RefreshDatabase;
+
+    protected function setUp(): void
     {
-        $service = app(PlanMatrixService::class);
+        parent::setUp();
 
-        $broker = new Plan(['slug' => 'broker']);
-        $basico = new Plan(['slug' => 'basico']);
-        $master = new Plan(['slug' => 'master']);
-        $pro = new Plan(['slug' => 'pro']);
-
-        $this->assertFalse($service->hasFeature($broker, 'dashboard.enabled'));
-        $this->assertTrue($service->hasFeature($basico, 'dashboard.overview'));
-        $this->assertTrue($service->hasFeature($master, 'dashboard.funnel'));
-        $this->assertTrue($service->hasFeature($pro, 'committee'));
-
-        $this->assertFalse($service->hasFeature($broker, 'exports.pdf'));
-        $this->assertTrue($service->hasFeature($basico, 'exports.pdf'));
-        $this->assertFalse($service->hasFeature($master, 'committee'));
-        $this->assertTrue($service->hasFeature($pro, 'viabilities.kpis'));
-
-        $this->assertSame(1, $service->getLimit($broker, 'users'));
-        $this->assertSame(2, $service->getLimit($basico, 'products'));
-        $this->assertSame(3, $service->getLimit($master, 'storage_gb'));
-        $this->assertSame(-1, $service->getLimit($pro, 'terrenos'));
-        $this->assertTrue($service->isUnlimitedLimit($pro, 'products'));
+        $this->seed(\Database\Seeders\PlanSeeder::class);
+        $this->seed(\Database\Seeders\EntitlementSeeder::class);
     }
 
-    public function test_it_validates_configured_plan_slugs(): void
+    public function test_it_resolves_features_from_db_plan(): void
+    {
+        $service = app(PlanMatrixService::class);
+        $basico  = Plan::where('slug', 'basico')->firstOrFail();
+
+        $this->assertTrue($service->hasFeature($basico, 'dashboard.enabled'));
+        $this->assertFalse($service->hasFeature($basico, 'committee'));
+    }
+
+    public function test_it_resolves_limits_from_db_plan(): void
+    {
+        $service = app(PlanMatrixService::class);
+        $basico  = Plan::where('slug', 'basico')->firstOrFail();
+        $pro     = Plan::where('slug', 'pro')->firstOrFail();
+
+        $this->assertSame(3, $service->getLimit($basico, 'users'));
+        $this->assertSame(-1, $service->getLimit($pro, 'users'));
+        $this->assertTrue($service->isUnlimitedLimit($pro, 'users'));
+    }
+
+    public function test_it_returns_empty_matrix_for_plan_without_entitlements(): void
+    {
+        $service = app(PlanMatrixService::class);
+        $plan    = Plan::create(['name' => 'Empty', 'slug' => 'empty', 'price' => 0, 'sort_order' => 9, 'is_active' => true, 'trial_days' => 0]);
+
+        $matrix = $service->resolve($plan);
+
+        $this->assertSame([], $matrix['features']);
+        $this->assertSame([], $matrix['limits']);
+    }
+
+    public function test_it_throws_for_unknown_slug(): void
     {
         $service = app(PlanMatrixService::class);
 
-        $service->assertConfiguredSlugs(['broker', 'basico', 'master', 'pro']);
+        $this->expectException(\InvalidArgumentException::class);
 
-        $this->expectException(InvalidArgumentException::class);
-
-        $service->assertConfiguredSlugs(['legacy']);
+        $service->resolve('nonexistent');
     }
 }

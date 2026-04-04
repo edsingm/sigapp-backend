@@ -4,12 +4,14 @@ namespace App\Models\Central;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Stancl\Tenancy\Contracts\TenantWithDatabase;
 use Stancl\Tenancy\Database\Concerns\HasDatabase;
 use Stancl\Tenancy\Database\Concerns\HasDomains;
 use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
+use App\Models\Central\TenantEntitlement;
 
 /**
  * @property string $id
@@ -103,6 +105,22 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     }
 
     /**
+     * Obtém os entitlements extras contratados por este tenant.
+     */
+    public function extraEntitlements(): HasMany
+    {
+        return $this->hasMany(TenantEntitlement::class, 'tenant_id');
+    }
+
+    /**
+     * Soma do custo mensal adicional dos entitlements extras em centavos.
+     */
+    public function getExtraMonthlyCostAttribute(): int
+    {
+        return (int) $this->extraEntitlements()->sum('price');
+    }
+
+    /**
      * Obtém o identificador do banco de dados/schema do tenant.
      */
     public function getDatabaseName(): string
@@ -132,13 +150,13 @@ class Tenant extends BaseTenant implements TenantWithDatabase
             $normalizedSlug = 'tenant';
         }
 
-        $identifier = Str::of(Str::ascii(Str::lower($prefix.$normalizedSlug.$suffix)))
+        $identifier = Str::of(Str::ascii(Str::lower($prefix . $normalizedSlug . $suffix)))
             ->replaceMatches('/[^a-z0-9_]+/', '_')
             ->trim('_')
             ->value();
 
         if ($identifier === '' || preg_match('/^[0-9]/', $identifier)) {
-            $identifier = 'tenant_'.ltrim($identifier, '0123456789');
+            $identifier = 'tenant_' . ltrim($identifier, '0123456789');
             $identifier = rtrim($identifier, '_');
         }
 
@@ -148,7 +166,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
 
         $hash = substr(sha1($identifier), 0, 8);
 
-        return substr($identifier, 0, 54).'_'.$hash;
+        return substr($identifier, 0, 54) . '_' . $hash;
     }
 
     /**

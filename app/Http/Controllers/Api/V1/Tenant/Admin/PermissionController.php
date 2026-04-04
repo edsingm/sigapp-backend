@@ -36,7 +36,7 @@ class PermissionController extends Controller
                 'id' => $permission->id,
                 'name' => $permission->name,
                 'guard_name' => $permission->guard_name,
-                'roles' => $permission->roles->map(fn (Role $role) => [
+                'roles' => $permission->roles->map(fn(Role $role) => [
                     'id' => $role->id,
                     'name' => $role->name,
                 ])->values(),
@@ -68,7 +68,7 @@ class PermissionController extends Controller
             'id' => $permission->id,
             'name' => $permission->name,
             'guard_name' => $permission->guard_name,
-            'roles' => $permission->roles->map(fn (Role $role) => [
+            'roles' => $permission->roles->map(fn(Role $role) => [
                 'id' => $role->id,
                 'name' => $role->name,
             ])->values(),
@@ -155,7 +155,7 @@ class PermissionController extends Controller
             'id' => $permission->id,
             'name' => $permission->name,
             'guard_name' => $permission->guard_name,
-            'roles' => $permission->roles->map(fn (Role $role) => [
+            'roles' => $permission->roles->map(fn(Role $role) => [
                 'id' => $role->id,
                 'name' => $role->name,
             ])->values(),
@@ -224,13 +224,13 @@ class PermissionController extends Controller
         if (count($parts) === 3) {
             [$module, $resource, $level] = $parts;
             $mod = ModulesEnum::tryFrom($module);
-            return $mod !== null && in_array($resource, $mod->resources(), true) && in_array($level, $levels, true);
+            return $mod !== null && in_array($resource, $mod->submodules(), true) && in_array($level, $levels, true);
         }
 
         if (count($parts) === 2) {
             [$module, $level] = $parts;
             $mod = ModulesEnum::tryFrom($module);
-            return $mod !== null && !$mod->hasResources() && in_array($level, $levels, true);
+            return $mod !== null && !$mod->hasSubmodules() && in_array($level, $levels, true);
         }
 
         return false;

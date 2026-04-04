@@ -6,6 +6,7 @@ use App\Services\PlanMatrixService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
@@ -69,6 +70,16 @@ class Plan extends Model
     public function tenants(): HasMany
     {
         return $this->hasMany(Tenant::class);
+    }
+
+    /**
+     * Obtém os entitlements do plano.
+     */
+    public function entitlements(): BelongsToMany
+    {
+        return $this->belongsToMany(Entitlement::class, 'plan_entitlements')
+            ->withPivot('value')
+            ->withTimestamps();
     }
 
     /**

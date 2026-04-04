@@ -29,6 +29,7 @@ use App\Http\Controllers\Api\V1\Tenant\TerrenoWorkflowController;
 use App\Http\Controllers\Api\V1\Tenant\AiController;
 use App\Http\Controllers\Api\V1\CidadesController;
 use App\Http\Controllers\Api\V1\LanguageController;
+use App\Http\Controllers\Api\V1\Tenant\Common\ModulesController;
 use App\Http\Middleware\AddTenantContextToLogs;
 use App\Http\Middleware\ApiRequestLogger;
 use App\Http\Middleware\CheckSubscriptionStatus;
@@ -65,8 +66,9 @@ Route::middleware([
                 ->middleware('throttle:password-reset-request');
             Route::post('/auth/password/reset', [AuthController::class, 'resetPassword'])
                 ->middleware('throttle:password-reset-submit');
-
         });
+        // Modules
+        Route::get('/modules', [ModulesController::class, 'index']);
 
         // Authenticated tenant routes (always accessible after login)
         Route::middleware([
@@ -132,7 +134,7 @@ Route::middleware([
                     Route::get('/terrenos/filter', [TerrenoController::class, 'filter']);
                     Route::get('/terrenos/select', [TerrenoController::class, 'forSelect']);
                     Route::get('/terrenos/{id}/informacoes', [TerrenoController::class, 'getInformacoes'])
-                            ->middleware('permission.gate:prospection,terrains');
+                        ->middleware('permission.gate:prospection,terrains');
                     Route::post('/terrenos/{id}/informacoes', [TerrenoController::class, 'storeInfo']);
                     Route::put('/terrenos/informacoes/{infoId}', [TerrenoController::class, 'updateInfo']);
                     Route::delete('/terrenos/informacoes/{infoId}', [TerrenoController::class, 'destroyInfo']);
@@ -154,9 +156,9 @@ Route::middleware([
                     ->middleware('enforce.limits:storage_gb');
                 Route::apiResource('documentos', DocumentosController::class)->except(['store']);
 
-            // Corretores Externos
-            Route::get('/corretores-externos/select', [CorretoresExternosController::class, 'corretoresForSelect']);
-            Route::apiResource('corretores-externos', CorretoresExternosController::class);
+                // Corretores Externos
+                Route::get('/corretores-externos/select', [CorretoresExternosController::class, 'corretoresForSelect']);
+                Route::apiResource('corretores-externos', CorretoresExternosController::class);
 
                 // Regionais
                 Route::middleware('check.feature:regionals')->group(function () {
@@ -172,13 +174,13 @@ Route::middleware([
                     Route::apiResource('produtos', ProdutosController::class)->except(['store']);
                 });
 
-            // Proprietarios
-            Route::get('/proprietarios/select', [ProprietariosController::class, 'proprietariosForSelect']);
-            Route::apiResource('proprietarios', ProprietariosController::class);
+                // Proprietarios
+                Route::get('/proprietarios/select', [ProprietariosController::class, 'proprietariosForSelect']);
+                Route::apiResource('proprietarios', ProprietariosController::class);
 
-            // Terreno Produtos
-            Route::get('/terreno-produtos/by-terreno/{terrenoId}', [TerrenoProdutosController::class, 'byTerreno']);
-            Route::apiResource('terreno-produtos', TerrenoProdutosController::class);
+                // Terreno Produtos
+                Route::get('/terreno-produtos/by-terreno/{terrenoId}', [TerrenoProdutosController::class, 'byTerreno']);
+                Route::apiResource('terreno-produtos', TerrenoProdutosController::class);
 
                 // Terreno Export
                 Route::get('/terrenos/export/pdf', [TerrenosExportController::class, 'exportPdf'])
@@ -282,13 +284,13 @@ Route::middleware([
                         Route::get('/area-opcao-detalhe', [DashboardController::class, 'areaOpcaoDetalhe']);
                     });
 
-            // Mobile devices and inbox
-            Route::prefix('mobile')->group(function () {
-                Route::post('/devices', [MobileDeviceController::class, 'store']);
-                Route::delete('/devices/{installationId}', [MobileDeviceController::class, 'destroy']);
-                Route::get('/notifications', [MobileNotificationController::class, 'index']);
-                Route::post('/notifications/{id}/read', [MobileNotificationController::class, 'read']);
-            });
+                // Mobile devices and inbox
+                Route::prefix('mobile')->group(function () {
+                    Route::post('/devices', [MobileDeviceController::class, 'store']);
+                    Route::delete('/devices/{installationId}', [MobileDeviceController::class, 'destroy']);
+                    Route::get('/notifications', [MobileNotificationController::class, 'index']);
+                    Route::post('/notifications/{id}/read', [MobileNotificationController::class, 'read']);
+                });
 
                 // Legalizações
                 Route::middleware('check.feature:legalizations')->group(function () {
@@ -310,7 +312,6 @@ Route::middleware([
                 });
             });
         });
-
     });
 
     // Tenant health check (requer autenticação para não vazar dados do tenant)
@@ -327,5 +328,4 @@ Route::middleware([
             ],
         ]);
     });
-
 });

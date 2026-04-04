@@ -22,8 +22,8 @@ class AclController extends Controller
         foreach (ModulesEnum::cases() as $module) {
             $permissions = [];
 
-            if ($module->hasResources()) {
-                foreach ($module->resources() as $resource) {
+            if ($module->hasSubmodules()) {
+                foreach ($module->submodules() as $resource) {
                     foreach ($levels as $level) {
                         $permissions[] = [
                             'name'     => "{$module->value}.{$resource}.{$level}",
@@ -73,7 +73,7 @@ class AclController extends Controller
             ->map(function ($rows, string $roleSlug) {
                 return [
                     'role_slug' => $roleSlug,
-                    'permissions' => $rows->map(fn (PlanRolePermissionTemplate $row) => [
+                    'permissions' => $rows->map(fn(PlanRolePermissionTemplate $row) => [
                         'name' => $row->permission_name,
                         'is_required' => (bool) $row->is_required,
                         'is_default' => (bool) $row->is_default,

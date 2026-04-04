@@ -85,8 +85,8 @@ class TenantAclSyncService
         $permissions = [];
 
         foreach (ModulesEnum::cases() as $module) {
-            if ($module->hasResources()) {
-                foreach ($module->resources() as $resource) {
+            if ($module->hasSubmodules()) {
+                foreach ($module->submodules() as $resource) {
                     foreach ($levels as $level) {
                         $permissions[] = "{$module->value}.{$resource}.{$level}";
                     }

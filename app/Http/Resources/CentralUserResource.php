@@ -36,8 +36,8 @@ class CentralUserResource extends JsonResource
         $permissions = [];
 
         foreach (ModulesEnum::cases() as $module) {
-            if ($module->hasResources()) {
-                foreach ($module->resources() as $resource) {
+            if ($module->hasSubmodules()) {
+                foreach ($module->submodules() as $resource) {
                     $permissions[] = "{$module->value}.{$resource}.viewer";
                     $permissions[] = "{$module->value}.{$resource}.editor";
                     $permissions[] = "{$module->value}.{$resource}.manager";

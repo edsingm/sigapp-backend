@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Services\ApiResponseService;
+use App\Services\PlanMatrixService;
 use App\Services\UsageMetricsService;
 use Closure;
 use Illuminate\Http\Request;
@@ -11,9 +12,9 @@ use Symfony\Component\HttpFoundation\Response;
 class EnforcePlanLimits
 {
     public function __construct(
-        protected UsageMetricsService $usageService
-    ) {
-    }
+        protected UsageMetricsService $usageService,
+        protected PlanMatrixService $planMatrix
+    ) {}
 
     /**
      * Manipula uma requisição de entrada.
@@ -68,19 +69,20 @@ class EnforcePlanLimits
      */
     protected function checkResourceLimit(string $resource, Request $request): bool
     {
-        $plan = tenancy()->tenant?->plan;
+        $tenant = tenancy()->tenant;
+        $plan   = $tenant?->plan;
 
-        if (!$plan) {
+        if (!$plan || !$tenant) {
             return true;
         }
 
         return match ($resource) {
-            'users' => !$plan->hasUnlimitedLimit('users')
-                && $this->usageService->getUserCount() >= $plan->getLimit('users'),
-            'terrenos' => !$plan->hasUnlimitedLimit('terrenos')
-                && $this->usageService->getTerrenoCount() >= $plan->getLimit('terrenos'),
-            'products' => !$plan->hasUnlimitedLimit('products')
-                && $this->usageService->getProdutoCount() >= $plan->getLimit('products'),
+            'users' => !$this->planMatrix->isUnlimitedLimitForTenant($tenant, 'users')
+                && $this->usageService->getUserCount() >= $this->planMatrix->getLimitForTenant($tenant, 'users'),
+            'terrenos' => !$this->planMatrix->isUnlimitedLimitForTenant($tenant, 'terrenos')
+                && $this->usageService->getTerrenoCount() >= $this->planMatrix->getLimitForTenant($tenant, 'terrenos'),
+            'products' => !$this->planMatrix->isUnlimitedLimitForTenant($tenant, 'products')
+                && $this->usageService->getProdutoCount() >= $this->planMatrix->getLimitForTenant($tenant, 'products'),
             'storage', 'storage_gb' => $this->storageLimitExceeded($request),
             default => false,
         };
@@ -88,19 +90,20 @@ class EnforcePlanLimits
 
     protected function storageLimitExceeded(Request $request): bool
     {
-        $plan = tenancy()->tenant?->plan;
+        $tenant = tenancy()->tenant;
+        $plan   = $tenant?->plan;
 
-        if (!$plan) {
+        if (!$plan || !$tenant) {
             return true;
         }
 
-        if ($plan->hasUnlimitedLimit('storage_gb')) {
+        if ($this->planMatrix->isUnlimitedLimitForTenant($tenant, 'storage_gb')) {
             return false;
         }
 
-        $maxStorageGb = $plan->getLimit('storage_gb');
+        $maxStorageGb    = $this->planMatrix->getLimitForTenant($tenant, 'storage_gb');
         $maxStorageBytes = $maxStorageGb * 1024 * 1024 * 1024;
-        $incomingBytes = $this->incomingUploadBytes($request->allFiles());
+        $incomingBytes   = $this->incomingUploadBytes($request->allFiles());
 
         return ($this->usageService->getStorageUsedBytes() + $incomingBytes) > $maxStorageBytes;
     }

@@ -35,7 +35,6 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->group('tenant', [
             \App\Http\Middleware\InitializeTenancyFlexible::class,
         ]);
-
     })
     ->withExceptions(function (Exceptions $exceptions): void {
 

@@ -12,8 +12,7 @@ class CheckFeature
 {
     public function __construct(
         protected PlanMatrixService $planMatrix
-    ) {
-    }
+    ) {}
 
     /**
      * Manipula uma requisição de entrada.
@@ -38,7 +37,7 @@ class CheckFeature
             );
         }
 
-        if (!$this->planMatrix->hasFeature($plan, $feature)) {
+        if (!$this->planMatrix->hasFeatureForTenant($tenant, $feature)) {
             return ApiResponseService::error(
                 'PLAN_FEATURE_DISABLED',
                 'Seu plano atual não permite esta funcionalidade.',

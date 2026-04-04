@@ -2,34 +2,32 @@
 
 namespace App\Services;
 
+use App\Enums\Common\EntitlementType;
 use App\Models\Central\Plan;
+use App\Models\Central\Tenant;
+use App\Repositories\Contracts\PlanRepositoryInterface;
 use InvalidArgumentException;
 
 class PlanMatrixService
 {
+    public function __construct(
+        private readonly PlanRepositoryInterface $planRepository
+    ) {}
+
     /**
-     * Resolve uma entrada da matriz de planos configurada pelo modelo do plano ou slug.
+     * Resolve a matriz de features e limites de um plano pelo modelo ou slug.
      *
      * @return array{features: array<string, mixed>, limits: array<string, int>}
      */
     public function resolve(Plan|string|null $plan): array
     {
-        $slug = $this->slugFrom($plan);
+        $planModel = $this->planFrom($plan);
 
-        if ($slug === null) {
-            throw new InvalidArgumentException('Plano não informado para resolução da matriz.');
+        if ($planModel === null) {
+            throw new InvalidArgumentException('Plano não informado ou não encontrado para resolução da matriz.');
         }
 
-        $resolved = config("plans.plans.{$slug}");
-
-        if (!is_array($resolved)) {
-            throw new InvalidArgumentException("Plano [{$slug}] não está configurado em config/plans.php.");
-        }
-
-        return [
-            'features' => is_array($resolved['features'] ?? null) ? $resolved['features'] : [],
-            'limits' => is_array($resolved['limits'] ?? null) ? $resolved['limits'] : [],
-        ];
+        return $this->planRepository->getMatrix($planModel->id);
     }
 
     /**
@@ -73,27 +71,77 @@ class PlanMatrixService
     }
 
     /**
-     * @param  iterable<string>  $slugs
+     * Resolve a matriz efetiva de features e limites para um tenant específico,
+     * mesclando os entitlements extras do tenant sobre a matriz base do plano.
+     *
+     * @return array{features: array<string, mixed>, limits: array<string, int>}
      */
-    public function assertConfiguredSlugs(iterable $slugs): void
+    public function resolveForTenant(Tenant $tenant): array
     {
-        $configured = array_keys((array) config('plans.plans', []));
+        if (!$tenant->plan_id) {
+            throw new InvalidArgumentException('Tenant não possui plano atribuído.');
+        }
 
-        foreach ($slugs as $slug) {
-            if (!in_array($slug, $configured, true)) {
-                throw new InvalidArgumentException("Plano ativo [{$slug}] não está configurado em config/plans.php.");
+        $base   = $this->planRepository->getMatrix($tenant->plan_id);
+        $extras = $tenant->extraEntitlements()->with('entitlement')->get();
+
+        if ($extras->isEmpty()) {
+            return $base;
+        }
+
+        $features = $base['features'];
+        $limits   = $base['limits'];
+
+        foreach ($extras as $extra) {
+            $ent   = $extra->entitlement;
+            $value = $extra->value;
+
+            if ($ent->type === EntitlementType::FEATURE) {
+                data_set($features, $ent->key, (bool) $value);
+            } else {
+                $limits[$ent->key] = (int) $value;
             }
         }
+
+        return ['features' => $features, 'limits' => $limits];
     }
 
-    protected function slugFrom(Plan|string|null $plan): ?string
+    /**
+     * Verifica se o tenant possui uma feature, considerando entitlements extras.
+     */
+    public function hasFeatureForTenant(Tenant $tenant, string $path): bool
+    {
+        $value = data_get($this->resolveForTenant($tenant)['features'], $path);
+
+        return $value === true;
+    }
+
+    /**
+     * Obtém o limite para um tenant específico, considerando entitlements extras.
+     */
+    public function getLimitForTenant(Tenant $tenant, string $key, int $default = 0): int
+    {
+        $value = data_get($this->resolveForTenant($tenant)['limits'], $key, $default);
+
+        return is_numeric($value) ? (int) $value : $default;
+    }
+
+    /**
+     * Verifica se o limite de uma chave específica é ilimitado para este tenant.
+     */
+    public function isUnlimitedLimitForTenant(Tenant $tenant, string $key): bool
+    {
+        return $this->getLimitForTenant($tenant, $key) === -1;
+    }
+
+    protected function planFrom(Plan|string|null $plan): ?Plan
     {
         if ($plan instanceof Plan) {
-            return $plan->slug;
+            return $plan;
         }
 
         if (is_string($plan) && $plan !== '') {
-            return $plan;
+            return $this->planRepository->findBySlug($plan);
         }
 
         return null;

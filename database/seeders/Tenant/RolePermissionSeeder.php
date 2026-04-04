@@ -79,7 +79,7 @@ class RolePermissionSeeder extends Seeder
             if ($module->hasSubmodules()) {
                 foreach ($module->submodules() as $resource) {
                     foreach ($levels as $level) {
-                        $permissions[] = "{$module->value}.{$resource}.{$level}";
+                        $permissions[] = "{$module->value}.{$resource->value}.{$level}";
                     }
                 }
             } else {

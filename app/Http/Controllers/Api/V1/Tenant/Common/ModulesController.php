@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers\Api\V1\Tenant\Common;
 
-use App\Enums\Common\ModulesEnum;
+use App\Enums\Common\SectorsEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Tenant\Modules\ModulesResource;
+use App\Services\ApiResponseService;
 use App\Services\Modules\ModulesService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 
 class ModulesController extends Controller
 {
@@ -15,16 +16,28 @@ class ModulesController extends Controller
         private readonly ModulesService $modulesService
     ) {}
 
-    public function index()
+    public function index(Request $request): JsonResponse
     {
-        return ModulesResource::collection($this->modulesService->getAllModules());
+        $grouped = $this->modulesService->getAllModules();
 
-        return response()->json([
-            'data' => array_map(fn($module) => [
-                'name' => $module->name,
-                'label' => $module->label(),
-                'resources' => $module->submodules()
-            ], $modules)
-        ]);
+        $data = [];
+
+        foreach ($grouped as $sectorValue => $modules) {
+            $sector = SectorsEnum::from($sectorValue);
+
+            $data[] = [
+                'sector'  => [
+                    'slug'  => $sector->value,
+                    'label' => $sector->label(),
+                    'order' => $sector->order(),
+                ],
+                'modules' => $modules
+                    ->map(fn($m) => (new ModulesResource($m))->toArray($request))
+                    ->values()
+                    ->all(),
+            ];
+        }
+
+        return ApiResponseService::success($data);
     }
 }

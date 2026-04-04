@@ -19,7 +19,7 @@ class StorePlanRequest extends FormRequest
             'slug'            => ['required', 'string', 'max:100', 'alpha_dash', 'unique:plans,slug'],
             'description'     => ['nullable', 'string', 'max:1000'],
             'stripe_price_id' => ['nullable', 'string', 'max:255'],
-            'price'           => ['required', 'integer', 'min:0'],
+            'price'           => ['required', 'numeric', 'min:0'],
             'trial_days'      => ['required', 'integer', 'min:0'],
             'is_active'       => ['boolean'],
             'is_popular'      => ['boolean'],

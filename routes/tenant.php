@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\V1\Tenant\PlanSwapController;
 use App\Http\Controllers\Api\V1\Tenant\Admin\PermissionController as AdminPermissionController;
 use App\Http\Controllers\Api\V1\Tenant\Admin\RoleController as AdminRoleController;
 use App\Http\Controllers\Api\V1\Tenant\Admin\UserManagementController as AdminUserManagementController;
+use App\Http\Controllers\Api\V1\Tenant\Admin\DepartmentController as AdminDepartmentController;
+use App\Http\Controllers\Api\V1\Tenant\Admin\PositionController as AdminPositionController;
 use App\Http\Controllers\Api\V1\Tenant\UserController;
 use App\Http\Controllers\Api\V1\Tenant\TerrenoController;
 use App\Http\Controllers\Api\V1\Tenant\DocumentosController;
@@ -122,6 +124,16 @@ Route::middleware([
                             ->name('tenant-admin.roles.select');
                         Route::apiResource('roles', AdminRoleController::class)->only(['index', 'show']);
                         Route::apiResource('permissions', AdminPermissionController::class)->only(['index', 'show']);
+
+                        // Departments
+                        Route::get('departments/select', [AdminDepartmentController::class, 'forSelect'])
+                            ->name('tenant-admin.departments.select');
+                        Route::apiResource('departments', AdminDepartmentController::class);
+
+                        // Positions
+                        Route::get('positions/select', [AdminPositionController::class, 'forSelect'])
+                            ->name('tenant-admin.positions.select');
+                        Route::apiResource('positions', AdminPositionController::class);
                     });
 
                 // Terrenos (with plan limit enforcement)

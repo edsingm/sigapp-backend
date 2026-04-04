@@ -21,7 +21,7 @@ class UpdatePlanRequest extends FormRequest
             'slug'            => ['sometimes', 'string', 'max:100', 'alpha_dash', Rule::unique('plans', 'slug')->ignore($planId)],
             'description'     => ['nullable', 'string', 'max:1000'],
             'stripe_price_id' => ['nullable', 'string', 'max:255'],
-            'price'           => ['sometimes', 'integer', 'min:0'],
+            'price'           => ['sometimes', 'numeric', 'min:0'],
             'trial_days'      => ['sometimes', 'integer', 'min:0'],
             'is_active'       => ['boolean'],
             'is_popular'      => ['boolean'],

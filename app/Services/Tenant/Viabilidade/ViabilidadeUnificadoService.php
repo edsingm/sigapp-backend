@@ -10,97 +10,86 @@ use Exception;
 use Illuminate\Support\Facades\Log;
 
 /**
- * ViabilidadeUnificadoService - Service principal unificado
+ * ViabilidadeUnificadoService — Motor de cálculo financeiro de viabilidade imobiliária.
  *
- * 4 Funções Principais:
- * 1. gerarFluxoMensal() - Orquestra tudo e gera fluxo de caixa
- * 2. calcularReceitas() - Todas as receitas de um mês
- * 3. calcularDespesas() - Todas as despesas de um mês
- * 4. calcularDre() - Consolida DRE final
+ * Quatro responsabilidades públicas:
+ *  1. gerarFluxoMensal()  — orquestra o pipeline completo e devolve fluxo de caixa
+ *  2. calcularReceitas()  — receitas de um mês específico
+ *  3. calcularDespesas()  — despesas de um mês específico
+ *  4. calcularDre()       — DRE consolidada do projeto
+ *
+ * O estado mutável do cálculo é isolado em ViabilidadeFluxoContext, garantindo
+ * que chamadas consecutivas na mesma instância não acumulem dados entre si.
  */
 class ViabilidadeUnificadoService
 {
-    protected CurvaService $curvaService;
+    // ─── Taxas de correção monetária (fixas, baseadas em histórico do projeto) ───
+    private const TAXA_CORRECAO_OBRA_ANUAL  = 0.05;   // 5% a.a.
+    private const TAXA_CORRECAO_POS_ANUAL   = 0.045;  // 4.5% a.a.
+    private const JUROS_POS_CHAVE_MENSAL    = 0.01;   // 1% a.m.
+    private const PRAZO_POS_CHAVE_PADRAO    = 36;     // parcelas pós-chave
+    private const PERCENTUAL_FINANCIAMENTO_CEF = 0.80; // 80% do VGV via CEF
 
-    protected ImpostosService $impostosService;
-
-    // Cache para evitar recálculos
-    private array $cacheRecursosPropriosMensais = [];
-
-    private array $cacheVendasMensais = [];
-
-    private array $cacheDadosProcessados = [];
-
-    // Cache para CEF (Recurso Terrenos e Medição de Obra)
-    private array $cacheVendasPorMes = [];
-
-    private float $cacheVendasAcumuladas = 0;
-
-    private float $cacheDemandaMinima = 0;
-
-    private bool $cacheDemandaAtingida = false;
-
-    private ?string $cacheMesDemandaAtingida = null;
-
-    private float $cacheMedicaoObraAcumulada = 0;
-
-    private float $cacheCurvaObraAcumulada = 0;
-
-    private int $cacheMesObraAtual = 0;
-
-    private float $cacheTotalRecursoTerrenos = 0;
-
-    private float $cacheValorMedicaoTotal = 0;
-
-    public function __construct(CurvaService $curvaService, ImpostosService $impostosService)
-    {
-        $this->curvaService = $curvaService;
-        $this->impostosService = $impostosService;
-    }
+    public function __construct(
+        protected readonly CurvaService $curvaService,
+        protected readonly ImpostosService $impostosService,
+    ) {}
 
     /**
      * ═══════════════════════════════════════════════════════════════════════
      * FUNÇÃO 1: GERAR FLUXO MENSAL
      * ═══════════════════════════════════════════════════════════════════════
-     * Orquestra todo o cálculo e retorna fluxo de caixa completo
+     * Orquestra todo o cálculo e retorna fluxo de caixa completo.
+     * Cada chamada cria um ViabilidadeFluxoContext limpo, garantindo
+     * que o estado não vaze entre invocações consecutivas.
      */
     public function gerarFluxoMensal(
         int $terrenoId,
-        $viabilidadeRef = null,
+        Viabilidade|int|null $viabilidadeRef = null,
         ?array $customProdutos = null
     ): array {
         try {
             // 1. Buscar e processar dados
-            $terreno = $this->buscarTerreno($terrenoId);
-            $viabilidade = $this->buscarViabilidade($terrenoId, $viabilidadeRef);
-            $params = $this->montarParametros($viabilidade);
+            $terreno       = $this->buscarTerreno($terrenoId);
+            $viabilidade   = $this->buscarViabilidade($terrenoId, $viabilidadeRef);
+            $params        = $this->montarParametros($viabilidade);
             $dadosProdutos = $this->processarProdutos($terreno, $params, $customProdutos);
+
+            // Validação: curvas obrigatórias devem estar preenchidas nos produtos
+            $validacaoCurvas = $this->curvaService->validarCurvasObrigatorias($dadosProdutos['produtos']);
+            if (! $validacaoCurvas['valid']) {
+                throw new Exception(
+                    'Curvas obrigatórias não preenchidas nos produtos: ' . implode(', ', $validacaoCurvas['faltando'])
+                );
+            }
 
             if ($dadosProdutos['totalUnidades'] === 0 || $dadosProdutos['vgv'] === 0) {
                 throw new Exception('Não foi possível calcular dados válidos dos produtos.');
             }
 
+            // Agregar curva_obra de todos os produtos (peso = quantidade_unidades)
+            $dadosProdutos['curvaObraAgregada'] = $this->agregarCurvaObra($dadosProdutos['produtos']);
+
             // 2. Calcular datas dos períodos
             $datas = $this->calcularPeriodos($dadosProdutos['dataInicio'], $params);
 
-            // 3. Pré-calcular recursos próprios (cache)
-            $this->preCalcularRecursosProprios($dadosProdutos['produtos'], $datas, $params);
+            // 3. Montar contexto limpo e pré-popular caches
+            $ctx = new ViabilidadeFluxoContext();
+            $this->preCalcularRecursosProprios($dadosProdutos['produtos'], $datas, $params, $ctx);
+            $this->inicializarCachesCef($dadosProdutos, $datas, $ctx);
 
-            // 4. Inicializar caches para CEF
-            $this->inicializarCachesCef($dadosProdutos, $datas, $params);
-
-            // 5. Iterar mês a mês
-            $fluxo = [];
-            $saldoAcumulado = 0;
-            $fluxoTir = [];       // fluxo com CEF (exposição real)
-            $fluxoTirSemCef = []; // fluxo sem CEF (TIR operacional do projeto)
-            $totais = [
-                'receita' => 0,
-                'custo_direto' => 0,
-                'impostos' => 0,
-                'custos_operacionais' => 0,
-                'custos_financeiros' => 0,
-                'lucro' => 0,
+            // 4. Iterar mês a mês
+            $fluxo          = [];
+            $saldoAcumulado = 0.0;
+            $fluxoTir       = [];  // com CEF — base para tir_operacional
+            $fluxoTirSemCef = [];  // sem CEF — base para tir_sem_cef
+            $totais         = [
+                'receita'              => 0.0,
+                'custo_direto'         => 0.0,
+                'impostos'             => 0.0,
+                'custos_operacionais'  => 0.0,
+                'custos_financeiros'   => 0.0,
+                'lucro'                => 0.0,
             ];
 
             $periodo = CarbonPeriod::create($datas['inicioIncorporacao'], '1 month', $datas['fimPos']);
@@ -108,93 +97,88 @@ class ViabilidadeUnificadoService
             foreach ($periodo as $data) {
                 $mes = $data->format('Y-m');
 
-                // Calcular receitas e despesas do mês
-                $receitas = $this->calcularReceitas($mes, $dadosProdutos, $datas, $params);
-                $despesas = $this->calcularDespesas($mes, $receitas, $dadosProdutos, $datas, $params);
+                $receitas = $this->calcularReceitas($mes, $dadosProdutos, $datas, $params, $ctx);
+                $despesas = $this->calcularDespesas($mes, $receitas, $dadosProdutos, $datas, $params, $ctx);
 
-                // Consolidar resultado
-                $lucroMes = $receitas['total'] - $despesas['total'];
+                $lucroMes        = $receitas['total'] - $despesas['total'];
                 $saldoAcumulado += $lucroMes;
 
-                // TIR sem CEF: usa apenas Recursos Próprios (planilha usa esta base para TIR operacional)
-                $receitaRpMes = $receitas['detalhes']['Recursos Próprios'] ?? 0;
-                $lucroSemCefMes = $receitaRpMes - $despesas['total'];
+                // TIR sem CEF: apenas Recursos Próprios como receita
+                $receitaRpMes    = $receitas['detalhes']['Recursos Próprios'] ?? 0.0;
+                $lucroSemCefMes  = $receitaRpMes - $despesas['total'];
 
-                // Obter unidades vendidas no mês atual
-                $unidadesVendidasMes = ceil($this->cacheVendasPorMes[$mes] ?? 0);
+                $unidadesVendidasMes = ceil($ctx->vendasPorMes[$mes] ?? 0);
 
                 $fluxo[$mes] = [
-                    'periodo' => $this->identificarPeriodo($data, $datas),
-                    'receita_total' => round($receitas['total'], 2),
-                    'receitas' => $receitas['detalhes'],
-                    'despesas' => array_filter($despesas['detalhes'], fn ($v) => abs($v) > 0.01),
-                    'custos_totais' => round($despesas['total'], 2),
-                    'lucro' => round($lucroMes, 2),
-                    'saldo_acumulado' => round($saldoAcumulado, 2),
+                    'periodo'          => $this->identificarPeriodo($data, $datas),
+                    'receita_total'    => round($receitas['total'], 2),
+                    'receitas'         => $receitas['detalhes'],
+                    'despesas'         => array_filter($despesas['detalhes'], fn($v) => abs($v) > 0.01),
+                    'custos_totais'    => round($despesas['total'], 2),
+                    'lucro'            => round($lucroMes, 2),
+                    'saldo_acumulado'  => round($saldoAcumulado, 2),
                     'unidades_vendidas' => round($unidadesVendidasMes, 2),
                 ];
 
-                $fluxoTir[] = ['data' => $data->copy(), 'valor' => $lucroMes];
+                $fluxoTir[]       = ['data' => $data->copy(), 'valor' => $lucroMes];
                 $fluxoTirSemCef[] = ['data' => $data->copy(), 'valor' => $lucroSemCefMes];
 
-                // Acumular totais detalhados
-                $totais['receita'] += $receitas['total'];
-                $totais['custo_direto'] += $despesas['categorias']['custo_direto'];
-                $totais['impostos'] += $despesas['categorias']['impostos'];
+                $totais['receita']             += $receitas['total'];
+                $totais['custo_direto']        += $despesas['categorias']['custo_direto'];
+                $totais['impostos']            += $despesas['categorias']['impostos'];
                 $totais['custos_operacionais'] += $despesas['categorias']['custos_operacionais'];
-                $totais['custos_financeiros'] += $despesas['categorias']['custos_financeiros'];
-                $totais['lucro'] += $lucroMes;
+                $totais['custos_financeiros']  += $despesas['categorias']['custos_financeiros'];
+                $totais['lucro']               += $lucroMes;
             }
 
             [$fluxoFinanceiro, $indicadoresFinanceiros] = $this->calcularIndicadoresFinanceiros($fluxo, $datas, $params, $dadosProdutos);
-            $indicadoresVso = $this->calcularIndicadoresVso($fluxo, $dadosProdutos);
+            $indicadoresVso        = $this->calcularIndicadoresVso($fluxo, $dadosProdutos);
             $indicadoresVsoJanelas = $this->calcularIndicadoresVsoJanelas($fluxo, $dadosProdutos);
 
-            // tir_operacional usa fluxo com CEF (único com cruzamento de sinal viável com 80% CEF)
-            // tir_sem_cef disponível para análise sem financiamento (pode retornar 0 se sem cruzamento)
             $indicadores = [
-                'tir_operacional' => $this->calcularTir($fluxoTir),
-                'tir_sem_cef' => $this->calcularTir($fluxoTirSemCef),
+                'tir_operacional'             => $this->calcularTir($fluxoTir),
+                'tir_sem_cef'                 => $this->calcularTir($fluxoTirSemCef),
                 'exposicao_maxima_operacional' => collect($fluxo)->min('saldo_acumulado'),
-                'margem_liquida' => $totais['receita'] > 0 ? ($totais['lucro'] / $totais['receita']) : 0,
+                'margem_liquida'              => $totais['receita'] > 0
+                    ? ($totais['lucro'] / $totais['receita'])
+                    : 0.0,
             ];
 
-            // 6. Calcular DRE consolidada
-            $dre = $this->calcularDre($fluxo, $dadosProdutos, $params);
-            $dreContabilPoc = $this->calcularDreContabilPoc($fluxo, $dre, $dadosProdutos);
-            $dreContabilPocMensal = $this->calcularQuadroPocMensal($fluxo, $dre, $dadosProdutos);
+            // 5. Calcular DRE consolidada
+            $dre                        = $this->calcularDre($fluxo, $dadosProdutos, $params);
+            $dreContabilPoc             = $this->calcularDreContabilPoc($fluxo, $dre, $dadosProdutos);
+            $dreContabilPocMensal       = $this->calcularQuadroPocMensal($fluxo, $dre, $dadosProdutos);
             $dreContabilPocMensalBlocos = $this->calcularQuadroPocMensalPorBlocos($fluxo, $dre, $dadosProdutos);
 
             return [
-                'terreno' => $terreno,
-                'vgv' => $dadosProdutos['vgvSemValorTerrenista'],
-                'totalUnidades' => $dadosProdutos['totalUnidades'],
-                'unidadesPermuta' => $dadosProdutos['permutas'],
-                'areaConstruida' => $dadosProdutos['areaConstruida'],
-                'custoTotal' => $dre['custo_total_projeto'],
-                'produtos' => $dadosProdutos['produtos'],
-                'dre_itens' => $dre,
-                'dre_contabil_poc' => $dreContabilPoc,
-                'dre_contabil_poc_mensal' => $dreContabilPocMensal,
+                'terreno'                      => $terreno,
+                'vgv'                          => $dadosProdutos['vgvSemValorTerrenista'],
+                'totalUnidades'                => $dadosProdutos['totalUnidades'],
+                'unidadesPermuta'              => $dadosProdutos['permutas'],
+                'areaConstruida'               => $dadosProdutos['areaConstruida'],
+                'custoTotal'                   => $dre['custo_total_projeto'],
+                'produtos'                     => $dadosProdutos['produtos'],
+                'dre_itens'                    => $dre,
+                'dre_contabil_poc'             => $dreContabilPoc,
+                'dre_contabil_poc_mensal'      => $dreContabilPocMensal,
                 'dre_contabil_poc_mensal_blocos' => $dreContabilPocMensalBlocos,
-                'indicadores' => array_merge($dre['indicadores'], $indicadores, $indicadoresFinanceiros, $indicadoresVso, $indicadoresVsoJanelas),
-                'dados_produtos' => [
-                    'total_unidades' => $dadosProdutos['totalUnidades'],
-                    'unidades_permuta' => $dadosProdutos['permutas'],
+                'indicadores'                  => array_merge($dre['indicadores'], $indicadores, $indicadoresFinanceiros, $indicadoresVso, $indicadoresVsoJanelas),
+                'dados_produtos'               => [
+                    'total_unidades'        => $dadosProdutos['totalUnidades'],
+                    'unidades_permuta'      => $dadosProdutos['permutas'],
                     'area_construida_total' => $dadosProdutos['areaConstruida'],
                 ],
-                'fluxo_mensal' => $fluxo,
-                'fluxo_mensal_financeiro' => $fluxoFinanceiro,
-                'totais' => $totais,
-                'parametros_utilizados' => $params,
+                'fluxo_mensal'             => $fluxo,
+                'fluxo_mensal_financeiro'  => $fluxoFinanceiro,
+                'totais'                   => $totais,
+                'parametros_utilizados'    => $params,
             ];
-
         } catch (Exception $e) {
-            Log::error('Erro ao gerar fluxo mensal: '.$e->getMessage(), [
+            Log::error('Erro ao gerar fluxo mensal: ' . $e->getMessage(), [
                 'terrenoId' => $terrenoId,
-                'trace' => $e->getTraceAsString(),
+                'trace'     => $e->getTraceAsString(),
             ]);
-            throw new Exception('Erro ao gerar fluxo mensal: '.$e->getMessage());
+            throw new Exception('Erro ao gerar fluxo mensal: ' . $e->getMessage());
         }
     }
 
@@ -202,43 +186,43 @@ class ViabilidadeUnificadoService
      * ═══════════════════════════════════════════════════════════════════════
      * FUNÇÃO 2: CALCULAR RECEITAS
      * ═══════════════════════════════════════════════════════════════════════
-     * Calcula todas as receitas de um mês específico
+     * Calcula todas as receitas de um mês específico.
+     *
+     * Quando chamado diretamente (fora do pipeline de gerarFluxoMensal) recebe
+     * um contexto opcional — sem contexto, os caches CEF são zero, logo RT e MO
+     * retornam 0, o que é o comportamento correto para testes unitários isolados.
      */
     public function calcularReceitas(
         string $mes,
         array $dadosProdutos,
         array $datas,
-        array $params
+        array $params,
+        ?ViabilidadeFluxoContext $ctx = null
     ): array {
-        // Atualizar cache de vendas acumuladas do mês atual
-        $vendasMes = $this->cacheVendasPorMes[$mes] ?? 0;
-        $this->cacheVendasAcumuladas += $vendasMes;
+        $ctx ??= new ViabilidadeFluxoContext();
 
-        // 1. Recursos Próprios (do cache)
-        $rp = $this->cacheRecursosPropriosMensais[$mes] ?? [
-            'sinal' => 0,
-            'parcelas_obra' => 0,
-            'parcelas_pos' => 0,
-            'juros' => 0,
-            'correcao' => 0,
-        ];
-        $totalRp = ($rp['sinal'] ?? 0) + ($rp['parcelas_obra'] ?? 0) + ($rp['parcelas_pos'] ?? 0);
+        // Atualizar acumulado de vendas com o mês atual
+        $ctx->vendasAcumuladas += $ctx->vendasPorMes[$mes] ?? 0.0;
+
+        // 1. Recursos Próprios (do cache pré-calculado)
+        $rp       = $ctx->recursosProprios[$mes] ?? [];
+        $totalRp  = ($rp['sinal'] ?? 0.0) + ($rp['parcelas_obra'] ?? 0.0) + ($rp['parcelas_pos'] ?? 0.0);
 
         // 2. Recurso Terrenos (CEF)
-        $rt = $this->calcularRecursoTerrenos($mes, $dadosProdutos, $datas, $params);
+        $rt = $this->calcularRecursoTerrenos($mes, $dadosProdutos, $datas, $ctx);
 
         // 3. Medição de Obra (CEF)
-        $mo = $this->calcularMedicaoObra($mes, $dadosProdutos, $datas, $params);
+        $mo = $this->calcularMedicaoObra($mes, $dadosProdutos, $datas, $params, $ctx);
 
         $total = $totalRp + $rt['valor'] + $mo['valor'];
 
         return [
-            'total' => $total,
-            'juros_correcao' => ($rp['juros'] ?? 0) + ($rp['correcao'] ?? 0),
-            'detalhes' => [
+            'total'         => $total,
+            'juros_correcao' => ($rp['juros'] ?? 0.0) + ($rp['correcao'] ?? 0.0),
+            'detalhes'      => [
                 'Recursos Próprios' => round($totalRp, 2),
-                'Recurso Terrenos' => round($rt['valor'], 2),
-                'Medição Obra' => round($mo['valor'], 2),
+                'Recurso Terrenos'  => round($rt['valor'], 2),
+                'Medição Obra'      => round($mo['valor'], 2),
             ],
         ];
     }
@@ -247,22 +231,24 @@ class ViabilidadeUnificadoService
      * ═══════════════════════════════════════════════════════════════════════
      * FUNÇÃO 3: CALCULAR DESPESAS
      * ═══════════════════════════════════════════════════════════════════════
-     * Calcula todas as despesas de um mês específico
+     * Calcula todas as despesas de um mês específico.
      */
     public function calcularDespesas(
         string $mes,
         array $receitas,
         array $dadosProdutos,
         array $datas,
-        array $params
+        array $params,
+        ?ViabilidadeFluxoContext $ctx = null
     ): array {
-        $dataAtual = Carbon::parse($mes.'-01');
-        $periodo = $this->identificarPeriodo($dataAtual, $datas);
-        $vgv = $dadosProdutos['vgv'];
-        $custoObraTotal = $dadosProdutos['custoObraHabitacao'] + $dadosProdutos['custoInfraestrutura'];
+        $ctx         ??= new ViabilidadeFluxoContext();
+        $dataAtual   = $this->parseMes($mes);
+        $periodo     = $this->identificarPeriodo($dataAtual, $datas);
+        $vgv         = $dadosProdutos['vgv'];
+        $custoObra   = $this->custoObraTotal($dadosProdutos);
 
         // 1. Custos Diretos (por período)
-        $diretos = $this->calcularCustosDiretos($mes, $periodo, $datas, $params, $vgv, $custoObraTotal, $dadosProdutos);
+        $diretos = $this->calcularCustosDiretos($mes, $periodo, $datas, $params, $vgv, $custoObra, $dadosProdutos);
 
         // 2. Tributos
         $tributos = $this->impostosService->calcularTributosPorProduto(
@@ -274,7 +260,7 @@ class ViabilidadeUnificadoService
         );
 
         // 3. Custos Operacionais
-        $operacionais = $this->calcularCustosOperacionais($mes, $dadosProdutos, $datas, $params);
+        $operacionais = $this->calcularCustosOperacionais($mes, $dadosProdutos, $datas, $params, $ctx);
 
         // 4. Custos Financeiros
         $financeiros = $receitas['total'] * ($params['percentualProdutosCef'] + $params['percentualOutrasDespesasFinanceiras']);
@@ -284,24 +270,24 @@ class ViabilidadeUnificadoService
 
         $detalhesOperacionais = [];
         foreach ($operacionais['detalhes'] as $nome => $valor) {
-            $detalhesOperacionais['Operacional - '.$nome] = round($valor, 2);
+            $detalhesOperacionais['Operacional - ' . $nome] = round($valor, 2);
         }
 
         $total = $diretos['total'] + $tributos + $operacionais['total'] + $financeiros + $custoTerreno;
 
         return [
-            'total' => $total,
+            'total'    => $total,
             'detalhes' => array_merge($diretos['detalhes'], [
-                'Tributos' => round($tributos, 2),
-                'Operacional' => round($operacionais['total'], 2),
-                'Financeiro' => round($financeiros, 2),
+                'Tributos'      => round($tributos, 2),
+                'Operacional'   => round($operacionais['total'], 2),
+                'Financeiro'    => round($financeiros, 2),
                 'Custo Terreno' => round($custoTerreno, 2),
             ], $detalhesOperacionais),
             'categorias' => [
-                'custo_direto' => $diretos['total'] + $custoTerreno,
-                'impostos' => $tributos,
+                'custo_direto'        => $diretos['total'] + $custoTerreno,
+                'impostos'            => $tributos,
                 'custos_operacionais' => $operacionais['total'],
-                'custos_financeiros' => $financeiros,
+                'custos_financeiros'  => $financeiros,
             ],
         ];
     }
@@ -310,57 +296,174 @@ class ViabilidadeUnificadoService
      * ═══════════════════════════════════════════════════════════════════════
      * FUNÇÃO 4: CALCULAR DRE
      * ═══════════════════════════════════════════════════════════════════════
-     * Calcula a DRE consolidada a partir do fluxo mensal
+     * Calcula a DRE consolidada a partir do fluxo mensal.
+     * Delegado em quatro blocos: receitas, custos diretos, operacionais e financeiras.
      */
     public function calcularDre(array $fluxo, array $dadosProdutos, array $params): array
     {
-        $vgv = $dadosProdutos['vgv'];
+        $vgv              = $dadosProdutos['vgv'];
         $vgvSemTerrenista = $dadosProdutos['vgvSemValorTerrenista'];
-        $vgvSemPermutas = $dadosProdutos['vgvSemUnidPermutas'];
-        $totalUnidades = $dadosProdutos['totalUnidades'];
-        $totalUnidadesConstrutora = $dadosProdutos['totalUnidadesConstrutora'];
+        $vgvSemPermutas   = $dadosProdutos['vgvSemUnidPermutas'];
+        $totalUnidades    = $dadosProdutos['totalUnidades'];
 
-        // ═══ RECEITAS ═══
+        // ── Receitas ──────────────────────────────────────────────────────────
         $receitaTotalVendas = $vgvSemTerrenista;
-        $jurosCorrecoes = $dadosProdutos['correcaoSobreVgv'];
-        $receitaBruta = $receitaTotalVendas + $jurosCorrecoes;
+        $jurosCorrecoes     = $dadosProdutos['correcaoSobreVgv'];
+        $receitaBruta       = $receitaTotalVendas + $jurosCorrecoes;
 
-        // ═══ IMPOSTOS / DEDUÇÕES ═══
-        $impostos = $this->impostosService->calcularImpostosDre($dadosProdutos['produtos'], $vgvSemTerrenista);
+        $impostos       = $this->impostosService->calcularImpostosDre($dadosProdutos['produtos'], $vgvSemTerrenista);
         $receitaLiquida = $receitaBruta - $impostos['total'];
 
-        // ═══ CUSTOS DIRETOS ═══
-        // Custo Terreno: permuta física + permuta financeira + compra + infra proprietário
-        $custoTerreno = $params['compraTerreno'] + ($params['parceriaVgv'] * $dadosProdutos['vgvComCorrecao']) +
-            ($dadosProdutos['permutas'] * ($dadosProdutos['custoCasaM2'] ?? 0)) +
-            ($dadosProdutos['permutas'] * ($dadosProdutos['custoInfraM2'] ?? 0));
+        // ── Custos diretos ────────────────────────────────────────────────────
+        [
+            $custoTerreno,
+            $comissao,
+            $incorporacao,
+            $infraCasas,
+            $infraLotes,
+            $areaComum,
+            $contrapartidas,
+            $canteiroTotal,
+            $moAdministrativaTotal,
+            $seguros,
+            $assistenciaTecnica,
+            $jurosPJ,
+            $custosDiretosTotal,
+            $custoTotalObra
+        ]
+            = $this->calcularCustosDiretosDre($dadosProdutos, $params, $totalUnidades, $vgv);
 
-        // Comissão: sobre custo terreno (conforme planilha DRE J62 = J60 * D62)
+        $lucroBruto = $receitaLiquida - $custosDiretosTotal;
+
+        // ── Despesas operacionais ─────────────────────────────────────────────
+        [
+            $despesasComerciais,
+            $marketingTotal,
+            $itbiIptu,
+            $registroTotal,
+            $txMedicao,
+            $contratosCef,
+            $produtosCef,
+            $despesasOperacionaisTotal
+        ]
+            = $this->calcularDespesasOperacionaisDre($dadosProdutos, $params);
+
+        $ebitda = $lucroBruto - $despesasOperacionaisTotal;
+
+        // ── Despesas financeiras ──────────────────────────────────────────────
+        $outrasDespFinanceiras = $params['percentualOutrasDespesasFinanceiras'] * $receitaTotalVendas;
+        $despesasOnerosas      = $jurosPJ['juros_totais'];
+        $ebit                  = $ebitda - $outrasDespFinanceiras - $despesasOnerosas;
+
+        // ── Resultado ─────────────────────────────────────────────────────────
+        $irpjCsll     = $impostos['total_ir_csll'];
+        $lucroLiquido = $ebit - $irpjCsll;
+
+        $custoTotalProjeto = $custosDiretosTotal + $despesasOperacionaisTotal
+            + $outrasDespFinanceiras + $despesasOnerosas + $irpjCsll + $impostos['total'];
+
+        return [
+            'receita_total_vendas'         => round($receitaTotalVendas, 2),
+            'juros_correcoes'              => round($jurosCorrecoes, 2),
+            'receita_bruta'                => round($receitaBruta, 2),
+            'pis_cofins_outros'            => round($impostos['pis'] + $impostos['cofins'], 2),
+            'iss'                          => round($impostos['iss'], 2),
+            'outras_deducoes'              => round($impostos['outras_deducoes'], 2),
+            'receita_liquida'              => round($receitaLiquida, 2),
+            'custo_terreno'                => round($custoTerreno, 2),
+            'comissao'                     => round($comissao, 2),
+            'incorporacao'                 => round($incorporacao, 2),
+            'incorporacao_detalhes'        => [
+                'ri'       => round($incorporacao * $params['incorporacaoRi'], 2),
+                'entrega'  => round($incorporacao * $params['incorporacaoEntrega'], 2),
+                'projetos' => round($incorporacao * (1 - $params['incorporacaoRi'] - $params['incorporacaoEntrega']), 2),
+            ],
+            'infra_casas'                  => round($infraCasas, 2),
+            'infra_lotes'                  => round($infraLotes, 2),
+            'area_comum'                   => round($areaComum, 2),
+            'contrapartidas'               => round($contrapartidas, 2),
+            'canteiro_total'               => round($canteiroTotal, 2),
+            'mo_administrativa_total'      => round($moAdministrativaTotal, 2),
+            'seguros'                      => round($seguros, 2),
+            'assistencia_tecnica'          => round($assistenciaTecnica, 2),
+            'custo_total_obra'             => round($custoTotalObra, 2),
+            'custos_diretos_total'         => round($custosDiretosTotal, 2),
+            'lucro_bruto'                  => round($lucroBruto, 2),
+            'despesas_comerciais'          => round($despesasComerciais['total'], 2),
+            'despesas_comerciais_detalhes' => $despesasComerciais['detalhes'],
+            'marketing'                    => round($marketingTotal, 2),
+            'itbi_iptu'                    => round($itbiIptu, 2),
+            'registro'                     => round($registroTotal, 2),
+            'tx_medicao_contratacao'       => round($txMedicao, 2),
+            'contratos_caixa'              => round($contratosCef, 2),
+            'produtos_caixa'               => round($produtosCef, 2),
+            'despesas_operacionais_total'  => round($despesasOperacionaisTotal, 2),
+            'ebitda'                       => round($ebitda, 2),
+            'outras_despesas_financeiras'  => round($outrasDespFinanceiras, 2),
+            'despesas_onerosas_bancos'     => round($despesasOnerosas, 2),
+            'juros_pj'                     => round($jurosPJ['juros_totais'], 2),
+            'juros_pj_detalhes'            => [
+                'valor_antecipado'      => round($jurosPJ['valor_antecipado'], 2),
+                'taxa_mensal'           => $jurosPJ['taxa_mensal'],
+                'carencia_meses'        => $jurosPJ['carencia_meses'] ?? 0,
+                'amortizacao_parcelas'  => $jurosPJ['amortizacao_parcelas'] ?? 0,
+            ],
+            'ebit'                         => round($ebit, 2),
+            'irpj_csll'                    => round($irpjCsll, 2),
+            'lucro_liquido_projeto'        => round($lucroLiquido, 2),
+            'custo_total_projeto'          => round($custoTotalProjeto, 2),
+            'indicadores'                  => [
+                'vgv_total'                            => round($receitaTotalVendas, 2),
+                'lucro_liquido'                        => round($lucroLiquido, 2),
+                'margem_liquida_percentual'            => $receitaTotalVendas > 0 ? round(($lucroLiquido / $receitaTotalVendas) * 100, 2) : 0,
+                'margem_liquida_sobre_rol'             => $receitaLiquida > 0     ? round(($lucroLiquido / $receitaLiquida) * 100, 2)     : 0,
+                'margem_liquida_sobre_vgv_sem_permuta' => $vgvSemPermutas > 0    ? round(($lucroLiquido / $vgvSemPermutas) * 100, 2)     : 0,
+                'margem_bruta_percentual'              => $receitaLiquida > 0     ? round(($lucroBruto / $receitaLiquida) * 100, 2)       : 0,
+                'margem_ebitda_percentual'             => $receitaLiquida > 0     ? round(($ebitda / $receitaLiquida) * 100, 2)           : 0,
+                'margem_ebit_percentual'               => $receitaLiquida > 0     ? round(($ebit / $receitaLiquida) * 100, 2)             : 0,
+                'roi_percentual'                       => $custosDiretosTotal > 0 ? round(($lucroLiquido / $custosDiretosTotal) * 100, 2) : 0,
+                'total_custos_diretos'                 => round($custosDiretosTotal, 2),
+                'custo_total_projeto'                  => round($custoTotalProjeto, 2),
+            ],
+        ];
+    }
+
+    /**
+     * Calcula o bloco de custos diretos da DRE.
+     * Retorna array posicional para desestruturação no chamador.
+     *
+     * @return array{0:float,1:float,2:float,3:float,4:float,5:float,6:float,7:float,8:float,9:float,10:float,11:array,12:float,13:float}
+     */
+    private function calcularCustosDiretosDre(
+        array $dadosProdutos,
+        array $params,
+        int $totalUnidades,
+        float $vgv
+    ): array {
+        // Custo Terreno: permuta física + permuta financeira + compra + infra proprietário
+        $custoTerreno = $params['compraTerreno']
+            + ($params['parceriaVgv'] * $dadosProdutos['vgvComCorrecao'])
+            + ($dadosProdutos['permutas'] * ($dadosProdutos['custoCasaM2'] ?? 0))
+            + ($dadosProdutos['permutas'] * ($dadosProdutos['custoInfraM2'] ?? 0));
+
+        // Comissão: sobre custo terreno (planilha DRE J62 = J60 × D62)
         $comissao = $params['percentualComissao'] * abs($custoTerreno);
 
-        $incorporacao = $params['percentualIncorporacao'] * $vgv;
-        $infraCasas = $dadosProdutos['custoObraHabitacao'];
-        $infraLotes = $dadosProdutos['custoInfraestrutura'] + $dadosProdutos['custoNaoIncidente'];
-
-        // Área Comum: valor por unidade × total de unidades (planilha DRE J67 = -D67*J9)
-        $areaComum = $params['custoAreaComum'] * $totalUnidades;
-
-        $contrapartidas = $params['percentualContrapartidas'] * $vgv;
-
-        // Canteiro e M.O. Adm: mensal × prazo obra (planilha DRE J69 = -(D69/F9)*J9*F46)
-        $canteiroTotal = $params['canteiroMensal'] * $params['mesesObra'];
+        $incorporacao        = $params['percentualIncorporacao'] * $vgv;
+        $infraCasas          = $dadosProdutos['custoObraHabitacao'];
+        $infraLotes          = $dadosProdutos['custoInfraestrutura'] + $dadosProdutos['custoNaoIncidente'];
+        $areaComum           = $params['custoAreaComum'] * $totalUnidades;
+        $contrapartidas      = $params['percentualContrapartidas'] * $vgv;
+        $canteiroTotal       = $params['canteiroMensal'] * $params['mesesObra'];
         $moAdministrativaTotal = $params['moAdministrativa'] * $params['mesesObra'];
-
-        // Seguros: diferenciado por tipologia (Lotes usa VGV s/Terrenista, planilha DRE R72=-D72*R50)
-        $seguros = $this->calcularSegurosPorTipologia($dadosProdutos, $params);
+        $seguros             = $this->calcularSegurosPorTipologia($dadosProdutos, $params);
 
         $custoTotalObra = $infraCasas + $infraLotes + $areaComum + $contrapartidas + $canteiroTotal;
 
-        // Assistência Técnica: % sobre custo obra (casas+lotes+contrapartidas+área comum)
-        $baseAssistencia = $infraCasas + $infraLotes + $contrapartidas + $areaComum;
+        // Assistência Técnica: % sobre (casas+lotes+contrapartidas+área comum)
+        $baseAssistencia   = $infraCasas + $infraLotes + $contrapartidas + $areaComum;
         $assistenciaTecnica = $params['percentualAssistenciaTecnica'] * $baseAssistencia;
 
-        // Juros PJ com modelo completo
         $jurosPJ = $this->impostosService->calcularJurosPJ(
             $custoTotalObra,
             $params['mesesObra'],
@@ -372,159 +475,103 @@ class ViabilidadeUnificadoService
             $params['amortizacaoPjParcelas']
         );
 
-        $custosDiretosTotal = $custoTerreno + $comissao + $incorporacao + $infraCasas + $infraLotes +
-            $areaComum + $contrapartidas + $canteiroTotal + $moAdministrativaTotal + $seguros + $assistenciaTecnica;
-
-        $lucroBruto = $receitaLiquida - $custosDiretosTotal;
-
-        // ═══ DESPESAS OPERACIONAIS ═══
-        $despesasComerciais = $this->calcularDespesasComerciaisDetalhadas($dadosProdutos, $params);
-        $marketingTotal = $this->calcularMarketingDetalhado($dadosProdutos, $params);
-
-        // ITBI/IPTU: 0 para Lotes (planilha DRE R80=0)
-        $itbiIptu = $this->calcularItbiPorTipologia($dadosProdutos, $params);
-
-        // Registro: 0 para Lotes (planilha DRE R81=0)
-        $registroTotal = $this->calcularRegistroPorTipologia($dadosProdutos, $params);
-
-        $txMedicao = $this->calcularTxMedicao($dadosProdutos, $params);
-        $contratosCef = $this->calcularContratosCef($dadosProdutos, $params);
-        $produtosCef = $this->calcularProdutosCefPorTipologia($dadosProdutos, $params);
-
-        $despesasOperacionaisTotal = $despesasComerciais['total'] + $marketingTotal + $itbiIptu + $registroTotal +
-            $txMedicao + $contratosCef + $produtosCef;
-
-        $ebitda = $lucroBruto - $despesasOperacionaisTotal;
-
-        // ═══ DESPESAS FINANCEIRAS ═══
-        $outrasDespFinanceiras = $params['percentualOutrasDespesasFinanceiras'] * $receitaTotalVendas;
-        $despesasOnerosas = $jurosPJ['juros_totais'];
-
-        $ebit = $ebitda - $outrasDespFinanceiras - $despesasOnerosas;
-
-        // ═══ RESULTADO ═══
-        $irpjCsll = $impostos['total_ir_csll'];
-        $lucroLiquido = $ebit - $irpjCsll;
-
-        // Custo Total do Projeto
-        $custoTotalProjeto = $custosDiretosTotal + $despesasOperacionaisTotal +
-            $outrasDespFinanceiras + $despesasOnerosas + $irpjCsll + $impostos['total'];
+        $custosDiretosTotal = $custoTerreno + $comissao + $incorporacao + $infraCasas + $infraLotes
+            + $areaComum + $contrapartidas + $canteiroTotal + $moAdministrativaTotal + $seguros + $assistenciaTecnica;
 
         return [
-            'receita_total_vendas' => round($receitaTotalVendas, 2),
-            'juros_correcoes' => round($jurosCorrecoes, 2),
-            'receita_bruta' => round($receitaBruta, 2),
-            'pis_cofins_outros' => round($impostos['pis'] + $impostos['cofins'], 2),
-            'iss' => round($impostos['iss'], 2),
-            'outras_deducoes' => round($impostos['outras_deducoes'], 2),
-            'receita_liquida' => round($receitaLiquida, 2),
-            'custo_terreno' => round($custoTerreno, 2),
-            'comissao' => round($comissao, 2),
-            'incorporacao' => round($incorporacao, 2),
-            'incorporacao_detalhes' => [
-                'ri' => round($incorporacao * $params['incorporacaoRi'], 2),
-                'entrega' => round($incorporacao * $params['incorporacaoEntrega'], 2),
-                'projetos' => round($incorporacao * (1 - $params['incorporacaoRi'] - $params['incorporacaoEntrega']), 2),
-            ],
-            'infra_casas' => round($infraCasas, 2),
-            'infra_lotes' => round($infraLotes, 2),
-            'area_comum' => round($areaComum, 2),
-            'contrapartidas' => round($contrapartidas, 2),
-            'canteiro_total' => round($canteiroTotal, 2),
-            'mo_administrativa_total' => round($moAdministrativaTotal, 2),
-            'seguros' => round($seguros, 2),
-            'assistencia_tecnica' => round($assistenciaTecnica, 2),
-            'custo_total_obra' => round($custoTotalObra, 2),
-            'custos_diretos_total' => round($custosDiretosTotal, 2),
-            'lucro_bruto' => round($lucroBruto, 2),
-            'despesas_comerciais' => round($despesasComerciais['total'], 2),
-            'despesas_comerciais_detalhes' => $despesasComerciais['detalhes'],
-            'marketing' => round($marketingTotal, 2),
-            'itbi_iptu' => round($itbiIptu, 2),
-            'registro' => round($registroTotal, 2),
-            'tx_medicao_contratacao' => round($txMedicao, 2),
-            'contratos_caixa' => round($contratosCef, 2),
-            'produtos_caixa' => round($produtosCef, 2),
-            'despesas_operacionais_total' => round($despesasOperacionaisTotal, 2),
-            'ebitda' => round($ebitda, 2),
-            'outras_despesas_financeiras' => round($outrasDespFinanceiras, 2),
-            'despesas_onerosas_bancos' => round($despesasOnerosas, 2),
-            'juros_pj' => round($jurosPJ['juros_totais'], 2),
-            'juros_pj_detalhes' => [
-                'valor_antecipado' => round($jurosPJ['valor_antecipado'], 2),
-                'taxa_mensal' => $jurosPJ['taxa_mensal'],
-                'carencia_meses' => $jurosPJ['carencia_meses'] ?? 0,
-                'amortizacao_parcelas' => $jurosPJ['amortizacao_parcelas'] ?? 0,
-            ],
-            'ebit' => round($ebit, 2),
-            'irpj_csll' => round($irpjCsll, 2),
-            'lucro_liquido_projeto' => round($lucroLiquido, 2),
-            'custo_total_projeto' => round($custoTotalProjeto, 2),
-            'indicadores' => [
-                'vgv_total' => round($receitaTotalVendas, 2),
-                'lucro_liquido' => round($lucroLiquido, 2),
-                'margem_liquida_percentual' => $receitaTotalVendas > 0 ? round(($lucroLiquido / $receitaTotalVendas) * 100, 2) : 0,
-                'margem_liquida_sobre_rol' => $receitaLiquida > 0 ? round(($lucroLiquido / $receitaLiquida) * 100, 2) : 0,
-                'margem_liquida_sobre_vgv_sem_permuta' => $vgvSemPermutas > 0 ? round(($lucroLiquido / $vgvSemPermutas) * 100, 2) : 0,
-                'margem_bruta_percentual' => $receitaLiquida > 0 ? round(($lucroBruto / $receitaLiquida) * 100, 2) : 0,
-                'margem_ebitda_percentual' => $receitaLiquida > 0 ? round(($ebitda / $receitaLiquida) * 100, 2) : 0,
-                'margem_ebit_percentual' => $receitaLiquida > 0 ? round(($ebit / $receitaLiquida) * 100, 2) : 0,
-                'roi_percentual' => $custosDiretosTotal > 0 ? round(($lucroLiquido / $custosDiretosTotal) * 100, 2) : 0,
-                'total_custos_diretos' => round($custosDiretosTotal, 2),
-                'custo_total_projeto' => round($custoTotalProjeto, 2),
-            ],
+            $custoTerreno,
+            $comissao,
+            $incorporacao,
+            $infraCasas,
+            $infraLotes,
+            $areaComum,
+            $contrapartidas,
+            $canteiroTotal,
+            $moAdministrativaTotal,
+            $seguros,
+            $assistenciaTecnica,
+            $jurosPJ,
+            $custosDiretosTotal,
+            $custoTotalObra,
+        ];
+    }
+
+    /**
+     * Calcula o bloco de despesas operacionais da DRE.
+     * Retorna array posicional para desestruturação no chamador.
+     *
+     * @return array{0:array,1:float,2:float,3:float,4:float,5:float,6:float,7:float}
+     */
+    private function calcularDespesasOperacionaisDre(array $dadosProdutos, array $params): array
+    {
+        $despesasComerciais        = $this->calcularDespesasComerciaisDetalhadas($dadosProdutos, $params);
+        $marketingTotal            = $this->calcularMarketingDetalhado($dadosProdutos, $params);
+        $itbiIptu                  = $this->calcularItbiPorTipologia($dadosProdutos, $params);
+        $registroTotal             = $this->calcularRegistroPorTipologia($dadosProdutos, $params);
+        $txMedicao                 = $this->calcularTxMedicao($dadosProdutos, $params);
+        $contratosCef              = $this->calcularContratosCef($dadosProdutos, $params);
+        $produtosCef               = $this->calcularProdutosCefPorTipologia($dadosProdutos, $params);
+        $despesasOperacionaisTotal = $despesasComerciais['total'] + $marketingTotal + $itbiIptu
+            + $registroTotal + $txMedicao + $contratosCef + $produtosCef;
+
+        return [
+            $despesasComerciais,
+            $marketingTotal,
+            $itbiIptu,
+            $registroTotal,
+            $txMedicao,
+            $contratosCef,
+            $produtosCef,
+            $despesasOperacionaisTotal,
         ];
     }
 
     private function calcularDespesasComerciaisDetalhadas(array $dadosProdutos, array $params): array
     {
-        $vgvSemTerrenista = $dadosProdutos['vgvSemValorTerrenista'] ?? 0;
-        $unidadesConstrutora = $dadosProdutos['totalUnidadesConstrutora'] ?? $dadosProdutos['totalUnidades'] ?? 0;
-        $ticketMedio = $unidadesConstrutora > 0 ? $vgvSemTerrenista / $unidadesConstrutora : 0;
-        $unidadesHouse = $unidadesConstrutora * ($params['percentualVendasHouse'] ?? 0);
-        $unidadesImobiliarias = max(0, $unidadesConstrutora - $unidadesHouse);
-        $comissaoHouse = $unidadesHouse * $ticketMedio * ($params['comissaoHousePercentual'] ?? 0);
-        $comissaoImobiliarias = $unidadesImobiliarias * $ticketMedio * ($params['comissaoImobiliariasPercentual'] ?? 0);
-        $comissaoBase = $comissaoHouse + $comissaoImobiliarias;
-        $gastosStand = ($params['gastosMensaisStand'] ?? 0) * $vgvSemTerrenista * ($params['mesesLancamento'] ?? 0);
-        $bonusCca = ($params['bonusCca'] ?? 0) * $unidadesConstrutora;
-        $bonusGerente = $comissaoBase * ($params['bonusGerente'] ?? 0);
+        $vgvSemTerrenista    = $dadosProdutos['vgvSemValorTerrenista'] ?? 0.0;
+        $unidadesConstrutora = $this->unidadesConstrutora($dadosProdutos);
+        $ticketMedio         = $unidadesConstrutora > 0 ? $vgvSemTerrenista / $unidadesConstrutora : 0.0;
+
+        [$comissaoBase, $comissaoHouse, $comissaoImobiliarias] = $this->calcularComissaoBase(
+            $unidadesConstrutora * $ticketMedio,
+            $params
+        );
+
+        $gastosStand          = ($params['gastosMensaisStand'] ?? 0) * $vgvSemTerrenista * ($params['mesesLancamento'] ?? 0);
+        $bonusCca             = ($params['bonusCca'] ?? 0) * $unidadesConstrutora;
+        $bonusGerente         = $comissaoBase * ($params['bonusGerente'] ?? 0);
         $bonusGerenteRegional = $comissaoBase * ($params['bonusGerenteRegional'] ?? 0);
-        $bonusCredito = $comissaoBase * ($params['bonusCredito'] ?? 0);
+        $bonusCredito         = $comissaoBase * ($params['bonusCredito'] ?? 0);
         $bonusGestorComercial = $comissaoBase * ($params['bonusGestorComercial'] ?? 0);
-        $ajudaGerente = ($params['ajudaCustoGerente'] ?? 0) * ($params['mesesLancamento'] ?? 0);
+        $ajudaGerente         = ($params['ajudaCustoGerente'] ?? 0) * ($params['mesesLancamento'] ?? 0);
         $ajudaGerenteRegional = ($params['ajudaCustoGerenteRegional'] ?? 0) * ($params['mesesLancamento'] ?? 0);
-        $reembolsoLogistica = ($params['reembolsoLogistica'] ?? 0) * ($params['mesesLancamento'] ?? 0);
-        $total = ($params['standVendas'] ?? 0) +
-            ($params['mobiliaDecoracao'] ?? 0) +
-            $gastosStand +
-            ($comissaoBase * ($params['pagamentoComissaoVenda'] ?? 0)) +
-            ($comissaoBase * ($params['pagamentoComissaoDesligamento'] ?? 0)) +
-            $bonusCca +
-            $bonusGerente +
-            $bonusGerenteRegional +
-            $bonusCredito +
-            $bonusGestorComercial +
-            $ajudaGerente +
-            $ajudaGerenteRegional +
-            $reembolsoLogistica;
+        $reembolsoLogistica   = ($params['reembolsoLogistica'] ?? 0) * ($params['mesesLancamento'] ?? 0);
+
+        $total = ($params['standVendas'] ?? 0)
+            + ($params['mobiliaDecoracao'] ?? 0)
+            + $gastosStand
+            + ($comissaoBase * ($params['pagamentoComissaoVenda'] ?? 0))
+            + ($comissaoBase * ($params['pagamentoComissaoDesligamento'] ?? 0))
+            + $bonusCca + $bonusGerente + $bonusGerenteRegional
+            + $bonusCredito + $bonusGestorComercial
+            + $ajudaGerente + $ajudaGerenteRegional + $reembolsoLogistica;
 
         return [
-            'total' => $total,
+            'total'    => $total,
             'detalhes' => [
-                'stand_vendas' => round(($params['standVendas'] ?? 0), 2),
-                'mobilia_decoracao' => round(($params['mobiliaDecoracao'] ?? 0), 2),
-                'gastos_mensais_stand' => round($gastosStand, 2),
-                'comissao_house' => round($comissaoHouse, 2),
-                'comissao_imobiliarias' => round($comissaoImobiliarias, 2),
-                'bonus_cca' => round($bonusCca, 2),
-                'bonus_gerente' => round($bonusGerente, 2),
-                'bonus_gerente_regional' => round($bonusGerenteRegional, 2),
-                'bonus_credito' => round($bonusCredito, 2),
-                'bonus_gestor_comercial' => round($bonusGestorComercial, 2),
-                'ajuda_custo_gerente' => round($ajudaGerente, 2),
+                'stand_vendas'              => round($params['standVendas'] ?? 0, 2),
+                'mobilia_decoracao'         => round($params['mobiliaDecoracao'] ?? 0, 2),
+                'gastos_mensais_stand'      => round($gastosStand, 2),
+                'comissao_house'            => round($comissaoHouse, 2),
+                'comissao_imobiliarias'     => round($comissaoImobiliarias, 2),
+                'bonus_cca'                 => round($bonusCca, 2),
+                'bonus_gerente'             => round($bonusGerente, 2),
+                'bonus_gerente_regional'    => round($bonusGerenteRegional, 2),
+                'bonus_credito'             => round($bonusCredito, 2),
+                'bonus_gestor_comercial'    => round($bonusGestorComercial, 2),
+                'ajuda_custo_gerente'       => round($ajudaGerente, 2),
                 'ajuda_custo_gerente_regional' => round($ajudaGerenteRegional, 2),
-                'reembolso_logistica' => round($reembolsoLogistica, 2),
+                'reembolso_logistica'       => round($reembolsoLogistica, 2),
             ],
         ];
     }
@@ -622,7 +669,8 @@ class ViabilidadeUnificadoService
 
     private function ehProdutoLote(array $produto): bool
     {
-        return ($produto['tipo_produto'] ?? null) === 'lotes';
+        $nome = strtolower($produto['nome'] ?? '');
+        return str_contains($nome, 'lote') || str_contains($nome, 'terreno');
     }
 
     private function calcularBaseSemTerrenistaProduto(array $produto): float
@@ -637,8 +685,8 @@ class ViabilidadeUnificadoService
     {
         return Terreno::select(['id', 'nome', 'area_calculada', 'data_contrato'])
             ->with([
-                'terrenoProdutos' => fn ($q) => $q->select(['terreno_id', 'produto_id', 'unidades', 'valor', 'permuta', 'id', 'pgto_por_lote']),
-                'terrenoProdutos.produto' => fn ($q) => $q->select([
+                'terrenoProdutos' => fn($q) => $q->select(['terreno_id', 'produto_id', 'unidades', 'valor', 'permuta', 'id', 'pgto_por_lote']),
+                'terrenoProdutos.produto' => fn($q) => $q->select([
                     'id',
                     'name',
                     'private_area',
@@ -659,6 +707,8 @@ class ViabilidadeUnificadoService
                     'imposto_iss',
                     'demanda_minCef',
                     'curva_vendas',
+                    'curva_obra',
+                    'avaliacao_lotesCef',
                 ]),
             ])
             ->findOrFail($terrenoId);
@@ -791,14 +841,9 @@ class ViabilidadeUnificadoService
             $valor = $cp['valor'] ?? $terrenoProduto->valor ?? 0;
             $permutas = $cp['permuta'] ?? $terrenoProduto->permuta ?? 0;
             $pgtoPorLote = $cp['pgto_por_lote'] ?? $terrenoProduto->pgto_por_lote ?? 0;
-            $tipoProduto = $this->curvaService->determinarTipoProduto([$terrenoProduto]);
-            $avaliacaoConfig = config('viabilidade.defaults.avaliacao_lotes_cef', 15);
-            if (is_array($avaliacaoConfig)) {
-                $percentualAvaliacaoCef = ((float) ($avaliacaoConfig[$tipoProduto] ?? $avaliacaoConfig['2_dorm'] ?? 15)) / 100;
-            } else {
-                $percentualAvaliacaoCef = ((float) $avaliacaoConfig) / 100;
-            }
-            $avaliacaoLotesCef = $cp['avaliacao_lotesCef'] ?? ($valor * $percentualAvaliacaoCef);
+
+            // Dados já vêm do produto (curvas e avaliação preenchidos no CRUD)
+            $avaliacaoLotesCef = $produto->avaliacao_lotesCef ?? 0;
             $custoM2 = $cp['custo_m2'] ?? $produto->m2_cost ?? 0;
             $custoInfra = $cp['custo_infra'] ?? $produto->infra_cost ?? 0;
             $areaPrivativa = $produto->private_area ?? 0;
@@ -848,8 +893,7 @@ class ViabilidadeUnificadoService
                 'pgto_por_lote' => $pgtoPorLote,
                 'demanda_minCef' => $demandaMinCef,
                 'curva_vendas' => $produto->curva_vendas ?? [],
-                'tipo_produto' => $tipoProduto,
-                'imposto_tributos' => ($produto->imposto_tributos ?? 0) / 100,
+                'curva_obra' => $produto->curva_obra ?? [],
                 'imposto_outros' => ($produto->imposto_outros ?? 0) / 100,
                 'financeiro' => [
                     'sinal' => $produto->sinal ?? 0,
@@ -925,9 +969,9 @@ class ViabilidadeUnificadoService
      * - Obra: parcelas com correção composta pelo tempo desde a venda
      * - Pós-chave: amortização + juros + correção sobre saldo devedor decrescente
      */
-    private function preCalcularRecursosProprios(array $produtos, array $datas, array $params): void
+    private function preCalcularRecursosProprios(array $produtos, array $datas, array $params, ViabilidadeFluxoContext $ctx): void
     {
-        $this->cacheRecursosPropriosMensais = [];
+        $ctx->recursosProprios = [];
 
         $dataLancamento = $datas['dataLancamento'];
         $fimLancamento = $datas['fimLancamento'];
@@ -947,9 +991,8 @@ class ViabilidadeUnificadoService
         $juros_pos = 0.01; // 1% ao mês
 
         foreach ($produtos as $produto) {
-            $tipoProd = $produto['tipo_produto'];
-            $mesesCurva = $this->curvaService->getMesesCurvaPadrao($tipoProd);
-            $curvaVendas = $this->curvaService->getCurvaVendas($mesesCurva, $tipoProd);
+            $curvaVendas = $this->curvaService->extrairCurva($produto['curva_vendas'] ?? null);
+            $curvaVendas = $this->curvaService->normalizarCurva($curvaVendas);
 
             $unidadesProduto = $produto['quantidade_unidades'] ?? 1;
             $precoProduto = $produto['preco'] ?? 0;
@@ -994,16 +1037,16 @@ class ViabilidadeUnificadoService
                         $dataRecebimento = $dataLancamento->copy()->addMonths($mesRecebimento - 1);
                         $chaveMes = $dataRecebimento->format('Y-m');
 
-                        $this->cacheRecursosPropriosMensais[$chaveMes]['sinal'] =
-                            ($this->cacheRecursosPropriosMensais[$chaveMes]['sinal'] ?? 0) + ($parcelaSinal * $unidadesVendidas);
+                        $ctx->recursosProprios[$chaveMes]['sinal'] =
+                            ($ctx->recursosProprios[$chaveMes]['sinal'] ?? 0) + ($parcelaSinal * $unidadesVendidas);
                     }
                 } else {
                     // Venda após lançamento: sinal recebido no mês da venda
                     $dataRecebimento = $dataLancamento->copy()->addMonths($s - 1);
                     $chaveMes = $dataRecebimento->format('Y-m');
 
-                    $this->cacheRecursosPropriosMensais[$chaveMes]['sinal'] =
-                        ($this->cacheRecursosPropriosMensais[$chaveMes]['sinal'] ?? 0) + ($valorSinal * $unidadesVendidas);
+                    $ctx->recursosProprios[$chaveMes]['sinal'] =
+                        ($ctx->recursosProprios[$chaveMes]['sinal'] ?? 0) + ($valorSinal * $unidadesVendidas);
                 }
 
                 // ═══════════════════════════════════════════════════════════════
@@ -1026,10 +1069,10 @@ class ViabilidadeUnificadoService
                         $dataRecebimento = $dataLancamento->copy()->addMonths($mesRecebimento - 1);
                         $chaveMes = $dataRecebimento->format('Y-m');
 
-                        $this->cacheRecursosPropriosMensais[$chaveMes]['parcelas_obra'] =
-                            ($this->cacheRecursosPropriosMensais[$chaveMes]['parcelas_obra'] ?? 0) + ($parcelaAjustada * $unidadesVendidas);
-                        $this->cacheRecursosPropriosMensais[$chaveMes]['correcao'] =
-                            ($this->cacheRecursosPropriosMensais[$chaveMes]['correcao'] ?? 0) + ($correcaoMes * $unidadesVendidas);
+                        $ctx->recursosProprios[$chaveMes]['parcelas_obra'] =
+                            ($ctx->recursosProprios[$chaveMes]['parcelas_obra'] ?? 0) + ($parcelaAjustada * $unidadesVendidas);
+                        $ctx->recursosProprios[$chaveMes]['correcao'] =
+                            ($ctx->recursosProprios[$chaveMes]['correcao'] ?? 0) + ($correcaoMes * $unidadesVendidas);
                     }
                 }
             }
@@ -1051,12 +1094,12 @@ class ViabilidadeUnificadoService
                 $dataRecebimento = $dataEntrega->copy()->addMonths($k - 1);
                 $chaveMes = $dataRecebimento->format('Y-m');
 
-                $this->cacheRecursosPropriosMensais[$chaveMes]['parcelas_pos'] =
-                    ($this->cacheRecursosPropriosMensais[$chaveMes]['parcelas_pos'] ?? 0) + $pagamentoMes;
-                $this->cacheRecursosPropriosMensais[$chaveMes]['juros'] =
-                    ($this->cacheRecursosPropriosMensais[$chaveMes]['juros'] ?? 0) + $jurosMes;
-                $this->cacheRecursosPropriosMensais[$chaveMes]['correcao'] =
-                    ($this->cacheRecursosPropriosMensais[$chaveMes]['correcao'] ?? 0) + $correcaoMes;
+                $ctx->recursosProprios[$chaveMes]['parcelas_pos'] =
+                    ($ctx->recursosProprios[$chaveMes]['parcelas_pos'] ?? 0) + $pagamentoMes;
+                $ctx->recursosProprios[$chaveMes]['juros'] =
+                    ($ctx->recursosProprios[$chaveMes]['juros'] ?? 0) + $jurosMes;
+                $ctx->recursosProprios[$chaveMes]['correcao'] =
+                    ($ctx->recursosProprios[$chaveMes]['correcao'] ?? 0) + $correcaoMes;
             }
         }
     }
@@ -1064,22 +1107,22 @@ class ViabilidadeUnificadoService
     /**
      * Inicializa caches para cálculos CEF (Recurso Terrenos e Medição de Obra)
      */
-    private function inicializarCachesCef(array $dadosProdutos, array $datas, array $params): void
+    private function inicializarCachesCef(array $dadosProdutos, array $datas, ViabilidadeFluxoContext $ctx): void
     {
         // Reset dos caches
-        $this->cacheVendasPorMes = [];
-        $this->cacheVendasAcumuladas = 0;
-        $this->cacheDemandaAtingida = false;
-        $this->cacheMesDemandaAtingida = null;
-        $this->cacheMedicaoObraAcumulada = 0;
-        $this->cacheCurvaObraAcumulada = 0;
-        $this->cacheMesObraAtual = 0;
-        $this->cacheTotalRecursoTerrenos = 0;
+        $ctx->vendasPorMes            = [];
+        $ctx->vendasAcumuladas        = 0.0;
+        $ctx->demandaAtingida         = false;
+        $ctx->mesDemandaAtingida      = null;
+        $ctx->medicaoObraAcumulada    = 0.0;
+        $ctx->curvaObraAcumulada      = 0.0;
+        $ctx->mesObraAtual            = 0;
+        $ctx->valorMedicaoTotal       = 0.0;
 
         // Calcular demanda mínima total
-        $this->cacheDemandaMinima = 0;
+        $ctx->demandaMinima = 0.0;
         foreach ($dadosProdutos['produtos'] as $produto) {
-            $this->cacheDemandaMinima += $produto['demanda_minCef'] ?? 0;
+            $ctx->demandaMinima += $produto['demanda_minCef'] ?? 0;
         }
 
         // Calcular valor total para medição de obra (Financiamento CEF)
@@ -1101,15 +1144,14 @@ class ViabilidadeUnificadoService
         }
 
         // Valor Financiamento = (VGV × 80%) - Recurso Terrenos
-        $this->cacheValorMedicaoTotal = max(0, ($vgv * 0.80) - $totalRecursoTerrenos);
+        $ctx->valorMedicaoTotal = max(0, ($vgv * self::PERCENTUAL_FINANCIAMENTO_CEF) - $totalRecursoTerrenos);
 
         // Pré-calcular vendas por mês (unidades vendidas)
         $dataLancamento = $datas['dataLancamento'];
 
         foreach ($dadosProdutos['produtos'] as $produto) {
-            $tipoProd = $produto['tipo_produto'] ?? '2_dorm';
-            $mesesCurva = $this->curvaService->getMesesCurvaPadrao($tipoProd);
-            $curvaVendas = $this->curvaService->getCurvaVendas($mesesCurva, $tipoProd);
+            $curvaVendas = $this->curvaService->extrairCurva($produto['curva_vendas'] ?? null);
+            $curvaVendas = $this->curvaService->normalizarCurva($curvaVendas);
             $unidadesProduto = $produto['quantidade_unidades'] ?? 0;
 
             foreach ($curvaVendas as $mesIndex => $percentualVenda) {
@@ -1121,21 +1163,47 @@ class ViabilidadeUnificadoService
                 $chaveMes = $dataVenda->format('Y-m');
 
                 $unidadesVendidas = $unidadesProduto * ($percentualVenda / 100);
-                $this->cacheVendasPorMes[$chaveMes] = ($this->cacheVendasPorMes[$chaveMes] ?? 0) + $unidadesVendidas;
+                $ctx->vendasPorMes[$chaveMes] = ($ctx->vendasPorMes[$chaveMes] ?? 0) + $unidadesVendidas;
             }
         }
     }
 
-    private function adicionarRecursoProprio(string $mes, string $tipo, float $valor, array $fin, string $origem): void
+    // ─── Helpers ──────────────────────────────────────────────────────────────
+
+    /** Converte string "YYYY-MM" para Carbon (início do mês). */
+    private function parseMes(string $mes): Carbon
     {
-        $this->cacheRecursosPropriosMensais[$mes][$tipo] = ($this->cacheRecursosPropriosMensais[$mes][$tipo] ?? 0) + $valor;
+        return Carbon::parse($mes . '-01');
     }
 
-    private function adicionarRecursoProprioDetalhado(string $mes, string $tipo, float $valor, float $juros, float $correcao): void
+    /** Custo total de obra: habitação + infraestrutura + nãoIncidente. */
+    private function custoObraTotal(array $d): float
     {
-        $this->cacheRecursosPropriosMensais[$mes][$tipo] = ($this->cacheRecursosPropriosMensais[$mes][$tipo] ?? 0) + $valor;
-        $this->cacheRecursosPropriosMensais[$mes]['juros'] = ($this->cacheRecursosPropriosMensais[$mes]['juros'] ?? 0) + $juros;
-        $this->cacheRecursosPropriosMensais[$mes]['correcao'] = ($this->cacheRecursosPropriosMensais[$mes]['correcao'] ?? 0) + $correcao;
+        return ($d['custoObraHabitacao'] ?? 0.0) + ($d['custoInfraestrutura'] ?? 0.0) + ($d['custoNaoIncidente'] ?? 0.0);
+    }
+
+    /** Unidades que pertencem à construtora (excluindo permutas). */
+    private function unidadesConstrutora(array $d): int
+    {
+        return max(1, (int) ($d['totalUnidadesConstrutora'] ?? $d['totalUnidades'] ?? 1));
+    }
+
+    /**
+     * Calcula comissão base, house e imobiliárias sobre um valor vendido.
+     *
+     * @return array{0:float,1:float,2:float} [comissaoBase, comissaoHouse, comissaoImobiliarias]
+     */
+    private function calcularComissaoBase(float $valorVendido, array $params): array
+    {
+        $percHouse        = $params['percentualVendasHouse'] ?? 0.0;
+        $taxaHouse        = $params['comissaoHousePercentual'] ?? 0.0;
+        $taxaImob         = $params['comissaoImobiliariasPercentual'] ?? 0.0;
+        $taxaMedia        = ($percHouse * $taxaHouse) + ((1 - $percHouse) * $taxaImob);
+        $comissaoBase     = $valorVendido * $taxaMedia;
+        $comissaoHouse    = $valorVendido * $percHouse * $taxaHouse;
+        $comissaoImob     = $valorVendido * (1 - $percHouse) * $taxaImob;
+
+        return [$comissaoBase, $comissaoHouse, $comissaoImob];
     }
 
     /**
@@ -1148,9 +1216,9 @@ class ViabilidadeUnificadoService
      * - Mês 2 de obra: libera o acumulado dos meses 1-4
      * - Mês 3+ de obra: libera normalmente (com defasagem de 2 meses)
      */
-    private function calcularRecursoTerrenos(string $mes, array $dadosProdutos, array $datas, array $params): array
+    private function calcularRecursoTerrenos(string $mes, array $dadosProdutos, array $datas, ViabilidadeFluxoContext $ctx): array
     {
-        $dataAtual = Carbon::parse($mes.'-01');
+        $dataAtual = Carbon::parse($mes . '-01');
         $dataLancamento = $datas['dataLancamento']->copy()->startOfMonth();
         $fimLancamento = $datas['fimLancamento']->copy()->startOfMonth();
         $inicioObra = $datas['inicioObra']->copy()->startOfMonth();
@@ -1198,12 +1266,11 @@ class ViabilidadeUnificadoService
         $valorRtMes = 0;
 
         foreach ($dadosProdutos['produtos'] as $produto) {
-            $curvaVendas = $produto['curva_vendas'] ?? [];
+            $curvaVendas = $this->curvaService->extrairCurva($produto['curva_vendas'] ?? null);
+            $curvaVendas = $this->curvaService->normalizarCurva($curvaVendas);
 
             if (empty($curvaVendas)) {
-                $tipoProd = $produto['tipo_produto'] ?? '2_dorm';
-                $mesesCurva = $this->curvaService->getMesesCurvaPadrao($tipoProd);
-                $curvaVendas = $this->curvaService->getCurvaVendas($mesesCurva, $tipoProd);
+                continue;
             }
 
             $indiceMes = $mesVenda - 1;
@@ -1236,9 +1303,9 @@ class ViabilidadeUnificadoService
      * 3. Calcular Medição Vendida = Medição Teórica × %VendasAcumulada
      * 4. Valor Recebido no Mês = Medição Vendida Atual - Medição Vendida Anterior
      */
-    private function calcularMedicaoObra(string $mes, array $dadosProdutos, array $datas, array $params): array
+    private function calcularMedicaoObra(string $mes, array $dadosProdutos, array $datas, array $params, ViabilidadeFluxoContext $ctx): array
     {
-        $dataAtual = Carbon::parse($mes.'-01');
+        $dataAtual = Carbon::parse($mes . '-01');
         $inicioObra = $datas['inicioObra']->copy()->startOfMonth();
         $fimObra = $datas['fimObra']->copy()->startOfMonth();
 
@@ -1251,32 +1318,34 @@ class ViabilidadeUnificadoService
         // Calcular qual mês de obra estamos (1-based)
         $mesObraAtual = (int) $inicioObra->diffInMonths($dataAtual->startOfMonth()) + 1;
 
-        // Obter percentual da curva S para este mês e acumular
-        $percObraMes = $this->curvaService->getPercentualCustoObra($params['mesesObra'], $mesObraAtual);
+        // Obter percentual da curva S agregada para este mês
+        $curvaObra = $dadosProdutos['curvaObraAgregada'] ?? $this->agregarCurvaObra($dadosProdutos['produtos'] ?? []);
+        $indice = $mesObraAtual - 1;
+        $percObraMes = $curvaObra[$indice] ?? 0.0;
 
         // Atualizar acumulado de obra apenas se for um novo mês de obra (proteção contra chamadas repetidas, embora o fluxo seja sequencial)
-        // No contexto atual, como é sequencial e cacheMesObraAtual começa em 0, podemos só comparar
-        if ($mesObraAtual > $this->cacheMesObraAtual) {
-            $this->cacheCurvaObraAcumulada += ($percObraMes / 100);
-            $this->cacheMesObraAtual = $mesObraAtual;
+        // No contexto atual, como é sequencial e mesObraAtual começa em 0, podemos só comparar
+        if ($mesObraAtual > $ctx->mesObraAtual) {
+            $ctx->curvaObraAcumulada += ($percObraMes / 100);
+            $ctx->mesObraAtual = $mesObraAtual;
         }
 
         // 1. Valor da Medição Teórica Acumulada (Física)
-        $medicaoTeoricaAcumulada = $this->cacheValorMedicaoTotal * $this->cacheCurvaObraAcumulada;
+        $medicaoTeoricaAcumulada = $ctx->valorMedicaoTotal * $ctx->curvaObraAcumulada;
 
         // 2. Percentual de Vendas Acumulado
         $totalUnidades = $dadosProdutos['totalUnidades'];
-        $percVendasAcumulado = $totalUnidades > 0 ? $this->cacheVendasAcumuladas / $totalUnidades : 0;
+        $percVendasAcumulado = $totalUnidades > 0 ? $ctx->vendasAcumuladas / $totalUnidades : 0;
 
         // 3. Valor da Medição Vendida Acumulada (Financeira)
         $medicaoVendidaAcumulada = $medicaoTeoricaAcumulada * $percVendasAcumulado;
 
         // 4. Valor a Receber no Mês (Diferença do acumulado anterior)
-        // cacheMedicaoObraAcumulada armazena o "Total Recebido Até Agora"
-        $valorReceberMes = max(0, $medicaoVendidaAcumulada - $this->cacheMedicaoObraAcumulada);
+        // medicaoObraAcumulada armazena o "Total Recebido Até Agora"
+        $valorReceberMes = max(0, $medicaoVendidaAcumulada - $ctx->medicaoObraAcumulada);
 
         // Atualizar o acumulado recebido
-        $this->cacheMedicaoObraAcumulada += $valorReceberMes;
+        $ctx->medicaoObraAcumulada += $valorReceberMes;
 
         return ['valor' => round($valorReceberMes, 2)];
     }
@@ -1284,7 +1353,7 @@ class ViabilidadeUnificadoService
     private function calcularCustosDiretos(string $mes, string $periodo, array $datas, array $params, float $vgv, float $custoObraTotal, array $dadosProdutos): array
     {
         $custos = [];
-        $dataAtual = Carbon::parse($mes.'-01');
+        $dataAtual = Carbon::parse($mes . '-01');
 
         $custoIncorp = $vgv * $params['percentualIncorporacao'];
         $areaComumTotal = $params['custoAreaComum'] * ($dadosProdutos['totalUnidades'] ?? 0);
@@ -1300,7 +1369,8 @@ class ViabilidadeUnificadoService
 
         if ($periodo === 'Obra') {
             $mesObraIndex = (int) $datas['inicioObra']->diffInMonths($dataAtual) + 1;
-            $percentualMes = $this->curvaService->getPercentualCustoObra($params['mesesObra'], $mesObraIndex);
+            $curvaObra = $dadosProdutos['curvaObraAgregada'] ?? $this->agregarCurvaObra($dadosProdutos['produtos'] ?? []);
+            $percentualMes = $curvaObra[$mesObraIndex - 1] ?? 0.0;
             $custos['Obra'] = round($custoObraTotal * ($percentualMes / 100), 2);
             $custos['Canteiro'] = round($params['canteiroMensal'], 2);
             $custos['Área Comum'] = round($areaComumTotal / max(1, $params['mesesObra']), 2);
@@ -1323,7 +1393,6 @@ class ViabilidadeUnificadoService
         }
 
         if ($periodo === 'Entrega') {
-
         }
 
         return [
@@ -1332,10 +1401,10 @@ class ViabilidadeUnificadoService
         ];
     }
 
-    private function calcularCustosOperacionais(string $mes, array $dadosProdutos, array $datas, array $params): array
+    private function calcularCustosOperacionais(string $mes, array $dadosProdutos, array $datas, array $params, ViabilidadeFluxoContext $ctx): array
     {
-        $despesasComerciais = $this->calcularDespesasComerciaisMensais($mes, $dadosProdutos, $datas, $params);
-        $marketing = $this->calcularMarketingMensal($mes, $dadosProdutos, $datas, $params);
+        $despesasComerciais = $this->calcularDespesasComerciaisMensais($mes, $dadosProdutos, $datas, $params, $ctx);
+        $marketing = $this->calcularMarketingMensal($mes, $dadosProdutos, $datas, $params, $ctx);
 
         return [
             'total' => $despesasComerciais['total'] + $marketing['total'],
@@ -1352,19 +1421,19 @@ class ViabilidadeUnificadoService
         return $receitaTotal > 0 ? (($totalCustoTerreno + $custoParceria) * $receitaMes) / $receitaTotal : 0;
     }
 
-    private function calcularDespesasComerciaisMensais(string $mes, array $dadosProdutos, array $datas, array $params): array
+    private function calcularDespesasComerciaisMensais(string $mes, array $dadosProdutos, array $datas, array $params, ViabilidadeFluxoContext $ctx): array
     {
-        $dataAtual = Carbon::parse($mes.'-01');
+        $dataAtual = Carbon::parse($mes . '-01');
         $vgvSemTerrenista = $dadosProdutos['vgvSemValorTerrenista'] ?? 0;
         $unidadesConstrutora = max(1, $dadosProdutos['totalUnidadesConstrutora'] ?? $dadosProdutos['totalUnidades'] ?? 1);
         $ticketMedio = $vgvSemTerrenista / $unidadesConstrutora;
-        $unidadesVendidasMes = $this->cacheVendasPorMes[$mes] ?? 0;
+        $unidadesVendidasMes = $ctx->vendasPorMes[$mes] ?? 0;
         $valorVendidoMes = $unidadesVendidasMes * $ticketMedio;
         $taxaComissaoMedia = (($params['percentualVendasHouse'] ?? 0) * ($params['comissaoHousePercentual'] ?? 0)) +
             ((1 - ($params['percentualVendasHouse'] ?? 0)) * ($params['comissaoImobiliariasPercentual'] ?? 0));
         $comissaoBaseMes = $valorVendidoMes * $taxaComissaoMedia;
         $comissaoVenda = $comissaoBaseMes * ($params['pagamentoComissaoVenda'] ?? 0);
-        $comissaoDesligamento = $this->calcularComissaoDesligamentoMensal($mes, $ticketMedio, $params);
+        $comissaoDesligamento = $this->calcularComissaoDesligamentoMensal($mes, $ticketMedio, $params, $ctx);
         $bonusCca = ($params['bonusCca'] ?? 0) * $unidadesVendidasMes;
         $bonusGerente = $comissaoBaseMes * ($params['bonusGerente'] ?? 0);
         $bonusGerenteRegional = $comissaoBaseMes * ($params['bonusGerenteRegional'] ?? 0);
@@ -1402,20 +1471,20 @@ class ViabilidadeUnificadoService
         ];
     }
 
-    private function calcularComissaoDesligamentoMensal(string $mes, float $ticketMedio, array $params): float
+    private function calcularComissaoDesligamentoMensal(string $mes, float $ticketMedio, array $params, ViabilidadeFluxoContext $ctx): float
     {
-        $dataAtual = Carbon::parse($mes.'-01');
+        $dataAtual = Carbon::parse($mes . '-01');
         $parcelamento = max(1, (int) ($params['parcelamentoComissaoMeses'] ?? 1));
         $taxaComissaoMedia = (($params['percentualVendasHouse'] ?? 0) * ($params['comissaoHousePercentual'] ?? 0)) +
             ((1 - ($params['percentualVendasHouse'] ?? 0)) * ($params['comissaoImobiliariasPercentual'] ?? 0));
         $percentualDesligamento = $params['pagamentoComissaoDesligamento'] ?? 0;
         $totalMes = 0;
 
-        foreach ($this->cacheVendasPorMes as $mesVenda => $unidadesVendaMes) {
+        foreach ($ctx->vendasPorMes as $mesVenda => $unidadesVendaMes) {
             if ($unidadesVendaMes <= 0 || $mesVenda >= $mes) {
                 continue;
             }
-            $dataVenda = Carbon::parse($mesVenda.'-01');
+            $dataVenda = Carbon::parse($mesVenda . '-01');
             $mesesDecorridos = $dataVenda->diffInMonths($dataAtual);
             if ($mesesDecorridos < 1 || $mesesDecorridos > $parcelamento) {
                 continue;
@@ -1428,14 +1497,14 @@ class ViabilidadeUnificadoService
         return $totalMes;
     }
 
-    private function calcularMarketingMensal(string $mes, array $dadosProdutos, array $datas, array $params): array
+    private function calcularMarketingMensal(string $mes, array $dadosProdutos, array $datas, array $params, ViabilidadeFluxoContext $ctx): array
     {
-        $dataAtual = Carbon::parse($mes.'-01');
+        $dataAtual = Carbon::parse($mes . '-01');
         $baseMarketing = ($dadosProdutos['vgvSemValorTerrenista'] ?? 0) * ($params['percentualMarketing'] ?? 0);
         $totalLancamento = $baseMarketing * ($params['marketingLancamento'] ?? 0);
         $totalVariavel = $baseMarketing - $totalLancamento;
         $marketingLancamentoMensal = $dataAtual->between($datas['dataLancamento'], $datas['fimLancamento']) ? ($totalLancamento / max(1, $params['mesesLancamento'])) : 0;
-        $unidadesVendidasMes = $this->cacheVendasPorMes[$mes] ?? 0;
+        $unidadesVendidasMes = $ctx->vendasPorMes[$mes] ?? 0;
         $totalUnidadesConstrutora = max(1, $dadosProdutos['totalUnidadesConstrutora'] ?? $dadosProdutos['totalUnidades'] ?? 1);
         $marketingVariavelMensal = $totalVariavel * ($unidadesVendidasMes / $totalUnidadesConstrutora);
 
@@ -1446,7 +1515,7 @@ class ViabilidadeUnificadoService
 
     private function calcularSegurosMensal(string $mes, array $dadosProdutos, array $datas, array $params): float
     {
-        $dataAtual = Carbon::parse($mes.'-01');
+        $dataAtual = Carbon::parse($mes . '-01');
         if (! $dataAtual->between($datas['dataLancamento'], $datas['fimObra'])) {
             return 0;
         }
@@ -1458,7 +1527,7 @@ class ViabilidadeUnificadoService
 
     private function calcularAssistenciaTecnicaMensal(string $mes, array $datas, array $params, float $baseAssistencia): float
     {
-        $dataAtual = Carbon::parse($mes.'-01');
+        $dataAtual = Carbon::parse($mes . '-01');
         if (! $dataAtual->between($datas['inicioPos'], $datas['fimPos'])) {
             return 0;
         }
@@ -1507,7 +1576,7 @@ class ViabilidadeUnificadoService
         $devolucaoMensalAporte = ($params['mesesPosObra'] ?? 0) > 0 ? (($totalAportes * $taxaDevolucaoAporte) / $params['mesesPosObra']) : 0;
 
         foreach ($fluxo as $mes => $linha) {
-            $dataAtual = Carbon::parse($mes.'-01');
+            $dataAtual = Carbon::parse($mes . '-01');
             $valorOperacional = (float) ($linha['lucro'] ?? 0);
             $fluxoOperacionalTir[] = ['data' => $dataAtual->copy(), 'valor' => $valorOperacional];
             $saldoOperacional += $valorOperacional;
@@ -1763,7 +1832,7 @@ class ViabilidadeUnificadoService
             $somasMoveis = [];
             $totalRegistros = count($vendasMensais);
             if ($totalRegistros === 0) {
-                $resultado[$janela.'m'] = [
+                $resultado[$janela . 'm'] = [
                     'ultimo_percentual' => 0,
                     'maximo_percentual' => 0,
                     'media_percentual' => 0,
@@ -1782,7 +1851,7 @@ class ViabilidadeUnificadoService
             $maximo = max($somasMoveis);
             $media = count($somasMoveis) > 0 ? (array_sum($somasMoveis) / count($somasMoveis)) : 0;
 
-            $resultado[$janela.'m'] = [
+            $resultado[$janela . 'm'] = [
                 'ultimo_percentual' => round(($ultimo / $unidadesConstrutora) * 100, 2),
                 'maximo_percentual' => round(($maximo / $unidadesConstrutora) * 100, 2),
                 'media_percentual' => round(($media / $unidadesConstrutora) * 100, 2),
@@ -1792,6 +1861,49 @@ class ViabilidadeUnificadoService
         return [
             'vso_janelas' => $resultado,
         ];
+    }
+
+    /**
+     * Agrega curva_obra de todos os produtos (peso = quantidade_unidades).
+     */
+    private function agregarCurvaObra(array $produtos): array
+    {
+        $curvas = [];
+        $pesos = [];
+
+        foreach ($produtos as $produto) {
+            $curva = $this->curvaService->extrairCurva($produto['curva_obra'] ?? null);
+            if (empty($curva)) {
+                continue;
+            }
+            $curvas[] = $this->curvaService->normalizarCurva($curva);
+            $pesos[] = $produto['quantidade_unidades'] ?? 1;
+        }
+
+        if (empty($curvas)) {
+            return [];
+        }
+
+        // Interpolar todas as curvas para o mesmo tamanho (maior)
+        $maxMeses = max(array_map('count', $curvas));
+
+        foreach ($curvas as $i => $curva) {
+            if (count($curva) < $maxMeses) {
+                $curvas[$i] = $this->curvaService->interpolarCurva($curva, $maxMeses);
+            }
+        }
+
+        // Média ponderada
+        $totalPeso = array_sum($pesos);
+        $agregada = array_fill(0, $maxMeses, 0.0);
+
+        foreach ($curvas as $i => $curva) {
+            foreach ($curva as $j => $valor) {
+                $agregada[$j] += $valor * ($pesos[$i] / $totalPeso);
+            }
+        }
+
+        return $this->curvaService->normalizarCurva($agregada);
     }
 
     private function calcularTir(array $fluxo, float $estimativa = 0.01): float

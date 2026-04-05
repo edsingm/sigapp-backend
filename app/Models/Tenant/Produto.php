@@ -62,6 +62,7 @@ class Produto extends Model
         'imposto_iss',
         'imposto_outros',
         'curva_vendas',
+        'curva_obra',
         'incorp_ri',
         'incorp_entrega',
         'incorp_ateLancamento',
@@ -88,5 +89,6 @@ class Produto extends Model
 
     protected $casts = [
         'curva_vendas' => 'array',
+        'curva_obra'   => 'array',
     ];
 }

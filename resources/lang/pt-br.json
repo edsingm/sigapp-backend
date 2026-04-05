@@ -83,5 +83,8 @@
     "USER_PERMISSIONS_UPDATED_SUCCESSFULLY": "Permissões atualizadas com sucesso",
     "USER_RETRIEVED": "Usuário recuperado com sucesso",
     "USER_UPDATED_SUCCESSFULLY": "Usuário atualizado com sucesso",
-    "VIABILITY": "Viabilidade"
+    "VIABILITY": "Viabilidade",
+    "PRODUCT_TYPE_2_DORM": "2 Dormitórios",
+    "PRODUCT_TYPE_3_DORM": "3 Dormitórios",
+    "PRODUCT_TYPE_LOTES": "Lotes"
 }

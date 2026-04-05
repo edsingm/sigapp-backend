@@ -1,0 +1,43 @@
+<?php
+
+namespace App\Services\Tenant\Viabilidade;
+
+/**
+ * Encapsula todo o estado mutável produzido durante um cálculo de fluxo.
+ *
+ * Antes existia como propriedades privadas espalhadas no service, causando
+ * acúmulo indevido de estado entre chamadas consecutivas na mesma instância.
+ * Agora cada chamada a gerarFluxoMensal() recebe um contexto limpo.
+ */
+final class ViabilidadeFluxoContext
+{
+    /** @var array<string, array<string, float>> Cache de recursos próprios por mês */
+    public array $recursosProprios = [];
+
+    /** @var array<string, float> Unidades vendidas por mês (Y-m → float) */
+    public array $vendasPorMes = [];
+
+    /** Acumulador de vendas durante iteração de receitas */
+    public float $vendasAcumuladas = 0.0;
+
+    /** Valor total a ser distribuído via medição de obra (CEF) */
+    public float $valorMedicaoTotal = 0.0;
+
+    /** Acumulado já recebido via medição de obra */
+    public float $medicaoObraAcumulada = 0.0;
+
+    /** Percentual acumulado da curva S de obra */
+    public float $curvaObraAcumulada = 0.0;
+
+    /** Último mês de obra processado (evita duplicar o acumulado) */
+    public int $mesObraAtual = 0;
+
+    /** Demanda mínima CEF somada de todos os produtos */
+    public float $demandaMinima = 0.0;
+
+    /** Indica se a demanda mínima CEF já foi atingida */
+    public bool $demandaAtingida = false;
+
+    /** Mês em que a demanda mínima CEF foi atingida (formato Y-m) */
+    public ?string $mesDemandaAtingida = null;
+}

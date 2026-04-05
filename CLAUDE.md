@@ -35,7 +35,6 @@ php artisan test tests/Unit/                       # Apenas unit tests
 ### Qualidade de Código
 ```bash
 ./vendor/bin/pint                 # Formata código (PSR-2)
-./vendor/bin/pint --test          # Verifica formatação sem alterar
 ./vendor/bin/phpstan analyse app  # Análise estática (nível 8)
 ```
 

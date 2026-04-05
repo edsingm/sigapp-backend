@@ -47,6 +47,8 @@ class ViabilidadeRealOutputTest extends TestCase
             'imposto_tributos' => 4.00,
             'imposto_iss' => 2.00,
             'imposto_outros' => 0.50,
+            'curva_vendas' => json_encode([10.0, 9.0, 8.1, 6.1, 6.1, 6.1, 6.1, 6.1, 6.1, 6.1, 6.1, 6.1, 6.1, 6.1, 6.1]),
+            'curva_obra' => json_encode([0.8, 1.3, 1.5, 3.5, 4.0, 4.0, 4.5, 4.5, 5.5, 6.0, 7.0, 7.0, 7.5, 6.5, 6.0, 5.0, 5.0, 5.0, 4.5, 4.5, 2.5, 2.0, 1.5, 0.5]),
             'created_at' => $agora,
             'updated_at' => $agora,
         ]);
@@ -162,6 +164,8 @@ class ViabilidadeRealOutputTest extends TestCase
             'imposto_tributos' => 4.00,
             'imposto_iss' => 2.00,
             'imposto_outros' => 0.50,
+            'curva_vendas' => json_encode([10.0, 9.0, 8.1, 6.1, 6.1, 6.1, 6.1, 6.1, 6.1, 6.1, 6.1, 6.1, 6.1, 6.1, 6.1]),
+            'curva_obra' => json_encode([0.8, 1.3, 1.5, 3.5, 4.0, 4.0, 4.5, 4.5, 5.5, 6.0, 7.0, 7.0, 7.5, 6.5, 6.0, 5.0, 5.0, 5.0, 4.5, 4.5, 2.5, 2.0, 1.5, 0.5]),
             'created_at' => $agora,
             'updated_at' => $agora,
         ]);
@@ -306,6 +310,8 @@ class ViabilidadeRealOutputTest extends TestCase
             'juros_mensalSinal' => 0.00, 'juros_mensalObra' => 0.00, 'juros_mensalPosChave' => 1.00,
             'correcao_anualSinal' => 0.00, 'correcao_anualObra' => 5.00, 'correcao_anualPosChave' => 4.50,
             'imposto_tributos' => 4.00, 'imposto_iss' => 2.00, 'imposto_outros' => 0.50,
+            'curva_vendas' => json_encode([10.0, 9.0, 8.1, 6.1, 6.1, 6.1, 6.1, 6.1, 6.1, 6.1, 6.1, 6.1, 6.1, 6.1, 6.1]),
+            'curva_obra' => json_encode([0.8, 1.3, 1.5, 3.5, 4.0, 4.0, 4.5, 4.5, 5.5, 6.0, 7.0, 7.0, 7.5, 6.5, 6.0, 5.0, 5.0, 5.0, 4.5, 4.5, 2.5, 2.0, 1.5, 0.5]),
             'created_at' => $agora, 'updated_at' => $agora,
         ]);
 
@@ -403,5 +409,6 @@ class ViabilidadeRealOutputTest extends TestCase
         Artisan::call('migrate', ['--path' => 'database/migrations/tenant/2025_11_13_161116_create_terreno_produto_table.php']);
         Artisan::call('migrate', ['--path' => 'database/migrations/tenant/2026_02_07_000000_create_viabilidades_table.php']);
         Artisan::call('migrate', ['--path' => 'database/migrations/tenant/2026_03_20_000000_add_viabilidade_campos_planilha.php']);
+        Artisan::call('migrate', ['--path' => 'database/migrations/tenant/2026_04_05_000001_add_curva_obra_to_produtos_table.php']);
     }
 }

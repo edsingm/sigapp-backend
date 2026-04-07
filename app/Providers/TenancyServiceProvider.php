@@ -4,15 +4,19 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
-use Stancl\Tenancy\Jobs;
+use App\Models\Central\Tenant;
+use Illuminate\Contracts\Http\Kernel;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\ServiceProvider;
+use Stancl\JobPipeline\JobPipeline;
+use Stancl\Tenancy\Bootstrappers\RootUrlBootstrapper;
+// use Stancl\Tenancy\Actions\CloneRoutesAsTenant; // Classe não existe na v3.9.1
+use Stancl\Tenancy\DatabaseConfig;
 use Stancl\Tenancy\Events;
+use Stancl\Tenancy\Jobs;
 use Stancl\Tenancy\Listeners;
 use Stancl\Tenancy\Middleware;
-use Stancl\JobPipeline\JobPipeline;
-use Illuminate\Support\Facades\Event;
-use Illuminate\Support\ServiceProvider;
-// use Stancl\Tenancy\Actions\CloneRoutesAsTenant; // Classe não existe na v3.9.1
-use Illuminate\Support\Facades\Route;
 
 /**
  * Tenancy para Laravel.
@@ -37,7 +41,7 @@ class TenancyServiceProvider extends ServiceProvider
     public function events()
     {
         return [
-                // Eventos de Tenant
+            // Eventos de Tenant
             Events\CreatingTenant::class => [],
             Events\TenantCreated::class => [
                 JobPipeline::make([
@@ -60,8 +64,8 @@ class TenancyServiceProvider extends ServiceProvider
             Events\TenantUpdated::class => [],
             Events\DeletingTenant::class => [
                 JobPipeline::make([
-                        // Jobs\DeleteDomains::class, // Classe não existe na v3.9
-                        // Jobs\RemoveStorageSymlinks::class,
+                    // Jobs\DeleteDomains::class, // Classe não existe na v3.9
+                    // Jobs\RemoveStorageSymlinks::class,
                     Jobs\DeleteDatabase::class, // Adicionado manualmente
                 ])->send(function (Events\DeletingTenant $event) {
                     return $event->tenant;
@@ -79,17 +83,17 @@ class TenancyServiceProvider extends ServiceProvider
                 // ResourceSyncing\Listeners\DeleteAllTenantMappings::class,
             ],
 
-                // Eventos de modo de manutenção não disponíveis na v3.9
-                // Events\TenantMaintenanceModeEnabled::class => [],
-                // Events\TenantMaintenanceModeDisabled::class => [],
+            // Eventos de modo de manutenção não disponíveis na v3.9
+            // Events\TenantMaintenanceModeEnabled::class => [],
+            // Events\TenantMaintenanceModeDisabled::class => [],
 
-                // Eventos de tenant pendente não disponíveis na v3.9
-                // Events\CreatingPendingTenant::class => [],
-                // Events\PendingTenantCreated::class => [],
-                // Events\PullingPendingTenant::class => [],
-                // Events\PendingTenantPulled::class => [],
+            // Eventos de tenant pendente não disponíveis na v3.9
+            // Events\CreatingPendingTenant::class => [],
+            // Events\PendingTenantCreated::class => [],
+            // Events\PullingPendingTenant::class => [],
+            // Events\PendingTenantPulled::class => [],
 
-                // Eventos de domínio
+            // Eventos de domínio
             Events\CreatingDomain::class => [],
             Events\DomainCreated::class => [],
             Events\SavingDomain::class => [],
@@ -99,14 +103,14 @@ class TenancyServiceProvider extends ServiceProvider
             Events\DeletingDomain::class => [],
             Events\DomainDeleted::class => [],
 
-                // Eventos de banco de dados
+            // Eventos de banco de dados
             Events\DatabaseCreated::class => [],
             Events\DatabaseMigrated::class => [],
             Events\DatabaseSeeded::class => [],
             Events\DatabaseRolledBack::class => [],
             Events\DatabaseDeleted::class => [],
 
-                // Eventos de Tenancy
+            // Eventos de Tenancy
             Events\InitializingTenancy::class => [],
             Events\TenancyInitialized::class => [
                 Listeners\BootstrapTenancy::class,
@@ -158,7 +162,7 @@ class TenancyServiceProvider extends ServiceProvider
      * Defina \Stancl\Tenancy\Bootstrappers\RootUrlBootstrapper::$rootUrlOverride aqui
      * para sobrescrever a URL raiz usada no CLI enquanto estiver no contexto do tenant.
      *
-     * @see \Stancl\Tenancy\Bootstrappers\RootUrlBootstrapper
+     * @see RootUrlBootstrapper
      */
     protected function overrideUrlInTenantContext(): void
     {
@@ -187,8 +191,8 @@ class TenancyServiceProvider extends ServiceProvider
     public function register()
     {
         // Configura o identificador de banco/schema do tenant usando o slug.
-        \Stancl\Tenancy\DatabaseConfig::generateDatabaseNamesUsing(function ($tenant) {
-            return \App\Models\Central\Tenant::makeTenantDatabaseIdentifier((string) $tenant->slug);
+        DatabaseConfig::generateDatabaseNamesUsing(function ($tenant) {
+            return Tenant::makeTenantDatabaseIdentifier((string) $tenant->slug);
         });
     }
 
@@ -262,7 +266,7 @@ class TenancyServiceProvider extends ServiceProvider
         $tenancyMiddleware = config('tenancy.identification.middleware');
 
         foreach (array_reverse($tenancyMiddleware) as $middleware) {
-            $this->app[\Illuminate\Contracts\Http\Kernel::class]->prependToMiddlewarePriority($middleware);
+            $this->app[Kernel::class]->prependToMiddlewarePriority($middleware);
         }
     }
 }

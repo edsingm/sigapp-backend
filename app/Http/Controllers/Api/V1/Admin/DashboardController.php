@@ -7,7 +7,6 @@ use App\Models\AuditLog;
 use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
 use App\Services\ApiResponseService;
-use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
 class DashboardController extends Controller

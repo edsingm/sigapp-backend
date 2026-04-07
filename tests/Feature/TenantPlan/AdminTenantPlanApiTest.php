@@ -7,6 +7,7 @@ use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Testing\TestResponse;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -15,7 +16,9 @@ class AdminTenantPlanApiTest extends TestCase
     use RefreshDatabase;
 
     private Plan $planLow;
+
     private Plan $planHigh;
+
     private Tenant $tenant;
 
     protected function setUp(): void
@@ -23,29 +26,29 @@ class AdminTenantPlanApiTest extends TestCase
         parent::setUp();
 
         $this->planLow = Plan::create([
-            'name'       => 'Low Plan',
-            'slug'       => 'low-plan',
-            'price'      => 10000,
+            'name' => 'Low Plan',
+            'slug' => 'low-plan',
+            'price' => 10000,
             'sort_order' => 1,
-            'is_active'  => true,
+            'is_active' => true,
             'trial_days' => 7,
         ]);
 
         $this->planHigh = Plan::create([
-            'name'       => 'High Plan',
-            'slug'       => 'high-plan',
-            'price'      => 50000,
+            'name' => 'High Plan',
+            'slug' => 'high-plan',
+            'price' => 50000,
             'sort_order' => 10,
-            'is_active'  => true,
+            'is_active' => true,
             'trial_days' => 7,
         ]);
 
         $this->tenant = Tenant::create([
-            'name'           => 'Test Tenant',
-            'slug'           => 'test-tenant',
-            'status'         => Tenant::STATUS_ACTIVE,
-            'admin_name'     => 'Admin',
-            'admin_email'    => 'admin@test.com',
+            'name' => 'Test Tenant',
+            'slug' => 'test-tenant',
+            'status' => Tenant::STATUS_ACTIVE,
+            'admin_name' => 'Admin',
+            'admin_email' => 'admin@test.com',
             'admin_password' => 'password',
         ]);
     }
@@ -53,8 +56,8 @@ class AdminTenantPlanApiTest extends TestCase
     private function actingAsAdmin(): void
     {
         $user = User::create([
-            'name'     => 'Admin',
-            'email'    => 'admin@sigapp.test',
+            'name' => 'Admin',
+            'email' => 'admin@sigapp.test',
             'password' => 'password',
             'is_admin' => true,
         ]);
@@ -62,11 +65,11 @@ class AdminTenantPlanApiTest extends TestCase
         Sanctum::actingAs($user, ['admin']);
     }
 
-    private function adminJson(string $method, string $uri, array $data = []): \Illuminate\Testing\TestResponse
+    private function adminJson(string $method, string $uri, array $data = []): TestResponse
     {
         return $this
             ->withHeader('Host', 'localhost')
-            ->{$method . 'Json'}($uri, $data);
+            ->{$method.'Json'}($uri, $data);
     }
 
     // ─── Auth Guard ───────────────────────────────────────────────────────────
@@ -188,9 +191,9 @@ class AdminTenantPlanApiTest extends TestCase
         $this->actingAsAdmin();
 
         $ent = Entitlement::create([
-            'key'           => 'extra.users',
-            'type'          => 'limit',
-            'label'         => 'Extra Users',
+            'key' => 'extra.users',
+            'type' => 'limit',
+            'label' => 'Extra Users',
             'default_value' => 0,
         ]);
 
@@ -199,8 +202,8 @@ class AdminTenantPlanApiTest extends TestCase
             "/api/v1/admin/tenants/{$this->tenant->id}/entitlements",
             [
                 'entitlement_id' => $ent->id,
-                'value'          => 100,
-                'price'          => 9900,
+                'value' => 100,
+                'price' => 9900,
             ]
         );
 
@@ -210,7 +213,7 @@ class AdminTenantPlanApiTest extends TestCase
             ->assertJsonPath('data.price', 9900);
 
         $this->assertDatabaseHas('tenant_entitlements', [
-            'tenant_id'      => $this->tenant->id,
+            'tenant_id' => $this->tenant->id,
             'entitlement_id' => $ent->id,
         ]);
     }
@@ -255,7 +258,7 @@ class AdminTenantPlanApiTest extends TestCase
 
         $response->assertOk()->assertJsonPath('success', true);
         $this->assertDatabaseMissing('tenant_entitlements', [
-            'tenant_id'      => $this->tenant->id,
+            'tenant_id' => $this->tenant->id,
             'entitlement_id' => $ent->id,
         ]);
     }

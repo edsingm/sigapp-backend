@@ -2,10 +2,10 @@
 
 namespace App\Http\Requests;
 
+use App\Services\ApiResponseService;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
-use App\Services\ApiResponseService;
 
 class SignupRequest extends FormRequest
 {

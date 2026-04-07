@@ -2,9 +2,10 @@
 
 namespace App\Http\Requests\Tenant;
 
+use App\Models\User;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use App\Models\User;
 
 class StoreUserRequest extends FormRequest
 {
@@ -19,7 +20,7 @@ class StoreUserRequest extends FormRequest
     /**
      * Obtém as regras de validação que se aplicam à requisição.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
@@ -33,19 +34,19 @@ class StoreUserRequest extends FormRequest
                 'max:255',
                 Rule::unique(User::class),
                 function ($attribute, $value, $fail) {
-                    if (!str_ends_with($value, '@lrgconstrutora.com.br')) {
+                    if (! str_ends_with($value, '@lrgconstrutora.com.br')) {
                         $fail('O e-mail deve ser um endereço institucional @lrgconstrutora.com.br.');
                     }
-                }
+                },
             ],
-            'password'      => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
             'department_id' => ['required', 'integer', 'exists:departments,id'],
-            'position_id'   => ['required', 'integer', 'exists:positions,id'],
-            'roles'         => ['nullable', 'array'],
-            'roles.*'       => ['exists:roles,id'],
-            'status'        => ['nullable', 'string', 'in:Active,Inactive,Suspended'],
-            'phone'         => ['nullable', 'string', 'max:20'],
-            'cpf'           => ['nullable', 'string', 'max:14', 'unique:users'],
+            'position_id' => ['required', 'integer', 'exists:positions,id'],
+            'roles' => ['nullable', 'array'],
+            'roles.*' => ['exists:roles,id'],
+            'status' => ['nullable', 'string', 'in:Active,Inactive,Suspended'],
+            'phone' => ['nullable', 'string', 'max:20'],
+            'cpf' => ['nullable', 'string', 'max:14', 'unique:users'],
         ];
     }
 }

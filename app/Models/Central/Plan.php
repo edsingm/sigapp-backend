@@ -3,6 +3,7 @@
 namespace App\Models\Central;
 
 use App\Services\PlanMatrixService;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -23,12 +24,12 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * @property int $sort_order
  * @property array<string, mixed> $features
  * @property array<string, int> $limits
- * @property \Carbon\Carbon $created_at
- * @property \Carbon\Carbon $updated_at
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
  */
 class Plan extends Model
 {
-    use HasFactory, CentralConnection;
+    use CentralConnection, HasFactory;
 
     /**
      * A tabela associada ao modelo.
@@ -103,7 +104,7 @@ class Plan extends Model
      */
     public function getFormattedPriceAttribute(): string
     {
-        return 'R$ ' . number_format($this->price, 2, ',', '.');
+        return 'R$ '.number_format($this->price, 2, ',', '.');
     }
 
     /**

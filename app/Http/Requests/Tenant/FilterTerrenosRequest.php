@@ -21,12 +21,16 @@ class FilterTerrenosRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $toArray = function ($value) {
-            if (is_array($value))
-                return array_values(array_filter($value, fn($v) => $v !== null && $v !== ''));
-            if (is_string($value))
-                return array_values(array_filter(preg_split('/[,\s]+/', $value), fn($v) => $v !== ''));
-            if ($value === null)
+            if (is_array($value)) {
+                return array_values(array_filter($value, fn ($v) => $v !== null && $v !== ''));
+            }
+            if (is_string($value)) {
+                return array_values(array_filter(preg_split('/[,\s]+/', $value), fn ($v) => $v !== ''));
+            }
+            if ($value === null) {
                 return [];
+            }
+
             return [$value];
         };
 
@@ -44,7 +48,7 @@ class FilterTerrenosRequest extends FormRequest
         $workflowStatuses = $this->query('workflow_statuses', $this->query('workflow_status', $this->query('status')));
 
         // Converter strings vazias para null
-        $emptyToNull = fn($value) => (is_string($value) && trim($value) === '') ? null : $value;
+        $emptyToNull = fn ($value) => (is_string($value) && trim($value) === '') ? null : $value;
 
         $this->merge([
             'nome' => $emptyToNull($nome),
@@ -103,11 +107,11 @@ class FilterTerrenosRequest extends FormRequest
             'data_inicio' => ['nullable', 'date'],
             'data_fim' => ['nullable', 'date', 'after_or_equal:data_inicio'],
             'ano' => ['nullable', 'integer', 'digits:4'],
-            'date_field' => ['nullable', 'in:' . implode(',', $dateFields)],
-            'sort_by' => ['nullable', 'in:' . implode(',', $sortFields)],
+            'date_field' => ['nullable', 'in:'.implode(',', $dateFields)],
+            'sort_by' => ['nullable', 'in:'.implode(',', $sortFields)],
             'sort_dir' => ['nullable', 'in:asc,desc'],
             'workflow_statuses' => ['nullable', 'array'],
-            'workflow_statuses.*' => ['string', 'in:' . implode(',', WorkflowStatus::values())],
+            'workflow_statuses.*' => ['string', 'in:'.implode(',', WorkflowStatus::values())],
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];

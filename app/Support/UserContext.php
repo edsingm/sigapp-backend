@@ -5,13 +5,14 @@ namespace App\Support;
 use App\Enums\UserType;
 use App\Models\User as CentralUser;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Foundation\Auth\User;
 
 /**
  * Wrapper sobre o usuário autenticado que expõe contexto
  * de tipo (ADMIN ou TENANT) além de delegar todos os
  * atributos e métodos ao model subjacente.
  *
- * @mixin \Illuminate\Foundation\Auth\User
+ * @mixin User
  */
 class UserContext
 {

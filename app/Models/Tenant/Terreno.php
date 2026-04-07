@@ -2,18 +2,19 @@
 
 namespace App\Models\Tenant;
 
+use App\Models\Central\Cidade;
+use App\Traits\HasDashboardCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Models\Central\Cidade;
-use App\Traits\HasDashboardCache;
+use Illuminate\Support\Facades\Cache;
 
 class Terreno extends Model
 {
-    use HasFactory, SoftDeletes, HasDashboardCache;
+    use HasDashboardCache, HasFactory, SoftDeletes;
 
     protected $table = 'terrenos';
 
@@ -25,7 +26,7 @@ class Terreno extends Model
             $terreno->clearTenantCache('projetos');
 
             $tenantId = tenant('id') ?? 'central';
-            \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:dashboard"])->flush();
+            Cache::tags(["tenant:{$tenantId}:dashboard"])->flush();
         });
 
         static::deleted(function (Terreno $terreno) {
@@ -34,7 +35,7 @@ class Terreno extends Model
             $terreno->clearTenantCache('projetos');
 
             $tenantId = tenant('id') ?? 'central';
-            \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:dashboard"])->flush();
+            Cache::tags(["tenant:{$tenantId}:dashboard"])->flush();
         });
 
         static::restored(function (Terreno $terreno) {
@@ -43,7 +44,7 @@ class Terreno extends Model
             $terreno->clearTenantCache('projetos');
 
             $tenantId = tenant('id') ?? 'central';
-            \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:dashboard"])->flush();
+            Cache::tags(["tenant:{$tenantId}:dashboard"])->flush();
         });
     }
 

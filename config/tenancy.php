@@ -2,9 +2,25 @@
 
 declare(strict_types=1);
 
-use Stancl\Tenancy\Middleware;
-use Stancl\Tenancy\Resolvers;
+use App\Models\Central\Tenant;
+use App\Tenancy\TenantDatabaseManagers\PostgreSQLSchemaPublicManager;
 use Stancl\Tenancy\Bootstrappers;
+use Stancl\Tenancy\Concerns\UsableWithEarlyIdentification;
+use Stancl\Tenancy\Database\Models\Domain;
+use Stancl\Tenancy\Database\Models\ImpersonationToken;
+use Stancl\Tenancy\Listeners\ForgetTenantParameter;
+use Stancl\Tenancy\Middleware;
+use Stancl\Tenancy\Middleware\PreventAccessFromUnwantedDomains;
+use Stancl\Tenancy\Resolvers;
+use Stancl\Tenancy\RLS\PolicyManagers\TableRLSManager;
+use Stancl\Tenancy\RLS\PolicyManagers\TraitRLSManager;
+use Stancl\Tenancy\TenantDatabaseManagers\MySQLDatabaseManager;
+use Stancl\Tenancy\TenantDatabaseManagers\SQLiteDatabaseManager;
+use Stancl\Tenancy\UniqueIdentifierGenerators\RandomHexGenerator;
+use Stancl\Tenancy\UniqueIdentifierGenerators\RandomIntGenerator;
+use Stancl\Tenancy\UniqueIdentifierGenerators\RandomStringGenerator;
+use Stancl\Tenancy\UniqueIdentifierGenerators\ULIDGenerator;
+use Stancl\Tenancy\UniqueIdentifierGenerators\UUIDv7Generator;
 use Stancl\Tenancy\UUIDGenerator;
 
 $baseCentralDomains = [
@@ -43,8 +59,8 @@ return [
      * Compatibility keys required by stancl/tenancy v3.x.
      * Keep these in sync with the structured keys below.
      */
-    'tenant_model' => App\Models\Central\Tenant::class,
-    'domain_model' => Stancl\Tenancy\Database\Models\Domain::class,
+    'tenant_model' => Tenant::class,
+    'domain_model' => Domain::class,
     'id_generator' => UUIDGenerator::class,
     'central_domains' => $centralDomains,
 
@@ -52,9 +68,9 @@ return [
      * Configuration for the models used by Tenancy.
      */
     'models' => [
-        'tenant' => App\Models\Central\Tenant::class,
-        'domain' => Stancl\Tenancy\Database\Models\Domain::class,
-        'impersonation_token' => Stancl\Tenancy\Database\Models\ImpersonationToken::class,
+        'tenant' => Tenant::class,
+        'domain' => Domain::class,
+        'impersonation_token' => ImpersonationToken::class,
 
         /**
          * Name of the column used to relate models to tenants.
@@ -71,12 +87,12 @@ return [
          *
          * SECURITY NOTE: Keep in mind that autoincrement IDs come with potential enumeration issues (such as tenant storage URLs).
          *
-         * @see \Stancl\Tenancy\UniqueIdentifierGenerators\UUIDGenerator
-         * @see \Stancl\Tenancy\UniqueIdentifierGenerators\ULIDGenerator
-         * @see \Stancl\Tenancy\UniqueIdentifierGenerators\UUIDv7Generator
-         * @see \Stancl\Tenancy\UniqueIdentifierGenerators\RandomHexGenerator
-         * @see \Stancl\Tenancy\UniqueIdentifierGenerators\RandomIntGenerator
-         * @see \Stancl\Tenancy\UniqueIdentifierGenerators\RandomStringGenerator
+         * @see Stancl\Tenancy\UniqueIdentifierGenerators\UUIDGenerator
+         * @see ULIDGenerator
+         * @see UUIDv7Generator
+         * @see RandomHexGenerator
+         * @see RandomIntGenerator
+         * @see RandomStringGenerator
          */
         'id_generator' => UUIDGenerator::class,
     ],
@@ -119,8 +135,8 @@ return [
          *
          * If you're using a custom domain identification middleware, add it here.
          *
-         * @see \Stancl\Tenancy\Concerns\UsableWithEarlyIdentification
-         * @see \Stancl\Tenancy\Middleware\PreventAccessFromUnwantedDomains
+         * @see UsableWithEarlyIdentification
+         * @see PreventAccessFromUnwantedDomains
          */
         'domain_identification_middleware' => [
             Middleware\InitializeTenancyByDomain::class,
@@ -140,7 +156,7 @@ return [
          *
          * If you're using a custom path identification middleware, add it here.
          *
-         * @see \Stancl\Tenancy\Listeners\ForgetTenantParameter
+         * @see ForgetTenantParameter
          */
         'path_identification_middleware' => [
             Middleware\InitializeTenancyByPath::class,
@@ -190,17 +206,17 @@ return [
      * To configure their behavior, see the config keys below.
      */
     'bootstrappers' => [
-            // Basic Laravel features
+        // Basic Laravel features
         Bootstrappers\DatabaseTenancyBootstrapper::class,
         Bootstrappers\CacheTenancyBootstrapper::class,
-            // Bootstrappers\CacheTagsBootstrapper::class, // Alternative to CacheTenancyBootstrapper
-            // Bootstrappers\DatabaseCacheBootstrapper::class, // Separates cache by DB rather than by prefix, must run after DatabaseTenancyBootstrapper
+        // Bootstrappers\CacheTagsBootstrapper::class, // Alternative to CacheTenancyBootstrapper
+        // Bootstrappers\DatabaseCacheBootstrapper::class, // Separates cache by DB rather than by prefix, must run after DatabaseTenancyBootstrapper
         Bootstrappers\FilesystemTenancyBootstrapper::class,
         Bootstrappers\QueueTenancyBootstrapper::class,
-            // Bootstrappers\RedisTenancyBootstrapper::class, // Note: phpredis is needed
+        // Bootstrappers\RedisTenancyBootstrapper::class, // Note: phpredis is needed
 
-            // Adds support for the database session driver
-            // Bootstrappers\DatabaseSessionBootstrapper::class, // Não disponível na v3.9.1
+        // Adds support for the database session driver
+        // Bootstrappers\DatabaseSessionBootstrapper::class, // Não disponível na v3.9.1
 
         // Configurable bootstrappers
         // Bootstrappers\TenantConfigBootstrapper::class,
@@ -245,24 +261,24 @@ return [
          * TenantDatabaseManagers are classes that handle the creation & deletion of tenant databases.
          */
         'managers' => [
-            'sqlite' => Stancl\Tenancy\TenantDatabaseManagers\SQLiteDatabaseManager::class,
-            'mysql' => Stancl\Tenancy\TenantDatabaseManagers\MySQLDatabaseManager::class,
-            'mariadb' => Stancl\Tenancy\TenantDatabaseManagers\MySQLDatabaseManager::class,
-            'pgsql' => App\Tenancy\TenantDatabaseManagers\PostgreSQLSchemaPublicManager::class,
+            'sqlite' => SQLiteDatabaseManager::class,
+            'mysql' => MySQLDatabaseManager::class,
+            'mariadb' => MySQLDatabaseManager::class,
+            'pgsql' => PostgreSQLSchemaPublicManager::class,
             // 'sqlsrv' => Stancl\Tenancy\TenantDatabaseManagers\MicrosoftSQLDatabaseManager::class, // Classe não existe na v3.9.1
 
-            /**
-             * Use these database managers to have a DB user created for each tenant database.
-             * You can customize the grants given to these users by changing the $grants property.
-             */
+        /**
+         * Use these database managers to have a DB user created for each tenant database.
+         * You can customize the grants given to these users by changing the $grants property.
+         */
             // 'mysql' => Stancl\Tenancy\TenantDatabaseManagers\PermissionControlledMySQLDatabaseManager::class,
             // 'pgsql' => Stancl\Tenancy\TenantDatabaseManagers\PermissionControlledPostgreSQLDatabaseManager::class,
             // 'sqlsrv' => Stancl\Tenancy\TenantDatabaseManagers\PermissionControlledMicrosoftSQLDatabaseManager::class,
 
-            /**
-             * Disable the pgsql manager above, and enable the one below if you
-             * want to separate tenant DBs by schemas rather than databases.
-             */
+        /**
+         * Disable the pgsql manager above, and enable the one below if you
+         * want to separate tenant DBs by schemas rather than databases.
+         */
             // 'pgsql' => Stancl\Tenancy\TenantDatabaseManagers\PostgreSQLSchemaManager::class, // Separate by schema instead of database
             // 'pgsql' => Stancl\Tenancy\TenantDatabaseManagers\PermissionControlledPostgreSQLSchemaManager::class, // Also permission controlled
         ],
@@ -285,8 +301,8 @@ return [
         /**
          * The RLS manager responsible for generating queries for creating policies.
          *
-         * @see Stancl\Tenancy\RLS\PolicyManagers\TableRLSManager
-         * @see Stancl\Tenancy\RLS\PolicyManagers\TraitRLSManager
+         * @see TableRLSManager
+         * @see TraitRLSManager
          */
         // 'manager' => Stancl\Tenancy\RLS\PolicyManagers\TableRLSManager::class, // RLS não disponível na v3.9.1
 

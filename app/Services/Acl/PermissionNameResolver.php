@@ -47,7 +47,7 @@ class PermissionNameResolver
         $class = is_object($modelOrClass) ? get_class($modelOrClass) : $modelOrClass;
         $module = ModulesEnum::modelMap()[$class] ?? null;
 
-        if (!$module) {
+        if (! $module) {
             return null;
         }
 
@@ -67,13 +67,13 @@ class PermissionNameResolver
         foreach ($modulePermissions as $moduleKey => $value) {
             $module = ModulesEnum::tryFrom($moduleKey);
 
-            if (!$module || $value === null) {
+            if (! $module || $value === null) {
                 continue;
             }
 
             if (is_array($value)) {
                 foreach ($value as $resource => $level) {
-                    if (!isset(self::LEVEL_HIERARCHY[$level])) {
+                    if (! isset(self::LEVEL_HIERARCHY[$level])) {
                         continue;
                     }
 
@@ -85,7 +85,7 @@ class PermissionNameResolver
                 continue;
             }
 
-            if (!isset(self::LEVEL_HIERARCHY[$value])) {
+            if (! isset(self::LEVEL_HIERARCHY[$value])) {
                 continue;
             }
 

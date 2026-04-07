@@ -33,7 +33,7 @@ class UserManagementController extends Controller
             perPage: (int) $request->integer('per_page', 15),
         );
 
-        $users->through(fn(User $user) => (new UserResource($user))->toArray($request));
+        $users->through(fn (User $user) => (new UserResource($user))->toArray($request));
 
         return ApiResponseService::paginated($users, language()->t('USER_LIST_RETRIEVED'));
     }

@@ -9,7 +9,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
 class PlanRolePermissionTemplate extends Model
 {
-    use HasFactory, CentralConnection;
+    use CentralConnection, HasFactory;
 
     protected $table = 'plan_role_permission_templates';
 

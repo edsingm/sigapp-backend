@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Tenant;
 
+use App\Models\Tenant\TerrenoProduto;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ViabilidadeRequest extends FormRequest
@@ -17,7 +19,7 @@ class ViabilidadeRequest extends FormRequest
     /**
      * Obtém as regras de validação que se aplicam à requisição.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
@@ -26,7 +28,7 @@ class ViabilidadeRequest extends FormRequest
                 $this->isMethod('post') ? 'required' : 'sometimes',
                 'exists:terrenos,id',
                 function ($attribute, $value, $fail) {
-                    $hasProducts = \App\Models\Tenant\TerrenoProduto::where('terreno_id', $value)->exists();
+                    $hasProducts = TerrenoProduto::where('terreno_id', $value)->exists();
                     if (! $hasProducts) {
                         $fail('O terreno selecionado não possui produtos associados. Cadastre produtos antes de criar uma viabilidade.');
                     }

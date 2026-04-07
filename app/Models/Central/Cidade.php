@@ -5,13 +5,12 @@ namespace App\Models\Central;
 use App\Models\Tenant\Terreno;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
 class Cidade extends Model
 {
-    use HasFactory, CentralConnection;
+    use CentralConnection, HasFactory;
 
     /**
      * A tabela associada ao modelo.
@@ -69,7 +68,7 @@ class Cidade extends Model
     public static function rules($id = null): array
     {
         return [
-            'code' => 'required|string|max:255|unique:cidades,code' . ($id ? ',' . $id : ''),
+            'code' => 'required|string|max:255|unique:cidades,code'.($id ? ','.$id : ''),
             'city' => 'required|string|max:255',
             'state' => 'required|string|max:255',
             'state_code' => 'required|string|size:2',
@@ -126,7 +125,7 @@ class Cidade extends Model
     {
         return (object) [
             'sigla' => $this->state_code,
-            'nome' => $this->state
+            'nome' => $this->state,
         ];
     }
 }

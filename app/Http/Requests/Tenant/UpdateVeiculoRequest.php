@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Tenant;
 
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateVeiculoRequest extends FormRequest
@@ -17,17 +18,17 @@ class UpdateVeiculoRequest extends FormRequest
     /**
      * Obtém as regras de validação que se aplicam à requisição.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
         $veiculoId = $this->route('veiculo') ?? $this->route('id');
-        
+
         return [
-            'placa' => 'sometimes|string|max:10|unique:veiculos,placa,' . $veiculoId,
+            'placa' => 'sometimes|string|max:10|unique:veiculos,placa,'.$veiculoId,
             'modelo' => 'sometimes|string|max:100',
             'marca' => 'sometimes|string|max:50',
-            'ano' => 'sometimes|integer|min:1900|max:' . (date('Y') + 1),
+            'ano' => 'sometimes|integer|min:1900|max:'.(date('Y') + 1),
             'cor' => 'nullable|string|max:30',
             'chassi' => 'nullable|string|max:50',
             'renavam' => 'nullable|string|max:20',

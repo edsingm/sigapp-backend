@@ -2,27 +2,9 @@
 
 namespace App\Http\Resources\Tenant;
 
+use App\Services\Tenant\LandWorkflowService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use App\Http\Resources\Tenant\UserResource;
-use App\Http\Resources\Tenant\CorretorExternoResource;
-use App\Http\Resources\Tenant\RegionalResource;
-use App\Http\Resources\Tenant\ProprietarioResource;
-use App\Http\Resources\Tenant\DocumentoResource;
-use App\Http\Resources\Tenant\ViabilidadeResource;
-use App\Http\Resources\Tenant\TerrenoInfoResource;
-use App\Http\Resources\Tenant\TerrenoProdutoResource;
-use App\Http\Resources\Tenant\CidadeResource;
-use App\Http\Resources\Tenant\ComiteRevisaoResource;
-use App\Http\Resources\Tenant\ContratoResource;
-use App\Http\Resources\Tenant\EntityActivityResource;
-use App\Http\Resources\Tenant\LegalizacaoResource;
-use App\Http\Resources\Tenant\NegociacaoResource;
-use App\Http\Resources\Tenant\StatusHistoryResource;
-use App\Http\Resources\Tenant\TaskResource;
-use App\Http\Resources\Tenant\TerrenoContatoResource;
-use App\Services\Tenant\LandWorkflowService;
-
 
 class TerrenoResource extends JsonResource
 {
@@ -43,7 +25,7 @@ class TerrenoResource extends JsonResource
             'corretor_externo' => new CorretorExternoResource($this->whenLoaded('corretorExterno')),
             'estado' => $this->estado,
             'cidade_code' => $this->cidade_code,
-            'cidade_nome' => $this->whenLoaded('cidade', fn() => $this->cidade?->city),
+            'cidade_nome' => $this->whenLoaded('cidade', fn () => $this->cidade?->city),
             'polygon_coords' => $this->polygon_coords,
             'static_map_url' => $this->static_map_url,
             'area_calculada' => $this->area_calculada ? (float) $this->area_calculada : null,
@@ -98,9 +80,9 @@ class TerrenoResource extends JsonResource
             'deleted_at' => $this->deleted_at?->format('Y-m-d H:i:s'),
 
             // Campos calculados
-            'valor_formatado' => $this->valor ? 'R$ ' . number_format($this->valor, 2, ',', '.') : null,
-            'area_formatada' => $this->area_calculada ? number_format($this->area_calculada, 2, ',', '.') . ' m²' : null,
-            'endereco_completo' => $this->endereco . ($this->relationLoaded('cidade') && $this->cidade ? ', ' . $this->cidade->city : '') . ($this->estado ? ' - ' . $this->estado : ''),
+            'valor_formatado' => $this->valor ? 'R$ '.number_format($this->valor, 2, ',', '.') : null,
+            'area_formatada' => $this->area_calculada ? number_format($this->area_calculada, 2, ',', '.').' m²' : null,
+            'endereco_completo' => $this->endereco.($this->relationLoaded('cidade') && $this->cidade ? ', '.$this->cidade->city : '').($this->estado ? ' - '.$this->estado : ''),
 
             // Relacionamentos adicionais
             'proprietarios' => ProprietarioResource::collection($this->whenLoaded('proprietarios')),

@@ -3,6 +3,7 @@
 namespace Database\Seeders\Tenant;
 
 use App\Enums\Common\RolesEnum;
+use App\Models\Central\Tenant;
 use App\Models\Tenant\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -21,10 +22,11 @@ class AdminUserSeeder extends Seeder
         $email = $tenant->admin_email;
         $name = $tenant->admin_name;
 
-        if (!$email) {
+        if (! $email) {
             Log::error('Admin email ausente ao criar usuário do tenant', [
                 'tenant_id' => $tenant->id,
             ]);
+
             // We don't throw exception here to avoid breaking the entire seeding process if something is weird,
             // but in the original job it did throw. Let's keep it safe but log error.
             return;
@@ -32,13 +34,14 @@ class AdminUserSeeder extends Seeder
 
         $user = User::where('email', $email)->first();
 
-        if (!$user) {
+        if (! $user) {
             $adminPassword = $tenant->admin_password;
 
-            if (!$adminPassword) {
+            if (! $adminPassword) {
                 Log::error('Admin password ausente ao criar usuário do tenant', [
                     'tenant_id' => $tenant->id,
                 ]);
+
                 return;
             }
 
@@ -47,7 +50,7 @@ class AdminUserSeeder extends Seeder
 
                 // Update central tenant password if needed (using central context)
                 tenancy()->central(function () use ($tenant, $adminPassword) {
-                    /** @var \App\Models\Central\Tenant $tenant */
+                    /** @var Tenant $tenant */
                     $tenant->forceFill(['admin_password' => $adminPassword])->save();
                 });
             }

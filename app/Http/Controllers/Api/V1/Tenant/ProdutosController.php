@@ -3,12 +3,13 @@
 namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Http\Resources\Tenant\ProdutoResource;
-use App\Models\Tenant\Produto;
 use App\Http\Requests\Tenant\StoreProdutoRequest;
 use App\Http\Requests\Tenant\UpdateProdutoRequest;
+use App\Http\Resources\Tenant\ProdutoResource;
+use App\Models\Tenant\Produto;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 
 class ProdutosController extends Controller
@@ -22,9 +23,9 @@ class ProdutosController extends Controller
 
         $tenantId = tenant('id') ?? 'central';
         $filters = $request->only(['per_page', 'page']);
-        $cacheKey = "tenant:{$tenantId}:produtos:index:" . md5(json_encode($filters));
+        $cacheKey = "tenant:{$tenantId}:produtos:index:".md5(json_encode($filters));
 
-        return \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:produtos"])->remember($cacheKey, now()->addMinutes(30), function () use ($request) {
+        return Cache::tags(["tenant:{$tenantId}:produtos"])->remember($cacheKey, now()->addMinutes(30), function () use ($request) {
             $perPage = (int) ($request->input('per_page') ?? 10);
             $paginator = Produto::orderBy('created_at', 'desc')
                 ->paginate($perPage);
@@ -60,7 +61,7 @@ class ProdutosController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => new ProdutoResource($produto)
+            'data' => new ProdutoResource($produto),
         ]);
     }
 
@@ -122,7 +123,7 @@ class ProdutosController extends Controller
 
         $search = $request->input('search', '');
 
-        $produtos = Produto::where('name', 'like', '%' . $search . '%')
+        $produtos = Produto::where('name', 'like', '%'.$search.'%')
             ->orderBy('name')
             ->get();
 

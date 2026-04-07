@@ -11,13 +11,13 @@ class ModulesSeeder extends Seeder
     public function run(): void
     {
         $data = collect(ModulesEnum::cases())
-            ->map(fn(ModulesEnum $module) => [
-                'slug'      => $module->value,
+            ->map(fn (ModulesEnum $module) => [
+                'slug' => $module->value,
                 'resources' => $module->hasSubmodules()
-                    ? json_encode(array_map(fn($s) => $s->value, $module->submodules()))
+                    ? json_encode(array_map(fn ($s) => $s->value, $module->submodules()))
                     : null,
-                'active'    => true,
-                'order'     => $module->order(),
+                'active' => true,
+                'order' => $module->order(),
             ])
             ->all();
 

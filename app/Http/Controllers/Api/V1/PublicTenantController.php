@@ -26,7 +26,7 @@ class PublicTenantController extends Controller
             ->exists();
 
         return ApiResponseService::success([
-            'available' => !$exists,
+            'available' => ! $exists,
             'normalized_subdomain' => $normalizedSubdomain,
         ], $exists ? 'SUBDOMAIN_UNVAVAILABLE' : 'SUBDOMAIN_AVAILABLE');
     }

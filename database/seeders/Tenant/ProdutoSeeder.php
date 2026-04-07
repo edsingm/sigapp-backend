@@ -3,7 +3,6 @@
 namespace Database\Seeders\Tenant;
 
 use App\Models\Tenant\Produto;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class ProdutoSeeder extends Seeder
@@ -15,7 +14,7 @@ class ProdutoSeeder extends Seeder
     {
         // Em produção, evitar TRUNCATE por causa de FKs (ex.: area_produtos -> products)
         // Limpar a tabela apenas em ambientes locais/de teste
-        if (!app()->environment('production')) {
+        if (! app()->environment('production')) {
             // Limpeza total no ambiente local/de teste, removendo inclusive registros soft-deleted
             Produto::query()->forceDelete();
         }

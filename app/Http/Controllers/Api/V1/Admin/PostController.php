@@ -20,7 +20,7 @@ class PostController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $posts
+            'data' => $posts,
         ]);
     }
 
@@ -48,7 +48,7 @@ class PostController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Artigo criado com sucesso',
-            'data' => $post
+            'data' => $post,
         ], 201);
     }
 
@@ -59,7 +59,7 @@ class PostController extends Controller
     {
         return response()->json([
             'success' => true,
-            'data' => $post->load('author:id,name')
+            'data' => $post->load('author:id,name'),
         ]);
     }
 
@@ -88,7 +88,7 @@ class PostController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Artigo atualizado com sucesso',
-            'data' => $post
+            'data' => $post,
         ]);
     }
 
@@ -101,7 +101,7 @@ class PostController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Artigo excluído com sucesso'
+            'message' => 'Artigo excluído com sucesso',
         ]);
     }
 }

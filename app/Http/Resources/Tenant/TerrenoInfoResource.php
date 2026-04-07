@@ -1,9 +1,9 @@
 <?php
+
 namespace App\Http\Resources\Tenant;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-
 
 class TerrenoInfoResource extends JsonResource
 {
@@ -28,13 +28,3 @@ class TerrenoInfoResource extends JsonResource
         ];
     }
 }
-
-
-
-
-
-
-
-
-
-?>

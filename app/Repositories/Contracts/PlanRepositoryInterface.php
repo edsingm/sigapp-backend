@@ -34,7 +34,7 @@ interface PlanRepositoryInterface
      * Sincroniza os entitlements de um plano.
      * $entitlements = [entitlement_id => value, ...]
      *
-     * @param array<int, mixed> $entitlements
+     * @param  array<int, mixed>  $entitlements
      */
     public function syncEntitlements(Plan $plan, array $entitlements): void;
 

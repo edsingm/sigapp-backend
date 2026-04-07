@@ -13,6 +13,7 @@ trait HasDashboardCache
     public function getDashboardCacheTag(): string
     {
         $tenantId = tenant('id') ?? 'central';
+
         return "tenant:{$tenantId}:dashboard";
     }
 
@@ -23,7 +24,7 @@ trait HasDashboardCache
     {
         try {
             $tag = $this->getDashboardCacheTag();
-            
+
             // Tags are only supported by redis and memcached drivers
             if (config('cache.default') === 'redis' || config('cache.default') === 'memcached') {
                 Cache::tags([$tag])->flush();
@@ -31,10 +32,10 @@ trait HasDashboardCache
                 // Fallback: clear all cache if tags are not supported (less efficient)
                 // Or we could implement a more specific key-based clearing if needed
                 // For now, let's just log or do nothing to avoid clearing everything
-                Log::info("Dashboard cache clear requested but driver does not support tags: " . config('cache.default'));
+                Log::info('Dashboard cache clear requested but driver does not support tags: '.config('cache.default'));
             }
         } catch (\Exception $e) {
-            Log::error("Error clearing dashboard cache: " . $e->getMessage());
+            Log::error('Error clearing dashboard cache: '.$e->getMessage());
         }
     }
 
@@ -56,7 +57,7 @@ trait HasDashboardCache
                 Log::debug("Tenant cache cleared for module: {$module}", ['tag' => $tag]);
             }
         } catch (\Exception $e) {
-            Log::error("Error clearing tenant module cache: " . $e->getMessage());
+            Log::error('Error clearing tenant module cache: '.$e->getMessage());
         }
     }
 }

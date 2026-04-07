@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\Central\Tenant;
 use App\Models\User;
 use App\Services\ApiResponseService;
 use Illuminate\Http\Request;
@@ -28,7 +29,7 @@ class AdminController extends Controller
 
         $user = User::where('email', $credentials['email'])->first();
 
-        if (!$user || !Hash::check($credentials['password'], $user->password) || !$user->is_admin) {
+        if (! $user || ! Hash::check($credentials['password'], $user->password) || ! $user->is_admin) {
             Log::warning('Login de administrador rejeitado', [
                 'request_id' => $requestId,
                 'status' => 'rejected',
@@ -76,15 +77,15 @@ class AdminController extends Controller
         // Podemos expandir isso mais tarde para buscar contagens reais das tabelas Tenant/Central
         // Assumindo que temos acesso aos modelos Central aqui, já que isso roda no contexto central
 
-        $totalTenants = \App\Models\Central\Tenant::count();
-        $recentTenants = \App\Models\Central\Tenant::latest()->take(5)->get();
+        $totalTenants = Tenant::count();
+        $recentTenants = Tenant::latest()->take(5)->get();
 
         return ApiResponseService::success([
             'stats' => [
                 'total_tenants' => $totalTenants,
                 'active_tenants' => $totalTenants, // Lógica de espaço reservado
             ],
-            'recent_tenants' => $recentTenants
+            'recent_tenants' => $recentTenants,
         ], language()->t('DASHBOARD_DATA_RETRIEVED'));
     }
 }

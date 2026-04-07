@@ -17,9 +17,9 @@ class UpdateDepartmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name'        => ['sometimes', 'required', 'string', 'max:150'],
+            'name' => ['sometimes', 'required', 'string', 'max:150'],
             'description' => ['nullable', 'string', 'max:500'],
-            'active'      => ['sometimes', 'boolean'],
+            'active' => ['sometimes', 'boolean'],
         ];
     }
 
@@ -30,7 +30,7 @@ class UpdateDepartmentRequest extends FormRequest
     {
         return [
             'name.required' => 'The department name is required.',
-            'name.max'      => 'The department name must not exceed 150 characters.',
+            'name.max' => 'The department name must not exceed 150 characters.',
         ];
     }
 }

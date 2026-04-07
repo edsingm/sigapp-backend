@@ -31,21 +31,21 @@ class StoreLegalizacaoEtapaRequest extends FormRequest
             ]];
         }
 
-        if (!empty($custos)) {
+        if (! empty($custos)) {
             $merge['custos'] = $custos;
 
-            if (!$this->exists('tipo_custo')) {
+            if (! $this->exists('tipo_custo')) {
                 $merge['tipo_custo'] = count($custos) === 1 ? ($custos[0]['tipo_custo'] ?? null) : 'Diversos';
             }
 
-            if (!$this->exists('valor_custo')) {
+            if (! $this->exists('valor_custo')) {
                 $merge['valor_custo'] = array_sum(array_map(
                     fn ($custo) => (float) ($custo['valor_custo'] ?? 0),
                     $custos
                 ));
             }
 
-            if (!$this->exists('custo_pago')) {
+            if (! $this->exists('custo_pago')) {
                 $merge['custo_pago'] = collect($custos)->every(
                     fn ($custo) => (bool) ($custo['custo_pago'] ?? false)
                 );
@@ -53,18 +53,18 @@ class StoreLegalizacaoEtapaRequest extends FormRequest
         } elseif ($this->exists('custos')) {
             $merge['custos'] = [];
 
-            if (!$this->exists('tipo_custo')) {
+            if (! $this->exists('tipo_custo')) {
                 $merge['tipo_custo'] = null;
             }
-            if (!$this->exists('valor_custo')) {
+            if (! $this->exists('valor_custo')) {
                 $merge['valor_custo'] = null;
             }
-            if (!$this->exists('custo_pago')) {
+            if (! $this->exists('custo_pago')) {
                 $merge['custo_pago'] = false;
             }
         }
 
-        if (!empty($merge)) {
+        if (! empty($merge)) {
             $this->merge($merge);
         }
     }
@@ -139,7 +139,7 @@ class StoreLegalizacaoEtapaRequest extends FormRequest
     }
 
     /**
-     * @param array<int, mixed> $custos
+     * @param  array<int, mixed>  $custos
      * @return array<int, array<string, mixed>>
      */
     protected function normalizarCustos(array $custos): array
@@ -147,7 +147,7 @@ class StoreLegalizacaoEtapaRequest extends FormRequest
         $normalizados = [];
 
         foreach ($custos as $custo) {
-            if (!is_array($custo)) {
+            if (! is_array($custo)) {
                 continue;
             }
 
@@ -188,6 +188,7 @@ class StoreLegalizacaoEtapaRequest extends FormRequest
 
         if (is_string($value)) {
             $value = mb_strtolower(trim($value));
+
             return in_array($value, ['1', 'true', 'yes', 'sim'], true);
         }
 

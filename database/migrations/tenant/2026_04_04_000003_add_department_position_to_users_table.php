@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\Tenant\Department;
+use App\Models\Tenant\Position;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -9,13 +11,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->foreignIdFor(\App\Models\Tenant\Department::class)
+            $table->foreignIdFor(Department::class)
                 ->nullable()
                 ->constrained('departments')
                 ->nullOnDelete()
                 ->after('locale');
 
-            $table->foreignIdFor(\App\Models\Tenant\Position::class)
+            $table->foreignIdFor(Position::class)
                 ->nullable()
                 ->constrained('positions')
                 ->nullOnDelete()

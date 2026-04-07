@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (!Schema::hasTable('modules')) {
+        if (! Schema::hasTable('modules')) {
             Schema::create('modules', function (Blueprint $table) {
                 $table->id()->autoIncrement();
                 $table->string('slug')->unique();

@@ -61,7 +61,7 @@ class PlanService
     /**
      * Sincroniza os entitlements de um plano.
      *
-     * @param array<int, array{entitlement_id: int, value: mixed}> $entitlements
+     * @param  array<int, array{entitlement_id: int, value: mixed}>  $entitlements
      */
     public function syncEntitlements(int $planId, array $entitlements): Plan
     {

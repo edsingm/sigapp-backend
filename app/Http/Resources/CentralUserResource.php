@@ -14,16 +14,16 @@ class CentralUserResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id'                 => $this->id,
-            'name'               => $this->name,
-            'email'              => $this->email,
-            'is_admin'           => (bool) $this->is_admin,
-            'email_verified_at'  => $this->email_verified_at?->toIso8601String(),
-            'role'               => $this->is_admin ? 'sigapp' : null,
-            'roles'              => $this->is_admin ? ['sigapp'] : [],
-            'permissions'        => $this->is_admin ? $this->allModulesAsManager() : [],
-            'created_at'         => $this->created_at?->toIso8601String(),
-            'updated_at'         => $this->updated_at?->toIso8601String(),
+            'id' => $this->id,
+            'name' => $this->name,
+            'email' => $this->email,
+            'is_admin' => (bool) $this->is_admin,
+            'email_verified_at' => $this->email_verified_at?->toIso8601String(),
+            'role' => $this->is_admin ? 'sigapp' : null,
+            'roles' => $this->is_admin ? ['sigapp'] : [],
+            'permissions' => $this->is_admin ? $this->allModulesAsManager() : [],
+            'created_at' => $this->created_at?->toIso8601String(),
+            'updated_at' => $this->updated_at?->toIso8601String(),
         ];
     }
 

@@ -55,26 +55,26 @@ enum ModulesEnum: string
     public function order(): int
     {
         return match ($this) {
-            self::DASHBOARD      => 10,
-            self::PROSPECTION    => 20,
-            self::BROKERS        => 30,
-            self::VIABILITY      => 40,
-            self::COMMITTEE      => 50,
-            self::NEGOTIATION    => 60,
-            self::LEGAL          => 70,
-            self::PROJECTS       => 80,
+            self::DASHBOARD => 10,
+            self::PROSPECTION => 20,
+            self::BROKERS => 30,
+            self::VIABILITY => 40,
+            self::COMMITTEE => 50,
+            self::NEGOTIATION => 60,
+            self::LEGAL => 70,
+            self::PROJECTS => 80,
             self::CONFIGURATIONS => 90,
-            self::DATA           => 100,
-            self::REPORTS        => 110,
-            self::ADMIN          => 120,
-            self::AI             => 130
+            self::DATA => 100,
+            self::REPORTS => 110,
+            self::ADMIN => 120,
+            self::AI => 130
         };
     }
 
     public function sector(): SectorsEnum
     {
         return match ($this) {
-            self::DASHBOARD      => SectorsEnum::PRINCIPAL,
+            self::DASHBOARD => SectorsEnum::PRINCIPAL,
             self::PROSPECTION,
             self::BROKERS,
             self::VIABILITY,
@@ -82,11 +82,11 @@ enum ModulesEnum: string
             self::NEGOTIATION,
             self::LEGAL,
             self::PROJECTS,
-            self::AI             => SectorsEnum::OPERATION,
+            self::AI => SectorsEnum::OPERATION,
             self::CONFIGURATIONS,
-            self::DATA           => SectorsEnum::CONFIGURATION,
-            self::REPORTS        => SectorsEnum::INTELLIGENCE,
-            self::ADMIN          => SectorsEnum::ADMINISTRATION
+            self::DATA => SectorsEnum::CONFIGURATION,
+            self::REPORTS => SectorsEnum::INTELLIGENCE,
+            self::ADMIN => SectorsEnum::ADMINISTRATION
         };
     }
 
@@ -103,13 +103,13 @@ enum ModulesEnum: string
     {
         return match ($this) {
             self::PROSPECTION => [SubmodulesEnum::TERRAINS, SubmodulesEnum::MAPS],
-            default           => [],
+            default => [],
         };
     }
 
     public function hasSubmodules(): bool
     {
-        return !empty($this->submodules());
+        return ! empty($this->submodules());
     }
 
     /**

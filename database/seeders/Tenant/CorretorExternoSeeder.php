@@ -2,9 +2,8 @@
 
 namespace Database\Seeders\Tenant;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
 use App\Models\Tenant\CorretorExterno;
+use Illuminate\Database\Seeder;
 
 class CorretorExternoSeeder extends Seeder
 {

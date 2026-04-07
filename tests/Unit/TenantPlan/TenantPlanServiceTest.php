@@ -16,8 +16,11 @@ class TenantPlanServiceTest extends TestCase
     use RefreshDatabase;
 
     private TenantPlanService $service;
+
     private Plan $planA;
+
     private Plan $planB;
+
     private Tenant $tenant;
 
     protected function setUp(): void
@@ -27,29 +30,29 @@ class TenantPlanServiceTest extends TestCase
         $this->service = app(TenantPlanService::class);
 
         $this->planA = Plan::create([
-            'name'       => 'Plan A',
-            'slug'       => 'plan-a',
-            'price'      => 10000,
+            'name' => 'Plan A',
+            'slug' => 'plan-a',
+            'price' => 10000,
             'sort_order' => 1,
-            'is_active'  => true,
+            'is_active' => true,
             'trial_days' => 7,
         ]);
 
         $this->planB = Plan::create([
-            'name'       => 'Plan B',
-            'slug'       => 'plan-b',
-            'price'      => 20000,
+            'name' => 'Plan B',
+            'slug' => 'plan-b',
+            'price' => 20000,
             'sort_order' => 2,
-            'is_active'  => true,
+            'is_active' => true,
             'trial_days' => 7,
         ]);
 
         $this->tenant = Tenant::create([
-            'name'           => 'Test Tenant',
-            'slug'           => 'test-tenant',
-            'status'         => Tenant::STATUS_ACTIVE,
-            'admin_name'     => 'Admin',
-            'admin_email'    => 'admin@test.com',
+            'name' => 'Test Tenant',
+            'slug' => 'test-tenant',
+            'status' => Tenant::STATUS_ACTIVE,
+            'admin_name' => 'Admin',
+            'admin_email' => 'admin@test.com',
             'admin_password' => 'password',
         ]);
     }
@@ -65,11 +68,11 @@ class TenantPlanServiceTest extends TestCase
     public function test_assign_fails_for_inactive_plan(): void
     {
         $inactive = Plan::create([
-            'name'       => 'Inactive',
-            'slug'       => 'inactive',
-            'price'      => 0,
+            'name' => 'Inactive',
+            'slug' => 'inactive',
+            'price' => 0,
             'sort_order' => 5,
-            'is_active'  => false,
+            'is_active' => false,
             'trial_days' => 0,
         ]);
 
@@ -117,9 +120,9 @@ class TenantPlanServiceTest extends TestCase
     public function test_it_adds_extra_entitlement_to_tenant(): void
     {
         $ent = Entitlement::create([
-            'key'           => 'extra.feature',
-            'type'          => EntitlementType::FEATURE->value,
-            'label'         => 'Extra Feature',
+            'key' => 'extra.feature',
+            'type' => EntitlementType::FEATURE->value,
+            'label' => 'Extra Feature',
             'default_value' => false,
         ]);
 
@@ -141,9 +144,9 @@ class TenantPlanServiceTest extends TestCase
     public function test_it_lists_extra_entitlements_with_entitlement_loaded(): void
     {
         $ent = Entitlement::create([
-            'key'           => 'list.feat',
-            'type'          => EntitlementType::FEATURE->value,
-            'label'         => 'List Feat',
+            'key' => 'list.feat',
+            'type' => EntitlementType::FEATURE->value,
+            'label' => 'List Feat',
             'default_value' => false,
         ]);
 
@@ -159,9 +162,9 @@ class TenantPlanServiceTest extends TestCase
     public function test_it_updates_extra_entitlement_price(): void
     {
         $ent = Entitlement::create([
-            'key'           => 'upd.feat',
-            'type'          => EntitlementType::FEATURE->value,
-            'label'         => 'Upd',
+            'key' => 'upd.feat',
+            'type' => EntitlementType::FEATURE->value,
+            'label' => 'Upd',
             'default_value' => false,
         ]);
 
@@ -175,9 +178,9 @@ class TenantPlanServiceTest extends TestCase
     public function test_it_removes_extra_entitlement(): void
     {
         $ent = Entitlement::create([
-            'key'           => 'rm.feat',
-            'type'          => EntitlementType::FEATURE->value,
-            'label'         => 'Rm',
+            'key' => 'rm.feat',
+            'type' => EntitlementType::FEATURE->value,
+            'label' => 'Rm',
             'default_value' => false,
         ]);
 
@@ -185,7 +188,7 @@ class TenantPlanServiceTest extends TestCase
         $this->service->removeExtraEntitlement($this->tenant->id, $ent->id);
 
         $this->assertDatabaseMissing('tenant_entitlements', [
-            'tenant_id'      => $this->tenant->id,
+            'tenant_id' => $this->tenant->id,
             'entitlement_id' => $ent->id,
         ]);
     }

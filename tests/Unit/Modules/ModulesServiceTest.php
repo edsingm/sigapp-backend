@@ -6,6 +6,7 @@ use App\Enums\Common\ModulesEnum;
 use App\Enums\Common\SectorsEnum;
 use App\Models\Central\Modules\Modules;
 use App\Services\Modules\ModulesService;
+use Database\Seeders\ModulesSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -55,7 +56,7 @@ class ModulesServiceTest extends TestCase
         $grouped = $this->service->getAllModules();
 
         $allModules = collect($grouped)->flatten(1)->values();
-        $orders     = $allModules->pluck('order')->all();
+        $orders = $allModules->pluck('order')->all();
 
         $sorted = $orders;
         sort($sorted);
@@ -74,15 +75,15 @@ class ModulesServiceTest extends TestCase
     public function test_sectors_are_sorted_by_sector_order(): void
     {
         // Seed all modules to get full sector grouping
-        $this->seed(\Database\Seeders\ModulesSeeder::class);
+        $this->seed(ModulesSeeder::class);
 
         $grouped = $this->service->getAllModules();
         $sectorKeys = array_keys($grouped);
 
         $expectedOrder = collect(SectorsEnum::cases())
-            ->sortBy(fn($s) => $s->order())
-            ->filter(fn($s) => in_array($s->value, $sectorKeys))
-            ->map(fn($s) => $s->value)
+            ->sortBy(fn ($s) => $s->order())
+            ->filter(fn ($s) => in_array($s->value, $sectorKeys))
+            ->map(fn ($s) => $s->value)
             ->values()
             ->all();
 

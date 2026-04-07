@@ -8,6 +8,7 @@ use App\Models\Tenant\Documento;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -43,9 +44,9 @@ class DocumentosController extends Controller
 
         $tenantId = tenant('id') ?? 'central';
         $filters = $request->only(['terreno_id', 'tipo', 'categoria', 'status', 'search', 'sort_by', 'sort_dir', 'per_page', 'page']);
-        $cacheKey = "tenant:{$tenantId}:documentos:index:" . md5(json_encode($filters));
+        $cacheKey = "tenant:{$tenantId}:documentos:index:".md5(json_encode($filters));
 
-        return \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:documentos"])->remember($cacheKey, now()->addMinutes(30), function () use ($request) {
+        return Cache::tags(["tenant:{$tenantId}:documentos"])->remember($cacheKey, now()->addMinutes(30), function () use ($request) {
             $query = Documento::with(['terreno:id,nome', 'createdBy:id,name', 'updatedBy:id,name']);
 
             if ($request->filled('terreno_id')) {
@@ -66,7 +67,7 @@ class DocumentosController extends Controller
 
             if ($request->filled('search')) {
                 $search = Str::limit((string) $request->search, 100, '');
-                $query->where('nome', 'like', '%' . $search . '%');
+                $query->where('nome', 'like', '%'.$search.'%');
             }
 
             $allowedSortColumns = ['created_at', 'updated_at', 'nome', 'tipo', 'categoria', 'status', 'tamanho'];
@@ -143,7 +144,7 @@ class DocumentosController extends Controller
 
         // Usa extensão derivada do MIME type real, nunca da extensão informada pelo cliente
         $extension = strtolower((string) ($file->guessExtension() ?? ''));
-        if ($extension === '' || !in_array($extension, $this->allowedExtensions, true)) {
+        if ($extension === '' || ! in_array($extension, $this->allowedExtensions, true)) {
             return response()->json([
                 'message' => 'Tipo de arquivo não permitido.',
                 'errors' => ['arquivo' => ['Tipo de conteúdo não reconhecido ou não permitido.']],
@@ -152,7 +153,7 @@ class DocumentosController extends Controller
 
         $baseName = Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) ?: 'documento';
         $safeBaseName = Str::limit($baseName, 80, '');
-        $fileName = now()->format('YmdHis') . '_' . Str::lower((string) Str::uuid()) . '_' . $safeBaseName . '.' . $extension;
+        $fileName = now()->format('YmdHis').'_'.Str::lower((string) Str::uuid()).'_'.$safeBaseName.'.'.$extension;
 
         $path = $file->storeAs('documentos', $fileName, self::STORAGE_DISK);
 
@@ -271,7 +272,7 @@ class DocumentosController extends Controller
         $documento = Documento::findOrFail($id);
         Gate::authorize('view', $documento);
 
-        if (!$documento->file_path || !Storage::disk(self::STORAGE_DISK)->exists($documento->file_path)) {
+        if (! $documento->file_path || ! Storage::disk(self::STORAGE_DISK)->exists($documento->file_path)) {
             return response()->json([
                 'message' => 'Arquivo não encontrado.',
             ], 404);
@@ -281,7 +282,7 @@ class DocumentosController extends Controller
         $extension = pathinfo($documento->file_path, PATHINFO_EXTENSION);
 
         if ($extension !== '' && pathinfo($downloadName, PATHINFO_EXTENSION) === '') {
-            $downloadName .= '.' . $extension;
+            $downloadName .= '.'.$extension;
         }
 
         return response()->download(
@@ -298,7 +299,7 @@ class DocumentosController extends Controller
         $documento = Documento::findOrFail($id);
         Gate::authorize('view', $documento);
 
-        if (!$documento->file_path || !Storage::disk(self::STORAGE_DISK)->exists($documento->file_path)) {
+        if (! $documento->file_path || ! Storage::disk(self::STORAGE_DISK)->exists($documento->file_path)) {
             return response()->json([
                 'message' => 'Arquivo não encontrado.',
             ], 404);
@@ -308,13 +309,13 @@ class DocumentosController extends Controller
         $extension = pathinfo($documento->file_path, PATHINFO_EXTENSION);
 
         if ($extension !== '' && pathinfo($filename, PATHINFO_EXTENSION) === '') {
-            $filename .= '.' . $extension;
+            $filename .= '.'.$extension;
         }
 
         return response()->file(
             Storage::disk(self::STORAGE_DISK)->path($documento->file_path),
             [
-                'Content-Disposition' => 'inline; filename="' . addslashes($filename) . '"',
+                'Content-Disposition' => 'inline; filename="'.addslashes($filename).'"',
             ]
         );
     }

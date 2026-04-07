@@ -5,8 +5,8 @@ $allowedOriginPatterns = [
     '/https?:\/\/(.+)?\.localhost(:\d+)?$/',
 ];
 
-if ($appDomain !== '' && !in_array($appDomain, ['localhost', '127.0.0.1'], true)) {
-    $allowedOriginPatterns[] = '/https?:\/\/([a-z0-9-]+\.)?' . preg_quote($appDomain, '/') . '(:\d+)?$/i';
+if ($appDomain !== '' && ! in_array($appDomain, ['localhost', '127.0.0.1'], true)) {
+    $allowedOriginPatterns[] = '/https?:\/\/([a-z0-9-]+\.)?'.preg_quote($appDomain, '/').'(:\d+)?$/i';
 }
 
 return [

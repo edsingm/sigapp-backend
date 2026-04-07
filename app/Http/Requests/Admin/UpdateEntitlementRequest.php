@@ -18,10 +18,10 @@ class UpdateEntitlementRequest extends FormRequest
         $entitlementId = (int) $this->route('entitlement');
 
         return [
-            'key'           => ['sometimes', 'string', 'max:100', 'regex:/^[a-z0-9_.]+$/', Rule::unique('entitlements', 'key')->ignore($entitlementId)],
-            'label'         => ['sometimes', 'string', 'max:255'],
-            'description'   => ['nullable', 'string', 'max:1000'],
-            'type'          => ['sometimes', Rule::enum(EntitlementType::class)],
+            'key' => ['sometimes', 'string', 'max:100', 'regex:/^[a-z0-9_.]+$/', Rule::unique('entitlements', 'key')->ignore($entitlementId)],
+            'label' => ['sometimes', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:1000'],
+            'type' => ['sometimes', Rule::enum(EntitlementType::class)],
             'default_value' => ['nullable'],
         ];
     }

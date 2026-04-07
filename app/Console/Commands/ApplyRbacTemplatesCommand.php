@@ -30,18 +30,19 @@ class ApplyRbacTemplatesCommand extends Command
      * Hierarquia cumulativa: igual ao RolePermissionSeeder.
      */
     private const LEVEL_MAP = [
-        'viewer'  => ['viewer'],
-        'editor'  => ['viewer', 'editor'],
+        'viewer' => ['viewer'],
+        'editor' => ['viewer', 'editor'],
         'manager' => ['viewer', 'editor', 'manager'],
     ];
 
     public function handle(): int
     {
-        $applyAll         = (bool) $this->option('all');
+        $applyAll = (bool) $this->option('all');
         $tenantIdentifier = $this->option('tenant');
 
-        if (!$applyAll && !$tenantIdentifier) {
+        if (! $applyAll && ! $tenantIdentifier) {
             $this->error('Informe --tenant=<id|slug> ou use --all.');
+
             return self::FAILURE;
         }
 
@@ -56,6 +57,7 @@ class ApplyRbacTemplatesCommand extends Command
 
         if ($tenants->isEmpty()) {
             $this->warn('Nenhum tenant encontrado.');
+
             return self::SUCCESS;
         }
 
@@ -64,25 +66,27 @@ class ApplyRbacTemplatesCommand extends Command
 
             $tenant->run(function () {
                 foreach (RolesEnum::cases() as $roleEnum) {
-                    $templatePath = database_path('rbacTemplates/' . strtolower($roleEnum->value) . '.json');
+                    $templatePath = database_path('rbacTemplates/'.strtolower($roleEnum->value).'.json');
 
-                    if (!file_exists($templatePath)) {
+                    if (! file_exists($templatePath)) {
                         $this->warn("  [SKIP] Template não encontrado para role {$roleEnum->value}");
+
                         continue;
                     }
 
                     $template = json_decode(file_get_contents($templatePath), true);
-                    $role     = Role::where('name', $roleEnum->value)->where('guard_name', 'web')->first();
+                    $role = Role::where('name', $roleEnum->value)->where('guard_name', 'web')->first();
 
-                    if (!$role) {
+                    if (! $role) {
                         $this->warn("  [SKIP] Role {$roleEnum->value} não encontrada no tenant.");
+
                         continue;
                     }
 
                     $permissions = $this->resolvePermissions($template['permissions']);
                     $role->syncPermissions($permissions);
 
-                    $this->line("  [OK]   {$roleEnum->value}: " . count($permissions) . ' permissões atribuídas.');
+                    $this->line("  [OK]   {$roleEnum->value}: ".count($permissions).' permissões atribuídas.');
                 }
             });
         }
@@ -104,8 +108,9 @@ class ApplyRbacTemplatesCommand extends Command
         foreach ($modulePermissions as $moduleKey => $value) {
             $module = ModulesEnum::tryFrom($moduleKey);
 
-            if (!$module) {
+            if (! $module) {
                 $this->warn("  [WARN] Módulo '{$moduleKey}' não existe no ModulesEnum, ignorado.");
+
                 continue;
             }
 

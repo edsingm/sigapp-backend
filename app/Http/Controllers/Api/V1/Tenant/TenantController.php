@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Http\Controllers\Controller;
-use App\Models\Tenant\Terreno;
 use App\Http\Resources\PlanResource;
 use App\Http\Resources\TenantResource;
+use App\Models\Tenant\Terreno;
 use App\Services\ApiResponseService;
 use App\Services\Billing\TenantBillingService;
 use App\Services\UsageMetricsService;
+use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
@@ -18,8 +20,7 @@ class TenantController extends Controller
     public function __construct(
         protected UsageMetricsService $usageService,
         protected TenantBillingService $billingService
-    ) {
-    }
+    ) {}
 
     /**
      * Obter informações do tenant atual.
@@ -110,17 +111,17 @@ class TenantController extends Controller
                         'status' => $stripeSubscription->status ?? null,
                         'collection_method' => $stripeSubscription->collection_method ?? null,
                         'current_period_start' => $stripeSubscription->current_period_start
-                            ? \Carbon\Carbon::createFromTimestamp($stripeSubscription->current_period_start)->toIso8601String()
+                            ? Carbon::createFromTimestamp($stripeSubscription->current_period_start)->toIso8601String()
                             : null,
                         'current_period_end' => $stripeSubscription->current_period_end
-                            ? \Carbon\Carbon::createFromTimestamp($stripeSubscription->current_period_end)->toIso8601String()
+                            ? Carbon::createFromTimestamp($stripeSubscription->current_period_end)->toIso8601String()
                             : null,
                         'cancel_at' => $stripeSubscription->cancel_at
-                            ? \Carbon\Carbon::createFromTimestamp($stripeSubscription->cancel_at)->toIso8601String()
+                            ? Carbon::createFromTimestamp($stripeSubscription->cancel_at)->toIso8601String()
                             : null,
                         'cancel_at_period_end' => (bool) ($stripeSubscription->cancel_at_period_end ?? false),
                         'billing_cycle_anchor' => $stripeSubscription->billing_cycle_anchor
-                            ? \Carbon\Carbon::createFromTimestamp($stripeSubscription->billing_cycle_anchor)->toIso8601String()
+                            ? Carbon::createFromTimestamp($stripeSubscription->billing_cycle_anchor)->toIso8601String()
                             : null,
                         'price_id' => $stripeSubscription->items->data[0]->price->id ?? null,
                         'latest_invoice' => $stripeSubscription->latest_invoice ?? null,
@@ -144,13 +145,13 @@ class TenantController extends Controller
                         'hosted_invoice_url' => $invoice->hosted_invoice_url ?? null,
                         'invoice_pdf' => $invoice->invoice_pdf ?? null,
                         'created_at' => $invoice->created
-                            ? \Carbon\Carbon::createFromTimestamp($invoice->created)->toIso8601String()
+                            ? Carbon::createFromTimestamp($invoice->created)->toIso8601String()
                             : null,
                         'period_start' => $invoice->period_start
-                            ? \Carbon\Carbon::createFromTimestamp($invoice->period_start)->toIso8601String()
+                            ? Carbon::createFromTimestamp($invoice->period_start)->toIso8601String()
                             : null,
                         'period_end' => $invoice->period_end
-                            ? \Carbon\Carbon::createFromTimestamp($invoice->period_end)->toIso8601String()
+                            ? Carbon::createFromTimestamp($invoice->period_end)->toIso8601String()
                             : null,
                     ];
                 }
@@ -190,7 +191,7 @@ class TenantController extends Controller
      *
      * POST /api/v1/tenant/billing/setup-intent
      */
-    public function createSetupIntent(): \Illuminate\Http\JsonResponse
+    public function createSetupIntent(): JsonResponse
     {
         abort_unless(auth()->user()?->isAdmin(), 403);
 
@@ -228,7 +229,7 @@ class TenantController extends Controller
      *
      * POST /api/v1/tenant/billing/payment-method
      */
-    public function updateDefaultPaymentMethod(Request $request): \Illuminate\Http\JsonResponse
+    public function updateDefaultPaymentMethod(Request $request): JsonResponse
     {
         abort_unless(auth()->user()?->isAdmin(), 403);
 
@@ -268,12 +269,12 @@ class TenantController extends Controller
 
         $tenant = tenancy()->tenant;
 
-        if (!$tenant->stripe_id) {
+        if (! $tenant->stripe_id) {
             return ApiResponseService::conflict('BILLING_PORTAL_UNAVAILABLE');
         }
 
         try {
-            $returnUrl = rtrim((string) config('app.frontend_url'), '/') . '/billing';
+            $returnUrl = rtrim((string) config('app.frontend_url'), '/').'/billing';
 
             return ApiResponseService::success([
                 'url' => $this->billingService->createBillingPortalUrl($tenant, $returnUrl),

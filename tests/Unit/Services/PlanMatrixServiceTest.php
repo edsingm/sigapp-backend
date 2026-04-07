@@ -4,6 +4,8 @@ namespace Tests\Unit\Services;
 
 use App\Models\Central\Plan;
 use App\Services\PlanMatrixService;
+use Database\Seeders\EntitlementSeeder;
+use Database\Seeders\PlanSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -15,14 +17,14 @@ class PlanMatrixServiceTest extends TestCase
     {
         parent::setUp();
 
-        $this->seed(\Database\Seeders\PlanSeeder::class);
-        $this->seed(\Database\Seeders\EntitlementSeeder::class);
+        $this->seed(PlanSeeder::class);
+        $this->seed(EntitlementSeeder::class);
     }
 
     public function test_it_resolves_features_from_db_plan(): void
     {
         $service = app(PlanMatrixService::class);
-        $basico  = Plan::where('slug', 'basico')->firstOrFail();
+        $basico = Plan::where('slug', 'basico')->firstOrFail();
 
         $this->assertTrue($service->hasFeature($basico, 'dashboard.enabled'));
         $this->assertFalse($service->hasFeature($basico, 'committee'));
@@ -31,8 +33,8 @@ class PlanMatrixServiceTest extends TestCase
     public function test_it_resolves_limits_from_db_plan(): void
     {
         $service = app(PlanMatrixService::class);
-        $basico  = Plan::where('slug', 'basico')->firstOrFail();
-        $pro     = Plan::where('slug', 'pro')->firstOrFail();
+        $basico = Plan::where('slug', 'basico')->firstOrFail();
+        $pro = Plan::where('slug', 'pro')->firstOrFail();
 
         $this->assertSame(3, $service->getLimit($basico, 'users'));
         $this->assertSame(-1, $service->getLimit($pro, 'users'));
@@ -42,7 +44,7 @@ class PlanMatrixServiceTest extends TestCase
     public function test_it_returns_empty_matrix_for_plan_without_entitlements(): void
     {
         $service = app(PlanMatrixService::class);
-        $plan    = Plan::create(['name' => 'Empty', 'slug' => 'empty', 'price' => 0, 'sort_order' => 9, 'is_active' => true, 'trial_days' => 0]);
+        $plan = Plan::create(['name' => 'Empty', 'slug' => 'empty', 'price' => 0, 'sort_order' => 9, 'is_active' => true, 'trial_days' => 0]);
 
         $matrix = $service->resolve($plan);
 

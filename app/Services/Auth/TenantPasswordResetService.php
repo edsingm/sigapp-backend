@@ -3,6 +3,7 @@
 namespace App\Services\Auth;
 
 use App\Models\Central\Tenant;
+use App\Models\Tenant\User;
 use App\Support\TenantAppUrl;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Facades\Hash;
@@ -15,8 +16,7 @@ class TenantPasswordResetService
     public function __construct(
         private readonly TenantAppUrl $tenantAppUrl,
         private readonly TenantUserDirectoryService $directoryService,
-    ) {
-    }
+    ) {}
 
     /**
      * Envia o link de redefinição de senha para o tenant atual.
@@ -43,11 +43,11 @@ class TenantPasswordResetService
         foreach ($tenants as $tenant) {
             try {
                 $status = $tenant->run(function () use ($email) {
-                    $userExists = \App\Models\Tenant\User::query()
+                    $userExists = User::query()
                         ->where('email', $email)
                         ->exists();
 
-                    if (!$userExists) {
+                    if (! $userExists) {
                         return null;
                     }
 
@@ -60,6 +60,7 @@ class TenantPasswordResetService
                     'tenant_id' => (string) $tenant->id,
                     'error' => $exception->getMessage(),
                 ]);
+
                 continue;
             }
 
@@ -83,7 +84,7 @@ class TenantPasswordResetService
                 'password' => $password,
                 'password_confirmation' => $password,
             ],
-            function (\App\Models\Tenant\User $user, string $password): void {
+            function (User $user, string $password): void {
                 $user->forceFill([
                     'password' => Hash::make($password),
                     'remember_token' => Str::random(60),

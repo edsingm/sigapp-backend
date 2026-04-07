@@ -5,7 +5,7 @@ namespace App\Models\Tenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-
+use Illuminate\Support\Facades\Cache;
 
 class Produto extends Model
 {
@@ -18,17 +18,17 @@ class Produto extends Model
     {
         static::saved(function (Produto $model) {
             $tenantId = tenant('id') ?? 'central';
-            \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:produtos"])->flush();
+            Cache::tags(["tenant:{$tenantId}:produtos"])->flush();
         });
 
         static::deleted(function (Produto $model) {
             $tenantId = tenant('id') ?? 'central';
-            \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:produtos"])->flush();
+            Cache::tags(["tenant:{$tenantId}:produtos"])->flush();
         });
 
         static::restored(function (Produto $model) {
             $tenantId = tenant('id') ?? 'central';
-            \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:produtos"])->flush();
+            Cache::tags(["tenant:{$tenantId}:produtos"])->flush();
         });
     }
 
@@ -89,6 +89,6 @@ class Produto extends Model
 
     protected $casts = [
         'curva_vendas' => 'array',
-        'curva_obra'   => 'array',
+        'curva_obra' => 'array',
     ];
 }

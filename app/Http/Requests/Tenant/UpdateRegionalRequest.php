@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Tenant;
 
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateRegionalRequest extends FormRequest
@@ -17,14 +18,14 @@ class UpdateRegionalRequest extends FormRequest
     /**
      * Obtém as regras de validação que se aplicam à requisição.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
-        $regionalId = $this->route('regional');
+        $regionalId = $this->route('regionai');
 
         return [
-            'nome' => 'sometimes|required|string|max:255|unique:regionais,nome,' . $regionalId,
+            'nome' => 'sometimes|required|string|max:255|unique:regionais,nome,'.$regionalId,
             'estado' => 'nullable|string|max:255',
             'cidade' => 'nullable|string|max:255',
             'endereco' => 'nullable|string|max:255',

@@ -27,8 +27,8 @@ class BlogController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('excerpt', 'like', "%{$search}%")
-                  ->orWhere('content', 'like', "%{$search}%");
+                    ->orWhere('excerpt', 'like', "%{$search}%")
+                    ->orWhere('content', 'like', "%{$search}%");
             });
         }
 
@@ -36,7 +36,7 @@ class BlogController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $posts
+            'data' => $posts,
         ]);
     }
 
@@ -67,8 +67,8 @@ class BlogController extends Controller
             'success' => true,
             'data' => [
                 'post' => $post,
-                'related' => $related
-            ]
+                'related' => $related,
+            ],
         ]);
     }
 
@@ -84,7 +84,7 @@ class BlogController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $categories
+            'data' => $categories,
         ]);
     }
 }

@@ -21,14 +21,14 @@ class PositionController extends Controller
     public function index(Request $request): JsonResponse
     {
         $positions = $this->service->list([
-            'search'   => $request->filled('search') ? $request->string('search')->toString() : null,
-            'active'   => $request->has('active') ? $request->boolean('active') : null,
-            'sort'     => $request->string('sort', 'level')->toString(),
-            'order'    => $request->string('order', 'asc')->toString(),
+            'search' => $request->filled('search') ? $request->string('search')->toString() : null,
+            'active' => $request->has('active') ? $request->boolean('active') : null,
+            'sort' => $request->string('sort', 'level')->toString(),
+            'order' => $request->string('order', 'asc')->toString(),
             'per_page' => (int) $request->integer('per_page', 15),
         ]);
 
-        $positions->through(fn(Position $p) => (new PositionResource($p))->toArray($request));
+        $positions->through(fn (Position $p) => (new PositionResource($p))->toArray($request));
 
         return ApiResponseService::paginated($positions, 'Positions retrieved successfully.');
     }

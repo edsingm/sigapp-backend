@@ -31,8 +31,8 @@ class ViabilidadeUnificadoServiceTest extends TestCase
         parent::setUp();
         // Instância limpa a cada teste — sem DI para evitar estado compartilhado
         $this->service = new ViabilidadeUnificadoService(
-            new CurvaService(),
-            new ImpostosService(),
+            new CurvaService,
+            new ImpostosService,
         );
     }
 
@@ -43,7 +43,7 @@ class ViabilidadeUnificadoServiceTest extends TestCase
     /**
      * Retorna parâmetros completos a partir dos valores padrão de config.
      *
-     * @param array<string, mixed> $overrides
+     * @param  array<string, mixed>  $overrides
      * @return array<string, mixed>
      */
     private function makeParams(array $overrides = []): array
@@ -52,66 +52,66 @@ class ViabilidadeUnificadoServiceTest extends TestCase
         $p = config('viabilidade.prazos');
 
         $base = [
-            'percentualImpostos'                 => (($d['pis_cofins']) + ($d['iss']) + ($d['outros_impostos'])) / 100,
-            'percentualPisCofins'                => $d['pis_cofins'] / 100,
-            'percentualIss'                      => $d['iss'] / 100,
-            'percentualOutrosImpostos'           => $d['outros_impostos'] / 100,
-            'percentualComissao'                 => $d['comissao'] / 100,
-            'parceriaVgv'                        => $d['parceria_vgv'] / 100,
-            'infraNaoIncidente'                  => $d['infra_nao_incidente'] / 100,
-            'percentualIncorporacao'             => $d['incorporacao'] / 100,
-            'incorporacaoRi'                     => $d['incorporacao_ri'] / 100,
-            'incorporacaoEntrega'                => $d['incorporacao_entrega'] / 100,
-            'incorporacaoAteLancamento'          => $d['incorporacao_ate_lancamento'] / 100,
-            'custoAreaComum'                     => $d['area_comum'],
-            'percentualContrapartidas'           => $d['contrapartidas'] / 100,
-            'canteiroMensal'                     => $d['canteiro_mensal'],
-            'moAdministrativa'                   => $d['mo_administrativa'],
-            'percentualSeguros'                  => $d['seguros'] / 100,
-            'percentualAssistenciaTecnica'       => $d['assistencia_tecnica'] / 100,
-            'assistenciaTecnicaCurva'            => $d['assistencia_tecnica_curva'],
-            'percentualDespesasComerciais'       => $d['despesas_comerciais'] / 100,
-            'standVendas'                        => $d['stand_vendas'],
-            'mobiliaDecoracao'                   => $d['mobilia_decoracao'],
-            'gastosMensaisStand'                 => $d['gastos_mensais_stand'] / 100,
-            'comissaoHousePercentual'            => $d['comissao_house_percentual'] / 100,
-            'comissaoImobiliariasPercentual'     => $d['comissao_imobiliarias_percentual'] / 100,
-            'percentualVendasHouse'              => $d['percentual_vendas_house'] / 100,
-            'ajudaCustoGerente'                  => $d['ajuda_custo_gerente'],
-            'ajudaCustoGerenteRegional'          => $d['ajuda_custo_gerente_regional'],
-            'reembolsoLogistica'                 => $d['reembolso_logistica'],
-            'bonusCca'                           => $d['bonus_cca'],
-            'bonusGerente'                       => $d['bonus_gerente'] / 100,
-            'bonusGerenteRegional'               => $d['bonus_gerente_regional'] / 100,
-            'bonusCredito'                       => $d['bonus_credito'] / 100,
-            'bonusGestorComercial'               => $d['bonus_gestor_comercial'] / 100,
-            'pagamentoComissaoVenda'             => $d['pagamento_comissao_venda'] / 100,
-            'pagamentoComissaoDesligamento'      => $d['pagamento_comissao_desligamento'] / 100,
-            'parcelamentoComissaoMeses'          => (int) $d['parcelamento_comissao_meses'],
-            'percentualMarketing'                => $d['marketing'] / 100,
-            'marketingLancamento'                => $d['marketing_lancamento'] / 100,
-            'marketingInicioAntesLancamento'     => (int) $d['marketing_inicio_antes_lancamento'],
-            'custoItbiIptu'                      => $d['itbi_iptu'] / 100,
-            'custoRegistro'                      => $d['registro'],
-            'custoMedicaoContratacao'            => $d['medicao_contratacao'],
-            'custoContratosCef'                  => $d['contratos_cef'],
-            'percentualProdutosCef'              => $d['produtos_cef'] / 100,
+            'percentualImpostos' => (($d['pis_cofins']) + ($d['iss']) + ($d['outros_impostos'])) / 100,
+            'percentualPisCofins' => $d['pis_cofins'] / 100,
+            'percentualIss' => $d['iss'] / 100,
+            'percentualOutrosImpostos' => $d['outros_impostos'] / 100,
+            'percentualComissao' => $d['comissao'] / 100,
+            'parceriaVgv' => $d['parceria_vgv'] / 100,
+            'infraNaoIncidente' => $d['infra_nao_incidente'] / 100,
+            'percentualIncorporacao' => $d['incorporacao'] / 100,
+            'incorporacaoRi' => $d['incorporacao_ri'] / 100,
+            'incorporacaoEntrega' => $d['incorporacao_entrega'] / 100,
+            'incorporacaoAteLancamento' => $d['incorporacao_ate_lancamento'] / 100,
+            'custoAreaComum' => $d['area_comum'],
+            'percentualContrapartidas' => $d['contrapartidas'] / 100,
+            'canteiroMensal' => $d['canteiro_mensal'],
+            'moAdministrativa' => $d['mo_administrativa'],
+            'percentualSeguros' => $d['seguros'] / 100,
+            'percentualAssistenciaTecnica' => $d['assistencia_tecnica'] / 100,
+            'assistenciaTecnicaCurva' => $d['assistencia_tecnica_curva'],
+            'percentualDespesasComerciais' => $d['despesas_comerciais'] / 100,
+            'standVendas' => $d['stand_vendas'],
+            'mobiliaDecoracao' => $d['mobilia_decoracao'],
+            'gastosMensaisStand' => $d['gastos_mensais_stand'] / 100,
+            'comissaoHousePercentual' => $d['comissao_house_percentual'] / 100,
+            'comissaoImobiliariasPercentual' => $d['comissao_imobiliarias_percentual'] / 100,
+            'percentualVendasHouse' => $d['percentual_vendas_house'] / 100,
+            'ajudaCustoGerente' => $d['ajuda_custo_gerente'],
+            'ajudaCustoGerenteRegional' => $d['ajuda_custo_gerente_regional'],
+            'reembolsoLogistica' => $d['reembolso_logistica'],
+            'bonusCca' => $d['bonus_cca'],
+            'bonusGerente' => $d['bonus_gerente'] / 100,
+            'bonusGerenteRegional' => $d['bonus_gerente_regional'] / 100,
+            'bonusCredito' => $d['bonus_credito'] / 100,
+            'bonusGestorComercial' => $d['bonus_gestor_comercial'] / 100,
+            'pagamentoComissaoVenda' => $d['pagamento_comissao_venda'] / 100,
+            'pagamentoComissaoDesligamento' => $d['pagamento_comissao_desligamento'] / 100,
+            'parcelamentoComissaoMeses' => (int) $d['parcelamento_comissao_meses'],
+            'percentualMarketing' => $d['marketing'] / 100,
+            'marketingLancamento' => $d['marketing_lancamento'] / 100,
+            'marketingInicioAntesLancamento' => (int) $d['marketing_inicio_antes_lancamento'],
+            'custoItbiIptu' => $d['itbi_iptu'] / 100,
+            'custoRegistro' => $d['registro'],
+            'custoMedicaoContratacao' => $d['medicao_contratacao'],
+            'custoContratosCef' => $d['contratos_cef'],
+            'percentualProdutosCef' => $d['produtos_cef'] / 100,
             'percentualOutrasDespesasFinanceiras' => $d['outras_despesas_financeiras'] / 100,
-            'mesesObra'                          => (int) $d['prazo_obra'],
-            'mesesIncorporacao'                  => (int) $p['meses_incorporacao'],
-            'mesesLancamento'                    => (int) $p['meses_lancamento'],
-            'mesesEntrega'                       => $p['meses_entrega'],
-            'mesesPosObra'                       => $p['meses_pos_obra'],
-            'variavelCorrecao'                   => $p['variavel_correcao'],
-            'compraTerreno'                      => 0.0,
-            'taxaJurosPj'                        => $d['taxa_juros_pj'] / 100,
-            'percentualAntecipacaoPj'            => $d['percentual_antecipacao_pj'] / 100,
-            'carenciaPjMeses'                    => (int) $d['carencia_pj_meses'],
-            'amortizacaoPjParcelas'              => (int) $d['amortizacao_pj_parcelas'],
-            'aporteAdicionalMensal'              => $d['aporte_adicional_mensal'],
-            'devolucaoAportePercentual'          => $d['devolucao_aporte_percentual'] / 100,
-            'distribuicaoLucrosPercentualObra'   => $d['distribuicao_lucros_percentual_obra'] / 100,
-            'taxaExposicaoAplicada'              => $d['taxa_exposicao_aplicada'] / 100,
+            'mesesObra' => (int) $d['prazo_obra'],
+            'mesesIncorporacao' => (int) $p['meses_incorporacao'],
+            'mesesLancamento' => (int) $p['meses_lancamento'],
+            'mesesEntrega' => $p['meses_entrega'],
+            'mesesPosObra' => $p['meses_pos_obra'],
+            'variavelCorrecao' => $p['variavel_correcao'],
+            'compraTerreno' => 0.0,
+            'taxaJurosPj' => $d['taxa_juros_pj'] / 100,
+            'percentualAntecipacaoPj' => $d['percentual_antecipacao_pj'] / 100,
+            'carenciaPjMeses' => (int) $d['carencia_pj_meses'],
+            'amortizacaoPjParcelas' => (int) $d['amortizacao_pj_parcelas'],
+            'aporteAdicionalMensal' => $d['aporte_adicional_mensal'],
+            'devolucaoAportePercentual' => $d['devolucao_aporte_percentual'] / 100,
+            'distribuicaoLucrosPercentualObra' => $d['distribuicao_lucros_percentual_obra'] / 100,
+            'taxaExposicaoAplicada' => $d['taxa_exposicao_aplicada'] / 100,
         ];
 
         return array_merge($base, $overrides);
@@ -120,7 +120,7 @@ class ViabilidadeUnificadoServiceTest extends TestCase
     /**
      * Retorna dados de produtos simplificados para uso nos testes.
      *
-     * @param array<string, mixed> $overrides
+     * @param  array<string, mixed>  $overrides
      * @return array<string, mixed>
      */
     private function makeDadosProdutos(array $overrides = []): array
@@ -128,61 +128,61 @@ class ViabilidadeUnificadoServiceTest extends TestCase
         $vgv = 10_000_000.0;
 
         $base = [
-            'vgv'                      => $vgv,
-            'vgvSemValorTerrenista'    => $vgv,
-            'vgvSemUnidPermutas'       => $vgv,
-            'vgvComCorrecao'           => $vgv * 1.027545,
-            'correcaoSobreVgv'         => $vgv * 0.027545,
-            'totalUnidades'            => 100,
+            'vgv' => $vgv,
+            'vgvSemValorTerrenista' => $vgv,
+            'vgvSemUnidPermutas' => $vgv,
+            'vgvComCorrecao' => $vgv * 1.027545,
+            'correcaoSobreVgv' => $vgv * 0.027545,
+            'totalUnidades' => 100,
             'totalUnidadesConstrutora' => 100,
-            'permutas'                 => 0,
-            'custoObraHabitacao'       => 3_000_000.0,
-            'custoInfraestrutura'      => 500_000.0,
-            'custoNaoIncidente'        => 100_000.0,
-            'areaConstruida'           => 5_000.0,
-            'custoCasaM2'              => 30_000.0,
-            'custoInfraM2'             => 500.0,
-            'imposto_pis'              => 0.0,
-            'imposto_cofins'           => 0.0,
-            'imposto_iss'              => 0.0,
-            'irrpj'                    => 0.0,
-            'csll'                     => 0.0,
-            'produtos'                 => [
+            'permutas' => 0,
+            'custoObraHabitacao' => 3_000_000.0,
+            'custoInfraestrutura' => 500_000.0,
+            'custoNaoIncidente' => 100_000.0,
+            'areaConstruida' => 5_000.0,
+            'custoCasaM2' => 30_000.0,
+            'custoInfraM2' => 500.0,
+            'imposto_pis' => 0.0,
+            'imposto_cofins' => 0.0,
+            'imposto_iss' => 0.0,
+            'irrpj' => 0.0,
+            'csll' => 0.0,
+            'produtos' => [
                 [
-                    'id'                   => 1,
-                    'terreno_produto_id'   => 1,
-                    'nome'                 => 'Apto 2 Dorm',
-                    'preco'                => 100_000.0,
-                    'metragem'             => 50.0,
-                    'quantidade_unidades'  => 100,
-                    'custo_m2'             => 600.0,
+                    'id' => 1,
+                    'terreno_produto_id' => 1,
+                    'nome' => 'Apto 2 Dorm',
+                    'preco' => 100_000.0,
+                    'metragem' => 50.0,
+                    'quantidade_unidades' => 100,
+                    'custo_m2' => 600.0,
                     'custo_infraestrutura' => 500.0,
-                    'vgv_produto'          => $vgv,
-                    'avaliacao_lotesCef'   => 2_000.0,
-                    'permutas'             => 0,
-                    'pgto_por_lote'        => 0.0,
-                    'demanda_minCef'       => 30,
-                    'curva_vendas'         => [],
-                    'curva_obra'           => [2.0, 2.5, 2.9, 3.3, 3.5, 4.5, 5.0, 6.0, 7.0, 7.0, 5.5, 5.5, 4.0, 4.0, 4.0, 4.0, 4.0, 3.0, 3.0, 3.0, 2.8, 2.5, 2.5, 2.5, 2.0, 1.0, 1.5, 0.5, 0.5, 0.5, 0.3, 0.3, 0.2, 0.2, 0.2],
-                    'imposto_tributos'     => 0.045,
-                    'imposto_outros'       => 0.005,
-                    'financeiro'           => [
-                        'sinal'               => 2,
-                        'parcela_obra'        => 9,
-                        'parcela_posChave'    => 9,
+                    'vgv_produto' => $vgv,
+                    'avaliacao_lotesCef' => 2_000.0,
+                    'permutas' => 0,
+                    'pgto_por_lote' => 0.0,
+                    'demanda_minCef' => 30,
+                    'curva_vendas' => [],
+                    'curva_obra' => [2.0, 2.5, 2.9, 3.3, 3.5, 4.5, 5.0, 6.0, 7.0, 7.0, 5.5, 5.5, 4.0, 4.0, 4.0, 4.0, 4.0, 3.0, 3.0, 3.0, 2.8, 2.5, 2.5, 2.5, 2.0, 1.0, 1.5, 0.5, 0.5, 0.5, 0.3, 0.3, 0.2, 0.2, 0.2],
+                    'imposto_tributos' => 0.045,
+                    'imposto_outros' => 0.005,
+                    'financeiro' => [
+                        'sinal' => 2,
+                        'parcela_obra' => 9,
+                        'parcela_posChave' => 9,
                         'qtde_parcelas_posChave' => 36,
-                        'juros_mensalSinal'   => 0,
-                        'juros_mensalObra'    => 0,
+                        'juros_mensalSinal' => 0,
+                        'juros_mensalObra' => 0,
                         'juros_mensalPosChave' => 1,
                         'correcao_anualSinal' => 0,
-                        'correcao_anualObra'  => 5,
+                        'correcao_anualObra' => 5,
                         'correcao_anualPosChave' => 4.5,
-                        'imposto_pis'         => 0.0,
-                        'imposto_cofins'      => 0.0,
-                        'imposto_iss'         => 0.0,
-                        'outras_deducoes'     => 0.0,
-                        'irrpj'               => 0.0,
-                        'csll'                => 0.0,
+                        'imposto_pis' => 0.0,
+                        'imposto_cofins' => 0.0,
+                        'imposto_iss' => 0.0,
+                        'outras_deducoes' => 0.0,
+                        'irrpj' => 0.0,
+                        'csll' => 0.0,
                     ],
                 ],
             ],
@@ -199,24 +199,24 @@ class ViabilidadeUnificadoServiceTest extends TestCase
      */
     private function makeDatas(): array
     {
-        $lancamento       = Carbon::create(2028, 1, 1);
-        $incorporacao     = $lancamento->copy()->subMonths(18);
-        $fimLancamento    = $lancamento->copy()->addMonths(5);
-        $inicioObra       = $fimLancamento->copy()->addMonth();
-        $fimObra          = $inicioObra->copy()->addMonths(35);
-        $entrega          = $fimObra->copy()->addMonth();
-        $inicioPos        = $entrega->copy()->addMonth();
-        $fimPos           = $inicioPos->copy()->addMonths(59);
+        $lancamento = Carbon::create(2028, 1, 1);
+        $incorporacao = $lancamento->copy()->subMonths(18);
+        $fimLancamento = $lancamento->copy()->addMonths(5);
+        $inicioObra = $fimLancamento->copy()->addMonth();
+        $fimObra = $inicioObra->copy()->addMonths(35);
+        $entrega = $fimObra->copy()->addMonth();
+        $inicioPos = $entrega->copy()->addMonth();
+        $fimPos = $inicioPos->copy()->addMonths(59);
 
         return [
             'inicioIncorporacao' => $incorporacao,
-            'dataLancamento'     => $lancamento,
-            'fimLancamento'      => $fimLancamento,
-            'inicioObra'         => $inicioObra,
-            'fimObra'            => $fimObra,
-            'dataEntrega'        => $entrega,
-            'inicioPos'          => $inicioPos,
-            'fimPos'             => $fimPos,
+            'dataLancamento' => $lancamento,
+            'fimLancamento' => $fimLancamento,
+            'inicioObra' => $inicioObra,
+            'fimObra' => $fimObra,
+            'dataEntrega' => $entrega,
+            'inicioPos' => $inicioPos,
+            'fimPos' => $fimPos,
         ];
     }
 
@@ -224,7 +224,7 @@ class ViabilidadeUnificadoServiceTest extends TestCase
     // calcularDre — Estrutura do retorno
     // =========================================================================
 
-    public function test_calcularDre_retorna_todas_as_chaves_obrigatorias(): void
+    public function test_calcular_dre_retorna_todas_as_chaves_obrigatorias(): void
     {
         $dre = $this->service->calcularDre([], $this->makeDadosProdutos(), $this->makeParams());
 
@@ -266,7 +266,7 @@ class ViabilidadeUnificadoServiceTest extends TestCase
         }
     }
 
-    public function test_calcularDre_retorna_todas_as_chaves_de_indicadores(): void
+    public function test_calcular_dre_retorna_todas_as_chaves_de_indicadores(): void
     {
         $dre = $this->service->calcularDre([], $this->makeDadosProdutos(), $this->makeParams());
 
@@ -292,7 +292,7 @@ class ViabilidadeUnificadoServiceTest extends TestCase
     // calcularDre — Coerência aritmética
     // =========================================================================
 
-    public function test_calcularDre_receita_bruta_e_soma_de_vendas_e_juros(): void
+    public function test_calcular_dre_receita_bruta_e_soma_de_vendas_e_juros(): void
     {
         $dre = $this->service->calcularDre([], $this->makeDadosProdutos(), $this->makeParams());
 
@@ -304,7 +304,7 @@ class ViabilidadeUnificadoServiceTest extends TestCase
         );
     }
 
-    public function test_calcularDre_lucro_liquido_e_ebit_menos_irpj_csll(): void
+    public function test_calcular_dre_lucro_liquido_e_ebit_menos_irpj_csll(): void
     {
         $dre = $this->service->calcularDre([], $this->makeDadosProdutos(), $this->makeParams());
 
@@ -316,7 +316,7 @@ class ViabilidadeUnificadoServiceTest extends TestCase
         );
     }
 
-    public function test_calcularDre_ebitda_e_lucro_bruto_menos_despesas_operacionais(): void
+    public function test_calcular_dre_ebitda_e_lucro_bruto_menos_despesas_operacionais(): void
     {
         $dre = $this->service->calcularDre([], $this->makeDadosProdutos(), $this->makeParams());
 
@@ -328,7 +328,7 @@ class ViabilidadeUnificadoServiceTest extends TestCase
         );
     }
 
-    public function test_calcularDre_ebit_e_ebitda_menos_despesas_financeiras_onerosas(): void
+    public function test_calcular_dre_ebit_e_ebitda_menos_despesas_financeiras_onerosas(): void
     {
         $dre = $this->service->calcularDre([], $this->makeDadosProdutos(), $this->makeParams());
 
@@ -340,7 +340,7 @@ class ViabilidadeUnificadoServiceTest extends TestCase
         );
     }
 
-    public function test_calcularDre_indicador_margem_liquida_percentual_coerente_com_lucro_e_vgv(): void
+    public function test_calcular_dre_indicador_margem_liquida_percentual_coerente_com_lucro_e_vgv(): void
     {
         $dadosProdutos = $this->makeDadosProdutos();
         $dre = $this->service->calcularDre([], $dadosProdutos, $this->makeParams());
@@ -357,15 +357,15 @@ class ViabilidadeUnificadoServiceTest extends TestCase
         );
     }
 
-    public function test_calcularDre_com_vgv_zero_nao_lanca_excecao_e_retorna_indicadores_nulos(): void
+    public function test_calcular_dre_com_vgv_zero_nao_lanca_excecao_e_retorna_indicadores_nulos(): void
     {
         $dadosProdutosZero = $this->makeDadosProdutos([
-            'vgv'                   => 0,
+            'vgv' => 0,
             'vgvSemValorTerrenista' => 0,
-            'vgvSemUnidPermutas'    => 0,
-            'vgvComCorrecao'        => 0,
-            'correcaoSobreVgv'      => 0,
-            'produtos'              => [
+            'vgvSemUnidPermutas' => 0,
+            'vgvComCorrecao' => 0,
+            'correcaoSobreVgv' => 0,
+            'produtos' => [
                 array_merge(
                     $this->makeDadosProdutos()['produtos'][0],
                     ['vgv_produto' => 0, 'preco' => 0]
@@ -380,7 +380,7 @@ class ViabilidadeUnificadoServiceTest extends TestCase
         $this->assertEquals(0, $dre['indicadores']['margem_liquida_percentual']);
     }
 
-    public function test_calcularDre_custo_total_projeto_engloba_todos_os_componentes(): void
+    public function test_calcular_dre_custo_total_projeto_engloba_todos_os_componentes(): void
     {
         $dre = $this->service->calcularDre([], $this->makeDadosProdutos(), $this->makeParams());
 
@@ -392,7 +392,7 @@ class ViabilidadeUnificadoServiceTest extends TestCase
         );
     }
 
-    public function test_calcularDre_retorna_valores_positivos_para_cenario_realista(): void
+    public function test_calcular_dre_retorna_valores_positivos_para_cenario_realista(): void
     {
         $dre = $this->service->calcularDre([], $this->makeDadosProdutos(), $this->makeParams());
 
@@ -405,11 +405,11 @@ class ViabilidadeUnificadoServiceTest extends TestCase
     // calcularDre — Efeito de parâmetros
     // =========================================================================
 
-    public function test_calcularDre_comissao_influencia_custo_direto(): void
+    public function test_calcular_dre_comissao_influencia_custo_direto(): void
     {
         // A comissão na DRE é calculada sobre abs(custoTerreno), portanto
         // precisamos de um custo de terreno não-nulo para que a comissão varie.
-        $paramsBase  = $this->makeParams(['compraTerreno' => 1_000_000.0]);
+        $paramsBase = $this->makeParams(['compraTerreno' => 1_000_000.0]);
 
         $semComissao = $this->service->calcularDre([], $this->makeDadosProdutos(), array_merge($paramsBase, ['percentualComissao' => 0]));
         $comComissao = $this->service->calcularDre([], $this->makeDadosProdutos(), array_merge($paramsBase, ['percentualComissao' => 0.05]));
@@ -427,10 +427,10 @@ class ViabilidadeUnificadoServiceTest extends TestCase
         );
     }
 
-    public function test_calcularDre_compra_terreno_aumenta_custo_direto(): void
+    public function test_calcular_dre_compra_terreno_aumenta_custo_direto(): void
     {
-        $semTerreno  = $this->service->calcularDre([], $this->makeDadosProdutos(), $this->makeParams(['compraTerreno' => 0]));
-        $comTerreno  = $this->service->calcularDre([], $this->makeDadosProdutos(), $this->makeParams(['compraTerreno' => 1_000_000]));
+        $semTerreno = $this->service->calcularDre([], $this->makeDadosProdutos(), $this->makeParams(['compraTerreno' => 0]));
+        $comTerreno = $this->service->calcularDre([], $this->makeDadosProdutos(), $this->makeParams(['compraTerreno' => 1_000_000]));
 
         $this->assertGreaterThan(
             $semTerreno['custo_terreno'],
@@ -439,7 +439,7 @@ class ViabilidadeUnificadoServiceTest extends TestCase
         );
     }
 
-    public function test_calcularDre_mais_meses_obra_aumenta_custo_canteiro(): void
+    public function test_calcular_dre_mais_meses_obra_aumenta_custo_canteiro(): void
     {
         $params18 = $this->makeParams(['mesesObra' => 18]);
         $params36 = $this->makeParams(['mesesObra' => 36]);
@@ -458,10 +458,10 @@ class ViabilidadeUnificadoServiceTest extends TestCase
     // calcularReceitas — Comportamento com caches zerados
     // =========================================================================
 
-    public function test_calcularReceitas_em_periodo_incorporacao_retorna_zero(): void
+    public function test_calcular_receitas_em_periodo_incorporacao_retorna_zero(): void
     {
         // Datas: período incorporação é antes do lançamento
-        $datas   = $this->makeDatas();
+        $datas = $this->makeDatas();
         $mesAntes = $datas['inicioIncorporacao']->format('Y-m');
 
         // Com caches zerados (service recém criado), RP = 0, RT = 0, MO = 0
@@ -482,9 +482,9 @@ class ViabilidadeUnificadoServiceTest extends TestCase
         $this->assertEquals(0.0, $receitas['detalhes']['Medição Obra']);
     }
 
-    public function test_calcularReceitas_total_igual_a_soma_dos_detalhes(): void
+    public function test_calcular_receitas_total_igual_a_soma_dos_detalhes(): void
     {
-        $datas   = $this->makeDatas();
+        $datas = $this->makeDatas();
         $mesLancamento = $datas['dataLancamento']->format('Y-m');
 
         $receitas = $this->service->calcularReceitas(
@@ -504,10 +504,10 @@ class ViabilidadeUnificadoServiceTest extends TestCase
         );
     }
 
-    public function test_calcularReceitas_retorna_chaves_obrigatorias(): void
+    public function test_calcular_receitas_retorna_chaves_obrigatorias(): void
     {
         $datas = $this->makeDatas();
-        $mes   = $datas['dataLancamento']->format('Y-m');
+        $mes = $datas['dataLancamento']->format('Y-m');
 
         $receitas = $this->service->calcularReceitas(
             $mes,
@@ -528,10 +528,10 @@ class ViabilidadeUnificadoServiceTest extends TestCase
     // calcularDespesas — Coerência aritmética
     // =========================================================================
 
-    public function test_calcularDespesas_retorna_chaves_obrigatorias(): void
+    public function test_calcular_despesas_retorna_chaves_obrigatorias(): void
     {
-        $datas    = $this->makeDatas();
-        $mes      = $datas['dataLancamento']->format('Y-m');
+        $datas = $this->makeDatas();
+        $mes = $datas['dataLancamento']->format('Y-m');
         $receitas = ['total' => 100_000.0, 'juros_correcao' => 0.0, 'detalhes' => []];
 
         $despesas = $this->service->calcularDespesas(
@@ -551,10 +551,10 @@ class ViabilidadeUnificadoServiceTest extends TestCase
         $this->assertArrayHasKey('custos_financeiros', $despesas['categorias']);
     }
 
-    public function test_calcularDespesas_soma_de_categorias_igual_ao_total(): void
+    public function test_calcular_despesas_soma_de_categorias_igual_ao_total(): void
     {
-        $datas    = $this->makeDatas();
-        $mes      = $datas['dataLancamento']->format('Y-m');
+        $datas = $this->makeDatas();
+        $mes = $datas['dataLancamento']->format('Y-m');
         $receitas = ['total' => 200_000.0, 'juros_correcao' => 0.0, 'detalhes' => []];
 
         $despesas = $this->service->calcularDespesas(
@@ -575,16 +575,16 @@ class ViabilidadeUnificadoServiceTest extends TestCase
         );
     }
 
-    public function test_calcularDespesas_tributos_proporcionais_a_receita(): void
+    public function test_calcular_despesas_tributos_proporcionais_a_receita(): void
     {
-        $datas  = $this->makeDatas();
-        $mes    = $datas['dataLancamento']->format('Y-m');
+        $datas = $this->makeDatas();
+        $mes = $datas['dataLancamento']->format('Y-m');
 
         $receitaBaixa = ['total' => 100_000.0, 'juros_correcao' => 0.0, 'detalhes' => []];
-        $receitaAlta  = ['total' => 500_000.0, 'juros_correcao' => 0.0, 'detalhes' => []];
+        $receitaAlta = ['total' => 500_000.0, 'juros_correcao' => 0.0, 'detalhes' => []];
 
         $despesasBaixas = $this->service->calcularDespesas($mes, $receitaBaixa, $this->makeDadosProdutos(), $datas, $this->makeParams());
-        $despesasAltas  = $this->service->calcularDespesas($mes, $receitaAlta, $this->makeDadosProdutos(), $datas, $this->makeParams());
+        $despesasAltas = $this->service->calcularDespesas($mes, $receitaAlta, $this->makeDadosProdutos(), $datas, $this->makeParams());
 
         $this->assertGreaterThan(
             $despesasBaixas['categorias']['impostos'],
@@ -593,9 +593,9 @@ class ViabilidadeUnificadoServiceTest extends TestCase
         );
     }
 
-    public function test_calcularDespesas_periodo_obra_inclui_custo_obra_positivo(): void
+    public function test_calcular_despesas_periodo_obra_inclui_custo_obra_positivo(): void
     {
-        $datas  = $this->makeDatas();
+        $datas = $this->makeDatas();
         $mesObra = $datas['inicioObra']->format('Y-m');
         $receitas = ['total' => 0.0, 'juros_correcao' => 0.0, 'detalhes' => []];
 
@@ -615,9 +615,9 @@ class ViabilidadeUnificadoServiceTest extends TestCase
         );
     }
 
-    public function test_calcularDespesas_periodo_incorporacao_nao_tem_custo_de_obra(): void
+    public function test_calcular_despesas_periodo_incorporacao_nao_tem_custo_de_obra(): void
     {
-        $datas  = $this->makeDatas();
+        $datas = $this->makeDatas();
         $mesIncorp = $datas['inicioIncorporacao']->format('Y-m');
         $receitas = ['total' => 0.0, 'juros_correcao' => 0.0, 'detalhes' => []];
 
@@ -636,12 +636,12 @@ class ViabilidadeUnificadoServiceTest extends TestCase
         );
     }
 
-    public function test_calcularDespesas_despesas_financeiras_zero_quando_receita_zero(): void
+    public function test_calcular_despesas_despesas_financeiras_zero_quando_receita_zero(): void
     {
-        $datas  = $this->makeDatas();
-        $mes    = $datas['dataLancamento']->format('Y-m');
+        $datas = $this->makeDatas();
+        $mes = $datas['dataLancamento']->format('Y-m');
         $params = $this->makeParams([
-            'percentualProdutosCef'              => 0.0,
+            'percentualProdutosCef' => 0.0,
             'percentualOutrasDespesasFinanceiras' => 0.0,
         ]);
         $receitas = ['total' => 0.0, 'juros_correcao' => 0.0, 'detalhes' => []];
@@ -659,10 +659,10 @@ class ViabilidadeUnificadoServiceTest extends TestCase
     // calcularDre — Consistência em chamadas repetidas na mesma instância
     // =========================================================================
 
-    public function test_calcularDre_retorna_mesmo_resultado_em_chamadas_consecutivas(): void
+    public function test_calcular_dre_retorna_mesmo_resultado_em_chamadas_consecutivas(): void
     {
         $dadosProdutos = $this->makeDadosProdutos();
-        $params        = $this->makeParams();
+        $params = $this->makeParams();
 
         $dre1 = $this->service->calcularDre([], $dadosProdutos, $params);
         $dre2 = $this->service->calcularDre([], $dadosProdutos, $params);
@@ -674,14 +674,14 @@ class ViabilidadeUnificadoServiceTest extends TestCase
         );
     }
 
-    public function test_calcularDre_resultado_e_determinístico_com_mesmos_inputs(): void
+    public function test_calcular_dre_resultado_e_determinístico_com_mesmos_inputs(): void
     {
         $dadosProdutos = $this->makeDadosProdutos();
-        $params        = $this->makeParams();
+        $params = $this->makeParams();
 
         // Instâncias diferentes devem produzir o mesmo resultado
-        $serviceA = new ViabilidadeUnificadoService(new CurvaService(), new ImpostosService());
-        $serviceB = new ViabilidadeUnificadoService(new CurvaService(), new ImpostosService());
+        $serviceA = new ViabilidadeUnificadoService(new CurvaService, new ImpostosService);
+        $serviceB = new ViabilidadeUnificadoService(new CurvaService, new ImpostosService);
 
         $dreA = $serviceA->calcularDre([], $dadosProdutos, $params);
         $dreB = $serviceB->calcularDre([], $dadosProdutos, $params);
@@ -697,12 +697,12 @@ class ViabilidadeUnificadoServiceTest extends TestCase
     // calcularReceitas — Consistência em chamadas repetidas na mesma instância
     // =========================================================================
 
-    public function test_calcularReceitas_em_periodo_incorporacao_idempotente(): void
+    public function test_calcular_receitas_em_periodo_incorporacao_idempotente(): void
     {
-        $datas     = $this->makeDatas();
-        $mes       = $datas['inicioIncorporacao']->format('Y-m');
-        $dados     = $this->makeDadosProdutos();
-        $params    = $this->makeParams();
+        $datas = $this->makeDatas();
+        $mes = $datas['inicioIncorporacao']->format('Y-m');
+        $dados = $this->makeDadosProdutos();
+        $params = $this->makeParams();
 
         // Chamar duas vezes: a segunda não deve acumular estado indevido nos detalhes
         $receitas1 = $this->service->calcularReceitas($mes, $dados, $datas, $params);

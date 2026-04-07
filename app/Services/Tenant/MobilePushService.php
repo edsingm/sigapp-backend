@@ -6,7 +6,6 @@ use App\Models\Tenant\LegalizacaoEtapa;
 use App\Models\Tenant\MobileDeviceInstallation;
 use App\Models\Tenant\MobileNotification;
 use App\Models\Tenant\User;
-use App\Models\Tenant\Viabilidade;
 use App\Services\Acl\PermissionNameResolver;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -18,8 +17,7 @@ class MobilePushService
 {
     public function __construct(
         private readonly PermissionNameResolver $permissions,
-    ) {
-    }
+    ) {}
 
     /**
      * Registra ou atualiza um dispositivo móvel para um usuário.
@@ -76,7 +74,7 @@ class MobilePushService
             ->where('user_id', $user->id)
             ->findOrFail($notificationId);
 
-        if (!$notification->read_at) {
+        if (! $notification->read_at) {
             $notification->forceFill(['read_at' => now()])->save();
         }
 
@@ -91,7 +89,7 @@ class MobilePushService
         $notifications = collect();
 
         foreach ($users as $user) {
-            if (!$user instanceof User) {
+            if (! $user instanceof User) {
                 continue;
             }
 
@@ -105,6 +103,7 @@ class MobilePushService
 
                 if ($existing) {
                     $notifications->push($existing);
+
                     continue;
                 }
             }
@@ -213,6 +212,7 @@ class MobilePushService
             if ($etapa->responsavel) {
                 $this->notifyUsers([$etapa->responsavel], $payload, $dedupeKey);
                 $count++;
+
                 continue;
             }
 
@@ -272,7 +272,7 @@ class MobilePushService
 
             $response = $request->post($endpoint, $messages);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 $notification->forceFill([
                     'delivery_error' => $response->body(),
                 ])->save();

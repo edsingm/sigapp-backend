@@ -26,19 +26,19 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('plans', function (Blueprint $table) {
-            if (!Schema::hasColumn('plans', 'max_users')) {
+            if (! Schema::hasColumn('plans', 'max_users')) {
                 $table->integer('max_users')->default(5)->after('trial_days');
             }
 
-            if (!Schema::hasColumn('plans', 'max_storage_gb')) {
+            if (! Schema::hasColumn('plans', 'max_storage_gb')) {
                 $table->integer('max_storage_gb')->default(5)->after('max_users');
             }
 
-            if (!Schema::hasColumn('plans', 'max_terrenos')) {
+            if (! Schema::hasColumn('plans', 'max_terrenos')) {
                 $table->integer('max_terrenos')->default(100)->after('max_storage_gb');
             }
 
-            if (!Schema::hasColumn('plans', 'entitlements')) {
+            if (! Schema::hasColumn('plans', 'entitlements')) {
                 $table->json('entitlements')->nullable()->after('max_terrenos');
             }
         });

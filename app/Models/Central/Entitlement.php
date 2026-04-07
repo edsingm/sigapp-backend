@@ -3,6 +3,7 @@
 namespace App\Models\Central;
 
 use App\Enums\Common\EntitlementType;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -15,12 +16,12 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * @property string|null $description
  * @property EntitlementType $type
  * @property mixed $default_value
- * @property \Carbon\Carbon $created_at
- * @property \Carbon\Carbon $updated_at
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
  */
 class Entitlement extends Model
 {
-    use HasFactory, CentralConnection;
+    use CentralConnection, HasFactory;
 
     protected $table = 'entitlements';
 
@@ -35,7 +36,7 @@ class Entitlement extends Model
     protected function casts(): array
     {
         return [
-            'type'          => EntitlementType::class,
+            'type' => EntitlementType::class,
             'default_value' => 'json',
         ];
     }

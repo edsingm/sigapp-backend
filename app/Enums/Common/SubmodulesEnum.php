@@ -5,13 +5,13 @@ namespace App\Enums\Common;
 enum SubmodulesEnum: string
 {
     case TERRAINS = 'terrains';
-    case MAPS     = 'maps';
+    case MAPS = 'maps';
 
     public function label(): string
     {
         return match ($this) {
             self::TERRAINS => language()->t('TERRAINS'),
-            self::MAPS     => language()->t('MAPS'),
+            self::MAPS => language()->t('MAPS'),
         };
     }
 

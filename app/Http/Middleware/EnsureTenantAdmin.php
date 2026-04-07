@@ -17,7 +17,7 @@ class EnsureTenantAdmin
     {
         $user = $request->user();
 
-        if (!$user || !$user->hasAnyRole([RolesEnum::ADMIN->value, RolesEnum::DIRECTOR->value])) {
+        if (! $user || ! $user->hasAnyRole([RolesEnum::ADMIN->value, RolesEnum::DIRECTOR->value])) {
             return ApiResponseService::forbidden('Acesso restrito a administradores do tenant.');
         }
 

@@ -2,15 +2,15 @@
 
 namespace App\Models\Tenant;
 
+use App\Traits\HasDashboardCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Traits\HasDashboardCache;
 
 class Proprietario extends Model
 {
-    use HasFactory, SoftDeletes, HasDashboardCache;
+    use HasDashboardCache, HasFactory, SoftDeletes;
 
     protected $table = 'terreno_proprietarios';
 
@@ -36,6 +36,7 @@ class Proprietario extends Model
      * Constantes para o tipo de pessoa
      */
     const TIPO_FISICA = 'fisica';
+
     const TIPO_JURIDICA = 'juridica';
 
     protected $fillable = [
@@ -102,8 +103,9 @@ class Proprietario extends Model
      */
     private function formatarCpfCnpj($value, $tipo): string
     {
-        if (empty($value))
+        if (empty($value)) {
             return '';
+        }
 
         $cleaned = preg_replace('/\D/', '', $value);
 
@@ -135,8 +137,9 @@ class Proprietario extends Model
      */
     public function getTelefoneFormatadoAttribute(): string
     {
-        if (empty($this->telefone))
+        if (empty($this->telefone)) {
             return '';
+        }
 
         $telefone = preg_replace('/\D/', '', $this->telefone);
 

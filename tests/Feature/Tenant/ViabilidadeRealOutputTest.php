@@ -245,42 +245,42 @@ class ViabilidadeRealOutputTest extends TestCase
             'Assist. Técnica' => number_format($dre['assistencia_tecnica'] ?? 0, 2, ',', '.'),
             'Custos Diretos Total' => number_format($dre['custos_diretos_total'] ?? 0, 2, ',', '.'),
             'Lucro Bruto' => number_format($dre['lucro_bruto'] ?? 0, 2, ',', '.'),
-            'Margem Bruta %' => number_format($dre['indicadores']['margem_bruta_percentual'] ?? 0, 2, ',', '.') . '%',
+            'Margem Bruta %' => number_format($dre['indicadores']['margem_bruta_percentual'] ?? 0, 2, ',', '.').'%',
             '--- DESPESAS OPERACIONAIS ---' => '',
             'Despesas Comerciais' => number_format($dre['despesas_comerciais'] ?? 0, 2, ',', '.'),
             'Marketing' => number_format($dre['marketing'] ?? 0, 2, ',', '.'),
             'ITBI/IPTU' => number_format($dre['itbi_iptu'] ?? 0, 2, ',', '.'),
             'Outros Operacionais' => number_format($dre['despesas_operacionais_total'] ?? 0, 2, ',', '.'),
             'EBITDA' => number_format($dre['ebitda'] ?? 0, 2, ',', '.'),
-            'Margem EBITDA %' => number_format($dre['indicadores']['margem_ebitda_percentual'] ?? 0, 2, ',', '.') . '%',
+            'Margem EBITDA %' => number_format($dre['indicadores']['margem_ebitda_percentual'] ?? 0, 2, ',', '.').'%',
             '--- FINANCEIRO ---' => '',
             'Outras Desp. Financeiras' => number_format($dre['outras_despesas_financeiras'] ?? 0, 2, ',', '.'),
             'Juros PJ' => number_format($dre['juros_pj'] ?? 0, 2, ',', '.'),
             'Desp. Onerosas Bancos' => number_format($dre['despesas_onerosas_bancos'] ?? 0, 2, ',', '.'),
             'EBIT' => number_format($dre['ebit'] ?? 0, 2, ',', '.'),
-            'Margem EBIT %' => number_format($dre['indicadores']['margem_ebit_percentual'] ?? 0, 2, ',', '.') . '%',
+            'Margem EBIT %' => number_format($dre['indicadores']['margem_ebit_percentual'] ?? 0, 2, ',', '.').'%',
             'IRPJ/CSLL' => number_format($dre['irpj_csll'] ?? 0, 2, ',', '.'),
             'Lucro Líquido' => number_format($dre['lucro_liquido_projeto'] ?? 0, 2, ',', '.'),
             '--- INDICADORES ---' => '',
-            'Margem Líquida % (s/VGV)' => number_format($dre['indicadores']['margem_liquida_percentual'] ?? 0, 2, ',', '.') . '%',
-            'Margem Líquida % (s/ROL)' => number_format($dre['indicadores']['margem_liquida_sobre_rol'] ?? 0, 2, ',', '.') . '%',
-            'Margem Líquida % (s/VGV s/Permuta)' => number_format($dre['indicadores']['margem_liquida_sobre_vgv_sem_permuta'] ?? 0, 2, ',', '.') . '%',
-            'ROI %' => number_format($dre['indicadores']['roi_percentual'] ?? 0, 2, ',', '.') . '%',
-            'TIR Operacional (a.a.)' => number_format(($ind['tir_operacional'] ?? 0) * 100, 2, ',', '.') . '%',
-            'TIR Financeira (a.a.)' => number_format(($ind['tir_financeira'] ?? 0) * 100, 2, ',', '.') . '%',
+            'Margem Líquida % (s/VGV)' => number_format($dre['indicadores']['margem_liquida_percentual'] ?? 0, 2, ',', '.').'%',
+            'Margem Líquida % (s/ROL)' => number_format($dre['indicadores']['margem_liquida_sobre_rol'] ?? 0, 2, ',', '.').'%',
+            'Margem Líquida % (s/VGV s/Permuta)' => number_format($dre['indicadores']['margem_liquida_sobre_vgv_sem_permuta'] ?? 0, 2, ',', '.').'%',
+            'ROI %' => number_format($dre['indicadores']['roi_percentual'] ?? 0, 2, ',', '.').'%',
+            'TIR Operacional (a.a.)' => number_format(($ind['tir_operacional'] ?? 0) * 100, 2, ',', '.').'%',
+            'TIR Financeira (a.a.)' => number_format(($ind['tir_financeira'] ?? 0) * 100, 2, ',', '.').'%',
             'Payback Operacional (meses)' => $ind['payback_operacional_meses'] ?? 'N/A',
             'Payback Financeiro (meses)' => $ind['payback_financeiro_meses'] ?? 'N/A',
             'Exposição Máxima Operacional' => number_format($ind['exposicao_maxima_operacional'] ?? 0, 2, ',', '.'),
             'Exposição Máxima Financeira' => number_format($ind['exposicao_maxima_financeira'] ?? 0, 2, ',', '.'),
-            'VSO Total %' => number_format($ind['vso_total_percentual'] ?? 0, 2, ',', '.') . '%',
+            'VSO Total %' => number_format($ind['vso_total_percentual'] ?? 0, 2, ',', '.').'%',
         ];
 
         fwrite(STDOUT, PHP_EOL);
         foreach ($saida as $label => $valor) {
             if ($valor === '') {
-                fwrite(STDOUT, PHP_EOL . $label . PHP_EOL);
+                fwrite(STDOUT, PHP_EOL.$label.PHP_EOL);
             } else {
-                fwrite(STDOUT, sprintf("  %-45s R$ %s\n", $label . ':', $valor));
+                fwrite(STDOUT, sprintf("  %-45s R$ %s\n", $label.':', $valor));
             }
         }
         fwrite(STDOUT, PHP_EOL);
@@ -339,17 +339,17 @@ class ViabilidadeRealOutputTest extends TestCase
             'created_at' => $agora, 'updated_at' => $agora,
         ]);
 
-        $service = app(\App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::class);
+        $service = app(ViabilidadeUnificadoService::class);
         $resultado = $service->gerarFluxoMensal($terrenoId, $viabilidadeId);
 
         $fluxo = $resultado['fluxo_mensal'];
 
         fwrite(STDOUT, PHP_EOL);
-        fwrite(STDOUT, str_pad('MÊS', 10) . str_pad('PERÍODO', 16) .
-            str_pad('RECEITA', 18) . str_pad('DESPESA', 18) .
-            str_pad('RESULTADO', 18) . str_pad('SALDO ACUM.', 18) .
-            str_pad('UNID.VEND', 10) . PHP_EOL);
-        fwrite(STDOUT, str_repeat('-', 108) . PHP_EOL);
+        fwrite(STDOUT, str_pad('MÊS', 10).str_pad('PERÍODO', 16).
+            str_pad('RECEITA', 18).str_pad('DESPESA', 18).
+            str_pad('RESULTADO', 18).str_pad('SALDO ACUM.', 18).
+            str_pad('UNID.VEND', 10).PHP_EOL);
+        fwrite(STDOUT, str_repeat('-', 108).PHP_EOL);
 
         $totalReceita = 0;
         $totalDespesa = 0;
@@ -366,13 +366,13 @@ class ViabilidadeRealOutputTest extends TestCase
             $totalDespesa += $despesa;
 
             fwrite(STDOUT,
-                str_pad($mes, 10) .
-                str_pad($periodo, 16) .
-                str_pad(number_format($receita, 0, ',', '.'), 18, ' ', STR_PAD_LEFT) .
-                str_pad(number_format($despesa, 0, ',', '.'), 18, ' ', STR_PAD_LEFT) .
-                str_pad(number_format($resultado_mes, 0, ',', '.'), 18, ' ', STR_PAD_LEFT) .
-                str_pad(number_format($saldo, 0, ',', '.'), 18, ' ', STR_PAD_LEFT) .
-                str_pad(number_format($unidades, 1), 10, ' ', STR_PAD_LEFT) .
+                str_pad($mes, 10).
+                str_pad($periodo, 16).
+                str_pad(number_format($receita, 0, ',', '.'), 18, ' ', STR_PAD_LEFT).
+                str_pad(number_format($despesa, 0, ',', '.'), 18, ' ', STR_PAD_LEFT).
+                str_pad(number_format($resultado_mes, 0, ',', '.'), 18, ' ', STR_PAD_LEFT).
+                str_pad(number_format($saldo, 0, ',', '.'), 18, ' ', STR_PAD_LEFT).
+                str_pad(number_format($unidades, 1), 10, ' ', STR_PAD_LEFT).
                 PHP_EOL
             );
 
@@ -380,22 +380,22 @@ class ViabilidadeRealOutputTest extends TestCase
             if ($receita > 0 || $despesa > 0) {
                 foreach ($linha['receitas'] as $tipo => $val) {
                     if (abs($val) > 0.01) {
-                        fwrite(STDOUT, str_pad('', 26) . "  REC: {$tipo}: " . number_format($val, 0, ',', '.') . PHP_EOL);
+                        fwrite(STDOUT, str_pad('', 26)."  REC: {$tipo}: ".number_format($val, 0, ',', '.').PHP_EOL);
                     }
                 }
                 foreach ($linha['despesas'] as $tipo => $val) {
                     if (abs($val) > 0.01) {
-                        fwrite(STDOUT, str_pad('', 26) . "  DES: {$tipo}: " . number_format($val, 0, ',', '.') . PHP_EOL);
+                        fwrite(STDOUT, str_pad('', 26)."  DES: {$tipo}: ".number_format($val, 0, ',', '.').PHP_EOL);
                     }
                 }
             }
         }
 
-        fwrite(STDOUT, str_repeat('-', 108) . PHP_EOL);
+        fwrite(STDOUT, str_repeat('-', 108).PHP_EOL);
         fwrite(STDOUT,
-            str_pad('TOTAIS', 26) .
-            str_pad('R$ ' . number_format($totalReceita, 0, ',', '.'), 18, ' ', STR_PAD_LEFT) .
-            str_pad('R$ ' . number_format($totalDespesa, 0, ',', '.'), 18, ' ', STR_PAD_LEFT) .
+            str_pad('TOTAIS', 26).
+            str_pad('R$ '.number_format($totalReceita, 0, ',', '.'), 18, ' ', STR_PAD_LEFT).
+            str_pad('R$ '.number_format($totalDespesa, 0, ',', '.'), 18, ' ', STR_PAD_LEFT).
             PHP_EOL
         );
 

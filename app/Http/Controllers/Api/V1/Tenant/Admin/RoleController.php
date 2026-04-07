@@ -32,8 +32,8 @@ class RoleController extends Controller
             ->get(['id', 'name']);
 
         return ApiResponseService::success($roles->map(fn (Role $role) => [
-            'id'    => $role->id,
-            'name'  => $role->name,
+            'id' => $role->id,
+            'name' => $role->name,
             'label' => RolesEnum::tryFrom($role->name)?->label() ?? $role->name,
         ])->values(), 'Roles recuperadas com sucesso');
     }
@@ -93,7 +93,7 @@ class RoleController extends Controller
             ->withCount('permissions')
             ->find($id);
 
-        if (!$role) {
+        if (! $role) {
             return ApiResponseService::notFound('Role não encontrada');
         }
 
@@ -143,7 +143,7 @@ class RoleController extends Controller
             'guard_name' => 'web',
         ]);
 
-        if (!empty($validated['permission_ids'])) {
+        if (! empty($validated['permission_ids'])) {
             $permissions = Permission::whereIn('id', $validated['permission_ids'])
                 ->where('guard_name', 'web')
                 ->get();
@@ -176,7 +176,7 @@ class RoleController extends Controller
             ->where('guard_name', 'web')
             ->find($id);
 
-        if (!$role) {
+        if (! $role) {
             return ApiResponseService::notFound('Role não encontrada');
         }
 
@@ -262,7 +262,7 @@ class RoleController extends Controller
             ->where('guard_name', 'web')
             ->find($id);
 
-        if (!$role) {
+        if (! $role) {
             return ApiResponseService::notFound('Role não encontrada');
         }
 

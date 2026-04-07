@@ -64,7 +64,7 @@ class PlanRepository implements PlanRepositoryInterface
     }
 
     /**
-     * @param array<int, mixed> $entitlements [entitlement_id => value, ...]
+     * @param  array<int, mixed>  $entitlements  [entitlement_id => value, ...]
      */
     public function syncEntitlements(Plan $plan, array $entitlements): void
     {
@@ -95,7 +95,7 @@ class PlanRepository implements PlanRepositoryInterface
             ->get();
 
         $features = [];
-        $limits   = [];
+        $limits = [];
 
         foreach ($entitlements as $row) {
             $value = json_decode((string) $row->value, true);

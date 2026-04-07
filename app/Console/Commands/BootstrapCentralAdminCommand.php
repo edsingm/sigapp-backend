@@ -13,7 +13,7 @@ class BootstrapCentralAdminCommand extends Command
 
     public function handle(): int
     {
-        if (!app()->isLocal()) {
+        if (! app()->isLocal()) {
             $this->error('Este comando só pode ser executado em ambiente local.');
 
             return self::FAILURE;

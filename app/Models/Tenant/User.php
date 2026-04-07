@@ -8,29 +8,28 @@ use App\Models\Central\Tenant;
 use App\Notifications\TenantResetPasswordNotification;
 use App\Services\Auth\TenantPasswordResetService;
 use App\Services\Auth\TenantUserDirectoryService;
-use App\Models\Tenant\Department;
-use App\Models\Tenant\Position;
+use App\Traits\HasDashboardCache;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
-use App\Traits\HasDashboardCache;
 
 /**
  * @property int $id
  * @property string $name
  * @property string $email
- * @property \Carbon\Carbon|null $email_verified_at
+ * @property Carbon|null $email_verified_at
  * @property string $password
  * @property string|null $remember_token
- * @property \Carbon\Carbon $created_at
- * @property \Carbon\Carbon $updated_at
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
  */
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, HasRoles, Notifiable, HasDashboardCache;
+    use HasApiTokens, HasDashboardCache, HasFactory, HasRoles, Notifiable;
 
     private const ADMIN_ROLE_NAMES = [RolesEnum::ADMIN->value];
 
@@ -120,19 +119,18 @@ class User extends Authenticatable
 
     /**
      * Obtém o plano do tenant atual
-     *
-     * @return Plan|null
      */
     public function getPlan(): ?Plan
     {
         $tenant = tenancy()->tenant;
-        if (!$tenant) {
+        if (! $tenant) {
             return null;
         }
 
         // Executa a query no banco central
         return tenancy()->central(function () use ($tenant) {
             $centralTenant = Tenant::with('plan')->find($tenant->id);
+
             return $centralTenant?->plan;
         });
     }
@@ -141,7 +139,7 @@ class User extends Authenticatable
     {
         $tenant = tenant();
 
-        if (!$tenant instanceof Tenant) {
+        if (! $tenant instanceof Tenant) {
             return;
         }
 

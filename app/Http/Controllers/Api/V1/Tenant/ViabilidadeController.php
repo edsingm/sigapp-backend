@@ -5,12 +5,15 @@ namespace App\Http\Controllers\Api\V1\Tenant;
 use App\Enums\WorkflowStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\ViabilidadeRequest;
+use App\Http\Resources\Tenant\ViabilidadeResource;
 use App\Models\Tenant\Viabilidade;
 use App\Services\Acl\PermissionNameResolver;
 use App\Services\Tenant\LandWorkflowService;
 use App\Services\Tenant\MobilePushService;
 use App\Services\Tenant\Viabilidade\ViabilidadeService;
 use Exception;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -72,7 +75,7 @@ class ViabilidadeController extends Controller
             ]);
 
         } catch (Exception $e) {
-            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+            if ($e instanceof AuthorizationException) {
                 throw $e;
             }
 
@@ -141,17 +144,17 @@ class ViabilidadeController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Aprovação da viabilidade solicitada com sucesso',
-                'data' => new \App\Http\Resources\Tenant\ViabilidadeResource(
+                'data' => new ViabilidadeResource(
                     $viabilidade->fresh(['terreno', 'createdBy', 'approvalDecidedBy'])
                 ),
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
+        } catch (ModelNotFoundException) {
             return response()->json([
                 'success' => false,
                 'message' => 'Viabilidade não encontrada',
             ], 404);
-        } catch (\Exception $e) {
-            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+        } catch (Exception $e) {
+            if ($e instanceof AuthorizationException) {
                 throw $e;
             }
 
@@ -205,7 +208,7 @@ class ViabilidadeController extends Controller
             ]);
 
         } catch (Exception $e) {
-            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+            if ($e instanceof AuthorizationException) {
                 throw $e;
             }
 
@@ -242,7 +245,7 @@ class ViabilidadeController extends Controller
             ], 201);
 
         } catch (Exception $e) {
-            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+            if ($e instanceof AuthorizationException) {
                 throw $e;
             }
 
@@ -277,7 +280,7 @@ class ViabilidadeController extends Controller
             ]);
 
         } catch (Exception $e) {
-            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+            if ($e instanceof AuthorizationException) {
                 throw $e;
             }
 
@@ -315,7 +318,7 @@ class ViabilidadeController extends Controller
             ]);
 
         } catch (Exception $e) {
-            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+            if ($e instanceof AuthorizationException) {
                 throw $e;
             }
 
@@ -408,17 +411,17 @@ class ViabilidadeController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => $message,
-                'data' => new \App\Http\Resources\Tenant\ViabilidadeResource(
+                'data' => new ViabilidadeResource(
                     $viabilidade->fresh(['terreno', 'createdBy', 'approvalDecidedBy'])
                 ),
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
+        } catch (ModelNotFoundException) {
             return response()->json([
                 'success' => false,
                 'message' => 'Viabilidade não encontrada',
             ], 404);
-        } catch (\Exception $e) {
-            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+        } catch (Exception $e) {
+            if ($e instanceof AuthorizationException) {
                 throw $e;
             }
 
@@ -453,7 +456,7 @@ class ViabilidadeController extends Controller
             ]);
 
         } catch (Exception $e) {
-            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+            if ($e instanceof AuthorizationException) {
                 throw $e;
             }
 
@@ -492,7 +495,7 @@ class ViabilidadeController extends Controller
             ]);
 
         } catch (Exception $e) {
-            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+            if ($e instanceof AuthorizationException) {
                 throw $e;
             }
 
@@ -526,7 +529,7 @@ class ViabilidadeController extends Controller
             ], 201);
 
         } catch (Exception $e) {
-            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+            if ($e instanceof AuthorizationException) {
                 throw $e;
             }
 
@@ -566,7 +569,7 @@ class ViabilidadeController extends Controller
             ], 500);
 
         } catch (Exception $e) {
-            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+            if ($e instanceof AuthorizationException) {
                 throw $e;
             }
 
@@ -608,7 +611,7 @@ class ViabilidadeController extends Controller
             ]);
 
         } catch (Exception $e) {
-            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+            if ($e instanceof AuthorizationException) {
                 throw $e;
             }
 
@@ -641,7 +644,7 @@ class ViabilidadeController extends Controller
             ]);
 
         } catch (Exception $e) {
-            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+            if ($e instanceof AuthorizationException) {
                 throw $e;
             }
 
@@ -676,7 +679,7 @@ class ViabilidadeController extends Controller
             ]);
 
         } catch (Exception $e) {
-            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+            if ($e instanceof AuthorizationException) {
                 throw $e;
             }
 
@@ -711,7 +714,7 @@ class ViabilidadeController extends Controller
             ]);
 
         } catch (Exception $e) {
-            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+            if ($e instanceof AuthorizationException) {
                 throw $e;
             }
 
@@ -766,7 +769,7 @@ class ViabilidadeController extends Controller
                 ->name("viabilidade-{$id}-".now()->format('Y-m-d').'.pdf');
 
         } catch (Exception $e) {
-            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+            if ($e instanceof AuthorizationException) {
                 throw $e;
             }
 
@@ -818,7 +821,7 @@ class ViabilidadeController extends Controller
             ]);
 
         } catch (Exception $e) {
-            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+            if ($e instanceof AuthorizationException) {
                 throw $e;
             }
 

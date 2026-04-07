@@ -10,23 +10,23 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('viabilidades', function (Blueprint $table) {
-            if (!Schema::hasColumn('viabilidades', 'approval_status')) {
+            if (! Schema::hasColumn('viabilidades', 'approval_status')) {
                 $table->string('approval_status')->default('pendente')->after('status');
             }
 
-            if (!Schema::hasColumn('viabilidades', 'approval_requested_at')) {
+            if (! Schema::hasColumn('viabilidades', 'approval_requested_at')) {
                 $table->timestamp('approval_requested_at')->nullable()->after('approval_status');
             }
 
-            if (!Schema::hasColumn('viabilidades', 'approval_decided_at')) {
+            if (! Schema::hasColumn('viabilidades', 'approval_decided_at')) {
                 $table->timestamp('approval_decided_at')->nullable()->after('approval_requested_at');
             }
 
-            if (!Schema::hasColumn('viabilidades', 'approval_decided_by')) {
+            if (! Schema::hasColumn('viabilidades', 'approval_decided_by')) {
                 $table->foreignId('approval_decided_by')->nullable()->after('approval_decided_at')->constrained('users')->nullOnDelete();
             }
 
-            if (!Schema::hasColumn('viabilidades', 'approval_notes')) {
+            if (! Schema::hasColumn('viabilidades', 'approval_notes')) {
                 $table->text('approval_notes')->nullable()->after('approval_decided_by');
             }
         });

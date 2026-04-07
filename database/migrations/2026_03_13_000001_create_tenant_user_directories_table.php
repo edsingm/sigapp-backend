@@ -46,7 +46,7 @@ return new class extends Migration
                         ->values()
                         ->all();
                 });
-            } catch (\Throwable $exception) {
+            } catch (Throwable $exception) {
                 Log::warning('Tenant user directory migration skipped tenant', [
                     'tenant_id' => (string) $tenant->getKey(),
                     'error' => $exception->getMessage(),

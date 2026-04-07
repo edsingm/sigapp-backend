@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Api\V1\Tenant\Admin;
 
-use App\Http\Controllers\Controller;
 use App\Enums\Common\ModulesEnum;
+use App\Http\Controllers\Controller;
 use App\Models\Tenant\User;
 use App\Services\ApiResponseService;
 use Illuminate\Http\Request;
@@ -36,7 +36,7 @@ class PermissionController extends Controller
                 'id' => $permission->id,
                 'name' => $permission->name,
                 'guard_name' => $permission->guard_name,
-                'roles' => $permission->roles->map(fn(Role $role) => [
+                'roles' => $permission->roles->map(fn (Role $role) => [
                     'id' => $role->id,
                     'name' => $role->name,
                 ])->values(),
@@ -60,7 +60,7 @@ class PermissionController extends Controller
             ->withCount('roles')
             ->find($id);
 
-        if (!$permission) {
+        if (! $permission) {
             return ApiResponseService::notFound('Permissão não encontrada');
         }
 
@@ -68,7 +68,7 @@ class PermissionController extends Controller
             'id' => $permission->id,
             'name' => $permission->name,
             'guard_name' => $permission->guard_name,
-            'roles' => $permission->roles->map(fn(Role $role) => [
+            'roles' => $permission->roles->map(fn (Role $role) => [
                 'id' => $role->id,
                 'name' => $role->name,
             ])->values(),
@@ -121,7 +121,7 @@ class PermissionController extends Controller
             ->withCount('roles')
             ->find($id);
 
-        if (!$permission) {
+        if (! $permission) {
             return ApiResponseService::notFound('Permissão não encontrada');
         }
 
@@ -155,7 +155,7 @@ class PermissionController extends Controller
             'id' => $permission->id,
             'name' => $permission->name,
             'guard_name' => $permission->guard_name,
-            'roles' => $permission->roles->map(fn(Role $role) => [
+            'roles' => $permission->roles->map(fn (Role $role) => [
                 'id' => $role->id,
                 'name' => $role->name,
             ])->values(),
@@ -174,7 +174,7 @@ class PermissionController extends Controller
             ->where('guard_name', 'web')
             ->find($id);
 
-        if (!$permission) {
+        if (! $permission) {
             return ApiResponseService::notFound('Permissão não encontrada');
         }
 
@@ -224,13 +224,15 @@ class PermissionController extends Controller
         if (count($parts) === 3) {
             [$module, $resource, $level] = $parts;
             $mod = ModulesEnum::tryFrom($module);
+
             return $mod !== null && in_array($resource, $mod->submodules(), true) && in_array($level, $levels, true);
         }
 
         if (count($parts) === 2) {
             [$module, $level] = $parts;
             $mod = ModulesEnum::tryFrom($module);
-            return $mod !== null && !$mod->hasSubmodules() && in_array($level, $levels, true);
+
+            return $mod !== null && ! $mod->hasSubmodules() && in_array($level, $levels, true);
         }
 
         return false;

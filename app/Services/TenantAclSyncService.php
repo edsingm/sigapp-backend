@@ -11,8 +11,8 @@ use Spatie\Permission\PermissionRegistrar;
 class TenantAclSyncService
 {
     private const LEVEL_MAP = [
-        'viewer'  => ['viewer'],
-        'editor'  => ['viewer', 'editor'],
+        'viewer' => ['viewer'],
+        'editor' => ['viewer', 'editor'],
         'manager' => ['viewer', 'editor', 'manager'],
     ];
 
@@ -24,13 +24,13 @@ class TenantAclSyncService
      */
     public function syncForCurrentTenant(): array
     {
-        if (!tenancy()->initialized) {
+        if (! tenancy()->initialized) {
             throw new \RuntimeException('Tenant ACL sync requer contexto de tenant inicializado.');
         }
 
         $tenant = tenancy()->tenant;
 
-        if (!$tenant) {
+        if (! $tenant) {
             return ['tenant_id' => null, 'permissions_synced' => 0, 'roles_synced' => 0];
         }
 
@@ -51,14 +51,14 @@ class TenantAclSyncService
         foreach (RolesEnum::cases() as $roleEnum) {
             Role::firstOrCreate(['name' => $roleEnum->value, 'guard_name' => 'web']);
 
-            $templatePath = database_path('rbacTemplates/' . strtolower($roleEnum->value) . '.json');
+            $templatePath = database_path('rbacTemplates/'.strtolower($roleEnum->value).'.json');
 
-            if (!file_exists($templatePath)) {
+            if (! file_exists($templatePath)) {
                 continue;
             }
 
-            $template    = json_decode(file_get_contents($templatePath), true);
-            $role        = Role::where('name', $roleEnum->value)->where('guard_name', 'web')->first();
+            $template = json_decode(file_get_contents($templatePath), true);
+            $role = Role::where('name', $roleEnum->value)->where('guard_name', 'web')->first();
             $permissions = $this->resolvePermissions($template['permissions']);
 
             $role->syncPermissions($permissions);
@@ -68,9 +68,9 @@ class TenantAclSyncService
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         return [
-            'tenant_id'          => (string) $tenant->id,
+            'tenant_id' => (string) $tenant->id,
             'permissions_synced' => $synced,
-            'roles_synced'       => $rolesSynced,
+            'roles_synced' => $rolesSynced,
         ];
     }
 
@@ -81,7 +81,7 @@ class TenantAclSyncService
      */
     private function generateAllPermissions(): array
     {
-        $levels      = array_keys(self::LEVEL_MAP);
+        $levels = array_keys(self::LEVEL_MAP);
         $permissions = [];
 
         foreach (ModulesEnum::cases() as $module) {
@@ -104,7 +104,7 @@ class TenantAclSyncService
     /**
      * Converte um mapa de permissões de template em nomes de permissão planos cumulativos.
      *
-     * @param  array<string, string|array<string, string>|null> $modulePermissions
+     * @param  array<string, string|array<string, string>|null>  $modulePermissions
      * @return array<int, string>
      */
     private function resolvePermissions(array $modulePermissions): array
@@ -113,7 +113,7 @@ class TenantAclSyncService
 
         foreach ($modulePermissions as $moduleKey => $value) {
             $module = ModulesEnum::tryFrom($moduleKey);
-            if (!$module || $value === null) {
+            if (! $module || $value === null) {
                 continue;
             }
 

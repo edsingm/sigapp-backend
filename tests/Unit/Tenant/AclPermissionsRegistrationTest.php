@@ -4,17 +4,17 @@ namespace Tests\Unit\Tenant;
 
 use App\Enums\Common\ModulesEnum;
 use App\Enums\Common\RolesEnum;
+use Database\Seeders\Tenant\RolePermissionSeeder;
 use PHPUnit\Framework\Attributes\Test;
 use ReflectionClass;
 use Tests\TestCase;
-use Database\Seeders\Tenant\RolePermissionSeeder;
 
 class AclPermissionsRegistrationTest extends TestCase
 {
     #[Test]
     public function it_generates_permissions_for_committee_and_negotiation_modules(): void
     {
-        $seeder = new RolePermissionSeeder();
+        $seeder = new RolePermissionSeeder;
         $reflection = new ReflectionClass($seeder);
         $method = $reflection->getMethod('generateAllPermissions');
         $method->setAccessible(true);
@@ -34,7 +34,7 @@ class AclPermissionsRegistrationTest extends TestCase
     public function all_role_templates_define_committee_and_negotiation_permissions(): void
     {
         foreach (RolesEnum::cases() as $role) {
-            $path = database_path('rbacTemplates/' . strtolower($role->value) . '.json');
+            $path = database_path('rbacTemplates/'.strtolower($role->value).'.json');
             $this->assertFileExists($path, "Template ausente para {$role->value}");
 
             /** @var array{permissions: array<string, mixed>} $template */

@@ -15,10 +15,10 @@ class EntitlementResourceTest extends TestCase
     public function test_it_includes_all_expected_fields(): void
     {
         $ent = Entitlement::create([
-            'key'           => 'test.feature',
-            'type'          => EntitlementType::FEATURE->value,
-            'label'         => 'Test Feature',
-            'description'   => 'A test feature',
+            'key' => 'test.feature',
+            'type' => EntitlementType::FEATURE->value,
+            'label' => 'Test Feature',
+            'description' => 'A test feature',
             'default_value' => false,
         ]);
 
@@ -36,9 +36,9 @@ class EntitlementResourceTest extends TestCase
     public function test_it_does_not_expose_internal_relational_fields(): void
     {
         $ent = Entitlement::create([
-            'key'           => 'feat',
-            'type'          => EntitlementType::FEATURE->value,
-            'label'         => 'Feat',
+            'key' => 'feat',
+            'type' => EntitlementType::FEATURE->value,
+            'label' => 'Feat',
             'default_value' => false,
         ]);
 

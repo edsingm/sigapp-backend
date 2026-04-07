@@ -5,6 +5,7 @@ namespace App\Services\Tenant;
 use App\Models\Tenant\Department;
 use App\Repositories\Tenant\DepartmentRepository;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection;
 
 class DepartmentService
 {
@@ -13,7 +14,7 @@ class DepartmentService
     ) {}
 
     /**
-     * @param array{search?: string|null, active?: bool|null, sort?: string, order?: string, per_page?: int} $filters
+     * @param  array{search?: string|null, active?: bool|null, sort?: string, order?: string, per_page?: int}  $filters
      */
     public function list(array $filters = []): LengthAwarePaginator
     {
@@ -21,15 +22,15 @@ class DepartmentService
     }
 
     /**
-     * @return \Illuminate\Database\Eloquent\Collection<int, Department>
+     * @return Collection<int, Department>
      */
-    public function listActiveForSelect(): \Illuminate\Database\Eloquent\Collection
+    public function listActiveForSelect(): Collection
     {
         return $this->repository->allActive();
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function create(array $data): Department
     {
@@ -37,7 +38,7 @@ class DepartmentService
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function update(Department $department, array $data): Department
     {

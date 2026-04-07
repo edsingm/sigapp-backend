@@ -2,8 +2,8 @@
 
 namespace App\Policies\Tenant;
 
-use App\Services\Acl\PermissionNameResolver;
 use App\Models\Tenant\User;
+use App\Services\Acl\PermissionNameResolver;
 
 /**
  * Single policy for all tenant models.
@@ -18,31 +18,105 @@ class TenantPolicy
     {
         $permission = app(PermissionNameResolver::class)->forModel($modelOrClass, $ability);
 
-        if (!$permission) {
+        if (! $permission) {
             return null;
         }
 
         return app(PermissionNameResolver::class)->userCan($user, $permission);
     }
 
-    public function viewAny(User $user): bool { return false; }
-    public function view(User $user, mixed $model): bool { return false; }
-    public function create(User $user): bool { return false; }
-    public function update(User $user, mixed $model): bool { return false; }
-    public function delete(User $user, mixed $model): bool { return false; }
-    public function restore(User $user, mixed $model): bool { return false; }
+    public function viewAny(User $user): bool
+    {
+        return false;
+    }
 
-    public function ativar(User $user, mixed $model): bool { return false; }
-    public function requestApproval(User $user, mixed $model): bool { return false; }
-    public function approve(User $user, mixed $model): bool { return false; }
-    public function duplicate(User $user, mixed $model): bool { return false; }
-    public function compare(User $user): bool { return false; }
-    public function gerarDre(User $user, mixed $model): bool { return false; }
-    public function recalcular(User $user, mixed $model): bool { return false; }
-    public function reorder(User $user): bool { return false; }
-    public function syncGantt(User $user, mixed $model): bool { return false; }
-    public function recalcularProgresso(User $user, mixed $model): bool { return false; }
-    public function export(User $user, mixed $model): bool { return false; }
-    public function markReady(User $user, mixed $model): bool { return false; }
-    public function cancel(User $user, mixed $model): bool { return false; }
+    public function view(User $user, mixed $model): bool
+    {
+        return false;
+    }
+
+    public function create(User $user): bool
+    {
+        return false;
+    }
+
+    public function update(User $user, mixed $model): bool
+    {
+        return false;
+    }
+
+    public function delete(User $user, mixed $model): bool
+    {
+        return false;
+    }
+
+    public function restore(User $user, mixed $model): bool
+    {
+        return false;
+    }
+
+    public function ativar(User $user, mixed $model): bool
+    {
+        return false;
+    }
+
+    public function requestApproval(User $user, mixed $model): bool
+    {
+        return false;
+    }
+
+    public function approve(User $user, mixed $model): bool
+    {
+        return false;
+    }
+
+    public function duplicate(User $user, mixed $model): bool
+    {
+        return false;
+    }
+
+    public function compare(User $user): bool
+    {
+        return false;
+    }
+
+    public function gerarDre(User $user, mixed $model): bool
+    {
+        return false;
+    }
+
+    public function recalcular(User $user, mixed $model): bool
+    {
+        return false;
+    }
+
+    public function reorder(User $user): bool
+    {
+        return false;
+    }
+
+    public function syncGantt(User $user, mixed $model): bool
+    {
+        return false;
+    }
+
+    public function recalcularProgresso(User $user, mixed $model): bool
+    {
+        return false;
+    }
+
+    public function export(User $user, mixed $model): bool
+    {
+        return false;
+    }
+
+    public function markReady(User $user, mixed $model): bool
+    {
+        return false;
+    }
+
+    public function cancel(User $user, mixed $model): bool
+    {
+        return false;
+    }
 }

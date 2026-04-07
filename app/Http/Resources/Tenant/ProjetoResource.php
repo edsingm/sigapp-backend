@@ -2,9 +2,9 @@
 
 namespace App\Http\Resources\Tenant;
 
+use App\Services\Tenant\LandWorkflowService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use App\Services\Tenant\LandWorkflowService;
 
 class ProjetoResource extends JsonResource
 {

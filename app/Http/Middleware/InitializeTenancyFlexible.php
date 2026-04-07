@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Models\Central\Tenant;
 use Closure;
 use Illuminate\Http\Request;
-use App\Models\Central\Tenant;
 use Stancl\Tenancy\Tenancy;
 
 /**
@@ -37,7 +37,7 @@ class InitializeTenancyFlexible
 
         $tenantSlug = $this->resolveTenantSlug($request);
 
-        if (!$tenantSlug) {
+        if (! $tenantSlug) {
             return response()->json([
                 'success' => false,
                 'error' => [
@@ -51,7 +51,7 @@ class InitializeTenancyFlexible
             ->orWhere('id', $tenantSlug)
             ->first();
 
-        if (!$tenant) {
+        if (! $tenant) {
             return response()->json([
                 'success' => false,
                 'error' => [
@@ -82,10 +82,10 @@ class InitializeTenancyFlexible
             }
 
             // Verifica se o host termina com .centralDomain (ex: ed2.localhost ou ed2.sigapp.com.br)
-            $suffix = '.' . $centralDomain;
+            $suffix = '.'.$centralDomain;
             if (str_ends_with($hostLower, $suffix)) {
                 $subdomain = substr($hostLower, 0, -strlen($suffix));
-                if ($subdomain && !str_contains($subdomain, '.')) {
+                if ($subdomain && ! str_contains($subdomain, '.')) {
                     return $subdomain;
                 }
             }

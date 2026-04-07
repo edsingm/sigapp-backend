@@ -2,9 +2,9 @@
 
 namespace App\Http\Resources\Tenant;
 
+use App\Services\Tenant\LandWorkflowService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use App\Services\Tenant\LandWorkflowService;
 
 class LegalizacaoResource extends JsonResource
 {
@@ -13,7 +13,7 @@ class LegalizacaoResource extends JsonResource
         return [
             'id' => $this->id,
             'terreno_id' => $this->terreno_id,
-            'terreno' => $this->whenLoaded('terreno', fn() => [
+            'terreno' => $this->whenLoaded('terreno', fn () => [
                 'id' => $this->terreno->id,
                 'nome' => $this->terreno->nome,
                 'codigo_imovel' => $this->terreno->codigo_imovel,
@@ -23,7 +23,7 @@ class LegalizacaoResource extends JsonResource
                 'status' => LandWorkflowService::statuses()[$this->terreno->workflow_status_code]['label'] ?? null,
             ]),
             'responsavel_id' => $this->responsavel_id,
-            'responsavel' => $this->whenLoaded('responsavel', fn() => [
+            'responsavel' => $this->whenLoaded('responsavel', fn () => [
                 'id' => $this->responsavel->id,
                 'name' => $this->responsavel->name,
                 'email' => $this->responsavel->email,
@@ -40,11 +40,11 @@ class LegalizacaoResource extends JsonResource
             'progresso' => $this->percentual_concluido ?? 0,
             'custo_total_previsto' => $this->custo_total_previsto ? (float) $this->custo_total_previsto : null,
             'observacoes' => $this->observacoes,
-            'created_by' => $this->whenLoaded('createdBy', fn() => [
+            'created_by' => $this->whenLoaded('createdBy', fn () => [
                 'id' => $this->createdBy->id,
                 'name' => $this->createdBy->name,
             ]),
-            'updated_by' => $this->whenLoaded('updatedBy', fn() => [
+            'updated_by' => $this->whenLoaded('updatedBy', fn () => [
                 'id' => $this->updatedBy->id,
                 'name' => $this->updatedBy->name,
             ]),

@@ -14,8 +14,8 @@ class ModulesService
             ->get();
 
         return $modules
-            ->groupBy(fn(Modules $module) => $module->sector->value)
-            ->sortBy(fn($_, string $sectorValue) => SectorsEnum::from($sectorValue)->order())
+            ->groupBy(fn (Modules $module) => $module->sector->value)
+            ->sortBy(fn ($_, string $sectorValue) => SectorsEnum::from($sectorValue)->order())
             ->all();
     }
 }

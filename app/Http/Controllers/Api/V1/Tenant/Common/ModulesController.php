@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Api\V1\Tenant\Common;
 
 use App\Enums\Common\SectorsEnum;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\TenantResource;
 use App\Http\Resources\Tenant\Modules\ModulesResource;
+use App\Http\Resources\TenantResource;
 use App\Services\ApiResponseService;
 use App\Services\Modules\ModulesService;
 use Illuminate\Http\JsonResponse;
@@ -27,13 +27,13 @@ class ModulesController extends Controller
             $sector = SectorsEnum::from($sectorValue);
 
             $modules[] = [
-                'sector'  => [
-                    'slug'  => $sector->value,
+                'sector' => [
+                    'slug' => $sector->value,
                     'label' => $sector->label(),
                     'order' => $sector->order(),
                 ],
                 'modules' => $moduleCollection
-                    ->map(fn($m) => (new ModulesResource($m))->toArray($request))
+                    ->map(fn ($m) => (new ModulesResource($m))->toArray($request))
                     ->values()
                     ->all(),
             ];
@@ -45,9 +45,9 @@ class ModulesController extends Controller
         $user = $request->user();
 
         return ApiResponseService::success([
-            'tenant'  => new TenantResource($tenant),
-            'user'    => [
-                'roles'       => $user->getRoleNames()->values()->all(),
+            'tenant' => new TenantResource($tenant),
+            'user' => [
+                'roles' => $user->getRoleNames()->values()->all(),
                 'permissions' => $user->getAllPermissions()->pluck('name')->values()->all(),
             ],
             'modules' => $modules,

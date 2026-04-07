@@ -16,10 +16,10 @@ class StoreEntitlementRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'key'           => ['required', 'string', 'max:100', 'regex:/^[a-z0-9_.]+$/', 'unique:entitlements,key'],
-            'label'         => ['required', 'string', 'max:255'],
-            'description'   => ['nullable', 'string', 'max:1000'],
-            'type'          => ['required', Rule::enum(EntitlementType::class)],
+            'key' => ['required', 'string', 'max:100', 'regex:/^[a-z0-9_.]+$/', 'unique:entitlements,key'],
+            'label' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:1000'],
+            'type' => ['required', Rule::enum(EntitlementType::class)],
             'default_value' => ['nullable'],
         ];
     }

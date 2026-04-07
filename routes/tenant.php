@@ -1,37 +1,42 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AuthController;
-use App\Http\Controllers\Api\V1\Tenant\TenantController;
-use App\Http\Controllers\Api\V1\Tenant\PlanSwapController;
+use App\Http\Controllers\Api\V1\CidadesController;
+use App\Http\Controllers\Api\V1\LanguageController;
+use App\Http\Controllers\Api\V1\Tenant\Admin\DepartmentController as AdminDepartmentController;
 use App\Http\Controllers\Api\V1\Tenant\Admin\PermissionController as AdminPermissionController;
+use App\Http\Controllers\Api\V1\Tenant\Admin\PositionController as AdminPositionController;
 use App\Http\Controllers\Api\V1\Tenant\Admin\RoleController as AdminRoleController;
 use App\Http\Controllers\Api\V1\Tenant\Admin\UserManagementController as AdminUserManagementController;
-use App\Http\Controllers\Api\V1\Tenant\Admin\DepartmentController as AdminDepartmentController;
-use App\Http\Controllers\Api\V1\Tenant\Admin\PositionController as AdminPositionController;
-use App\Http\Controllers\Api\V1\Tenant\UserController;
-use App\Http\Controllers\Api\V1\Tenant\TerrenoController;
-use App\Http\Controllers\Api\V1\Tenant\DocumentosController;
+use App\Http\Controllers\Api\V1\Tenant\AiController;
+use App\Http\Controllers\Api\V1\Tenant\AiMonitorController;
+use App\Http\Controllers\Api\V1\Tenant\AiPredictiveAnalysisController;
+use App\Http\Controllers\Api\V1\Tenant\AiScoringController;
+use App\Http\Controllers\Api\V1\Tenant\AiTaskController;
+use App\Http\Controllers\Api\V1\Tenant\AiWorkflowController;
+use App\Http\Controllers\Api\V1\Tenant\CommitteeController;
+use App\Http\Controllers\Api\V1\Tenant\Common\ModulesController;
+use App\Http\Controllers\Api\V1\Tenant\ContractController;
 use App\Http\Controllers\Api\V1\Tenant\CorretoresExternosController;
-use App\Http\Controllers\Api\V1\Tenant\RegionaisController;
-use App\Http\Controllers\Api\V1\Tenant\ProdutosController;
-use App\Http\Controllers\Api\V1\Tenant\ProprietariosController;
-use App\Http\Controllers\Api\V1\Tenant\TerrenoProdutosController;
-use App\Http\Controllers\Api\V1\Tenant\TerrenosExportController;
-use App\Http\Controllers\Api\V1\Tenant\ViabilidadeController;
 use App\Http\Controllers\Api\V1\Tenant\DashboardController;
+use App\Http\Controllers\Api\V1\Tenant\DocumentosController;
 use App\Http\Controllers\Api\V1\Tenant\LegalizacaoController;
 use App\Http\Controllers\Api\V1\Tenant\LegalizacaoEtapaController;
 use App\Http\Controllers\Api\V1\Tenant\MobileDeviceController;
 use App\Http\Controllers\Api\V1\Tenant\MobileNotificationController;
-use App\Http\Controllers\Api\V1\Tenant\CommitteeController;
-use App\Http\Controllers\Api\V1\Tenant\ContractController;
 use App\Http\Controllers\Api\V1\Tenant\NegotiationController;
+use App\Http\Controllers\Api\V1\Tenant\PlanSwapController;
+use App\Http\Controllers\Api\V1\Tenant\ProdutosController;
 use App\Http\Controllers\Api\V1\Tenant\ProjetoController;
+use App\Http\Controllers\Api\V1\Tenant\ProprietariosController;
+use App\Http\Controllers\Api\V1\Tenant\RegionaisController;
+use App\Http\Controllers\Api\V1\Tenant\TenantController;
+use App\Http\Controllers\Api\V1\Tenant\TerrenoController;
+use App\Http\Controllers\Api\V1\Tenant\TerrenoProdutosController;
+use App\Http\Controllers\Api\V1\Tenant\TerrenosExportController;
 use App\Http\Controllers\Api\V1\Tenant\TerrenoWorkflowController;
-use App\Http\Controllers\Api\V1\Tenant\AiController;
-use App\Http\Controllers\Api\V1\CidadesController;
-use App\Http\Controllers\Api\V1\LanguageController;
-use App\Http\Controllers\Api\V1\Tenant\Common\ModulesController;
+use App\Http\Controllers\Api\V1\Tenant\UserController;
+use App\Http\Controllers\Api\V1\Tenant\ViabilidadeController;
 use App\Http\Middleware\AddTenantContextToLogs;
 use App\Http\Middleware\ApiRequestLogger;
 use App\Http\Middleware\CheckSubscriptionStatus;
@@ -233,7 +238,31 @@ Route::middleware([
                 Route::middleware('check.feature:ai')->group(function () {
                     Route::get('/ai/conversations', [AiController::class, 'conversations']);
                     Route::get('/ai/conversations/{id}/messages', [AiController::class, 'conversationMessages']);
-                    Route::post('/ai/sig-ai', [AiController::class, 'chat']);
+                    Route::get('/ai/budget', [AiController::class, 'budgetStatus']);
+                    Route::post('/ai/sig-ai', [AiController::class, 'chat'])
+                        ->middleware('ai.rate_limit', 'ai.budget');
+
+                    // AI Scoring
+                    Route::prefix('ai/scoring')->group(function () {
+                        Route::get('/{terreno_id}', [AiScoringController::class, 'getScore']);
+                        Route::get('/ranking', [AiScoringController::class, 'getRanking']);
+                        Route::post('/recalculate', [AiScoringController::class, 'recalculateAll']);
+                    });
+
+                    // AI Automation
+                    Route::prefix('ai/automation')->group(function () {
+                        Route::post('/tasks', [AiTaskController::class, 'store']);
+                        Route::put('/tasks/{taskId}', [AiTaskController::class, 'update']);
+                        Route::post('/workflow/transition', [AiWorkflowController::class, 'transition']);
+                        Route::get('/monitor', [AiMonitorController::class, 'index']);
+                    });
+
+                    // AI Predictive Analysis
+                    Route::prefix('ai/predictive')->group(function () {
+                        Route::get('/approval/{terreno_id}', [AiPredictiveAnalysisController::class, 'predictApproval']);
+                        Route::get('/vgv/{terreno_id}', [AiPredictiveAnalysisController::class, 'estimateVgv']);
+                        Route::get('/stalling', [AiPredictiveAnalysisController::class, 'stallingForecast']);
+                    });
                 });
 
                 // Projetos

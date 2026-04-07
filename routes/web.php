@@ -1,8 +1,8 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
 use Laravel\Cashier\Http\Controllers\PaymentController;
 use Laravel\Cashier\Http\Middleware\VerifyRedirectUrl;
-use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');

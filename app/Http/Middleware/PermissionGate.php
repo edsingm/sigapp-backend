@@ -31,8 +31,7 @@ class PermissionGate
 {
     public function __construct(
         private readonly PermissionNameResolver $permissions,
-    ) {
-    }
+    ) {}
 
     /**
      * Manipula uma requisição de entrada.
@@ -45,7 +44,7 @@ class PermissionGate
     ): Response {
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             return ApiResponseService::error('UNAUTHENTICATED', 'Não autenticado.', null, 401);
         }
 
@@ -55,7 +54,7 @@ class PermissionGate
 
         $permissionName = $this->permissions->forRequest($module, $resource, $request->method());
 
-        if (!$user->hasPermissionTo($permissionName)) {
+        if (! $user->hasPermissionTo($permissionName)) {
             return ApiResponseService::error(
                 'FORBIDDEN',
                 'Você não tem permissão para realizar esta ação.',

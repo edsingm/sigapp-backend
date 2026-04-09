@@ -16,6 +16,7 @@
         "negotiation": "manager",
         "projects": "manager",
         "reports": "manager",
-        "viability": "manager"
+        "viability": "manager",
+        "ai": "manager"
     }
 }

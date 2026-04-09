@@ -16,6 +16,7 @@
         "negotiation": "viewer",
         "projects": "viewer",
         "reports": "viewer",
-        "viability": "manager"
+        "viability": "manager",
+        "ai": "manager"
     }
 }

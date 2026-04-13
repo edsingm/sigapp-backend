@@ -730,6 +730,26 @@ class ViabilidadeController extends Controller
         }
     }
 
+    private function resolveChromePath(): ?string
+    {
+        $candidates = array_filter([
+            env('BROWSERSHOT_CHROME_PATH'),
+            env('PUPPETEER_EXECUTABLE_PATH'),
+            '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+            '/usr/bin/google-chrome',
+            '/usr/bin/chromium-browser',
+            '/usr/bin/chromium',
+        ]);
+
+        foreach ($candidates as $candidate) {
+            if (is_string($candidate) && is_file($candidate) && is_executable($candidate)) {
+                return $candidate;
+            }
+        }
+
+        return null;
+    }
+
     /**
      * Exportar viabilidade para PDF
      *
@@ -764,9 +784,14 @@ class ViabilidadeController extends Controller
             return Pdf::view('exports.viabilidade-pdf', $data)
                 ->format('a4')
                 ->withBrowsershot(function ($browsershot) {
+                    $chromePath = $this->resolveChromePath();
+                    if ($chromePath) {
+                        $browsershot->setChromePath($chromePath);
+                    }
                     $browsershot->noSandbox();
                 })
-                ->name("viabilidade-{$id}-".now()->format('Y-m-d').'.pdf');
+                ->name("viabilidade-{$id}-".now()->format('Y-m-d').'.pdf')
+                ->toResponse(request());
 
         } catch (Exception $e) {
             if ($e instanceof AuthorizationException) {

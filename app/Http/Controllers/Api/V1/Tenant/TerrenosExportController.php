@@ -230,7 +230,6 @@ class TerrenosExportController extends Controller
             Log::info("Iniciando geração de checklist PDF para o terreno ID: $id");
 
             $terreno = Terreno::with([
-                'status',
                 'responsavel',
                 'regional',
                 'cidade',
@@ -254,7 +253,8 @@ class TerrenosExportController extends Controller
                 ->withBrowsershot(function ($browsershot) {
                     $this->applyBrowsershotDefaults($browsershot);
                 })
-                ->name('checklist-'.$terreno->id.'-'.Str::slug($terreno->nome).'.pdf');
+                ->name('checklist-'.$terreno->id.'-'.Str::slug($terreno->nome).'.pdf')
+                ->toResponse(request());
         } catch (\Exception $e) {
             Log::error('Erro ao gerar checklist PDF: '.$e->getMessage(), [
                 'id' => $id,

@@ -2,6 +2,7 @@
 
 namespace App\Models\Tenant;
 
+use App\Enums\WorkflowStatus;
 use App\Models\Central\Cidade;
 use App\Traits\HasDashboardCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -104,6 +105,14 @@ class Terreno extends Model
     public function responsavel(): BelongsTo
     {
         return $this->belongsTo(User::class, 'responsavel_id');
+    }
+
+    /**
+     * Obtém o status do terreno via WorkflowStatus enum.
+     */
+    public function status(): WorkflowStatus
+    {
+        return WorkflowStatus::tryFrom($this->workflow_status_code) ?? WorkflowStatus::EM_ANALISE;
     }
 
     /**

@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests\Tenant;
 
-use Illuminate\Foundation\Http\FormRequest;
 use App\Models\Veiculo;
+use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 class StoreRequisicaoVeiculoRequest extends FormRequest
 {
@@ -18,7 +20,7 @@ class StoreRequisicaoVeiculoRequest extends FormRequest
     /**
      * Obtém as regras de validação que se aplicam à requisição.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
@@ -64,7 +66,7 @@ class StoreRequisicaoVeiculoRequest extends FormRequest
     /**
      * Configura a instância do validador.
      *
-     * @param  \Illuminate\Validation\Validator  $validator
+     * @param  Validator  $validator
      * @return void
      */
     public function withValidator($validator)
@@ -72,12 +74,12 @@ class StoreRequisicaoVeiculoRequest extends FormRequest
         $validator->after(function ($validator) {
             if ($this->veiculo_id && $this->data_inicio && $this->data_fim) {
                 $veiculo = Veiculo::find($this->veiculo_id);
-                
+
                 if ($veiculo) {
                     $dataInicio = new \DateTime($this->data_inicio);
                     $dataFim = new \DateTime($this->data_fim);
-                    
-                    if (!$veiculo->disponivelNoPeriodo($dataInicio, $dataFim)) {
+
+                    if (! $veiculo->disponivelNoPeriodo($dataInicio, $dataFim)) {
                         $validator->errors()->add('veiculo_id', 'O veículo não está disponível no período selecionado.');
                     }
                 }

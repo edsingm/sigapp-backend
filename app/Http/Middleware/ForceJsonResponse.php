@@ -14,7 +14,7 @@ class ForceJsonResponse
     public function handle(Request $request, Closure $next): Response
     {
         // Força o cabeçalho Accept para JSON apenas se não estiver configurado para algo específico
-        if (!$request->headers->has('Accept') || $request->header('Accept') === '*/*') {
+        if (! $request->headers->has('Accept') || $request->header('Accept') === '*/*') {
             $request->headers->set('Accept', 'application/json');
         }
 

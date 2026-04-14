@@ -2,6 +2,7 @@
 
 namespace App\Models\Central;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
@@ -12,9 +13,9 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * @property string $event_id
  * @property string $type
  * @property array|null $payload
- * @property \Carbon\Carbon|null $processed_at
- * @property \Carbon\Carbon $created_at
- * @property \Carbon\Carbon $updated_at
+ * @property Carbon|null $processed_at
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
  */
 class WebhookEvent extends Model
 {

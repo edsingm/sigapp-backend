@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Central\Cidade;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
 class CidadesController extends Controller
@@ -21,7 +21,7 @@ class CidadesController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $states
+            'data' => $states,
         ]);
     }
 
@@ -38,7 +38,7 @@ class CidadesController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $cities
+            'data' => $cities,
         ]);
     }
 
@@ -54,16 +54,16 @@ class CidadesController extends Controller
         $termo = $request->query('termo');
 
         $cidades = Cidade::whereRaw(
-                'unaccent(city) ILIKE unaccent(?)',
-                ["%{$termo}%"]
-            )
+            'unaccent(city) ILIKE unaccent(?)',
+            ["%{$termo}%"]
+        )
             ->orderBy('city')
             ->limit(100)
             ->get(['code', 'city', 'state', 'state_code']);
 
         return response()->json([
             'status' => 'OK',
-            'data' => $cidades
+            'data' => $cidades,
         ]);
     }
 
@@ -79,16 +79,16 @@ class CidadesController extends Controller
         $cityCode = $request->query('cityCode');
 
         $cidade = Cidade::where('code', $cityCode)->first();
-        if (!$cidade) {
+        if (! $cidade) {
             return response()->json([
                 'status' => 'ERROR',
-                'message' => language()->t('CITY_NOT_FOUND')
+                'message' => language()->t('CITY_NOT_FOUND'),
             ], 404);
         }
 
         return response()->json([
             'status' => 'OK',
-            'data' => $cidade
+            'data' => $cidade,
         ]);
     }
 }

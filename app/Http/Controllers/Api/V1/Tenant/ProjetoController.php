@@ -13,7 +13,9 @@ use App\Models\Tenant\Terreno;
 use App\Services\ApiResponseService;
 use App\Services\Tenant\MobilePushService;
 use App\Services\Tenant\ProjetoService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 
@@ -36,7 +38,7 @@ class ProjetoController extends Controller
             $filters = $request->only(['search', 'status', 'per_page', 'page']);
             $cacheKey = "tenant:{$tenantId}:projetos:index:".md5(json_encode($filters));
 
-            $result = \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:projetos"])
+            $result = Cache::tags(["tenant:{$tenantId}:projetos"])
                 ->remember($cacheKey, now()->addMinutes(15), function () use ($filters) {
                     return $this->service->listar($filters);
                 });
@@ -120,7 +122,7 @@ class ProjetoController extends Controller
                 $this->service->workspacePayload($projeto, $request->user()),
                 'Projeto carregado com sucesso'
             );
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
+        } catch (ModelNotFoundException) {
             return ApiResponseService::notFound('Projeto não encontrado');
         } catch (\Throwable $e) {
             Log::error('Erro ao carregar projeto', [
@@ -148,7 +150,7 @@ class ProjetoController extends Controller
                 $this->service->workspacePayload($projeto, $request->user()),
                 'Projeto atualizado com sucesso'
             );
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
+        } catch (ModelNotFoundException) {
             return ApiResponseService::notFound('Projeto não encontrado');
         } catch (\Throwable $e) {
             Log::error('Erro ao atualizar projeto', [
@@ -188,7 +190,7 @@ class ProjetoController extends Controller
                 $this->service->workspacePayload($projeto, $request->user()),
                 'Projeto finalizado com sucesso'
             );
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
+        } catch (ModelNotFoundException) {
             return ApiResponseService::notFound('Projeto não encontrado');
         } catch (\RuntimeException $e) {
             return ApiResponseService::error('MARK_READY_ERROR', $e->getMessage(), null, 422);
@@ -218,7 +220,7 @@ class ProjetoController extends Controller
                 $this->service->workspacePayload($projeto, $request->user()),
                 'Projeto cancelado com sucesso'
             );
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
+        } catch (ModelNotFoundException) {
             return ApiResponseService::notFound('Projeto não encontrado');
         } catch (\Throwable $e) {
             Log::error('Erro ao cancelar projeto', [
@@ -237,7 +239,7 @@ class ProjetoController extends Controller
     {
         $tenantId = tenant('id') ?? 'central';
 
-        \Illuminate\Support\Facades\Cache::tags([
+        Cache::tags([
             "tenant:{$tenantId}:projetos",
             "tenant:{$tenantId}:terrenos",
             "tenant:{$tenantId}:viabilidades",

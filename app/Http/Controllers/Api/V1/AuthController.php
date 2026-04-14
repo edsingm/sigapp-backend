@@ -272,9 +272,9 @@ class AuthController extends Controller
         $user = $request->user();
 
         $validated = $request->validate([
-            'name'     => ['sometimes', 'string', 'max:255'],
-            'email'    => ['sometimes', 'email', Rule::unique('users', 'email')->ignore($user->id)],
-            'locale'   => ['sometimes', 'string', 'in:' . implode(',', LanguageService::SUPPORTED_LOCALES)],
+            'name' => ['sometimes', 'string', 'max:255'],
+            'email' => ['sometimes', 'email', Rule::unique('users', 'email')->ignore($user->id)],
+            'locale' => ['sometimes', 'string', 'in:'.implode(',', LanguageService::SUPPORTED_LOCALES)],
             'password' => ['sometimes', 'confirmed', PasswordRule::defaults()],
         ]);
 

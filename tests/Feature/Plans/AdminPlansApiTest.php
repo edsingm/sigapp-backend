@@ -5,7 +5,10 @@ namespace Tests\Feature\Plans;
 use App\Models\Central\Entitlement;
 use App\Models\Central\Plan;
 use App\Models\User;
+use Database\Seeders\EntitlementSeeder;
+use Database\Seeders\PlanSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Testing\TestResponse;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -16,8 +19,8 @@ class AdminPlansApiTest extends TestCase
     private function actingAsAdmin(): void
     {
         $user = User::create([
-            'name'     => 'Admin',
-            'email'    => 'admin@sigapp.test',
+            'name' => 'Admin',
+            'email' => 'admin@sigapp.test',
             'password' => 'password',
             'is_admin' => true,
         ]);
@@ -25,11 +28,11 @@ class AdminPlansApiTest extends TestCase
         Sanctum::actingAs($user, ['admin']);
     }
 
-    private function adminJson(string $method, string $uri, array $data = []): \Illuminate\Testing\TestResponse
+    private function adminJson(string $method, string $uri, array $data = []): TestResponse
     {
         return $this
             ->withHeader('Host', 'localhost')
-            ->{$method . 'Json'}($uri, $data);
+            ->{$method.'Json'}($uri, $data);
     }
 
     // ─── Auth Guard Tests ─────────────────────────────────────────────────────
@@ -44,8 +47,8 @@ class AdminPlansApiTest extends TestCase
     public function test_non_admin_user_is_forbidden(): void
     {
         $user = User::create([
-            'name'     => 'Guest',
-            'email'    => 'guest@sigapp.test',
+            'name' => 'Guest',
+            'email' => 'guest@sigapp.test',
             'password' => 'password',
             'is_admin' => false,
         ]);
@@ -60,7 +63,7 @@ class AdminPlansApiTest extends TestCase
 
     public function test_it_lists_all_plans(): void
     {
-        $this->seed(\Database\Seeders\PlanSeeder::class);
+        $this->seed(PlanSeeder::class);
         $this->actingAsAdmin();
 
         $response = $this->adminJson('get', '/api/v1/admin/plans');
@@ -73,11 +76,11 @@ class AdminPlansApiTest extends TestCase
 
     public function test_it_shows_a_single_plan_with_entitlements(): void
     {
-        $this->seed(\Database\Seeders\PlanSeeder::class);
-        $this->seed(\Database\Seeders\EntitlementSeeder::class);
+        $this->seed(PlanSeeder::class);
+        $this->seed(EntitlementSeeder::class);
         $this->actingAsAdmin();
 
-        $plan     = Plan::where('slug', 'pro')->firstOrFail();
+        $plan = Plan::where('slug', 'pro')->firstOrFail();
         $response = $this->adminJson('get', "/api/v1/admin/plans/{$plan->id}");
 
         $response->assertOk()
@@ -101,11 +104,11 @@ class AdminPlansApiTest extends TestCase
         $this->actingAsAdmin();
 
         $response = $this->adminJson('post', '/api/v1/admin/plans', [
-            'name'       => 'Enterprise',
-            'slug'       => 'enterprise',
-            'price'      => 999.00,
+            'name' => 'Enterprise',
+            'slug' => 'enterprise',
+            'price' => 999.00,
             'trial_days' => 14,
-            'is_active'  => true,
+            'is_active' => true,
         ]);
 
         $response->assertCreated()->assertJsonPath('success', true);
@@ -114,13 +117,13 @@ class AdminPlansApiTest extends TestCase
 
     public function test_create_fails_with_duplicate_slug(): void
     {
-        $this->seed(\Database\Seeders\PlanSeeder::class);
+        $this->seed(PlanSeeder::class);
         $this->actingAsAdmin();
 
         $response = $this->adminJson('post', '/api/v1/admin/plans', [
-            'name'       => 'Duplicate',
-            'slug'       => 'pro',
-            'price'      => 0,
+            'name' => 'Duplicate',
+            'slug' => 'pro',
+            'price' => 0,
             'trial_days' => 0,
         ]);
 
@@ -131,14 +134,14 @@ class AdminPlansApiTest extends TestCase
 
     public function test_it_updates_a_plan(): void
     {
-        $this->seed(\Database\Seeders\PlanSeeder::class);
+        $this->seed(PlanSeeder::class);
         $this->actingAsAdmin();
 
-        $plan     = Plan::where('slug', 'basico')->firstOrFail();
+        $plan = Plan::where('slug', 'basico')->firstOrFail();
         $response = $this->adminJson('put', "/api/v1/admin/plans/{$plan->id}", [
-            'name'       => 'Básico Atualizado',
-            'slug'       => 'basico',
-            'price'      => 319.00,
+            'name' => 'Básico Atualizado',
+            'slug' => 'basico',
+            'price' => 319.00,
             'trial_days' => 7,
         ]);
 
@@ -153,11 +156,11 @@ class AdminPlansApiTest extends TestCase
         $this->actingAsAdmin();
 
         $plan = Plan::create([
-            'name'       => 'To Delete',
-            'slug'       => 'to-delete',
-            'price'      => 0,
+            'name' => 'To Delete',
+            'slug' => 'to-delete',
+            'price' => 0,
             'trial_days' => 0,
-            'is_active'  => false,
+            'is_active' => false,
             'sort_order' => 99,
         ]);
 
@@ -192,10 +195,10 @@ class AdminPlansApiTest extends TestCase
 
     public function test_plan_response_does_not_expose_stripe_price_id(): void
     {
-        $this->seed(\Database\Seeders\PlanSeeder::class);
+        $this->seed(PlanSeeder::class);
         $this->actingAsAdmin();
 
-        $plan     = Plan::where('slug', 'pro')->firstOrFail();
+        $plan = Plan::where('slug', 'pro')->firstOrFail();
         $response = $this->adminJson('get', "/api/v1/admin/plans/{$plan->id}");
 
         $data = $response->json('data');

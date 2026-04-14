@@ -6,6 +6,7 @@ use App\Enums\TenantStatus;
 use App\Models\Central\Tenant;
 use App\Notifications\TenantWelcomeNotification;
 use App\Traits\LogsAudit;
+use Database\Seeders\Tenant\TenantSeeder;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -15,6 +16,7 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class CreateFullTenantJob implements ShouldBeUnique, ShouldQueue
 {
@@ -115,7 +117,7 @@ class CreateFullTenantJob implements ShouldBeUnique, ShouldQueue
 
             // Auditoria: criação falhou
             $this->restoreCentralConnection($centralConnection);
-            $this->auditTrail('tenant.creation_failed', 'Job de criação falhou: '.\Illuminate\Support\Str::limit($e->getMessage(), 200), [
+            $this->auditTrail('tenant.creation_failed', 'Job de criação falhou: '.Str::limit($e->getMessage(), 200), [
                 'error' => $e->getMessage(),
                 'error_class' => get_class($e),
                 'attempt' => $this->attempts(),
@@ -176,7 +178,7 @@ class CreateFullTenantJob implements ShouldBeUnique, ShouldQueue
     protected function seedTenantData(): void
     {
         $this->tenant->run(function () {
-            $seeder = new \Database\Seeders\Tenant\TenantSeeder;
+            $seeder = new TenantSeeder;
             $seeder->run();
         });
     }

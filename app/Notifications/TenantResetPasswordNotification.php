@@ -13,8 +13,7 @@ class TenantResetPasswordNotification extends Notification
     public function __construct(
         private readonly string $resetUrl,
         private readonly int $expireMinutes,
-    ) {
-    }
+    ) {}
 
     /**
      * @return list<string>

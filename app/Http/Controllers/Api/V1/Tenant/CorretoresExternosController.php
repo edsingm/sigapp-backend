@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\Tenant\CorretorExterno;
 use App\Http\Resources\Tenant\CorretorExternoResource;
+use App\Models\Tenant\CorretorExterno;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 
 class CorretoresExternosController extends Controller
@@ -20,9 +21,9 @@ class CorretoresExternosController extends Controller
 
         $tenantId = tenant('id') ?? 'central';
         $filters = $request->only(['per_page', 'page', 'search']);
-        $cacheKey = "tenant:{$tenantId}:corretores_externos:index:" . md5(json_encode($filters));
+        $cacheKey = "tenant:{$tenantId}:corretores_externos:index:".md5(json_encode($filters));
 
-        return \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:corretores_externos"])->remember($cacheKey, now()->addMinutes(30), function () use ($request) {
+        return Cache::tags(["tenant:{$tenantId}:corretores_externos"])->remember($cacheKey, now()->addMinutes(30), function () use ($request) {
             $perPage = $request->integer('per_page', 10);
 
             $query = CorretorExterno::query();
@@ -63,6 +64,7 @@ class CorretoresExternosController extends Controller
     {
         $corretor = CorretorExterno::findOrFail($id);
         Gate::authorize('view', $corretor);
+
         return response()->json(['data' => new CorretorExternoResource($corretor)]);
     }
 
@@ -109,8 +111,9 @@ class CorretoresExternosController extends Controller
         $tenantId = tenant('id') ?? 'central';
         $cacheKey = "tenant:{$tenantId}:corretores_externos:select";
 
-        return \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:corretores_externos"])->remember($cacheKey, now()->addHours(1), function () {
+        return Cache::tags(["tenant:{$tenantId}:corretores_externos"])->remember($cacheKey, now()->addHours(1), function () {
             $corretores = CorretorExterno::orderBy('nome', 'asc')->get(['id', 'nome']);
+
             return response()->json(['data' => $corretores]);
         });
     }

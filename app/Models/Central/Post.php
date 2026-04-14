@@ -11,7 +11,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
 class Post extends Model
 {
-    use HasFactory, CentralConnection;
+    use CentralConnection, HasFactory;
 
     protected $fillable = [
         'title',

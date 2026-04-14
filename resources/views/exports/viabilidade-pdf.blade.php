@@ -473,12 +473,12 @@
         <!-- Area Banner -->
         <div class="area-banner">
             <div class="area-banner-left">
-                <h2>{{ $viabilidade->area->nome ?? 'Área não especificada' }}</h2>
-                <p>{{ $viabilidade->area->cidade->nome ?? '' }}{{ $viabilidade->area->cidade ? ' - ' : '' }}{{ $viabilidade->area->cidade->estado->sigla ?? '' }}</p>
+                <h2>{{ $viabilidade->terreno?->nome ?? 'Área não especificada' }}</h2>
+                <p>{{ $viabilidade->terreno?->cidade?->city ?? '' }}{{ $viabilidade->terreno?->estado ? ' - ' . $viabilidade->terreno?->estado : '' }}</p>
             </div>
             <div class="area-banner-right">
                 <div class="area-stat">
-                    <div class="area-stat-value">{{ number_format($viabilidade->area->area_total ?? 0, 0, ',', '.') }}</div>
+                    <div class="area-stat-value">{{ number_format($viabilidade->terreno?->area_total ?? 0, 0, ',', '.') }}</div>
                     <div class="area-stat-label">M² Total</div>
                 </div>
                 <div class="area-stat">

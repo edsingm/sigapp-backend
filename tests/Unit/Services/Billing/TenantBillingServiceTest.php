@@ -18,14 +18,14 @@ class TenantBillingServiceTest extends TestCase
 
     public function test_matches_signup_checkout_session_reads_nested_tenant_data(): void
     {
-        $tenant = new Tenant();
+        $tenant = new Tenant;
         $tenant->data = [
             'signup_contract_acceptance' => [
                 'stripe_checkout_session_id' => 'cs_test_123',
             ],
         ];
 
-        $service = new TenantBillingService();
+        $service = new TenantBillingService;
 
         self::assertTrue($service->matchesSignupCheckoutSession($tenant, 'cs_test_123'));
         self::assertFalse($service->matchesSignupCheckoutSession($tenant, 'cs_test_other'));
@@ -55,7 +55,7 @@ class TenantBillingServiceTest extends TestCase
                     && ($payload['stripe_checkout_session_id'] ?? null) === 'cs_test_456';
             }));
 
-        $service = new TenantBillingService();
+        $service = new TenantBillingService;
 
         $service->storeSignupCheckoutSessionId($tenant, 'cs_test_456');
     }
@@ -65,7 +65,7 @@ class TenantBillingServiceTest extends TestCase
         $tenant = Mockery::mock(Tenant::class);
         $tenant->shouldReceive('activate')->once()->andReturnSelf();
 
-        $service = new TenantBillingService();
+        $service = new TenantBillingService;
 
         self::assertSame(Tenant::STATUS_ACTIVE, $service->applyStripeSubscriptionStatus($tenant, 'active'));
     }
@@ -75,7 +75,7 @@ class TenantBillingServiceTest extends TestCase
         $tenant = Mockery::mock(Tenant::class);
         $tenant->shouldReceive('suspend')->once()->andReturnSelf();
 
-        $service = new TenantBillingService();
+        $service = new TenantBillingService;
 
         self::assertSame(Tenant::STATUS_SUSPENDED, $service->applyStripeSubscriptionStatus($tenant, 'unpaid'));
     }
@@ -85,7 +85,7 @@ class TenantBillingServiceTest extends TestCase
         $tenant = Mockery::mock(Tenant::class);
         $tenant->shouldReceive('cancel')->once()->andReturnSelf();
 
-        $service = new TenantBillingService();
+        $service = new TenantBillingService;
 
         self::assertSame(Tenant::STATUS_CANCELLED, $service->applyStripeSubscriptionStatus($tenant, 'canceled'));
     }
@@ -97,7 +97,7 @@ class TenantBillingServiceTest extends TestCase
         $tenant->shouldNotReceive('suspend');
         $tenant->shouldNotReceive('cancel');
 
-        $service = new TenantBillingService();
+        $service = new TenantBillingService;
 
         self::assertSame(TenantBillingService::STATUS_NOOP, $service->applyStripeSubscriptionStatus($tenant, 'past_due'));
     }

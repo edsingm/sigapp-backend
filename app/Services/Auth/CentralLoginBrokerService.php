@@ -6,6 +6,7 @@ use App\Models\Central\CentralLoginBrokerSession;
 use App\Models\Central\LoginTransferTicket;
 use App\Models\Central\Tenant;
 use App\Models\Central\TenantUserDirectory;
+use App\Models\Tenant\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -14,12 +15,12 @@ use Illuminate\Support\Str;
 class CentralLoginBrokerService
 {
     private const TRANSFER_TICKET_TTL_SECONDS = 90;
+
     private const BROKER_SESSION_TTL_SECONDS = 300;
 
     public function __construct(
         private readonly TenantUserDirectoryService $directoryService,
-    ) {
-    }
+    ) {}
 
     /**
      * Tenta o login no broker central em todos os tenants ativos.
@@ -76,14 +77,14 @@ class CentralLoginBrokerService
     {
         $session = CentralLoginBrokerSession::find($brokerSessionId);
 
-        if (!$session || $session->isExpired() || $session->isCompleted()) {
+        if (! $session || $session->isExpired() || $session->isCompleted()) {
             return null;
         }
 
         $options = is_array($session->tenant_options) ? $session->tenant_options : [];
         $selected = collect($options)->firstWhere('tenant_id', $tenantId);
 
-        if (!is_array($selected)) {
+        if (! is_array($selected)) {
             return null;
         }
 
@@ -105,7 +106,7 @@ class CentralLoginBrokerService
     {
         $tenant = tenant();
 
-        if (!$tenant) {
+        if (! $tenant) {
             return null;
         }
 
@@ -115,7 +116,7 @@ class CentralLoginBrokerService
             return LoginTransferTicket::where('ticket_hash', $ticketHash)->first();
         });
 
-        if (!$ticket instanceof LoginTransferTicket) {
+        if (! $ticket instanceof LoginTransferTicket) {
             return null;
         }
 
@@ -123,13 +124,13 @@ class CentralLoginBrokerService
             return null;
         }
 
-        $user = \App\Models\Tenant\User::find($ticket->tenant_user_id);
+        $user = User::find($ticket->tenant_user_id);
 
-        if (!$user && $ticket->email) {
-            $user = \App\Models\Tenant\User::where('email', $ticket->email)->first();
+        if (! $user && $ticket->email) {
+            $user = User::where('email', $ticket->email)->first();
         }
 
-        if (!$user) {
+        if (! $user) {
             return null;
         }
 
@@ -201,23 +202,23 @@ class CentralLoginBrokerService
         $matches = [];
 
         foreach ($candidates as $candidateDirectory) {
-            if (!$candidateDirectory instanceof TenantUserDirectory) {
+            if (! $candidateDirectory instanceof TenantUserDirectory) {
                 continue;
             }
 
             $tenant = $candidateDirectory->tenant;
 
-            if (!$tenant instanceof Tenant || !$tenant->isActive()) {
+            if (! $tenant instanceof Tenant || ! $tenant->isActive()) {
                 continue;
             }
 
             try {
                 $candidate = $tenant->run(function () use ($candidateDirectory, $password) {
-                    $user = \App\Models\Tenant\User::query()
+                    $user = User::query()
                         ->whereKey($candidateDirectory->tenant_user_id)
                         ->first();
 
-                    if (!$user || !Hash::check($password, $user->password)) {
+                    if (! $user || ! Hash::check($password, $user->password)) {
                         return null;
                     }
 
@@ -231,15 +232,16 @@ class CentralLoginBrokerService
                     'tenant_id' => (string) $tenant->id,
                     'error' => $e->getMessage(),
                 ]);
+
                 continue;
             }
 
-            if (!is_array($candidate)) {
+            if (! is_array($candidate)) {
                 continue;
             }
 
             $tenantUrl = $this->resolveTenantUrl($tenant);
-            if (!$tenantUrl) {
+            if (! $tenantUrl) {
                 continue;
             }
 
@@ -258,7 +260,7 @@ class CentralLoginBrokerService
     }
 
     /**
-     * @param array<string, mixed> $match
+     * @param  array<string, mixed>  $match
      * @return array<string, mixed>
      */
     private function buildRedirectResponse(array $match, ?string $deviceName, Request $request): array
@@ -285,7 +287,7 @@ class CentralLoginBrokerService
     }
 
     /**
-     * @param list<array<string, mixed>> $matches
+     * @param  list<array<string, mixed>>  $matches
      */
     private function createBrokerSession(string $email, ?string $deviceName, Request $request, array $matches): CentralLoginBrokerSession
     {
@@ -341,13 +343,13 @@ class CentralLoginBrokerService
     {
         $domain = $tenant->domains()->orderBy('id')->value('domain');
 
-        if (!is_string($domain) || $domain === '') {
+        if (! is_string($domain) || $domain === '') {
             $baseDomain = (string) (config('tenancy.identification.central_domains')[0] ?? config('app.domain') ?? '');
             if ($baseDomain === '') {
                 return null;
             }
 
-            $domain = $tenant->slug . '.' . $baseDomain;
+            $domain = $tenant->slug.'.'.$baseDomain;
         }
 
         if (Str::startsWith($domain, ['http://', 'https://'])) {
@@ -356,7 +358,7 @@ class CentralLoginBrokerService
 
         $scheme = $this->preferredScheme();
 
-        return $scheme . '://' . $domain;
+        return $scheme.'://'.$domain;
     }
 
     private function preferredScheme(): string

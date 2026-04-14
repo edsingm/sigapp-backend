@@ -18,7 +18,7 @@ class LanguageController extends Controller
     public function set(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'locale' => ['required', 'string', 'in:' . implode(',', LanguageService::SUPPORTED_LOCALES)],
+            'locale' => ['required', 'string', 'in:'.implode(',', LanguageService::SUPPORTED_LOCALES)],
         ]);
 
         LanguageService::setLocale($data['locale']);

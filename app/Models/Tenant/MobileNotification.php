@@ -41,7 +41,7 @@ class MobileNotification extends Model
     protected static function booted(): void
     {
         static::creating(function (self $notification) {
-            if (!$notification->id) {
+            if (! $notification->id) {
                 $notification->id = (string) Str::uuid();
             }
         });

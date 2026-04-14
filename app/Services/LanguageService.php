@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Arr;
 use App\Models\Tenant\User as TenantUser;
+use Illuminate\Support\Arr;
 
 class LanguageService
 {
@@ -25,9 +25,9 @@ class LanguageService
     {
         $normalized = strtolower(str_replace('_', '-', $locale));
 
-        if (!in_array($normalized, self::SUPPORTED_LOCALES, strict: true)) {
+        if (! in_array($normalized, self::SUPPORTED_LOCALES, strict: true)) {
             throw new \InvalidArgumentException(
-                "Locale '{$locale}' não suportado. Locales disponíveis: " . implode(', ', self::SUPPORTED_LOCALES)
+                "Locale '{$locale}' não suportado. Locales disponíveis: ".implode(', ', self::SUPPORTED_LOCALES)
             );
         }
 
@@ -60,16 +60,14 @@ class LanguageService
      * Suporta notação de ponto para chaves aninhadas (ex: "auth.login").
      * Suporta substituição de placeholders (ex: "validation.required", [':field' => 'nome']).
      *
-     * @param string $key
-     * @param array<string, string> $replace
-     * @return string
+     * @param  array<string, string>  $replace
      */
     public function t(string $key, array $replace = []): string
     {
         $value = Arr::get($this->translations, $key, $key);
 
         foreach ($replace as $placeholder => $replacement) {
-            $value = str_replace(':' . ltrim($placeholder, ':'), $replacement, $value);
+            $value = str_replace(':'.ltrim($placeholder, ':'), $replacement, $value);
         }
 
         return $value;
@@ -84,14 +82,14 @@ class LanguageService
     {
         $basePath = method_exists(app(), 'resourcePath')
             ? app()->resourcePath("lang/{$locale}.json")
-            : dirname(__DIR__, 2) . "/resources/lang/{$locale}.json";
+            : dirname(__DIR__, 2)."/resources/lang/{$locale}.json";
 
-        if (!file_exists($basePath)) {
+        if (! file_exists($basePath)) {
             return [];
         }
 
         $contents = file_get_contents($basePath);
-        $decoded  = json_decode($contents, associative: true);
+        $decoded = json_decode($contents, associative: true);
 
         return is_array($decoded) ? $decoded : [];
     }

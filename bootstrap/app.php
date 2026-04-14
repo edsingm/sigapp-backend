@@ -1,39 +1,56 @@
 <?php
 
+use App\Http\Middleware\AddTenantContextToLogs;
+use App\Http\Middleware\AiBudgetCheck;
+use App\Http\Middleware\AiRateLimit;
+use App\Http\Middleware\AiTelemetryMiddleware;
+use App\Http\Middleware\ApiRequestLogger;
+use App\Http\Middleware\CheckFeature;
+use App\Http\Middleware\CheckSubscriptionStatus;
+use App\Http\Middleware\EnforcePlanLimits;
+use App\Http\Middleware\EnsureTenantAdmin;
+use App\Http\Middleware\EnsureUserIsAdmin;
+use App\Http\Middleware\ForceJsonResponse;
+use App\Http\Middleware\InitializeTenancyFlexible;
+use App\Http\Middleware\PermissionGate;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
-use Illuminate\Auth\AuthenticationException;
 use Illuminate\Validation\ValidationException;
+use Laravel\Ai\Exceptions\RateLimitedException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
-        api: __DIR__ . '/../routes/api.php',
-        web: __DIR__ . '/../routes/web.php',
-        commands: __DIR__ . '/../routes/console.php',
+        api: __DIR__.'/../routes/api.php',
+        web: __DIR__.'/../routes/web.php',
+        commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
         // Add global middleware aliases
         $middleware->alias([
-            'force.json' => \App\Http\Middleware\ForceJsonResponse::class,
-            'tenant.logs' => \App\Http\Middleware\AddTenantContextToLogs::class,
-            'api.logger' => \App\Http\Middleware\ApiRequestLogger::class,
-            'enforce.limits' => \App\Http\Middleware\EnforcePlanLimits::class,
-            'subscription.active' => \App\Http\Middleware\CheckSubscriptionStatus::class,
-            'tenant.admin' => \App\Http\Middleware\EnsureTenantAdmin::class,
-            'user.admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
-            'permission.gate'     => \App\Http\Middleware\PermissionGate::class,
-            'check.feature'       => \App\Http\Middleware\CheckFeature::class,
+            'force.json' => ForceJsonResponse::class,
+            'tenant.logs' => AddTenantContextToLogs::class,
+            'api.logger' => ApiRequestLogger::class,
+            'enforce.limits' => EnforcePlanLimits::class,
+            'subscription.active' => CheckSubscriptionStatus::class,
+            'tenant.admin' => EnsureTenantAdmin::class,
+            'user.admin' => EnsureUserIsAdmin::class,
+            'permission.gate' => PermissionGate::class,
+            'check.feature' => CheckFeature::class,
+            'ai.rate_limit' => AiRateLimit::class,
+            'ai.budget' => AiBudgetCheck::class,
+            'ai.telemetry' => AiTelemetryMiddleware::class,
         ]);
 
         // Register the 'tenant' middleware group
         // Uses subdomain in production, falls back to X-Tenant header for localhost (php artisan serve)
         $middleware->group('tenant', [
-            \App\Http\Middleware\InitializeTenancyFlexible::class,
+            InitializeTenancyFlexible::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
@@ -61,6 +78,16 @@ return Application::configure(basePath: dirname(__DIR__))
                     ],
                 ], 422);
             }
+        });
+
+        $exceptions->renderable(function (RateLimitedException $e, Request $request) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'AI_PROVIDER_RATE_LIMITED',
+                    'message' => 'O provedor de IA atingiu o limite de requisições. Aguarde alguns segundos e tente novamente.',
+                ],
+            ], 429);
         });
 
         // Handle HttpException for API
@@ -109,7 +136,7 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         // Handle all other exceptions in production (API only)
-        $exceptions->renderable(function (\Throwable $e, Request $request) {
+        $exceptions->renderable(function (Throwable $e, Request $request) {
             if ($request->expectsJson() && app()->environment('production')) {
                 return response()->json([
                     'success' => false,

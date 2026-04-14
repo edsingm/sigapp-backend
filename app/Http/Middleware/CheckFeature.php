@@ -17,18 +17,18 @@ class CheckFeature
     /**
      * Manipula uma requisição de entrada.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next, string $feature): Response
     {
-        if (!tenancy()->initialized) {
+        if (! tenancy()->initialized) {
             return $next($request);
         }
 
         $tenant = tenancy()->tenant;
         $plan = $tenant?->plan;
 
-        if (!$plan) {
+        if (! $plan) {
             return ApiResponseService::error(
                 'NO_PLAN',
                 'Tenant não possui plano ativo',
@@ -37,7 +37,7 @@ class CheckFeature
             );
         }
 
-        if (!$this->planMatrix->hasFeatureForTenant($tenant, $feature)) {
+        if (! $this->planMatrix->hasFeatureForTenant($tenant, $feature)) {
             return ApiResponseService::error(
                 'PLAN_FEATURE_DISABLED',
                 'Seu plano atual não permite esta funcionalidade.',

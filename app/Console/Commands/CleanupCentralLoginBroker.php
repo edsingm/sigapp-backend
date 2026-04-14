@@ -25,8 +25,8 @@ class CleanupCentralLoginBroker extends Command
         $result = $service->cleanup();
 
         $this->info('Cleanup do broker de login concluído.');
-        $this->line('Sessões removidas: ' . $result['broker_sessions']);
-        $this->line('Tickets removidos: ' . $result['transfer_tickets']);
+        $this->line('Sessões removidas: '.$result['broker_sessions']);
+        $this->line('Tickets removidos: '.$result['transfer_tickets']);
 
         return Command::SUCCESS;
     }

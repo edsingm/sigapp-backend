@@ -1,5 +1,7 @@
 <?php
+
 // app/Http/Controllers/Api/V1/TenantStatusController.php
+
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;

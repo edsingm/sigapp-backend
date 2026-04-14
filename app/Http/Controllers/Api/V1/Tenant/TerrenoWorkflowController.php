@@ -14,8 +14,7 @@ class TerrenoWorkflowController extends Controller
 {
     public function __construct(
         protected LandWorkflowService $workflowService
-    ) {
-    }
+    ) {}
 
     /**
      * Exibir o status atual e as opções de workflow para um terreno.

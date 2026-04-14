@@ -4,6 +4,7 @@ namespace App\Services\Tenant;
 
 use App\Enums\Common\RolesEnum;
 use App\Models\Tenant\User;
+use App\Services\Acl\PermissionNameResolver;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Permission;
@@ -54,12 +55,12 @@ class TenantUserService
     public function create(array $data): User
     {
         $user = User::create([
-            'name'            => $data['name'],
-            'email'           => $data['email'],
-            'password'        => Hash::make($data['password']),
-            'locale'        => $data['locale'] ?? 'pt-br',
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'password' => Hash::make($data['password']),
+            'locale' => $data['locale'] ?? 'pt-br',
             'department_id' => $data['department_id'] ?? null,
-            'position_id'   => $data['position_id'] ?? null,
+            'position_id' => $data['position_id'] ?? null,
         ]);
 
         $role = $data['role'] ?? RolesEnum::USER->value;
@@ -126,14 +127,14 @@ class TenantUserService
      *
      * @param  array<string, mixed>  $permissionsMap  e.g. ['terrenos' => ['view', 'create'], ...]
      */
-    public function updateModulePermissions(User $user, array $permissionsMap, \App\Services\Acl\PermissionNameResolver $resolver): void
+    public function updateModulePermissions(User $user, array $permissionsMap, PermissionNameResolver $resolver): void
     {
         $flatPermissions = $resolver->expandModulePermissions($permissionsMap);
 
         $moduleKeys = array_keys($permissionsMap);
         $toRevoke = $user->getDirectPermissions()
-            ->filter(fn(Permission $p) => collect($moduleKeys)
-                ->contains(fn(string $m) => str_starts_with($p->name, $m . '.')))
+            ->filter(fn (Permission $p) => collect($moduleKeys)
+                ->contains(fn (string $m) => str_starts_with($p->name, $m.'.')))
             ->pluck('name')
             ->all();
 

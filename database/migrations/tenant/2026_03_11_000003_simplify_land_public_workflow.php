@@ -46,7 +46,7 @@ return new class extends Migration
         foreach (DB::table('terrenos')->select('id', 'workflow_status_code')->cursor() as $terreno) {
             $status = $statusMap[$terreno->workflow_status_code] ?? null;
 
-            if (!$status) {
+            if (! $status) {
                 continue;
             }
 

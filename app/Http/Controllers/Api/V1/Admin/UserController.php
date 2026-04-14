@@ -13,6 +13,7 @@ use Illuminate\Validation\Rule;
 class UserController extends Controller
 {
     use LogsAudit;
+
     /**
      * Lista todos os usuários (admins).
      */

@@ -24,9 +24,9 @@ class EntitlementServiceTest extends TestCase
     public function test_it_creates_entitlement(): void
     {
         $ent = $this->service->create([
-            'key'           => 'test.feature',
-            'type'          => EntitlementType::FEATURE->value,
-            'label'         => 'Test Feature',
+            'key' => 'test.feature',
+            'type' => EntitlementType::FEATURE->value,
+            'label' => 'Test Feature',
             'default_value' => false,
         ]);
 
@@ -38,18 +38,18 @@ class EntitlementServiceTest extends TestCase
     public function test_it_rejects_duplicate_key_on_create(): void
     {
         $this->service->create([
-            'key'           => 'dup.feature',
-            'type'          => EntitlementType::FEATURE->value,
-            'label'         => 'Dup',
+            'key' => 'dup.feature',
+            'type' => EntitlementType::FEATURE->value,
+            'label' => 'Dup',
             'default_value' => false,
         ]);
 
         $this->expectException(InvalidArgumentException::class);
 
         $this->service->create([
-            'key'           => 'dup.feature',
-            'type'          => EntitlementType::FEATURE->value,
-            'label'         => 'Dup2',
+            'key' => 'dup.feature',
+            'type' => EntitlementType::FEATURE->value,
+            'label' => 'Dup2',
             'default_value' => false,
         ]);
     }
@@ -57,9 +57,9 @@ class EntitlementServiceTest extends TestCase
     public function test_it_updates_entitlement_label(): void
     {
         $ent = $this->service->create([
-            'key'           => 'up.feature',
-            'type'          => EntitlementType::FEATURE->value,
-            'label'         => 'Original Label',
+            'key' => 'up.feature',
+            'type' => EntitlementType::FEATURE->value,
+            'label' => 'Original Label',
             'default_value' => false,
         ]);
 
@@ -81,9 +81,9 @@ class EntitlementServiceTest extends TestCase
     public function test_it_deletes_entitlement(): void
     {
         $ent = $this->service->create([
-            'key'           => 'del.feature',
-            'type'          => EntitlementType::FEATURE->value,
-            'label'         => 'Del',
+            'key' => 'del.feature',
+            'type' => EntitlementType::FEATURE->value,
+            'label' => 'Del',
             'default_value' => false,
         ]);
 

@@ -37,8 +37,8 @@ class CidadeResource extends JsonResource
             'has_coordinates' => $this->has_coordinates,
 
             // Informações adicionais
-            'full_location' => $this->city . ', ' . $this->state_code,
-            'display_name' => $this->city . ' - ' . $this->state,
+            'full_location' => $this->city.', '.$this->state_code,
+            'display_name' => $this->city.' - '.$this->state,
 
             // Timestamps
             'created_at' => $this->created_at?->toISOString(),

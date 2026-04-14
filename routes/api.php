@@ -1,19 +1,30 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Admin\AclController;
+use App\Http\Controllers\Api\V1\Admin\AuditController;
+use App\Http\Controllers\Api\V1\Admin\DashboardController;
+use App\Http\Controllers\Api\V1\Admin\EntitlementController;
+use App\Http\Controllers\Api\V1\Admin\PlanAdminController;
+use App\Http\Controllers\Api\V1\Admin\PostController;
+use App\Http\Controllers\Api\V1\Admin\TenantController;
+use App\Http\Controllers\Api\V1\Admin\TenantPlanController;
+use App\Http\Controllers\Api\V1\Admin\UserController;
+use App\Http\Controllers\Api\V1\AdminController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\BlogController;
+use App\Http\Controllers\Api\V1\LanguageController;
 use App\Http\Controllers\Api\V1\PlanController;
+use App\Http\Controllers\Api\V1\PublicTenantController;
 use App\Http\Controllers\Api\V1\SignupController;
+use App\Http\Controllers\Api\V1\TenantStatusController;
 use App\Http\Controllers\Api\V1\WebhookController;
 use App\Http\Middleware\ForceJsonResponse;
 use App\Http\Middleware\SetUserLocale;
+use App\Services\ApiResponseService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\V1\TenantStatusController;
-use App\Http\Controllers\Api\V1\LanguageController;
-
-
 
 /*
 |--------------------------------------------------------------------------
@@ -54,44 +65,44 @@ RateLimiter::for('central-login', function (Request $request) {
     $email = strtolower(trim((string) $request->input('email', '')));
 
     return Limit::perMinute(5)
-        ->by('central-login:' . $request->ip() . ':' . sha1($email))
-        ->response(fn() => \App\Services\ApiResponseService::tooManyRequests('Muitas tentativas de login. Tente novamente em 1 minuto.'));
+        ->by('central-login:'.$request->ip().':'.sha1($email))
+        ->response(fn () => ApiResponseService::tooManyRequests('Muitas tentativas de login. Tente novamente em 1 minuto.'));
 });
 
 RateLimiter::for('central-login-select', function (Request $request) {
     return Limit::perMinute(10)
-        ->by('central-login-select:' . $request->ip())
-        ->response(fn() => \App\Services\ApiResponseService::tooManyRequests());
+        ->by('central-login-select:'.$request->ip())
+        ->response(fn () => ApiResponseService::tooManyRequests());
 });
 
 RateLimiter::for('admin-login', function (Request $request) {
     $email = strtolower(trim((string) $request->input('email', '')));
 
     return Limit::perMinute(5)
-        ->by('admin-login:' . $request->ip() . ':' . sha1($email))
-        ->response(fn() => \App\Services\ApiResponseService::tooManyRequests('Muitas tentativas de login de administrador. Tente novamente em 1 minuto.'));
+        ->by('admin-login:'.$request->ip().':'.sha1($email))
+        ->response(fn () => ApiResponseService::tooManyRequests('Muitas tentativas de login de administrador. Tente novamente em 1 minuto.'));
 });
 
 RateLimiter::for('transfer-ticket', function (Request $request) {
     $tenantKey = tenancy()->initialized ? (string) tenant('id') : 'no-tenant';
 
     return Limit::perMinute(15)
-        ->by('transfer-ticket:' . $tenantKey . ':' . $request->ip())
-        ->response(fn() => \App\Services\ApiResponseService::tooManyRequests());
+        ->by('transfer-ticket:'.$tenantKey.':'.$request->ip())
+        ->response(fn () => ApiResponseService::tooManyRequests());
 });
 
 RateLimiter::for('password-reset-request', function (Request $request) {
     $email = strtolower(trim((string) $request->input('email', '')));
 
     return Limit::perMinute(5)
-        ->by('password-reset-request:' . $request->ip() . ':' . sha1($email))
-        ->response(fn() => \App\Services\ApiResponseService::tooManyRequests('Muitas solicitações de redefinição. Tente novamente em 1 minuto.'));
+        ->by('password-reset-request:'.$request->ip().':'.sha1($email))
+        ->response(fn () => ApiResponseService::tooManyRequests('Muitas solicitações de redefinição. Tente novamente em 1 minuto.'));
 });
 
 RateLimiter::for('password-reset-submit', function (Request $request) {
     return Limit::perMinute(10)
-        ->by('password-reset-submit:' . $request->ip())
-        ->response(fn() => \App\Services\ApiResponseService::tooManyRequests('Muitas tentativas de redefinição. Tente novamente em 1 minuto.'));
+        ->by('password-reset-submit:'.$request->ip())
+        ->response(fn () => ApiResponseService::tooManyRequests('Muitas tentativas de redefinição. Tente novamente em 1 minuto.'));
 });
 
 RateLimiter::for('signup-status', function (Request $request) {
@@ -99,7 +110,7 @@ RateLimiter::for('signup-status', function (Request $request) {
 
     return Limit::perMinute(30)
         ->by('signup-status:'.$request->ip().':'.sha1($sessionId))
-        ->response(fn () => \App\Services\ApiResponseService::tooManyRequests('Muitas consultas de status. Aguarde 1 minuto.'));
+        ->response(fn () => ApiResponseService::tooManyRequests('Muitas consultas de status. Aguarde 1 minuto.'));
 });
 
 RateLimiter::for('viabilidade-approval', function (Request $request) {
@@ -111,7 +122,7 @@ RateLimiter::for('viabilidade-approval', function (Request $request) {
 
     return Limit::perMinute(10)
         ->by($key)
-        ->response(fn() => \App\Services\ApiResponseService::tooManyRequests('Muitas ações de aprovação em curto período. Aguarde 1 minuto.'));
+        ->response(fn () => ApiResponseService::tooManyRequests('Muitas ações de aprovação em curto período. Aguarde 1 minuto.'));
 });
 
 // All API routes use JSON
@@ -122,7 +133,7 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
 
         // Universal routes (accessible on any domain)
         Route::middleware('throttle:api-public')->group(function () {
-            Route::get('/tenant/subdomain-availability/{subdomain}', [\App\Http\Controllers\Api\V1\PublicTenantController::class, 'subdomainAvailability']);
+            Route::get('/tenant/subdomain-availability/{subdomain}', [PublicTenantController::class, 'subdomainAvailability']);
         });
 
         // Central Only Routes
@@ -156,9 +167,9 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
                         ->middleware('throttle:password-reset-submit');
 
                     // Blog (public)
-                    Route::get('/blog', [\App\Http\Controllers\Api\V1\BlogController::class, 'index']);
-                    Route::get('/blog/categories', [\App\Http\Controllers\Api\V1\BlogController::class, 'categories']);
-                    Route::get('/blog/{slug}', [\App\Http\Controllers\Api\V1\BlogController::class, 'show']);
+                    Route::get('/blog', [BlogController::class, 'index']);
+                    Route::get('/blog/categories', [BlogController::class, 'categories']);
+                    Route::get('/blog/{slug}', [BlogController::class, 'show']);
                 });
 
                 // Authenticated routes (central app)
@@ -179,48 +190,48 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
 
                     // Admin Routes
                     Route::prefix('admin')->name('admin.')->group(function () {
-                        Route::get('/dashboard', [\App\Http\Controllers\Api\V1\Admin\DashboardController::class, 'index'])->name('dashboard');
-                        Route::apiResource('posts', \App\Http\Controllers\Api\V1\Admin\PostController::class);
+                        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+                        Route::apiResource('posts', PostController::class);
 
                         // Tenants
-                        Route::get('/tenants', [\App\Http\Controllers\Api\V1\Admin\TenantController::class, 'index'])->name('tenants.index');
-                        Route::get('/tenants/{id}', [\App\Http\Controllers\Api\V1\Admin\TenantController::class, 'show'])->name('tenants.show');
-                        Route::post('/tenants/{id}/activate', [\App\Http\Controllers\Api\V1\Admin\TenantController::class, 'activate'])->name('tenants.activate');
-                        Route::post('/tenants/{id}/suspend', [\App\Http\Controllers\Api\V1\Admin\TenantController::class, 'suspend'])->name('tenants.suspend');
+                        Route::get('/tenants', [TenantController::class, 'index'])->name('tenants.index');
+                        Route::get('/tenants/{id}', [TenantController::class, 'show'])->name('tenants.show');
+                        Route::post('/tenants/{id}/activate', [TenantController::class, 'activate'])->name('tenants.activate');
+                        Route::post('/tenants/{id}/suspend', [TenantController::class, 'suspend'])->name('tenants.suspend');
 
                         // Tenant Plan Management
-                        Route::post('/tenants/{id}/plan', [\App\Http\Controllers\Api\V1\Admin\TenantPlanController::class, 'assignPlan'])->name('tenants.plan.assign');
-                        Route::put('/tenants/{id}/plan/upgrade', [\App\Http\Controllers\Api\V1\Admin\TenantPlanController::class, 'upgradePlan'])->name('tenants.plan.upgrade');
-                        Route::put('/tenants/{id}/plan/downgrade', [\App\Http\Controllers\Api\V1\Admin\TenantPlanController::class, 'downgradePlan'])->name('tenants.plan.downgrade');
+                        Route::post('/tenants/{id}/plan', [TenantPlanController::class, 'assignPlan'])->name('tenants.plan.assign');
+                        Route::put('/tenants/{id}/plan/upgrade', [TenantPlanController::class, 'upgradePlan'])->name('tenants.plan.upgrade');
+                        Route::put('/tenants/{id}/plan/downgrade', [TenantPlanController::class, 'downgradePlan'])->name('tenants.plan.downgrade');
 
                         // Tenant Extra Entitlements
-                        Route::get('/tenants/{id}/entitlements', [\App\Http\Controllers\Api\V1\Admin\TenantPlanController::class, 'extraEntitlements'])->name('tenants.entitlements.index');
-                        Route::post('/tenants/{id}/entitlements', [\App\Http\Controllers\Api\V1\Admin\TenantPlanController::class, 'addExtraEntitlement'])->name('tenants.entitlements.store');
-                        Route::put('/tenants/{id}/entitlements/{entitlementId}', [\App\Http\Controllers\Api\V1\Admin\TenantPlanController::class, 'updateExtraEntitlement'])->name('tenants.entitlements.update');
-                        Route::delete('/tenants/{id}/entitlements/{entitlementId}', [\App\Http\Controllers\Api\V1\Admin\TenantPlanController::class, 'removeExtraEntitlement'])->name('tenants.entitlements.destroy');
+                        Route::get('/tenants/{id}/entitlements', [TenantPlanController::class, 'extraEntitlements'])->name('tenants.entitlements.index');
+                        Route::post('/tenants/{id}/entitlements', [TenantPlanController::class, 'addExtraEntitlement'])->name('tenants.entitlements.store');
+                        Route::put('/tenants/{id}/entitlements/{entitlementId}', [TenantPlanController::class, 'updateExtraEntitlement'])->name('tenants.entitlements.update');
+                        Route::delete('/tenants/{id}/entitlements/{entitlementId}', [TenantPlanController::class, 'removeExtraEntitlement'])->name('tenants.entitlements.destroy');
 
                         // Users
-                        Route::apiResource('users', \App\Http\Controllers\Api\V1\Admin\UserController::class);
+                        Route::apiResource('users', UserController::class);
 
                         // Audit Logs
-                        Route::get('/audit-logs', [\App\Http\Controllers\Api\V1\Admin\AuditController::class, 'index']);
+                        Route::get('/audit-logs', [AuditController::class, 'index']);
 
                         // ACL Catalog / Plan Role Matrix (read-only, foundation for UI de gestão)
-                        Route::get('/acl/catalog', [\App\Http\Controllers\Api\V1\Admin\AclController::class, 'catalog']);
-                        Route::get('/acl/plans/{planId}/role-matrix', [\App\Http\Controllers\Api\V1\Admin\AclController::class, 'planRoleMatrix']);
+                        Route::get('/acl/catalog', [AclController::class, 'catalog']);
+                        Route::get('/acl/plans/{planId}/role-matrix', [AclController::class, 'planRoleMatrix']);
 
                         // Plans — CRUD admin
-                        Route::apiResource('plans', \App\Http\Controllers\Api\V1\Admin\PlanAdminController::class);
-                        Route::put('/plans/{plan}/entitlements', [\App\Http\Controllers\Api\V1\Admin\PlanAdminController::class, 'syncEntitlements'])
+                        Route::apiResource('plans', PlanAdminController::class);
+                        Route::put('/plans/{plan}/entitlements', [PlanAdminController::class, 'syncEntitlements'])
                             ->name('admin.plans.entitlements.sync');
 
                         // Entitlements — CRUD admin
-                        Route::apiResource('entitlements', \App\Http\Controllers\Api\V1\Admin\EntitlementController::class);
+                        Route::apiResource('entitlements', EntitlementController::class);
                     });
                 });
 
                 // Public Admin Login
-                Route::post('/admin/login', [\App\Http\Controllers\Api\V1\AdminController::class, 'login'])
+                Route::post('/admin/login', [AdminController::class, 'login'])
                     ->middleware('throttle:admin-login');
             });
         }

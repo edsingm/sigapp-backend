@@ -89,6 +89,18 @@
             <td width="20%"><span class="field-label">ID / Código:</span></td>
             <td width="30%"><span class="field-value">#{{ $terreno->id }}</span></td>
         </tr>
+        @php
+            $statusColor = $terreno->status->color();
+            $statusLabel = $terreno->status->label();
+        @endphp
+        <tr>
+            <td><span class="field-label">Status:</span></td>
+            <td colspan="3">
+                <span class="field-value font-bold">
+                    <span style="color: {{ $statusColor }}">{{ $statusLabel }}</span>
+                </span>
+            </td>
+        </tr>
         <tr>
             <td><span class="field-label">Endereço:</span></td>
             <td><span class="field-value">{{ $terreno->endereco }}</span></td>

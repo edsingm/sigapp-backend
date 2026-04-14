@@ -22,17 +22,17 @@ trait LogsAudit
             $request = request();
 
             AuditLog::create([
-                'user_id'    => $request?->user()?->id,
-                'action'     => $action,
-                'description'=> $description,
+                'user_id' => $request?->user()?->id,
+                'action' => $action,
+                'description' => $description,
                 'ip_address' => $request?->ip(),
                 'user_agent' => $request?->userAgent(),
-                'metadata'   => $metadata ?: null,
+                'metadata' => $metadata ?: null,
             ]);
         } catch (\Throwable $e) {
             Log::warning('[LogsAudit] Falha ao registrar audit log', [
                 'action' => $action,
-                'error'  => $e->getMessage(),
+                'error' => $e->getMessage(),
             ]);
         }
     }

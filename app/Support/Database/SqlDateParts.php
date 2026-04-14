@@ -28,12 +28,12 @@ final class SqlDateParts
 
     public static function yearAs(string $expression, string $alias): string
     {
-        return self::year($expression) . " as {$alias}";
+        return self::year($expression)." as {$alias}";
     }
 
     public static function monthAs(string $expression, string $alias): string
     {
-        return self::month($expression) . " as {$alias}";
+        return self::month($expression)." as {$alias}";
     }
 
     private static function driver(): string

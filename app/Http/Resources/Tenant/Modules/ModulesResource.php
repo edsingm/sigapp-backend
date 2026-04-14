@@ -19,13 +19,13 @@ class ModulesResource extends JsonResource
         $submoduleEnums = ModulesEnum::from($this->slug)->submodules();
 
         return [
-            'slug'        => $this->slug,
-            'name'        => $this->name,
-            'icon'        => $this->icon,
+            'slug' => $this->slug,
+            'name' => $this->name,
+            'icon' => $this->icon,
             'description' => $this->description,
-            'order'       => (int) $this->order,
-            'active'      => (bool) $this->active,
-            'submodules'  => array_map(
+            'order' => (int) $this->order,
+            'active' => (bool) $this->active,
+            'submodules' => array_map(
                 fn ($sub) => ['slug' => $sub->value, 'label' => $sub->label()],
                 $submoduleEnums
             ),

@@ -25,8 +25,9 @@ class SyncTenantAclCommand extends Command
         $syncAll = (bool) $this->option('all');
         $tenantIdentifier = $this->option('tenant');
 
-        if (!$syncAll && !$tenantIdentifier) {
+        if (! $syncAll && ! $tenantIdentifier) {
             $this->error('Informe --tenant=<id|slug> ou use --all.');
+
             return self::FAILURE;
         }
 
@@ -41,6 +42,7 @@ class SyncTenantAclCommand extends Command
 
         if ($tenants->isEmpty()) {
             $this->warn('Nenhum tenant encontrado para sincronização.');
+
             return self::SUCCESS;
         }
 

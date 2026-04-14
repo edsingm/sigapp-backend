@@ -33,7 +33,7 @@ class PlanController extends Controller
     {
         $plan = Plan::where('slug', $slug)->active()->first();
 
-        if (!$plan) {
+        if (! $plan) {
             return ApiResponseService::notFound(language()->t('PLAN_NOT_FOUND'));
         }
 

@@ -3,17 +3,19 @@
 namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Tenant\StoreLegalizacaoEtapaRequest;
+use App\Http\Requests\Tenant\UpdateLegalizacaoEtapaRequest;
+use App\Http\Resources\Tenant\LegalizacaoEtapaResource;
 use App\Models\Tenant\Legalizacao;
 use App\Models\Tenant\LegalizacaoEtapa;
 use App\Services\ApiResponseService;
 use App\Services\Tenant\LegalizacaoService;
 use App\Services\Tenant\MobilePushService;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
-use App\Http\Requests\Tenant\StoreLegalizacaoEtapaRequest;
-use App\Http\Requests\Tenant\UpdateLegalizacaoEtapaRequest;
-use App\Http\Resources\Tenant\LegalizacaoEtapaResource;
+use Illuminate\Support\Facades\Log;
 
 class LegalizacaoEtapaController extends Controller
 {
@@ -22,8 +24,7 @@ class LegalizacaoEtapaController extends Controller
     public function __construct(
         LegalizacaoService $service,
         protected MobilePushService $mobilePushService
-    )
-    {
+    ) {
         $this->service = $service;
     }
 
@@ -36,11 +37,11 @@ class LegalizacaoEtapaController extends Controller
 
         try {
             $legalizacao = Legalizacao::findOrFail($legalizacaoId);
-            
+
             $tenantId = tenant('id') ?? 'central';
             $cacheKey = "tenant:{$tenantId}:legalizacoes:etapas:{$legalizacaoId}";
-            
-            $etapas = \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:legalizacao_etapas"])->remember($cacheKey, now()->addMinutes(30), function () use ($legalizacao) {
+
+            $etapas = Cache::tags(["tenant:{$tenantId}:legalizacao_etapas"])->remember($cacheKey, now()->addMinutes(30), function () use ($legalizacao) {
                 return $legalizacao->etapas()->orderBy('ordem')->get();
             });
 
@@ -48,13 +49,13 @@ class LegalizacaoEtapaController extends Controller
                 LegalizacaoEtapaResource::collection($etapas)
             );
         } catch (\Exception $e) {
-            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+            if ($e instanceof AuthorizationException) {
                 throw $e;
             }
 
             Log::error('Erro ao listar etapas', [
                 'legalizacao_id' => $legalizacaoId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return ApiResponseService::serverError('Erro ao listar etapas');
@@ -70,13 +71,13 @@ class LegalizacaoEtapaController extends Controller
 
         try {
             $legalizacao = Legalizacao::findOrFail($legalizacaoId);
-            
+
             $dados = $request->validated();
             $dados['legalizacao_id'] = $legalizacao->id;
             $dados['created_by'] = $request->user()->id;
             $dados['updated_by'] = $request->user()->id;
 
-            if (!isset($dados['ordem'])) {
+            if (! isset($dados['ordem'])) {
                 $dados['ordem'] = $this->service->proximaOrdem($legalizacao->id);
             }
 
@@ -85,20 +86,20 @@ class LegalizacaoEtapaController extends Controller
             $legalizacao->recalcularProgresso();
 
             $tenantId = tenant('id') ?? 'central';
-            \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:legalizacao_etapas", "tenant:{$tenantId}:legalizacoes"])->flush();
+            Cache::tags(["tenant:{$tenantId}:legalizacao_etapas", "tenant:{$tenantId}:legalizacoes"])->flush();
 
             return ApiResponseService::created(
                 new LegalizacaoEtapaResource($etapa),
                 'Etapa criada com sucesso'
             );
         } catch (\Exception $e) {
-            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+            if ($e instanceof AuthorizationException) {
                 throw $e;
             }
 
             Log::error('Erro ao criar etapa', [
                 'legalizacao_id' => $legalizacaoId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return ApiResponseService::serverError('Erro ao criar etapa');
@@ -114,21 +115,21 @@ class LegalizacaoEtapaController extends Controller
             $etapa = LegalizacaoEtapa::where('legalizacao_id', $legalizacaoId)
                 ->with(['dependenciasDestino', 'dependenciasOrigem'])
                 ->findOrFail($id);
-            
+
             Gate::authorize('view', $etapa);
 
             return ApiResponseService::success(
                 new LegalizacaoEtapaResource($etapa)
             );
         } catch (\Exception $e) {
-            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+            if ($e instanceof AuthorizationException) {
                 throw $e;
             }
 
             Log::error('Erro ao buscar etapa', [
                 'legalizacao_id' => $legalizacaoId,
                 'id' => $id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return ApiResponseService::notFound('Etapa não encontrada');
@@ -143,7 +144,7 @@ class LegalizacaoEtapaController extends Controller
         try {
             $etapa = LegalizacaoEtapa::where('legalizacao_id', $legalizacaoId)
                 ->findOrFail($id);
-            
+
             Gate::authorize('update', $etapa);
 
             $dados = $request->validated();
@@ -155,21 +156,21 @@ class LegalizacaoEtapaController extends Controller
             $legalizacao->recalcularProgresso();
 
             $tenantId = tenant('id') ?? 'central';
-            \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:legalizacao_etapas", "tenant:{$tenantId}:legalizacoes"])->flush();
+            Cache::tags(["tenant:{$tenantId}:legalizacao_etapas", "tenant:{$tenantId}:legalizacoes"])->flush();
 
             return ApiResponseService::success(
                 new LegalizacaoEtapaResource($etapa->fresh()),
                 'Etapa atualizada com sucesso'
             );
         } catch (\Exception $e) {
-            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+            if ($e instanceof AuthorizationException) {
                 throw $e;
             }
 
             Log::error('Erro ao atualizar etapa', [
                 'legalizacao_id' => $legalizacaoId,
                 'id' => $id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return ApiResponseService::serverError('Erro ao atualizar etapa');
@@ -184,28 +185,28 @@ class LegalizacaoEtapaController extends Controller
         try {
             $etapa = LegalizacaoEtapa::where('legalizacao_id', $legalizacaoId)
                 ->findOrFail($id);
-            
+
             Gate::authorize('delete', $etapa);
 
             $legalizacao = $etapa->legalizacao;
-            
+
             $etapa->delete();
 
             $legalizacao->recalcularProgresso();
 
             $tenantId = tenant('id') ?? 'central';
-            \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:legalizacao_etapas", "tenant:{$tenantId}:legalizacoes"])->flush();
+            Cache::tags(["tenant:{$tenantId}:legalizacao_etapas", "tenant:{$tenantId}:legalizacoes"])->flush();
 
             return ApiResponseService::noContent();
         } catch (\Exception $e) {
-            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+            if ($e instanceof AuthorizationException) {
                 throw $e;
             }
 
             Log::error('Erro ao excluir etapa', [
                 'legalizacao_id' => $legalizacaoId,
                 'id' => $id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return ApiResponseService::serverError('Erro ao excluir etapa');
@@ -231,20 +232,20 @@ class LegalizacaoEtapaController extends Controller
             $this->service->reordenarEtapas($legalizacao, $request->input('etapas'));
 
             $tenantId = tenant('id') ?? 'central';
-            \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:legalizacao_etapas", "tenant:{$tenantId}:legalizacoes"])->flush();
+            Cache::tags(["tenant:{$tenantId}:legalizacao_etapas", "tenant:{$tenantId}:legalizacoes"])->flush();
 
             return ApiResponseService::success(
                 LegalizacaoEtapaResource::collection($legalizacao->etapas()->orderBy('ordem')->get()),
                 'Etapas reordenadas com sucesso'
             );
         } catch (\Exception $e) {
-            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+            if ($e instanceof AuthorizationException) {
                 throw $e;
             }
 
             Log::error('Erro ao reordenar etapas', [
                 'legalizacao_id' => $legalizacaoId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return ApiResponseService::serverError('Erro ao reordenar etapas');
@@ -288,21 +289,21 @@ class LegalizacaoEtapaController extends Controller
             );
 
             $tenantId = tenant('id') ?? 'central';
-            \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:legalizacao_etapas", "tenant:{$tenantId}:legalizacoes"])->flush();
+            Cache::tags(["tenant:{$tenantId}:legalizacao_etapas", "tenant:{$tenantId}:legalizacoes"])->flush();
 
             return ApiResponseService::success(
                 new LegalizacaoEtapaResource($etapa),
                 'Status atualizado com sucesso'
             );
         } catch (\Exception $e) {
-            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+            if ($e instanceof AuthorizationException) {
                 throw $e;
             }
 
             Log::error('Erro ao atualizar status', [
                 'legalizacao_id' => $legalizacaoId,
                 'id' => $id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return ApiResponseService::serverError('Erro ao atualizar status');

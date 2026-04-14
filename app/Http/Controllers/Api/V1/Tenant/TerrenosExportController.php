@@ -2,17 +2,19 @@
 
 namespace App\Http\Controllers\Api\V1\Tenant;
 
+use App\Exports\Tenant\TerrenosExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\FilterTerrenosRequest;
 use App\Models\Tenant\Terreno;
-use Spatie\LaravelPdf\Facades\Pdf;
-use Illuminate\Support\Str;
+use App\Services\Tenant\LandWorkflowService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
-use App\Exports\Tenant\TerrenosExport;
-use App\Services\Tenant\LandWorkflowService;
+use Spatie\LaravelPdf\Facades\Pdf;
 
 class TerrenosExportController extends Controller
 {
@@ -61,7 +63,7 @@ class TerrenosExportController extends Controller
 
         $tenantId = tenant('id') ?? 'central';
         $filtros = $request->all();
-        $cacheKey = "tenant:{$tenantId}:terrenos:export:pdf:" . md5(json_encode($filtros));
+        $cacheKey = "tenant:{$tenantId}:terrenos:export:pdf:".md5(json_encode($filtros));
 
         $terrenos = Cache::tags(["tenant:{$tenantId}:terrenos"])->remember($cacheKey, now()->addMinutes(10), function () use ($request) {
             // Buscar áreas com os mesmos filtros, mas sem paginação
@@ -77,7 +79,7 @@ class TerrenosExportController extends Controller
             // Aplicar filtros manualmente (similar ao AreaFilterService, mas sem paginação)
             $nome = $request->input('nome');
             if ($nome !== null && $nome !== '') {
-                $query->whereRaw('LOWER(nome) LIKE ?', [Str::lower($nome) . '%']);
+                $query->whereRaw('LOWER(nome) LIKE ?', [Str::lower($nome).'%']);
             }
 
             $workflowStatuses = $request->input('workflow_statuses');
@@ -151,7 +153,7 @@ class TerrenosExportController extends Controller
             ->withBrowsershot(function ($browsershot) {
                 $this->applyBrowsershotDefaults($browsershot);
             })
-            ->name('listagem-terrenos-' . now()->format('Y-m-d') . '.pdf');
+            ->name('listagem-terrenos-'.now()->format('Y-m-d').'.pdf');
     }
 
     /**
@@ -168,7 +170,7 @@ class TerrenosExportController extends Controller
             'cidade',
             'terrenoProdutos.produto',
             'informacoes.createdBy',
-            'proprietarios'
+            'proprietarios',
         ])
             ->withSum('terrenoProdutos as total_unidades', 'unidades')
             ->findOrFail($id);
@@ -193,7 +195,7 @@ class TerrenosExportController extends Controller
                 $browsershot->waitUntilNetworkIdle()
                     ->delay(2000);
             })
-            ->name('detalhe-terreno-' . $terreno->id . '-' . Str::slug($terreno->nome) . '.pdf');
+            ->name('detalhe-terreno-'.$terreno->id.'-'.Str::slug($terreno->nome).'.pdf');
     }
 
     /**
@@ -217,27 +219,27 @@ class TerrenosExportController extends Controller
             'ano' => $request->input('ano'),
         ];
 
-        return Excel::download(new TerrenosExport($filters), 'listagem-terrenos-' . now()->format('Y-m-d') . '.xlsx');
+        return Excel::download(new TerrenosExport($filters), 'listagem-terrenos-'.now()->format('Y-m-d').'.xlsx');
     }
-    public function checklistPdf(\Illuminate\Http\Request $request, $id)
+
+    public function checklistPdf(Request $request, $id)
     {
         Gate::authorize('export', Terreno::class);
 
         try {
-            \Illuminate\Support\Facades\Log::info("Iniciando geração de checklist PDF para o terreno ID: $id");
-            
+            Log::info("Iniciando geração de checklist PDF para o terreno ID: $id");
+
             $terreno = Terreno::with([
-                'status',
                 'responsavel',
                 'regional',
                 'cidade',
                 'terrenoProdutos.produto',
                 'proprietarios',
-                'corretorExterno'
+                'corretorExterno',
             ])->findOrFail($id);
 
             $extraData = $request->all();
-            \Illuminate\Support\Facades\Log::info("Dados extras recebidos:", $extraData);
+            Log::info('Dados extras recebidos:', $extraData);
 
             $data = [
                 'terreno' => $terreno,
@@ -251,15 +253,17 @@ class TerrenosExportController extends Controller
                 ->withBrowsershot(function ($browsershot) {
                     $this->applyBrowsershotDefaults($browsershot);
                 })
-                ->name('checklist-' . $terreno->id . '-' . Str::slug($terreno->nome) . '.pdf');
+                ->name('checklist-'.$terreno->id.'-'.Str::slug($terreno->nome).'.pdf')
+                ->toResponse(request());
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error("Erro ao gerar checklist PDF: " . $e->getMessage(), [
+            Log::error('Erro ao gerar checklist PDF: '.$e->getMessage(), [
                 'id' => $id,
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return response()->json([
                 'message' => 'Erro interno ao gerar o checklist.',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

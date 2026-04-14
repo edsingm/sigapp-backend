@@ -7,13 +7,14 @@ use App\Services\Tenant\LandWorkflowService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class TerrenosExport implements FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize
+class TerrenosExport implements FromCollection, ShouldAutoSize, WithHeadings, WithMapping, WithStyles
 {
     protected array $filters;
 
@@ -35,7 +36,7 @@ class TerrenosExport implements FromCollection, WithHeadings, WithMapping, WithS
         // Aplicar filtros
         $nome = $this->filters['nome'] ?? null;
         if ($nome !== null && $nome !== '') {
-            $query->whereRaw('LOWER(nome) LIKE ?', [Str::lower($nome) . '%']);
+            $query->whereRaw('LOWER(nome) LIKE ?', [Str::lower($nome).'%']);
         }
 
         $workflowStatuses = $this->filters['workflow_statuses'] ?? null;
@@ -132,7 +133,7 @@ class TerrenosExport implements FromCollection, WithHeadings, WithMapping, WithS
                     'color' => ['rgb' => 'FFFFFF'],
                 ],
                 'fill' => [
-                    'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                    'fillType' => Fill::FILL_SOLID,
                     'startColor' => ['rgb' => '7C3AED'],
                 ],
             ],

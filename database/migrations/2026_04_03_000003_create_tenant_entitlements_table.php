@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Central\Entitlement;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -11,7 +12,7 @@ return new class extends Migration
         Schema::create('tenant_entitlements', function (Blueprint $table) {
             $table->id();
             $table->string('tenant_id')->index()->comment('stancl/tenancy uses string IDs');
-            $table->foreignIdFor(\App\Models\Central\Entitlement::class)->constrained()->cascadeOnDelete();
+            $table->foreignIdFor(Entitlement::class)->constrained()->cascadeOnDelete();
             $table->json('value')->comment('Valor do entitlement extra (bool ou int)');
             $table->integer('price')->default(0)->comment('Custo adicional mensal em centavos');
             $table->timestamps();

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Tenant;
 
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreVeiculoRequest extends FormRequest
@@ -17,7 +18,7 @@ class StoreVeiculoRequest extends FormRequest
     /**
      * Obtém as regras de validação que se aplicam à requisição.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
@@ -25,7 +26,7 @@ class StoreVeiculoRequest extends FormRequest
             'placa' => 'required|string|max:10|unique:veiculos,placa',
             'modelo' => 'required|string|max:100',
             'marca' => 'required|string|max:50',
-            'ano' => 'required|integer|min:1900|max:' . (date('Y') + 1),
+            'ano' => 'required|integer|min:1900|max:'.(date('Y') + 1),
             'cor' => 'nullable|string|max:30',
             'chassi' => 'nullable|string|max:50',
             'renavam' => 'nullable|string|max:20',

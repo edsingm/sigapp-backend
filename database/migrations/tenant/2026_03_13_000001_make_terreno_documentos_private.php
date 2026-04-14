@@ -22,7 +22,7 @@ return new class extends Migration
                 $relativePath = $this->normalizeLegacyPath($documento->url);
 
                 if ($relativePath !== null && Storage::disk('public')->exists($relativePath)) {
-                    if (!Storage::disk('local')->exists($relativePath)) {
+                    if (! Storage::disk('local')->exists($relativePath)) {
                         Storage::disk('local')->put($relativePath, Storage::disk('public')->get($relativePath));
                     }
 
@@ -56,7 +56,7 @@ return new class extends Migration
                     $legacyUrl = Storage::disk('public')->url((string) $documento->file_path);
 
                     if (Storage::disk('local')->exists((string) $documento->file_path)) {
-                        if (!Storage::disk('public')->exists((string) $documento->file_path)) {
+                        if (! Storage::disk('public')->exists((string) $documento->file_path)) {
                             Storage::disk('public')->put(
                                 (string) $documento->file_path,
                                 Storage::disk('local')->get((string) $documento->file_path)
@@ -79,7 +79,7 @@ return new class extends Migration
 
     private function normalizeLegacyPath(?string $url): ?string
     {
-        if (!is_string($url) || trim($url) === '') {
+        if (! is_string($url) || trim($url) === '') {
             return null;
         }
 

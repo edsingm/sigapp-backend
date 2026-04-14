@@ -4,11 +4,12 @@ namespace App\Repositories\Tenant;
 
 use App\Models\Tenant\Position;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection;
 
 class PositionRepository
 {
     /**
-     * @param array{search?: string|null, active?: bool|null, sort?: string, order?: string, per_page?: int} $filters
+     * @param  array{search?: string|null, active?: bool|null, sort?: string, order?: string, per_page?: int}  $filters
      */
     public function paginate(array $filters = []): LengthAwarePaginator
     {
@@ -23,7 +24,7 @@ class PositionRepository
             $query->where('active', $filters['active']);
         }
 
-        $sort  = in_array($filters['sort'] ?? 'level', ['id', 'name', 'level', 'active', 'created_at'], true)
+        $sort = in_array($filters['sort'] ?? 'level', ['id', 'name', 'level', 'active', 'created_at'], true)
             ? $filters['sort']
             : 'level';
         $order = strtolower($filters['order'] ?? 'asc') === 'desc' ? 'desc' : 'asc';
@@ -33,9 +34,9 @@ class PositionRepository
     }
 
     /**
-     * @return \Illuminate\Database\Eloquent\Collection<int, Position>
+     * @return Collection<int, Position>
      */
-    public function allActive(): \Illuminate\Database\Eloquent\Collection
+    public function allActive(): Collection
     {
         return Position::where('active', true)->orderBy('level')->orderBy('name')->get();
     }
@@ -46,7 +47,7 @@ class PositionRepository
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function create(array $data): Position
     {
@@ -54,7 +55,7 @@ class PositionRepository
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function update(Position $position, array $data): Position
     {
@@ -76,9 +77,9 @@ class PositionRepository
     /**
      * Returns positions hierarchically above the given level (for use in approval flows).
      *
-     * @return \Illuminate\Database\Eloquent\Collection<int, Position>
+     * @return Collection<int, Position>
      */
-    public function findAboveLevel(int $level): \Illuminate\Database\Eloquent\Collection
+    public function findAboveLevel(int $level): Collection
     {
         return Position::where('level', '<', $level)
             ->where('active', true)

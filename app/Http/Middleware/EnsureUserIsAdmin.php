@@ -13,20 +13,20 @@ class EnsureUserIsAdmin
     /**
      * Manipula uma requisição de entrada.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
 
-        if (!$user || !$user instanceof User) {
+        if (! $user || ! $user instanceof User) {
             return ApiResponseService::forbidden('Acesso restrito a administradores centrais.');
         }
 
         $token = $user->currentAccessToken();
         $hasAdminAbility = $token && $token->can('admin');
 
-        if (!$user->is_admin || !$hasAdminAbility) {
+        if (! $user->is_admin || ! $hasAdminAbility) {
             return ApiResponseService::forbidden('Acesso restrito a administradores centrais.');
         }
 

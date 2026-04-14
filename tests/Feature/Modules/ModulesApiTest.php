@@ -3,17 +3,17 @@
 namespace Tests\Feature\Modules;
 
 use App\Enums\Common\ModulesEnum;
-use App\Enums\Common\SectorsEnum;
-use App\Http\Middleware\InitializeTenancyFlexible;
 use App\Models\Central\Modules\Modules;
+use Database\Seeders\ModulesSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 class ModulesApiTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function getModules(): \Illuminate\Testing\TestResponse
+    private function getModules(): TestResponse
     {
         // Bypass tenant + logging middlewares; we test controller/service logic only
         return $this
@@ -25,7 +25,7 @@ class ModulesApiTest extends TestCase
 
     public function test_it_returns_200_with_success_flag(): void
     {
-        $this->seed(\Database\Seeders\ModulesSeeder::class);
+        $this->seed(ModulesSeeder::class);
 
         $response = $this->getModules();
 
@@ -45,14 +45,14 @@ class ModulesApiTest extends TestCase
 
     public function test_response_has_sector_grouped_structure(): void
     {
-        $this->seed(\Database\Seeders\ModulesSeeder::class);
+        $this->seed(ModulesSeeder::class);
 
         $response = $this->getModules();
 
         $response->assertOk()->assertJsonStructure([
             'data' => [
                 '*' => [
-                    'sector'  => ['slug', 'label', 'order'],
+                    'sector' => ['slug', 'label', 'order'],
                     'modules' => [],
                 ],
             ],
@@ -128,7 +128,7 @@ class ModulesApiTest extends TestCase
         $response->assertOk();
 
         $allSlugs = collect($response->json('data'))
-            ->flatMap(fn($sector) => collect($sector['modules'])->pluck('slug'))
+            ->flatMap(fn ($sector) => collect($sector['modules'])->pluck('slug'))
             ->all();
 
         $this->assertContains(ModulesEnum::DASHBOARD->value, $allSlugs);
@@ -146,7 +146,7 @@ class ModulesApiTest extends TestCase
         $response->assertOk();
 
         $allModules = collect($response->json('data'))
-            ->flatMap(fn($sector) => $sector['modules'])
+            ->flatMap(fn ($sector) => $sector['modules'])
             ->keyBy('slug');
 
         $prospection = $allModules->get(ModulesEnum::PROSPECTION->value);
@@ -184,13 +184,13 @@ class ModulesApiTest extends TestCase
 
     public function test_sectors_are_returned_in_ascending_order(): void
     {
-        $this->seed(\Database\Seeders\ModulesSeeder::class);
+        $this->seed(ModulesSeeder::class);
 
         $response = $this->getModules();
 
         $response->assertOk();
 
-        $sectors     = $response->json('data');
+        $sectors = $response->json('data');
         $sectorOrders = array_column(array_column($sectors, 'sector'), 'order');
 
         $sorted = $sectorOrders;

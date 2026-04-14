@@ -28,7 +28,7 @@ class EnsureUserIsAdminTest extends TestCase
         $request = Request::create('/api/v1/admin/tenants', 'GET');
         $request->setUserResolver(fn () => $user);
 
-        $response = (new EnsureUserIsAdmin())->handle($request, fn () => new Response('ok', 200));
+        $response = (new EnsureUserIsAdmin)->handle($request, fn () => new Response('ok', 200));
 
         self::assertSame(403, $response->getStatusCode());
     }
@@ -42,7 +42,7 @@ class EnsureUserIsAdminTest extends TestCase
         $request = Request::create('/api/v1/admin/tenants', 'GET');
         $request->setUserResolver(fn () => $user);
 
-        $response = (new EnsureUserIsAdmin())->handle($request, fn () => new Response('ok', 200));
+        $response = (new EnsureUserIsAdmin)->handle($request, fn () => new Response('ok', 200));
 
         self::assertSame(403, $response->getStatusCode());
     }
@@ -56,7 +56,7 @@ class EnsureUserIsAdminTest extends TestCase
         $request = Request::create('/api/v1/admin/tenants', 'GET');
         $request->setUserResolver(fn () => $user);
 
-        $response = (new EnsureUserIsAdmin())->handle($request, fn () => new Response('ok', 200));
+        $response = (new EnsureUserIsAdmin)->handle($request, fn () => new Response('ok', 200));
 
         self::assertSame(200, $response->getStatusCode());
     }

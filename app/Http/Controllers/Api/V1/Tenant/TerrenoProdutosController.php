@@ -10,14 +10,14 @@ use App\Models\Tenant\TerrenoProduto;
 use App\Services\Tenant\LandWorkflowService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 
 class TerrenoProdutosController extends Controller
 {
     public function __construct(
         protected LandWorkflowService $workflowService,
-    ) {
-    }
+    ) {}
 
     /**
      * Listar os produtos vinculados a terrenos.
@@ -29,15 +29,19 @@ class TerrenoProdutosController extends Controller
         $tenantId = tenant('id') ?? 'central';
         $forceRefresh = $request->boolean('force_refresh', false);
         $filters = $request->only(['per_page', 'page', 'terreno_id']);
-        $cacheKey = "tenant:{$tenantId}:terreno_produtos:index:" . md5(json_encode($filters));
-        $cacheStore = \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:terreno_produtos"]);
+        $cacheKey = "tenant:{$tenantId}:terreno_produtos:v2:index:".md5(json_encode($filters));
+        $cacheStore = Cache::tags(["tenant:{$tenantId}:terreno_produtos"]);
 
         $resolver = function () use ($request) {
             $perPage = $request->integer('per_page', 10);
             $terrenoId = $request->input('terreno_id');
 
-            $query = TerrenoProduto::with(['terreno', 'produto', 'createdBy', 'updatedBy'])
-                ->orderBy('created_at', 'desc');
+            $query = TerrenoProduto::with([
+                'terreno',
+                'produto' => fn ($q) => $q->withTrashed(),
+                'createdBy',
+                'updatedBy',
+            ])->orderBy('created_at', 'desc');
 
             if ($terrenoId) {
                 $query->where('terreno_id', $terrenoId);
@@ -52,6 +56,7 @@ class TerrenoProdutosController extends Controller
             $cacheStore->forget($cacheKey);
             $freshData = $resolver();
             $cacheStore->put($cacheKey, $freshData, now()->addMinutes(30));
+
             return $freshData;
         }
 
@@ -92,7 +97,7 @@ class TerrenoProdutosController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => new TerrenoProdutoResource($terrenoProduto)
+            'data' => new TerrenoProdutoResource($terrenoProduto),
         ]);
     }
 
@@ -146,7 +151,7 @@ class TerrenoProdutosController extends Controller
     {
         Gate::authorize('viewAny', TerrenoProduto::class);
 
-        $terrenoProdutos = TerrenoProduto::with(['produto'])
+        $terrenoProdutos = TerrenoProduto::with(['produto' => fn ($q) => $q->withTrashed()])
             ->where('terreno_id', $terrenoId)
             ->orderBy('created_at', 'desc')
             ->get();

@@ -15,11 +15,11 @@ class LegalizacaoDependenciaResource extends JsonResource
             'etapa_origem_id' => $this->etapa_origem_id,
             'etapa_destino_id' => $this->etapa_destino_id,
             'tipo' => $this->tipo,
-            'etapa_origem' => $this->whenLoaded('etapaOrigem', fn() => [
+            'etapa_origem' => $this->whenLoaded('etapaOrigem', fn () => [
                 'id' => $this->etapaOrigem->id,
                 'titulo' => $this->etapaOrigem->titulo,
             ]),
-            'etapa_destino' => $this->whenLoaded('etapaDestino', fn() => [
+            'etapa_destino' => $this->whenLoaded('etapaDestino', fn () => [
                 'id' => $this->etapaDestino->id,
                 'titulo' => $this->etapaDestino->titulo,
             ]),

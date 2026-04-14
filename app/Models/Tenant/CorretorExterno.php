@@ -4,6 +4,7 @@ namespace App\Models\Tenant;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 class CorretorExterno extends Model
 {
@@ -16,14 +17,14 @@ class CorretorExterno extends Model
     {
         static::saved(function (CorretorExterno $model) {
             $tenantId = tenant('id') ?? 'central';
-            \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:corretores_externos"])->flush();
-            \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:terrenos"])->flush();
+            Cache::tags(["tenant:{$tenantId}:corretores_externos"])->flush();
+            Cache::tags(["tenant:{$tenantId}:terrenos"])->flush();
         });
 
         static::deleted(function (CorretorExterno $model) {
             $tenantId = tenant('id') ?? 'central';
-            \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:corretores_externos"])->flush();
-            \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:terrenos"])->flush();
+            Cache::tags(["tenant:{$tenantId}:corretores_externos"])->flush();
+            Cache::tags(["tenant:{$tenantId}:terrenos"])->flush();
         });
     }
 
@@ -63,7 +64,7 @@ class CorretorExterno extends Model
     {
         return [
             'nome' => 'required|string|max:255',
-            'email' => 'required|email|unique:corretores_externos,email' . ($id ? ',' . $id : ''),
+            'email' => 'required|email|unique:corretores_externos,email'.($id ? ','.$id : ''),
             'telefone' => 'required|string|max:20',
             'creci' => 'nullable|integer|min:1',
         ];
@@ -107,7 +108,7 @@ class CorretorExterno extends Model
      */
     public function getCreciFormatadoAttribute(): ?string
     {
-        return $this->creci ? 'CRECI: ' . $this->creci : null;
+        return $this->creci ? 'CRECI: '.$this->creci : null;
     }
 
     /**

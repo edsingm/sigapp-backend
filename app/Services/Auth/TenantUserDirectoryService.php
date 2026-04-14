@@ -25,7 +25,7 @@ class TenantUserDirectoryService
     {
         $tenant = tenant();
 
-        if (!$tenant instanceof Tenant) {
+        if (! $tenant instanceof Tenant) {
             return;
         }
 
@@ -51,7 +51,7 @@ class TenantUserDirectoryService
     {
         $tenant = tenant();
 
-        if (!$tenant instanceof Tenant) {
+        if (! $tenant instanceof Tenant) {
             return;
         }
 

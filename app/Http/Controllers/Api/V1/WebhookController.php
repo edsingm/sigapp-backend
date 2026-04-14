@@ -439,7 +439,7 @@ class WebhookController extends CashierController
 
         $tenant->notify(new TrialEndingNotification($tenant->name, $trialEndsAt));
 
-        $this->audit('tenant.trial_ending_notified', "Notificação de fim do período de teste enviada.", [
+        $this->audit('tenant.trial_ending_notified', 'Notificação de fim do período de teste enviada.', [
             'tenant_id' => $tenant->id,
             'tenant_slug' => $tenant->slug,
             'trial_ends_at' => $trialEndsAt->toIso8601String(),

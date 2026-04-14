@@ -3,18 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Traits\LogsAudit;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\JsonResponse;
 
 abstract class Controller
 {
     use AuthorizesRequests, LogsAudit;
+
     //
     /**
      * Responde com paginação.
      *
-     * @param \Illuminate\Contracts\Pagination\LengthAwarePaginator $paginator
-     * @param string $resourceClass
-     * @return \Illuminate\Http\JsonResponse
+     * @param  LengthAwarePaginator  $paginator
+     * @param  string  $resourceClass
+     * @return JsonResponse
      */
     protected function respondWithPagination($paginator, $resourceClass)
     {

@@ -24,11 +24,11 @@ class UpdateUserModulePermissionsRequest extends FormRequest
      */
     public function rules(): array
     {
-        $validModules    = array_column(ModulesEnum::cases(), 'value');
-        $validLevels     = array_column(AccessLevel::cases(), 'value');
+        $validModules = array_column(ModulesEnum::cases(), 'value');
+        $validLevels = array_column(AccessLevel::cases(), 'value');
 
         $rules = [
-            'permissions'   => ['required', 'array'],
+            'permissions' => ['required', 'array'],
         ];
 
         foreach (ModulesEnum::cases() as $module) {
@@ -65,7 +65,7 @@ class UpdateUserModulePermissionsRequest extends FormRequest
     {
         return [
             'permissions.required' => 'O campo permissions é obrigatório.',
-            'permissions.array'    => 'O campo permissions deve ser um objeto.',
+            'permissions.array' => 'O campo permissions deve ser um objeto.',
         ];
     }
 }

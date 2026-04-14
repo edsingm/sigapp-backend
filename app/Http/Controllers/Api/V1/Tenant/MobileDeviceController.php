@@ -11,8 +11,7 @@ class MobileDeviceController extends Controller
 {
     public function __construct(
         protected MobilePushService $mobilePushService
-    ) {
-    }
+    ) {}
 
     /**
      * Registrar um novo dispositivo móvel.

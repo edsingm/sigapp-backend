@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Tenant;
 
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -21,12 +22,12 @@ class SyncGanttRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $etapas = $this->input('etapas');
-        if (!is_array($etapas)) {
+        if (! is_array($etapas)) {
             return;
         }
 
         $normalizedEtapas = array_map(function ($etapa) {
-            if (!is_array($etapa)) {
+            if (! is_array($etapa)) {
                 return $etapa;
             }
 
@@ -40,34 +41,34 @@ class SyncGanttRequest extends FormRequest
                 ]];
             }
 
-            if (!empty($custos)) {
+            if (! empty($custos)) {
                 $etapa['custos'] = $custos;
 
-                if (!array_key_exists('tipo_custo', $etapa)) {
+                if (! array_key_exists('tipo_custo', $etapa)) {
                     $etapa['tipo_custo'] = count($custos) === 1 ? ($custos[0]['tipo_custo'] ?? null) : 'Diversos';
                 }
 
-                if (!array_key_exists('valor_custo', $etapa)) {
+                if (! array_key_exists('valor_custo', $etapa)) {
                     $etapa['valor_custo'] = array_sum(array_map(
                         fn ($custo) => (float) ($custo['valor_custo'] ?? 0),
                         $custos
                     ));
                 }
 
-                if (!array_key_exists('custo_pago', $etapa)) {
+                if (! array_key_exists('custo_pago', $etapa)) {
                     $etapa['custo_pago'] = collect($custos)->every(
                         fn ($custo) => (bool) ($custo['custo_pago'] ?? false)
                     );
                 }
             } elseif (array_key_exists('custos', $etapa)) {
                 $etapa['custos'] = [];
-                if (!array_key_exists('tipo_custo', $etapa)) {
+                if (! array_key_exists('tipo_custo', $etapa)) {
                     $etapa['tipo_custo'] = null;
                 }
-                if (!array_key_exists('valor_custo', $etapa)) {
+                if (! array_key_exists('valor_custo', $etapa)) {
                     $etapa['valor_custo'] = null;
                 }
-                if (!array_key_exists('custo_pago', $etapa)) {
+                if (! array_key_exists('custo_pago', $etapa)) {
                     $etapa['custo_pago'] = false;
                 }
             }
@@ -83,7 +84,7 @@ class SyncGanttRequest extends FormRequest
     /**
      * Obtém as regras de validação que se aplicam à requisição.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
@@ -162,7 +163,7 @@ class SyncGanttRequest extends FormRequest
     /**
      * Normaliza os custos para o formato esperado.
      *
-     * @param array<int, mixed> $custos
+     * @param  array<int, mixed>  $custos
      * @return array<int, array<string, mixed>>
      */
     protected function normalizarCustos(array $custos): array
@@ -170,7 +171,7 @@ class SyncGanttRequest extends FormRequest
         $normalizados = [];
 
         foreach ($custos as $custo) {
-            if (!is_array($custo)) {
+            if (! is_array($custo)) {
                 continue;
             }
 
@@ -217,6 +218,7 @@ class SyncGanttRequest extends FormRequest
 
         if (is_string($value)) {
             $value = mb_strtolower(trim($value));
+
             return in_array($value, ['1', 'true', 'yes', 'sim'], true);
         }
 

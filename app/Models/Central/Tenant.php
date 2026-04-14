@@ -2,6 +2,7 @@
 
 namespace App\Models\Central;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -11,7 +12,6 @@ use Stancl\Tenancy\Contracts\TenantWithDatabase;
 use Stancl\Tenancy\Database\Concerns\HasDatabase;
 use Stancl\Tenancy\Database\Concerns\HasDomains;
 use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
-use App\Models\Central\TenantEntitlement;
 
 /**
  * @property string $id
@@ -21,16 +21,16 @@ use App\Models\Central\TenantEntitlement;
  * @property string|null $stripe_id
  * @property string|null $stripe_subscription_id
  * @property int|null $plan_id
- * @property \Carbon\Carbon|null $trial_ends_at
+ * @property Carbon|null $trial_ends_at
  * @property string|null $encryption_key
  * @property bool $database_created
- * @property \Carbon\Carbon|null $setup_completed_at
+ * @property Carbon|null $setup_completed_at
  * @property bool $trial_extended
  * @property string|null $admin_name
  * @property string|null $admin_email
  * @property string|null $admin_password
- * @property \Carbon\Carbon $created_at
- * @property \Carbon\Carbon $updated_at
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
  */
 class Tenant extends BaseTenant implements TenantWithDatabase
 {
@@ -150,13 +150,13 @@ class Tenant extends BaseTenant implements TenantWithDatabase
             $normalizedSlug = 'tenant';
         }
 
-        $identifier = Str::of(Str::ascii(Str::lower($prefix . $normalizedSlug . $suffix)))
+        $identifier = Str::of(Str::ascii(Str::lower($prefix.$normalizedSlug.$suffix)))
             ->replaceMatches('/[^a-z0-9_]+/', '_')
             ->trim('_')
             ->value();
 
         if ($identifier === '' || preg_match('/^[0-9]/', $identifier)) {
-            $identifier = 'tenant_' . ltrim($identifier, '0123456789');
+            $identifier = 'tenant_'.ltrim($identifier, '0123456789');
             $identifier = rtrim($identifier, '_');
         }
 
@@ -166,7 +166,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
 
         $hash = substr(sha1($identifier), 0, 8);
 
-        return substr($identifier, 0, 54) . '_' . $hash;
+        return substr($identifier, 0, 54).'_'.$hash;
     }
 
     /**

@@ -2,9 +2,9 @@
 
 namespace App\Services\Tenant;
 
+use App\Http\Requests\Tenant\FilterTerrenosRequest;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\TerrenoProduto;
-use App\Http\Requests\Tenant\FilterTerrenosRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -29,7 +29,7 @@ class TerrenoFilterService
 
         $nome = $request->input('nome');
         if ($nome !== null && $nome !== '') {
-            $query->whereRaw('LOWER(nome) LIKE ?', [Str::lower($nome) . '%']);
+            $query->whereRaw('LOWER(nome) LIKE ?', [Str::lower($nome).'%']);
         }
 
         $workflowStatuses = $request->input('workflow_statuses');
@@ -63,7 +63,7 @@ class TerrenoFilterService
         }
 
         $dateField = $request->input('date_field');
-        if (empty($dateField) || !is_string($dateField) || trim($dateField) === '') {
+        if (empty($dateField) || ! is_string($dateField) || trim($dateField) === '') {
             $dateField = 'created_at';
         }
         $dataInicio = $request->input('data_inicio');
@@ -78,11 +78,11 @@ class TerrenoFilterService
         }
 
         $sortBy = $request->input('sort_by') ?? 'created_at';
-        if (empty($sortBy) || !is_string($sortBy) || trim($sortBy) === '') {
+        if (empty($sortBy) || ! is_string($sortBy) || trim($sortBy) === '') {
             $sortBy = 'created_at';
         }
         $sortDir = strtolower((string) ($request->input('sort_dir') ?? 'desc'));
-        if (!in_array($sortDir, ['asc', 'desc'], true)) {
+        if (! in_array($sortDir, ['asc', 'desc'], true)) {
             $sortDir = 'desc';
         }
         $query->orderBy($sortBy, $sortDir);

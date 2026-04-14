@@ -17,9 +17,9 @@ class TenantPlanService
     public function assignPlan(string $tenantId, int $planId): Tenant
     {
         $tenant = Tenant::findOrFail($tenantId);
-        $plan   = Plan::find($planId);
+        $plan = Plan::find($planId);
 
-        if (!$plan || !$plan->is_active) {
+        if (! $plan || ! $plan->is_active) {
             throw new InvalidArgumentException('Plano não encontrado ou inativo.');
         }
 
@@ -33,11 +33,11 @@ class TenantPlanService
      */
     public function upgradePlan(string $tenantId, int $newPlanId): Tenant
     {
-        $tenant      = Tenant::findOrFail($tenantId);
+        $tenant = Tenant::findOrFail($tenantId);
         $currentPlan = $tenant->plan;
-        $newPlan     = Plan::find($newPlanId);
+        $newPlan = Plan::find($newPlanId);
 
-        if (!$newPlan || !$newPlan->is_active) {
+        if (! $newPlan || ! $newPlan->is_active) {
             throw new InvalidArgumentException('Plano não encontrado ou inativo.');
         }
 
@@ -57,11 +57,11 @@ class TenantPlanService
      */
     public function downgradePlan(string $tenantId, int $newPlanId): Tenant
     {
-        $tenant      = Tenant::findOrFail($tenantId);
+        $tenant = Tenant::findOrFail($tenantId);
         $currentPlan = $tenant->plan;
-        $newPlan     = Plan::find($newPlanId);
+        $newPlan = Plan::find($newPlanId);
 
-        if (!$newPlan || !$newPlan->is_active) {
+        if (! $newPlan || ! $newPlan->is_active) {
             throw new InvalidArgumentException('Plano não encontrado ou inativo.');
         }
 
@@ -89,29 +89,29 @@ class TenantPlanService
     /**
      * Adiciona um entitlement extra ao tenant.
      *
-     * @param mixed $value Valor do entitlement (bool para features, int para limites)
-     * @param int $price Custo mensal adicional em centavos
+     * @param  mixed  $value  Valor do entitlement (bool para features, int para limites)
+     * @param  int  $price  Custo mensal adicional em centavos
      */
     public function addExtraEntitlement(string $tenantId, int $entitlementId, mixed $value, int $price): TenantEntitlement
     {
         $tenant = Tenant::findOrFail($tenantId);
 
-        if (!Entitlement::find($entitlementId)) {
+        if (! Entitlement::find($entitlementId)) {
             throw new InvalidArgumentException('Entitlement não encontrado.');
         }
 
         return TenantEntitlement::create([
-            'tenant_id'      => $tenant->id,
+            'tenant_id' => $tenant->id,
             'entitlement_id' => $entitlementId,
-            'value'          => $value,
-            'price'          => $price,
+            'value' => $value,
+            'price' => $price,
         ]);
     }
 
     /**
      * Atualiza o valor e/ou preço de um entitlement extra do tenant.
      *
-     * @param array<string, mixed> $data Campos a atualizar (value, price)
+     * @param  array<string, mixed>  $data  Campos a atualizar (value, price)
      */
     public function updateExtraEntitlement(string $tenantId, int $entitlementId, array $data): TenantEntitlement
     {

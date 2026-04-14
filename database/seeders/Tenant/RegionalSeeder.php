@@ -4,7 +4,6 @@ namespace Database\Seeders\Tenant;
 
 use App\Models\Tenant\Regional;
 use App\Models\Tenant\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class RegionalSeeder extends Seeder
@@ -16,8 +15,9 @@ class RegionalSeeder extends Seeder
     {
         $adminId = User::first()?->id;
 
-        if (!$adminId) {
+        if (! $adminId) {
             $this->command?->warn('RegionalSeeder ignorado: nenhum usuário encontrado no tenant.');
+
             return;
         }
 

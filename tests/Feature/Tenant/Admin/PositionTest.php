@@ -7,6 +7,7 @@ use App\Models\Tenant\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 class PositionTest extends TestCase
@@ -21,13 +22,13 @@ class PositionTest extends TestCase
 
         $this->artisan('migrate', ['--path' => 'database/migrations/tenant', '--realpath' => false]);
 
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
 
         $this->admin = User::create([
-            'name'     => 'Admin Test',
-            'email'    => 'admin@test.com',
+            'name' => 'Admin Test',
+            'email' => 'admin@test.com',
             'password' => Hash::make('password'),
         ]);
         $this->admin->assignRole('admin');
@@ -48,8 +49,8 @@ class PositionTest extends TestCase
     public function test_creates_position_with_valid_data(): void
     {
         $payload = [
-            'name'   => 'Analyst',
-            'level'  => 3,
+            'name' => 'Analyst',
+            'level' => 3,
             'active' => true,
         ];
 
@@ -141,9 +142,9 @@ class PositionTest extends TestCase
         $position = Position::create(['name' => 'With User', 'level' => 2]);
 
         User::create([
-            'name'        => 'Assigned User',
-            'email'       => 'assigned@test.com',
-            'password'    => Hash::make('password'),
+            'name' => 'Assigned User',
+            'email' => 'assigned@test.com',
+            'password' => Hash::make('password'),
             'position_id' => $position->id,
         ]);
 

@@ -14,7 +14,7 @@ class UsageMetricsService
      */
     public function getUserCount(): int
     {
-        if (!tenancy()->initialized) {
+        if (! tenancy()->initialized) {
             return 0;
         }
 
@@ -26,7 +26,7 @@ class UsageMetricsService
      */
     public function getTerrenoCount(): int
     {
-        if (!tenancy()->initialized) {
+        if (! tenancy()->initialized) {
             return 0;
         }
 
@@ -38,7 +38,7 @@ class UsageMetricsService
      */
     public function getProdutoCount(): int
     {
-        if (!tenancy()->initialized) {
+        if (! tenancy()->initialized) {
             return 0;
         }
 
@@ -50,7 +50,7 @@ class UsageMetricsService
      */
     public function getStorageUsedBytes(): int
     {
-        if (!tenancy()->initialized) {
+        if (! tenancy()->initialized) {
             return 0;
         }
 

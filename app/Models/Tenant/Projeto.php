@@ -10,12 +10,16 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Projeto extends Model
 {
-    use HasFactory, SoftDeletes, HasDashboardCache;
+    use HasDashboardCache, HasFactory, SoftDeletes;
 
     public const STATUS_EM_VIABILIDADE = 'em_viabilidade';
+
     public const STATUS_EM_LEGALIZACAO = 'em_legalizacao';
+
     public const STATUS_FINALIZADO = 'finalizado';
+
     public const STATUS_PRONTO_PARA_REGISTRO = 'pronto_para_registro';
+
     public const STATUS_CANCELADO = 'cancelado';
 
     protected $table = 'projetos';

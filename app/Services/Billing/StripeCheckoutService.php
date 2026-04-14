@@ -6,6 +6,8 @@ use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
 use App\Traits\LogsAudit;
 use Laravel\Cashier\Cashier;
+use Stripe\Checkout\Session;
+use Stripe\Customer;
 
 class StripeCheckoutService
 {
@@ -16,7 +18,7 @@ class StripeCheckoutService
      *
      * @param  array<string, mixed>  $validated
      */
-    public function createCustomer(Tenant $tenant, array $validated): \Stripe\Customer
+    public function createCustomer(Tenant $tenant, array $validated): Customer
     {
         $customer = Cashier::stripe()->customers->create([
             'email' => $validated['admin_email'],
@@ -45,7 +47,7 @@ class StripeCheckoutService
         Plan $plan,
         string $customerId,
         array $sessionOptions = [],
-    ): \Stripe\Checkout\Session {
+    ): Session {
         $priceId = $plan->stripe_price_id ?? $this->createPriceOnTheFly($plan);
 
         return Cashier::stripe()->checkout->sessions->create(array_merge([

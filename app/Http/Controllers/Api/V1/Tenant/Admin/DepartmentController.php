@@ -21,14 +21,14 @@ class DepartmentController extends Controller
     public function index(Request $request): JsonResponse
     {
         $departments = $this->service->list([
-            'search'   => $request->filled('search') ? $request->string('search')->toString() : null,
-            'active'   => $request->has('active') ? $request->boolean('active') : null,
-            'sort'     => $request->string('sort', 'name')->toString(),
-            'order'    => $request->string('order', 'asc')->toString(),
+            'search' => $request->filled('search') ? $request->string('search')->toString() : null,
+            'active' => $request->has('active') ? $request->boolean('active') : null,
+            'sort' => $request->string('sort', 'name')->toString(),
+            'order' => $request->string('order', 'asc')->toString(),
             'per_page' => (int) $request->integer('per_page', 15),
         ]);
 
-        $departments->through(fn(Department $d) => (new DepartmentResource($d))->toArray($request));
+        $departments->through(fn (Department $d) => (new DepartmentResource($d))->toArray($request));
 
         return ApiResponseService::paginated($departments, 'Departments retrieved successfully.');
     }

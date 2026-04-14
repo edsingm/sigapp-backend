@@ -22,10 +22,10 @@ return new class extends Migration
 
         foreach ($terrenos as $terreno) {
             [$stage, $status] = match (true) {
-                !empty($terreno->data_descarte) => ['captacao', 'descartado'],
-                !empty($terreno->data_contrato) => ['negociacao_contrato', 'contrato_assinado'],
-                !empty($terreno->data_opcao) => ['negociacao_contrato', 'proposta_emitida'],
-                !empty($terreno->data_negociacao) => ['negociacao_contrato', 'em_negociacao'],
+                ! empty($terreno->data_descarte) => ['captacao', 'descartado'],
+                ! empty($terreno->data_contrato) => ['negociacao_contrato', 'contrato_assinado'],
+                ! empty($terreno->data_opcao) => ['negociacao_contrato', 'proposta_emitida'],
+                ! empty($terreno->data_negociacao) => ['negociacao_contrato', 'em_negociacao'],
                 default => ['captacao', 'novo_lead'],
             };
 
@@ -108,7 +108,5 @@ return new class extends Migration
         }
     }
 
-    public function down(): void
-    {
-    }
+    public function down(): void {}
 };

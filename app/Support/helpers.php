@@ -4,7 +4,7 @@ use App\Services\LanguageService;
 use App\Support\UserContext;
 use Illuminate\Container\Container;
 
-if (!function_exists('user')) {
+if (! function_exists('user')) {
     /**
      * Retorna o contexto do usuário autenticado na requisição atual.
      *
@@ -19,7 +19,7 @@ if (!function_exists('user')) {
     {
         $user = request()->user();
 
-        if (!$user) {
+        if (! $user) {
             return null;
         }
 
@@ -27,7 +27,7 @@ if (!function_exists('user')) {
     }
 }
 
-if (!function_exists('language')) {
+if (! function_exists('language')) {
     /**
      * Retorna uma instância de LanguageService para o locale informado.
      * Se nenhum locale for passado, usa o locale atual da aplicação.
@@ -54,7 +54,7 @@ if (!function_exists('language')) {
     }
 }
 
-if (!function_exists('ddApi')) {
+if (! function_exists('ddApi')) {
     /**
      * Dump and die para contexto de API — retorna JSON em vez de HTML.
      *

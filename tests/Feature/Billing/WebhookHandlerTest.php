@@ -7,9 +7,9 @@ use App\Models\Central\Tenant;
 use App\Notifications\PaymentFailedNotification;
 use App\Notifications\TrialEndingNotification;
 use App\Services\Billing\TenantBillingService;
-use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Testing\TestResponse;
 use Mockery;
 use Tests\TestCase;
 
@@ -28,7 +28,7 @@ class WebhookHandlerTest extends TestCase
      * @param  array<string, mixed>  $dataObject
      * @param  array<string, mixed>  $extra
      */
-    private function postWebhook(string $eventType, array $dataObject, array $extra = []): \Illuminate\Testing\TestResponse
+    private function postWebhook(string $eventType, array $dataObject, array $extra = []): TestResponse
     {
         $payload = array_merge([
             'id' => 'evt_test_'.uniqid(),

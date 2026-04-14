@@ -16,13 +16,16 @@ class CurvaService
         $soma = array_sum($curva);
         if ($soma > 0 && abs($soma - 100) > 0.1) {
             $fator = 100 / $soma;
-            return array_map(fn($v) => $v * $fator, $curva);
+
+            return array_map(fn ($v) => $v * $fator, $curva);
         }
+
         return $curva;
     }
 
     /**
      * Extrai curva de array ou JSON do produto.
+     *
      * @return array<float> Valores numéricos
      */
     public function extrairCurva(array|string|null $valor): array
@@ -31,14 +34,16 @@ class CurvaService
             $decoded = json_decode($valor, true);
             $valor = is_array($decoded) ? $decoded : [];
         }
-        if (!is_array($valor) || empty($valor)) {
+        if (! is_array($valor) || empty($valor)) {
             return [];
         }
-        return array_values(array_filter(array_map('floatval', $valor), fn($v) => $v >= 0));
+
+        return array_values(array_filter(array_map('floatval', $valor), fn ($v) => $v >= 0));
     }
 
     /**
      * Valida se todos os produtos possuem curvas obrigatórias.
+     *
      * @return array{valid: bool, faltando: array<string>}
      */
     public function validarCurvasObrigatorias(array $produtos): array
@@ -52,6 +57,7 @@ class CurvaService
                 $faltando[] = "produto[{$i}].curva_obra";
             }
         }
+
         return ['valid' => empty($faltando), 'faltando' => $faltando];
     }
 
@@ -62,6 +68,7 @@ class CurvaService
         if ($atual >= $meses) {
             return array_slice($curva, 0, $meses);
         }
+
         return array_pad($curva, $meses, 0.0);
     }
 

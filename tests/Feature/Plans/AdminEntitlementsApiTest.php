@@ -4,7 +4,9 @@ namespace Tests\Feature\Plans;
 
 use App\Models\Central\Entitlement;
 use App\Models\User;
+use Database\Seeders\EntitlementSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Testing\TestResponse;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -15,8 +17,8 @@ class AdminEntitlementsApiTest extends TestCase
     private function actingAsAdmin(): void
     {
         $user = User::create([
-            'name'     => 'Admin',
-            'email'    => 'admin@sigapp.test',
+            'name' => 'Admin',
+            'email' => 'admin@sigapp.test',
             'password' => 'password',
             'is_admin' => true,
         ]);
@@ -24,11 +26,11 @@ class AdminEntitlementsApiTest extends TestCase
         Sanctum::actingAs($user, ['admin']);
     }
 
-    private function adminJson(string $method, string $uri, array $data = []): \Illuminate\Testing\TestResponse
+    private function adminJson(string $method, string $uri, array $data = []): TestResponse
     {
         return $this
             ->withHeader('Host', 'localhost')
-            ->{$method . 'Json'}($uri, $data);
+            ->{$method.'Json'}($uri, $data);
     }
 
     // ─── Auth Guard ───────────────────────────────────────────────────────────
@@ -44,7 +46,7 @@ class AdminEntitlementsApiTest extends TestCase
 
     public function test_it_lists_all_entitlements(): void
     {
-        $this->seed(\Database\Seeders\EntitlementSeeder::class);
+        $this->seed(EntitlementSeeder::class);
         $this->actingAsAdmin();
 
         $response = $this->adminJson('get', '/api/v1/admin/entitlements');
@@ -60,9 +62,9 @@ class AdminEntitlementsApiTest extends TestCase
         $this->actingAsAdmin();
 
         $ent = Entitlement::create([
-            'key'           => 'show.me',
-            'type'          => 'feature',
-            'label'         => 'Show Me',
+            'key' => 'show.me',
+            'type' => 'feature',
+            'label' => 'Show Me',
             'default_value' => false,
         ]);
 
@@ -89,9 +91,9 @@ class AdminEntitlementsApiTest extends TestCase
         $this->actingAsAdmin();
 
         $response = $this->adminJson('post', '/api/v1/admin/entitlements', [
-            'key'           => 'new.feat',
-            'type'          => 'feature',
-            'label'         => 'New Feature',
+            'key' => 'new.feat',
+            'type' => 'feature',
+            'label' => 'New Feature',
             'default_value' => false,
         ]);
 
@@ -106,9 +108,9 @@ class AdminEntitlementsApiTest extends TestCase
         Entitlement::create(['key' => 'dup.key', 'type' => 'feature', 'label' => 'Dup', 'default_value' => false]);
 
         $response = $this->adminJson('post', '/api/v1/admin/entitlements', [
-            'key'           => 'dup.key',
-            'type'          => 'feature',
-            'label'         => 'Dup 2',
+            'key' => 'dup.key',
+            'type' => 'feature',
+            'label' => 'Dup 2',
             'default_value' => false,
         ]);
 

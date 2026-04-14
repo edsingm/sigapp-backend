@@ -12,7 +12,7 @@ class TenantAppUrl
     }
 
     /**
-     * @param array<string, string> $query
+     * @param  array<string, string>  $query
      */
     public function resetPasswordUrl(Tenant $tenant, array $query): string
     {
@@ -20,7 +20,7 @@ class TenantAppUrl
     }
 
     /**
-     * @param array<string, string> $query
+     * @param  array<string, string>  $query
      */
     private function build(Tenant $tenant, string $path, array $query = []): string
     {
@@ -35,10 +35,10 @@ class TenantAppUrl
             ? $parts['host']
             : 'localhost';
 
-        $port = isset($parts['port']) ? ':' . $parts['port'] : '';
+        $port = isset($parts['port']) ? ':'.$parts['port'] : '';
         $tenantHost = $this->resolveTenantHost($tenant, $host);
-        $normalizedPath = '/' . ltrim($path, '/');
-        $queryString = $query !== [] ? '?' . http_build_query($query) : '';
+        $normalizedPath = '/'.ltrim($path, '/');
+        $queryString = $query !== [] ? '?'.http_build_query($query) : '';
 
         return "{$scheme}://{$tenantHost}{$port}{$normalizedPath}{$queryString}";
     }
@@ -66,7 +66,7 @@ class TenantAppUrl
         }
 
         $centralDomains = array_map(
-            static fn(string $value): string => strtolower(trim($value)),
+            static fn (string $value): string => strtolower(trim($value)),
             array_filter(config('tenancy.identification.central_domains', []), 'is_string'),
         );
 

@@ -30,7 +30,7 @@ class LegalizacaoEtapaResource extends JsonResource
             ];
         }, $custos));
 
-        $temCustos = !empty($custos);
+        $temCustos = ! empty($custos);
         $valorCustoTotal = $temCustos
             ? (float) array_sum(array_map(fn ($custo) => (float) ($custo['valor_custo'] ?? 0), $custos))
             : ($this->valor_custo !== null ? (float) $this->valor_custo : null);
@@ -55,7 +55,7 @@ class LegalizacaoEtapaResource extends JsonResource
             'fim_real' => $this->fim_real?->format('Y-m-d'),
             'percentual' => $this->percentual,
             'responsavel_id' => $this->responsavel_id,
-            'responsavel' => $this->whenLoaded('responsavel', fn() => [
+            'responsavel' => $this->whenLoaded('responsavel', fn () => [
                 'id' => $this->responsavel->id,
                 'name' => $this->responsavel->name,
             ]),
@@ -64,16 +64,16 @@ class LegalizacaoEtapaResource extends JsonResource
             'tipo_custo' => $tipoCustoResumo,
             'valor_custo' => $valorCustoTotal,
             'custo_pago' => (bool) $custoPagoResumo,
-            'created_by' => $this->whenLoaded('createdBy', fn() => [
+            'created_by' => $this->whenLoaded('createdBy', fn () => [
                 'id' => $this->createdBy->id,
                 'name' => $this->createdBy->name,
             ]),
-            'updated_by' => $this->whenLoaded('updatedBy', fn() => [
+            'updated_by' => $this->whenLoaded('updatedBy', fn () => [
                 'id' => $this->updatedBy->id,
                 'name' => $this->updatedBy->name,
             ]),
             'dependencias' => $this->whenLoaded('dependenciasDestino', function () {
-                return $this->dependenciasDestino->map(fn($dep) => [
+                return $this->dependenciasDestino->map(fn ($dep) => [
                     'id' => $dep->id,
                     'origem_id' => $dep->etapa_origem_id,
                     'destino_id' => $dep->etapa_destino_id,

@@ -16,7 +16,7 @@ class AclController extends Controller
      */
     public function catalog()
     {
-        $levels  = ['viewer', 'editor', 'manager'];
+        $levels = ['viewer', 'editor', 'manager'];
         $grouped = [];
 
         foreach (ModulesEnum::cases() as $module) {
@@ -26,19 +26,19 @@ class AclController extends Controller
                 foreach ($module->submodules() as $resource) {
                     foreach ($levels as $level) {
                         $permissions[] = [
-                            'name'     => "{$module->value}.{$resource}.{$level}",
-                            'module'   => $module->value,
+                            'name' => "{$module->value}.{$resource}.{$level}",
+                            'module' => $module->value,
                             'resource' => $resource,
-                            'level'    => $level,
+                            'level' => $level,
                         ];
                     }
                 }
             } else {
                 foreach ($levels as $level) {
                     $permissions[] = [
-                        'name'   => "{$module->value}.{$level}",
+                        'name' => "{$module->value}.{$level}",
                         'module' => $module->value,
-                        'level'  => $level,
+                        'level' => $level,
                     ];
                 }
             }
@@ -58,7 +58,7 @@ class AclController extends Controller
     {
         $plan = Plan::query()->find($planId);
 
-        if (!$plan) {
+        if (! $plan) {
             return ApiResponseService::notFound('Plano não encontrado');
         }
 
@@ -73,7 +73,7 @@ class AclController extends Controller
             ->map(function ($rows, string $roleSlug) {
                 return [
                     'role_slug' => $roleSlug,
-                    'permissions' => $rows->map(fn(PlanRolePermissionTemplate $row) => [
+                    'permissions' => $rows->map(fn (PlanRolePermissionTemplate $row) => [
                         'name' => $row->permission_name,
                         'is_required' => (bool) $row->is_required,
                         'is_default' => (bool) $row->is_default,

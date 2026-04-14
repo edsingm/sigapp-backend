@@ -19,8 +19,8 @@ class AuditController extends Controller
         if ($request->has('action')) {
             $action = $request->get('action');
             // Suporte para filtragem por prefixo (ex: 'tenant.signup' corresponde a 'tenant.signup_started', etc.)
-            if (str_contains($action, '*') || !str_contains($action, '_')) {
-                $query->where('action', 'LIKE', rtrim($action, '*') . '%');
+            if (str_contains($action, '*') || ! str_contains($action, '_')) {
+                $query->where('action', 'LIKE', rtrim($action, '*').'%');
             } else {
                 $query->where('action', $action);
             }

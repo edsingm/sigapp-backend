@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Tenant;
 
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateLegalizacaoRequest extends FormRequest
@@ -17,7 +18,7 @@ class UpdateLegalizacaoRequest extends FormRequest
     /**
      * Obtém as regras de validação que se aplicam à requisição.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {

@@ -3,12 +3,13 @@
 namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Http\Controllers\Controller;
-use App\Models\Tenant\Regional;
-use App\Http\Resources\Tenant\RegionalResource;
 use App\Http\Requests\Tenant\StoreRegionalRequest;
 use App\Http\Requests\Tenant\UpdateRegionalRequest;
-use Illuminate\Http\Request;
+use App\Http\Resources\Tenant\RegionalResource;
+use App\Models\Tenant\Regional;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 
 class RegionaisController extends Controller
@@ -22,9 +23,9 @@ class RegionaisController extends Controller
 
         $tenantId = tenant('id') ?? 'central';
         $filters = $request->only(['per_page', 'page', 'q']);
-        $cacheKey = "tenant:{$tenantId}:regionais:index:" . md5(json_encode($filters));
+        $cacheKey = "tenant:{$tenantId}:regionais:index:".md5(json_encode($filters));
 
-        return \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:regionais"])->remember($cacheKey, now()->addMinutes(30), function () use ($request) {
+        return Cache::tags(["tenant:{$tenantId}:regionais"])->remember($cacheKey, now()->addMinutes(30), function () use ($request) {
             $perPage = $request->integer('per_page', 10);
             $query = Regional::query()->with(['responsavel', 'createdBy', 'updatedBy']);
 
@@ -61,7 +62,7 @@ class RegionaisController extends Controller
         return response()->json([
             'success' => true,
             'data' => new RegionalResource($regional->load(['responsavel', 'createdBy', 'updatedBy'])),
-            'message' => 'Regional criada com sucesso!'
+            'message' => 'Regional criada com sucesso!',
         ], 201);
     }
 
@@ -75,7 +76,7 @@ class RegionaisController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => new RegionalResource($regional)
+            'data' => new RegionalResource($regional),
         ]);
     }
 
@@ -94,7 +95,7 @@ class RegionaisController extends Controller
         return response()->json([
             'success' => true,
             'data' => new RegionalResource($regional->load(['responsavel', 'createdBy', 'updatedBy'])),
-            'message' => 'Regional atualizada com sucesso!'
+            'message' => 'Regional atualizada com sucesso!',
         ]);
     }
 
@@ -109,7 +110,7 @@ class RegionaisController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Regional excluída com sucesso!'
+            'message' => 'Regional excluída com sucesso!',
         ]);
     }
 
@@ -126,7 +127,7 @@ class RegionaisController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $regionais
+            'data' => $regionais,
         ]);
     }
 }

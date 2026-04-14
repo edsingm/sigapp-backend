@@ -40,6 +40,6 @@ class PostgreSQLSchemaPublicManager extends PostgreSQLSchemaManager
 
     private function quoteIdentifier(string $identifier): string
     {
-        return '"' . str_replace('"', '""', $identifier) . '"';
+        return '"'.str_replace('"', '""', $identifier).'"';
     }
 }

@@ -2,9 +2,11 @@
 
 namespace App\Models\Tenant;
 
+use App\Jobs\IndexDocumentEmbeddingJob;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Cache;
 
 class Documento extends Model
 {
@@ -17,12 +19,18 @@ class Documento extends Model
     {
         static::saved(function (Documento $model) {
             $tenantId = tenant('id') ?? 'central';
-            \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:documentos"])->flush();
+            Cache::tags(["tenant:{$tenantId}:documentos"])->flush();
+
+            // Dispara indexação de embedding para busca semântica
+            IndexDocumentEmbeddingJob::dispatch($model->id);
         });
 
         static::deleted(function (Documento $model) {
             $tenantId = tenant('id') ?? 'central';
-            \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:documentos"])->flush();
+            Cache::tags(["tenant:{$tenantId}:documentos"])->flush();
+
+            // Remove chunks e embeddings associados
+            AiDocumentChunk::where('document_id', $model->id)->delete();
         });
     }
 

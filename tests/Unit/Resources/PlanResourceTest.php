@@ -4,6 +4,8 @@ namespace Tests\Unit\Resources;
 
 use App\Http\Resources\PlanResource;
 use App\Models\Central\Plan;
+use Database\Seeders\EntitlementSeeder;
+use Database\Seeders\PlanSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -13,8 +15,8 @@ class PlanResourceTest extends TestCase
 
     public function test_it_serializes_plan_fields(): void
     {
-        $this->seed(\Database\Seeders\PlanSeeder::class);
-        $this->seed(\Database\Seeders\EntitlementSeeder::class);
+        $this->seed(PlanSeeder::class);
+        $this->seed(EntitlementSeeder::class);
 
         $plan = Plan::where('slug', 'pro')->first();
 
@@ -31,10 +33,10 @@ class PlanResourceTest extends TestCase
 
     public function test_resource_does_not_expose_stripe_or_internal_fields(): void
     {
-        $this->seed(\Database\Seeders\PlanSeeder::class);
-        $this->seed(\Database\Seeders\EntitlementSeeder::class);
+        $this->seed(PlanSeeder::class);
+        $this->seed(EntitlementSeeder::class);
 
-        $plan    = Plan::where('slug', 'pro')->first();
+        $plan = Plan::where('slug', 'pro')->first();
         $payload = (new PlanResource($plan))->resolve();
 
         $this->assertArrayNotHasKey('stripe_price_id', $payload);

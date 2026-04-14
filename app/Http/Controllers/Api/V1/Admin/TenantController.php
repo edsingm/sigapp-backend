@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PlanResource;
 use App\Models\Central\Tenant;
+use App\Models\Tenant\Produto;
+use App\Models\Tenant\Terreno;
+use App\Models\Tenant\User;
 use App\Services\ApiResponseService;
 use App\Services\Billing\TenantBillingService;
 use Illuminate\Http\Request;
@@ -13,8 +16,7 @@ class TenantController extends Controller
 {
     public function __construct(
         protected TenantBillingService $billingService
-    ) {
-    }
+    ) {}
 
     /**
      * Lista todos os tenants com paginação e filtros.
@@ -53,16 +55,16 @@ class TenantController extends Controller
             'users_count' => 0,
             'terrenos_count' => 0,
             'products_count' => 0,
-            'storage_used' => 0 // Espaço reservado
+            'storage_used' => 0, // Espaço reservado
         ];
 
         try {
             // Precisamos mudar para o contexto do tenant para obter essas contagens
             tenancy()->initialize($tenant);
 
-            $stats['users_count'] = \App\Models\Tenant\User::count();
-            $stats['terrenos_count'] = \App\Models\Tenant\Terreno::count();
-            $stats['products_count'] = \App\Models\Tenant\Produto::count();
+            $stats['users_count'] = User::count();
+            $stats['terrenos_count'] = Terreno::count();
+            $stats['products_count'] = Produto::count();
         } catch (\Exception $e) {
             // Se o banco de dados não estiver criado ou acessível, retornamos 0
             // Logar erro se necessário: \Log::error("Failed to get tenant stats: " . $e->getMessage());
@@ -89,7 +91,7 @@ class TenantController extends Controller
             'subscription_status' => $tenant->status, // Padrão para status local
             'renews_at' => null,
             'canceled_at' => null,
-            'error' => null
+            'error' => null,
         ];
 
         try {
@@ -135,7 +137,7 @@ class TenantController extends Controller
         } catch (\Exception $e) {
             // Logar erro do Stripe mas não falhar a requisição
             // \Log::error("Stripe error for tenant {$tenant->id}: " . $e->getMessage());
-            $finance['error'] = 'Erro ao carregar dados do Stripe: ' . $e->getMessage();
+            $finance['error'] = 'Erro ao carregar dados do Stripe: '.$e->getMessage();
         }
 
         $data['finance'] = $finance;
@@ -165,7 +167,7 @@ class TenantController extends Controller
             );
         }
 
-        if (!($reconciliation['eligible'] ?? false)) {
+        if (! ($reconciliation['eligible'] ?? false)) {
             return ApiResponseService::conflict('BILLING_STATE_INVALID');
         }
 

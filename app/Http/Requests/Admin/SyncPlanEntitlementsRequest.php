@@ -14,9 +14,9 @@ class SyncPlanEntitlementsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'entitlements'                  => ['required', 'array'],
+            'entitlements' => ['required', 'array'],
             'entitlements.*.entitlement_id' => ['required', 'integer', 'exists:entitlements,id'],
-            'entitlements.*.value'          => ['required'],
+            'entitlements.*.value' => ['required'],
         ];
     }
 }

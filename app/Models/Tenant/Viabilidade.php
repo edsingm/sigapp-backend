@@ -2,18 +2,16 @@
 
 namespace App\Models\Tenant;
 
+use App\Traits\HasDashboardCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Models\Tenant\Terreno;
-use App\Traits\LogsActivity;
-use App\Traits\HasDashboardCache;
 
 class Viabilidade extends Model
 {
-    use HasFactory, SoftDeletes, HasDashboardCache;
+    use HasDashboardCache, HasFactory, SoftDeletes;
 
     protected $table = 'viabilidades';
 
@@ -243,7 +241,7 @@ class Viabilidade extends Model
 
     /**
      * Os valores que devem ser convertidos para arrays.
-     * 
+     *
      * @var array
      */
     protected $attributes = [
@@ -319,7 +317,7 @@ class Viabilidade extends Model
      */
     public function getParceriaVgvFormatadoAttribute(): string
     {
-        return 'R$ ' . number_format((float) $this->parceria_vgv, 2, ',', '.');
+        return 'R$ '.number_format((float) $this->parceria_vgv, 2, ',', '.');
     }
 
     /**
@@ -327,7 +325,7 @@ class Viabilidade extends Model
      */
     public function getCompraTerrenoFormatadoAttribute(): string
     {
-        return 'R$ ' . number_format((float) $this->compra_terreno, 2, ',', '.');
+        return 'R$ '.number_format((float) $this->compra_terreno, 2, ',', '.');
     }
 
     /**
@@ -335,7 +333,7 @@ class Viabilidade extends Model
      */
     public function getPisCofinsPorcentagemAttribute(): string
     {
-        return number_format((float) $this->pis_cofins, 2, ',', '.') . '%';
+        return number_format((float) $this->pis_cofins, 2, ',', '.').'%';
     }
 
     /**
@@ -343,11 +341,11 @@ class Viabilidade extends Model
      */
     public function getPrazoObraFormatadoAttribute(): string
     {
-        if (!$this->prazo_obra) {
+        if (! $this->prazo_obra) {
             return 'Não definido';
         }
 
-        return $this->prazo_obra . ' meses';
+        return $this->prazo_obra.' meses';
     }
 
     /**
@@ -424,7 +422,7 @@ class Viabilidade extends Model
      */
     public function getTemDreCalculadoAttribute(): bool
     {
-        return !empty($this->resultados_dre);
+        return ! empty($this->resultados_dre);
     }
 
     /**

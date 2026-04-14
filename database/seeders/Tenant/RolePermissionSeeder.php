@@ -15,8 +15,8 @@ class RolePermissionSeeder extends Seeder
      * Assim `can('prospection.terrains.editor')` retorna true para quem tem manager.
      */
     private const LEVEL_MAP = [
-        'viewer'  => ['viewer'],
-        'editor'  => ['viewer', 'editor'],
+        'viewer' => ['viewer'],
+        'editor' => ['viewer', 'editor'],
         'manager' => ['viewer', 'editor', 'manager'],
     ];
 
@@ -34,10 +34,10 @@ class RolePermissionSeeder extends Seeder
             ->whereDoesntHave('users')
             ->delete();
 
-        $this->command?->info('Permissions sincronizadas: ' . count($allPermissions));
+        $this->command?->info('Permissions sincronizadas: '.count($allPermissions));
 
         // 2. Sincroniza roles
-        $enumRoles = collect(RolesEnum::cases())->map(fn($r) => $r->value);
+        $enumRoles = collect(RolesEnum::cases())->map(fn ($r) => $r->value);
 
         foreach (RolesEnum::cases() as $roleEnum) {
             Role::firstOrCreate(['name' => $roleEnum->value, 'guard_name' => 'web']);
@@ -49,20 +49,21 @@ class RolePermissionSeeder extends Seeder
 
         // 3. Aplica template de permissões em cada role
         foreach (RolesEnum::cases() as $roleEnum) {
-            $templatePath = database_path('rbacTemplates/' . strtolower($roleEnum->value) . '.json');
+            $templatePath = database_path('rbacTemplates/'.strtolower($roleEnum->value).'.json');
 
-            if (!file_exists($templatePath)) {
+            if (! file_exists($templatePath)) {
                 $this->command?->warn("Template não encontrado para role {$roleEnum->value}, pulando.");
+
                 continue;
             }
 
             $template = json_decode(file_get_contents($templatePath), true);
-            $role     = Role::where('name', $roleEnum->value)->where('guard_name', 'web')->first();
+            $role = Role::where('name', $roleEnum->value)->where('guard_name', 'web')->first();
 
             $permissions = $this->resolvePermissions($template['permissions']);
             $role->syncPermissions($permissions);
 
-            $this->command?->info("Role {$roleEnum->value}: " . count($permissions) . ' permissões atribuídas.');
+            $this->command?->info("Role {$roleEnum->value}: ".count($permissions).' permissões atribuídas.');
         }
     }
 
@@ -72,7 +73,7 @@ class RolePermissionSeeder extends Seeder
      */
     private function generateAllPermissions(): array
     {
-        $levels      = array_keys(self::LEVEL_MAP);
+        $levels = array_keys(self::LEVEL_MAP);
         $permissions = [];
 
         foreach (ModulesEnum::cases() as $module) {
@@ -103,8 +104,9 @@ class RolePermissionSeeder extends Seeder
         foreach ($modulePermissions as $moduleKey => $value) {
             $module = ModulesEnum::tryFrom($moduleKey);
 
-            if (!$module) {
+            if (! $module) {
                 $this->command?->warn("Módulo '{$moduleKey}' não existe no ModulesEnum, ignorado.");
+
                 continue;
             }
 

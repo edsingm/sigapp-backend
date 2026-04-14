@@ -15,6 +15,7 @@ class CentralAdminSeeder extends Seeder
 
         if ($email === '' || $password === '') {
             $this->command?->warn('CentralAdminSeeder ignorado: defina CENTRAL_ADMIN_EMAIL e CENTRAL_ADMIN_PASSWORD.');
+
             return;
         }
 

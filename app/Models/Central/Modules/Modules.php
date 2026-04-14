@@ -10,7 +10,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
 class Modules extends Model
 {
-    use HasFactory, CentralConnection;
+    use CentralConnection, HasFactory;
 
     /**
      * The table associated with the model.
@@ -29,7 +29,7 @@ class Modules extends Model
         'active',
         'order',
         'created_at',
-        'updated_at'
+        'updated_at',
     ];
 
     protected $appends = ['sector', 'submodules'];
@@ -37,21 +37,21 @@ class Modules extends Model
     protected function name(): Attribute
     {
         return Attribute::make(
-            get: fn() => ModulesEnum::from($this->slug)->label(),
+            get: fn () => ModulesEnum::from($this->slug)->label(),
         );
     }
 
     protected function sector(): Attribute
     {
         return Attribute::make(
-            get: fn() => ModulesEnum::from($this->slug)->sector(),
+            get: fn () => ModulesEnum::from($this->slug)->sector(),
         );
     }
 
     protected function submodules(): Attribute
     {
         return Attribute::make(
-            get: fn() => ModulesEnum::from($this->slug)->submodules(),
+            get: fn () => ModulesEnum::from($this->slug)->submodules(),
         );
     }
 }

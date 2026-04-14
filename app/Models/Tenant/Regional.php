@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
-
+use Illuminate\Support\Facades\Cache;
 
 class Regional extends Model
 {
@@ -19,20 +19,20 @@ class Regional extends Model
     {
         static::saved(function (Regional $model) {
             $tenantId = tenant('id') ?? 'central';
-            \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:regionais"])->flush();
-            \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:terrenos"])->flush();
+            Cache::tags(["tenant:{$tenantId}:regionais"])->flush();
+            Cache::tags(["tenant:{$tenantId}:terrenos"])->flush();
         });
 
         static::deleted(function (Regional $model) {
             $tenantId = tenant('id') ?? 'central';
-            \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:regionais"])->flush();
-            \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:terrenos"])->flush();
+            Cache::tags(["tenant:{$tenantId}:regionais"])->flush();
+            Cache::tags(["tenant:{$tenantId}:terrenos"])->flush();
         });
 
         static::restored(function (Regional $model) {
             $tenantId = tenant('id') ?? 'central';
-            \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:regionais"])->flush();
-            \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:terrenos"])->flush();
+            Cache::tags(["tenant:{$tenantId}:regionais"])->flush();
+            Cache::tags(["tenant:{$tenantId}:terrenos"])->flush();
         });
     }
 

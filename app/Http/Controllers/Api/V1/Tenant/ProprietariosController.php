@@ -10,14 +10,14 @@ use App\Models\Tenant\Proprietario;
 use App\Services\Tenant\LandWorkflowService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 
 class ProprietariosController extends Controller
 {
     public function __construct(
         protected LandWorkflowService $workflowService,
-    ) {
-    }
+    ) {}
 
     /**
      * Listar proprietários.
@@ -29,9 +29,9 @@ class ProprietariosController extends Controller
         $tenantId = tenant('id') ?? 'central';
         $filters = $request->only(['per_page', 'page', 'terreno_id']);
 
-        $cacheKey = "tenant:{$tenantId}:proprietarios:index:" . md5(json_encode($filters));
+        $cacheKey = "tenant:{$tenantId}:proprietarios:index:".md5(json_encode($filters));
 
-        return \Illuminate\Support\Facades\Cache::tags(["tenant:{$tenantId}:proprietarios"])->remember($cacheKey, now()->addMinutes(30), function () use ($request) {
+        return Cache::tags(["tenant:{$tenantId}:proprietarios"])->remember($cacheKey, now()->addMinutes(30), function () use ($request) {
             $perPage = (int) ($request->input('per_page') ?? 10);
             $terrenoId = $request->input('terreno_id');
 
@@ -67,7 +67,7 @@ class ProprietariosController extends Controller
         return response()->json([
             'success' => true,
             'data' => new ProprietarioResource($owner),
-            'message' => 'Proprietário criado com sucesso!'
+            'message' => 'Proprietário criado com sucesso!',
         ], 201);
     }
 
@@ -78,9 +78,10 @@ class ProprietariosController extends Controller
     {
         Gate::authorize('view', $proprietario);
         $proprietario->load(['terreno', 'createdBy', 'updatedBy']);
+
         return response()->json([
             'success' => true,
-            'data' => new ProprietarioResource($proprietario)
+            'data' => new ProprietarioResource($proprietario),
         ]);
     }
 
@@ -101,7 +102,7 @@ class ProprietariosController extends Controller
         return response()->json([
             'success' => true,
             'data' => new ProprietarioResource($proprietario->fresh(['terreno', 'createdBy', 'updatedBy'])),
-            'message' => 'Proprietário atualizado com sucesso!'
+            'message' => 'Proprietário atualizado com sucesso!',
         ]);
     }
 
@@ -120,7 +121,7 @@ class ProprietariosController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Proprietário removido com sucesso!'
+            'message' => 'Proprietário removido com sucesso!',
         ]);
     }
 }

@@ -7,6 +7,7 @@ use App\Models\Tenant\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 class DepartmentTest extends TestCase
@@ -21,13 +22,13 @@ class DepartmentTest extends TestCase
 
         $this->artisan('migrate', ['--path' => 'database/migrations/tenant', '--realpath' => false]);
 
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
 
         $this->admin = User::create([
-            'name'     => 'Admin Test',
-            'email'    => 'admin@test.com',
+            'name' => 'Admin Test',
+            'email' => 'admin@test.com',
             'password' => Hash::make('password'),
         ]);
         $this->admin->assignRole('admin');
@@ -48,7 +49,7 @@ class DepartmentTest extends TestCase
     public function test_creates_department_with_valid_data(): void
     {
         $payload = [
-            'name'   => 'IT',
+            'name' => 'IT',
             'active' => true,
         ];
 
@@ -120,9 +121,9 @@ class DepartmentTest extends TestCase
         $department = Department::create(['name' => 'With User', 'active' => true]);
 
         User::create([
-            'name'          => 'Assigned User',
-            'email'         => 'assigned@test.com',
-            'password'      => Hash::make('password'),
+            'name' => 'Assigned User',
+            'email' => 'assigned@test.com',
+            'password' => Hash::make('password'),
             'department_id' => $department->id,
         ]);
 

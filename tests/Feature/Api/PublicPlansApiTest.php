@@ -2,7 +2,8 @@
 
 namespace Tests\Feature\Api;
 
-use App\Models\Central\Plan;
+use Database\Seeders\EntitlementSeeder;
+use Database\Seeders\PlanSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -12,8 +13,8 @@ class PublicPlansApiTest extends TestCase
 
     public function test_public_plans_endpoint_returns_active_plans(): void
     {
-        $this->seed(\Database\Seeders\PlanSeeder::class);
-        $this->seed(\Database\Seeders\EntitlementSeeder::class);
+        $this->seed(PlanSeeder::class);
+        $this->seed(EntitlementSeeder::class);
 
         $response = $this
             ->withHeader('Host', 'localhost')
@@ -29,8 +30,8 @@ class PublicPlansApiTest extends TestCase
 
     public function test_public_plans_endpoint_does_not_expose_stripe_price_id(): void
     {
-        $this->seed(\Database\Seeders\PlanSeeder::class);
-        $this->seed(\Database\Seeders\EntitlementSeeder::class);
+        $this->seed(PlanSeeder::class);
+        $this->seed(EntitlementSeeder::class);
 
         $response = $this
             ->withHeader('Host', 'localhost')

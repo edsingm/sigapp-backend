@@ -9,6 +9,7 @@ use App\Models\Central\Plan;
 use App\Services\ApiResponseService;
 use App\Services\Billing\TenantBillingService;
 use App\Traits\LogsAudit;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 
 class PlanSwapController extends Controller
@@ -27,7 +28,7 @@ class PlanSwapController extends Controller
      *
      * POST /api/v1/tenant/subscription/swap
      */
-    public function swap(PlanSwapRequest $request): \Illuminate\Http\JsonResponse
+    public function swap(PlanSwapRequest $request): JsonResponse
     {
         abort_unless(auth()->user()?->isAdmin(), 403);
 

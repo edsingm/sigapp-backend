@@ -29,15 +29,15 @@ class DocumentoResource extends JsonResource
             'tamanho_formatado' => $this->formatFileSize($this->tamanho),
             'status' => $this->status,
             'status_label' => $this->status_label,
-            'terreno' => $this->whenLoaded('terreno', fn() => [
+            'terreno' => $this->whenLoaded('terreno', fn () => [
                 'id' => $this->terreno->id,
                 'nome' => $this->terreno->nome,
             ]),
-            'created_by' => $this->whenLoaded('createdBy', fn() => [
+            'created_by' => $this->whenLoaded('createdBy', fn () => [
                 'id' => $this->createdBy->id,
                 'name' => $this->createdBy->name,
             ]),
-            'updated_by' => $this->whenLoaded('updatedBy', fn() => [
+            'updated_by' => $this->whenLoaded('updatedBy', fn () => [
                 'id' => $this->updatedBy->id,
                 'name' => $this->updatedBy->name,
             ]),
@@ -51,8 +51,9 @@ class DocumentoResource extends JsonResource
      */
     private function formatFileSize(?int $bytes): string
     {
-        if (!$bytes)
+        if (! $bytes) {
             return '0 B';
+        }
 
         $units = ['B', 'KB', 'MB', 'GB'];
         $i = 0;
@@ -60,6 +61,7 @@ class DocumentoResource extends JsonResource
             $bytes /= 1024;
             $i++;
         }
-        return round($bytes, 2) . ' ' . $units[$i];
+
+        return round($bytes, 2).' '.$units[$i];
     }
 }

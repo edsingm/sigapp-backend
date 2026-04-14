@@ -2,6 +2,7 @@
 
 namespace App\Models\Tenant;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -20,7 +21,7 @@ class Position extends Model
     protected function casts(): array
     {
         return [
-            'level'  => 'integer',
+            'level' => 'integer',
             'active' => 'boolean',
         ];
     }
@@ -28,9 +29,9 @@ class Position extends Model
     /**
      * Positions with a higher hierarchy (lower level value = higher in the organization).
      *
-     * @return \Illuminate\Database\Eloquent\Builder<Position>
+     * @return Builder<Position>
      */
-    public function scopeAboveLevel(\Illuminate\Database\Eloquent\Builder $query, int $level): \Illuminate\Database\Eloquent\Builder
+    public function scopeAboveLevel(Builder $query, int $level): Builder
     {
         return $query->where('level', '<', $level);
     }
@@ -38,9 +39,9 @@ class Position extends Model
     /**
      * Positions with hierarchy equal to or above the given level.
      *
-     * @return \Illuminate\Database\Eloquent\Builder<Position>
+     * @return Builder<Position>
      */
-    public function scopeAtOrAboveLevel(\Illuminate\Database\Eloquent\Builder $query, int $level): \Illuminate\Database\Eloquent\Builder
+    public function scopeAtOrAboveLevel(Builder $query, int $level): Builder
     {
         return $query->where('level', '<=', $level);
     }

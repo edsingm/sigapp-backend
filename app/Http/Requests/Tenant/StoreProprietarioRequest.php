@@ -1,9 +1,9 @@
 <?php
- 
+
 namespace App\Http\Requests\Tenant;
- 
+
 use Illuminate\Foundation\Http\FormRequest;
- 
+
 class StoreProprietarioRequest extends FormRequest
 {
     /**
@@ -43,7 +43,7 @@ class StoreProprietarioRequest extends FormRequest
             'observacoes' => 'nullable|string',
         ];
     }
- 
+
     /**
      * Obtém as mensagens personalizadas para erros do validador.
      */

@@ -29,15 +29,19 @@ class TerrenoProdutosController extends Controller
         $tenantId = tenant('id') ?? 'central';
         $forceRefresh = $request->boolean('force_refresh', false);
         $filters = $request->only(['per_page', 'page', 'terreno_id']);
-        $cacheKey = "tenant:{$tenantId}:terreno_produtos:index:".md5(json_encode($filters));
+        $cacheKey = "tenant:{$tenantId}:terreno_produtos:v2:index:".md5(json_encode($filters));
         $cacheStore = Cache::tags(["tenant:{$tenantId}:terreno_produtos"]);
 
         $resolver = function () use ($request) {
             $perPage = $request->integer('per_page', 10);
             $terrenoId = $request->input('terreno_id');
 
-            $query = TerrenoProduto::with(['terreno', 'produto', 'createdBy', 'updatedBy'])
-                ->orderBy('created_at', 'desc');
+            $query = TerrenoProduto::with([
+                'terreno',
+                'produto' => fn ($q) => $q->withTrashed(),
+                'createdBy',
+                'updatedBy',
+            ])->orderBy('created_at', 'desc');
 
             if ($terrenoId) {
                 $query->where('terreno_id', $terrenoId);
@@ -147,7 +151,7 @@ class TerrenoProdutosController extends Controller
     {
         Gate::authorize('viewAny', TerrenoProduto::class);
 
-        $terrenoProdutos = TerrenoProduto::with(['produto'])
+        $terrenoProdutos = TerrenoProduto::with(['produto' => fn ($q) => $q->withTrashed()])
             ->where('terreno_id', $terrenoId)
             ->orderBy('created_at', 'desc')
             ->get();

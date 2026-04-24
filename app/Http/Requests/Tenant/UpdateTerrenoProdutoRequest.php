@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Tenant;
 
+use App\Models\Tenant\TerrenoProduto;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 
 class UpdateTerrenoProdutoRequest extends FormRequest
 {
@@ -11,7 +13,7 @@ class UpdateTerrenoProdutoRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return Gate::allows('update', TerrenoProduto::class);
     }
 
     /**

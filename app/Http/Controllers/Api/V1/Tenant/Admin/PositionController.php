@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\StorePositionRequest;
 use App\Http\Requests\Tenant\UpdatePositionRequest;
 use App\Http\Resources\Tenant\PositionResource;
-use App\Models\Tenant\Position;
 use App\Services\ApiResponseService;
 use App\Services\Tenant\PositionService;
 use Illuminate\Http\JsonResponse;
@@ -28,7 +27,7 @@ class PositionController extends Controller
             'per_page' => (int) $request->integer('per_page', 15),
         ]);
 
-        $positions->through(fn (Position $p) => (new PositionResource($p))->toArray($request));
+        $positions->through(fn ($position) => (new PositionResource($position))->toArray($request));
 
         return ApiResponseService::paginated($positions, 'Positions retrieved successfully.');
     }
@@ -45,7 +44,7 @@ class PositionController extends Controller
 
     public function show(int $id): JsonResponse
     {
-        $position = Position::find($id);
+        $position = $this->service->findById($id);
 
         if (! $position) {
             return ApiResponseService::notFound('Position not found.');
@@ -63,7 +62,7 @@ class PositionController extends Controller
 
     public function update(UpdatePositionRequest $request, int $id): JsonResponse
     {
-        $position = Position::find($id);
+        $position = $this->service->findById($id);
 
         if (! $position) {
             return ApiResponseService::notFound('Position not found.');
@@ -76,7 +75,7 @@ class PositionController extends Controller
 
     public function destroy(int $id): JsonResponse
     {
-        $position = Position::find($id);
+        $position = $this->service->findById($id);
 
         if (! $position) {
             return ApiResponseService::notFound('Position not found.');

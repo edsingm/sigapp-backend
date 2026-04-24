@@ -60,7 +60,6 @@ class TerrenoResource extends JsonResource
                     'email' => $this->comprador->email,
                 ];
             }),
-            'tipo_captacao' => $this->tipo_captacao,
             'created_by' => $this->created_by,
             'created_by_user' => $this->whenLoaded('createdBy', function () {
                 return [

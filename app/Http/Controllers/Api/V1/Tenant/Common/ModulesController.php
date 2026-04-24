@@ -14,16 +14,41 @@ use Illuminate\Http\Request;
 class ModulesController extends Controller
 {
     public function __construct(
-        private readonly ModulesService $modulesService
+        private readonly ModulesService $modulesService,
     ) {}
 
     public function index(Request $request): JsonResponse
     {
-        $grouped = $this->modulesService->getAllModules();
+        $tenant = tenancy()->tenant;
+        if ($tenant) {
+            $tenant->load('plan');
+        }
 
+        $user = $request->user();
+
+        return ApiResponseService::success([
+            'tenant' => $tenant ? new TenantResource($tenant) : null,
+            'user' => [
+                'roles' => $user?->getRoleNames()->values()->all() ?? [],
+                'permissions' => $user?->getAllPermissions()->pluck('name')->values()->all() ?? [],
+            ],
+            'modules' => $this->serializedModules($request),
+        ]);
+    }
+
+    public function modules(Request $request): JsonResponse
+    {
+        return ApiResponseService::success($this->serializedModules($request));
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function serializedModules(Request $request): array
+    {
         $modules = [];
 
-        foreach ($grouped as $sectorValue => $moduleCollection) {
+        foreach ($this->modulesService->getAllModules() as $sectorValue => $moduleCollection) {
             $sector = SectorsEnum::from($sectorValue);
 
             $modules[] = [
@@ -33,24 +58,12 @@ class ModulesController extends Controller
                     'order' => $sector->order(),
                 ],
                 'modules' => $moduleCollection
-                    ->map(fn ($m) => (new ModulesResource($m))->toArray($request))
+                    ->map(fn ($module) => (new ModulesResource($module))->toArray($request))
                     ->values()
                     ->all(),
             ];
         }
 
-        $tenant = tenancy()->tenant;
-        $tenant->load('plan');
-
-        $user = $request->user();
-
-        return ApiResponseService::success([
-            'tenant' => new TenantResource($tenant),
-            'user' => [
-                'roles' => $user->getRoleNames()->values()->all(),
-                'permissions' => $user->getAllPermissions()->pluck('name')->values()->all(),
-            ],
-            'modules' => $modules,
-        ]);
+        return $modules;
     }
 }

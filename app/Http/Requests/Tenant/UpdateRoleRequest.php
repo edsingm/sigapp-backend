@@ -13,7 +13,9 @@ class UpdateRoleRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        $user = $this->user();
+
+        return $user !== null && $user->hasAnyRole(['admin', 'ADMIN', 'director', 'DIRECTOR']);
     }
 
     /**
@@ -26,14 +28,17 @@ class UpdateRoleRequest extends FormRequest
         return [
             'name' => [
                 'sometimes',
-                'required',
                 'string',
-                'max:255',
-                Rule::unique('roles', 'name')->ignore($this->route('role')),
+                'max:120',
+                Rule::unique('roles', 'name')
+                    ->where('guard_name', 'web')
+                    ->ignore($this->route('role')),
             ],
-            'guard_name' => 'nullable|string|max:255',
-            'permissions' => 'nullable|array',
-            'permissions.*' => 'string|exists:permissions,name',
+            'permission_ids' => ['sometimes', 'array'],
+            'permission_ids.*' => [
+                'integer',
+                Rule::exists('permissions', 'id')->where('guard_name', 'web'),
+            ],
         ];
     }
 

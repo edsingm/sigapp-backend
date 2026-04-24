@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests\Tenant;
 
+use App\Enums\ProjetoStatus;
 use App\Models\Tenant\Projeto;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
 class UpdateProjetoRequest extends FormRequest
@@ -13,7 +15,7 @@ class UpdateProjetoRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return Gate::allows('update', Projeto::class);
     }
 
     /**
@@ -24,13 +26,7 @@ class UpdateProjetoRequest extends FormRequest
         return [
             'nome' => ['sometimes', 'required', 'string', 'max:255'],
             'responsavel_id' => ['nullable', 'integer', 'exists:users,id'],
-            'status' => ['sometimes', 'required', Rule::in([
-                Projeto::STATUS_EM_VIABILIDADE,
-                Projeto::STATUS_EM_LEGALIZACAO,
-                Projeto::STATUS_FINALIZADO,
-                Projeto::STATUS_PRONTO_PARA_REGISTRO,
-                Projeto::STATUS_CANCELADO,
-            ])],
+            'status' => ['sometimes', 'required', Rule::in(ProjetoStatus::values())],
         ];
     }
 }

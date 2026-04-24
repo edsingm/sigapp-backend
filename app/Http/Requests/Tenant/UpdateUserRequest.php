@@ -13,7 +13,9 @@ class UpdateUserRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        $user = $this->user();
+
+        return $user !== null && $user->hasAnyRole(['admin', 'ADMIN', 'director', 'DIRECTOR']);
     }
 
     /**
@@ -25,15 +27,14 @@ class UpdateUserRequest extends FormRequest
     {
         return [
             'name' => ['sometimes', 'string', 'max:255'],
-            'email' => ['sometimes', 'string', 'email', 'max:255', Rule::unique('users')->ignore($this->user)],
+            'email' => ['sometimes', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($this->route('id'))],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'department_id' => ['sometimes', 'required', 'integer', 'exists:departments,id'],
             'position_id' => ['sometimes', 'required', 'integer', 'exists:positions,id'],
-            'roles' => ['nullable', 'array'],
-            'roles.*' => ['exists:roles,id'],
+            'role' => ['sometimes', 'nullable', 'string', Rule::exists('roles', 'name')],
             'status' => ['nullable', 'string', 'in:Active,Inactive,Suspended'],
             'phone' => ['nullable', 'string', 'max:20'],
-            'cpf' => ['nullable', 'string', 'max:14', Rule::unique('users')->ignore($this->user)],
+            'cpf' => ['nullable', 'string', 'max:14', Rule::unique('users', 'cpf')->ignore($this->route('id'))],
         ];
     }
 }

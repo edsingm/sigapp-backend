@@ -3,29 +3,30 @@
 namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Tenant\ListNegotiationsRequest;
+use App\Http\Requests\Tenant\ShowNegotiationRequest;
+use App\Http\Requests\Tenant\StoreNegotiationEventRequest;
+use App\Http\Requests\Tenant\StoreNegotiationRequest;
+use App\Http\Requests\Tenant\UpdateNegotiationRequest;
+use App\Http\Resources\Tenant\NegociacaoEventoResource;
 use App\Http\Resources\Tenant\NegociacaoResource;
 use App\Models\Tenant\Negociacao;
 use App\Services\ApiResponseService;
-use App\Services\Tenant\LandWorkflowService;
 use App\Services\Tenant\NegotiationService;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
+use Illuminate\Http\JsonResponse;
 
 class NegotiationController extends Controller
 {
     public function __construct(
         protected NegotiationService $service,
-        protected LandWorkflowService $workflowService,
     ) {}
 
     /**
      * Listar negociações.
      */
-    public function index(Request $request)
+    public function index(ListNegotiationsRequest $request): JsonResponse
     {
-        Gate::authorize('viewAny', Negociacao::class);
-
-        $result = $this->service->listNegotiations($request->only(['status', 'search', 'per_page']));
+        $result = $this->service->listNegotiations($request->validated());
         $result->through(
             fn (Negociacao $negociacao) => (new NegociacaoResource($negociacao))->resolve()
         );
@@ -36,20 +37,9 @@ class NegotiationController extends Controller
     /**
      * Criar uma nova negociação.
      */
-    public function store(Request $request)
+    public function store(StoreNegotiationRequest $request): JsonResponse
     {
-        Gate::authorize('create', Negociacao::class);
-
-        $validated = $request->validate([
-            'terreno_id' => ['required', 'integer', 'exists:terrenos,id'],
-            'status' => ['nullable', 'string'],
-            'proposal_value' => ['nullable', 'numeric'],
-            'business_model' => ['nullable', 'string'],
-            'started_at' => ['nullable', 'date'],
-            'notes' => ['nullable', 'string'],
-        ]);
-
-        $negociacao = $this->service->createNegotiation($validated, $request->user(), $this->workflowService);
+        $negociacao = $this->service->createNegotiation($request->validated(), $request->user());
 
         return ApiResponseService::created(new NegociacaoResource($negociacao), 'Negociação criada com sucesso');
     }
@@ -57,10 +47,9 @@ class NegotiationController extends Controller
     /**
      * Exibir os detalhes de uma negociação específica.
      */
-    public function show(string $id)
+    public function show(ShowNegotiationRequest $request, string $id): JsonResponse
     {
-        $negociacao = Negociacao::with(['terreno', 'eventos', 'contratos.partes'])->findOrFail($id);
-        Gate::authorize('view', $negociacao);
+        $negociacao = $this->service->showById($id);
 
         return ApiResponseService::success(new NegociacaoResource($negociacao));
     }
@@ -68,21 +57,10 @@ class NegotiationController extends Controller
     /**
      * Atualizar uma negociação existente.
      */
-    public function update(Request $request, string $id)
+    public function update(UpdateNegotiationRequest $request, string $id): JsonResponse
     {
-        $negociacao = Negociacao::findOrFail($id);
-        Gate::authorize('update', $negociacao);
-
-        $validated = $request->validate([
-            'status' => ['nullable', 'string'],
-            'proposal_value' => ['nullable', 'numeric'],
-            'business_model' => ['nullable', 'string'],
-            'started_at' => ['nullable', 'date'],
-            'closed_at' => ['nullable', 'date'],
-            'notes' => ['nullable', 'string'],
-        ]);
-
-        $updated = $this->service->updateNegotiation($negociacao, $validated, $request->user(), $this->workflowService);
+        $negociacao = $this->service->findOrFail($id);
+        $updated = $this->service->updateNegotiation($negociacao, $request->validated(), $request->user());
 
         return ApiResponseService::success(new NegociacaoResource($updated), 'Negociação atualizada com sucesso');
     }
@@ -90,20 +68,11 @@ class NegotiationController extends Controller
     /**
      * Adicionar um evento a uma negociação.
      */
-    public function addEvent(Request $request, string $id)
+    public function addEvent(StoreNegotiationEventRequest $request, string $id): JsonResponse
     {
-        $negociacao = Negociacao::findOrFail($id);
-        Gate::authorize('update', $negociacao);
+        $negociacao = $this->service->findOrFail($id);
+        $event = $this->service->addEvent($negociacao, $request->validated(), $request->user());
 
-        $validated = $request->validate([
-            'event_type' => ['required', 'string'],
-            'payload_json' => ['nullable', 'array'],
-            'notes' => ['nullable', 'string'],
-            'happened_at' => ['nullable', 'date'],
-        ]);
-
-        $event = $this->service->addEvent($negociacao, $validated, $request->user());
-
-        return ApiResponseService::created($event, 'Evento da negociação registrado com sucesso');
+        return ApiResponseService::created(new NegociacaoEventoResource($event), 'Evento da negociação registrado com sucesso');
     }
 }

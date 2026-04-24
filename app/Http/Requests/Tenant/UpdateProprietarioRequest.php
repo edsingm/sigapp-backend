@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests\Tenant;
 
+use App\Models\Tenant\Proprietario;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 
 class UpdateProprietarioRequest extends FormRequest
 {
@@ -12,7 +14,7 @@ class UpdateProprietarioRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return Gate::allows('update', Proprietario::class);
     }
 
     /**

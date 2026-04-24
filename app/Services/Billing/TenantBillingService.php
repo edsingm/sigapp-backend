@@ -116,6 +116,197 @@ class TenantBillingService
         return $tenant->billingPortalUrl($returnUrl);
     }
 
+    public function createSetupIntentSecret(Tenant $tenant): string
+    {
+        return $tenant->createSetupIntent()->client_secret;
+    }
+
+    public function updateDefaultPaymentMethod(Tenant $tenant, string $paymentMethodId): void
+    {
+        $tenant->updateDefaultPaymentMethod($paymentMethodId);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getAdminFinanceOverview(Tenant $tenant): array
+    {
+        $finance = [
+            'has_payment_method' => false,
+            'card_brand' => null,
+            'card_last4' => null,
+            'card_exp_month' => null,
+            'card_exp_year' => null,
+            'invoices' => [],
+            'subscription_status' => $tenant->status,
+            'renews_at' => null,
+            'canceled_at' => null,
+            'error' => null,
+        ];
+
+        try {
+            if ($tenant->stripe_id) {
+                $finance['has_payment_method'] = $tenant->hasDefaultPaymentMethod();
+
+                if ($finance['has_payment_method']) {
+                    $paymentMethod = $tenant->defaultPaymentMethod();
+
+                    if ($paymentMethod !== null) {
+                        $finance['card_brand'] = $paymentMethod->card->brand;
+                        $finance['card_last4'] = $paymentMethod->card->last4;
+                        $finance['card_exp_month'] = $paymentMethod->card->exp_month;
+                        $finance['card_exp_year'] = $paymentMethod->card->exp_year;
+                    }
+                }
+
+                $subscription = $tenant->subscription('default');
+
+                if ($subscription !== null) {
+                    $finance['subscription_status'] = $subscription->stripe_status;
+                    $finance['renews_at'] = $subscription->ends_at
+                        ? null
+                        : $subscription->asStripeSubscription()->current_period_end;
+                    $finance['canceled_at'] = $subscription->ends_at;
+                }
+
+                foreach ($tenant->invoicesIncludingPending(['limit' => 5]) as $invoice) {
+                    $finance['invoices'][] = [
+                        'id' => $invoice->id,
+                        'number' => $invoice->number,
+                        'total' => $invoice->total(),
+                        'status' => $invoice->status,
+                        'created_at' => $invoice->created,
+                        'pdf' => $invoice->hosted_invoice_url,
+                        'download' => $invoice->invoice_pdf,
+                    ];
+                }
+            } elseif ($tenant->onTrial()) {
+                $finance['subscription_status'] = 'trialing';
+                $finance['renews_at'] = $tenant->trial_ends_at?->timestamp;
+            }
+        } catch (\Throwable $exception) {
+            $finance['error'] = 'Erro ao carregar dados do Stripe: '.$exception->getMessage();
+        }
+
+        return $finance;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getSubscriptionSnapshot(Tenant $tenant): array
+    {
+        $tenant->load('plan');
+        $localSubscription = $tenant->subscription('default');
+
+        $stripeData = null;
+        $invoices = [];
+        $stripeError = null;
+
+        if ($tenant->stripe_id) {
+            try {
+                $stripe = $tenant->stripe();
+                $customer = $stripe->customers->retrieve($tenant->stripe_id, []);
+
+                $stripeSubscription = null;
+                if ($tenant->stripe_subscription_id) {
+                    $stripeSubscription = $stripe->subscriptions->retrieve($tenant->stripe_subscription_id, []);
+                }
+
+                $defaultPaymentMethod = null;
+                $defaultPaymentMethodId =
+                    $stripeSubscription->default_payment_method
+                    ?? ($customer->invoice_settings->default_payment_method ?? null);
+
+                if ($defaultPaymentMethodId) {
+                    $defaultPaymentMethod = $stripe->paymentMethods->retrieve($defaultPaymentMethodId, []);
+                }
+
+                $stripeData = [
+                    'customer' => [
+                        'id' => $customer->id ?? null,
+                        'email' => $customer->email ?? null,
+                        'name' => $customer->name ?? null,
+                        'invoice_prefix' => $customer->invoice_prefix ?? null,
+                        'default_payment_method' => $defaultPaymentMethod ? [
+                            'id' => $defaultPaymentMethod->id ?? null,
+                            'brand' => $defaultPaymentMethod->card->brand ?? null,
+                            'last4' => $defaultPaymentMethod->card->last4 ?? null,
+                            'exp_month' => $defaultPaymentMethod->card->exp_month ?? null,
+                            'exp_year' => $defaultPaymentMethod->card->exp_year ?? null,
+                        ] : null,
+                    ],
+                    'subscription' => $stripeSubscription ? [
+                        'id' => $stripeSubscription->id ?? null,
+                        'status' => $stripeSubscription->status ?? null,
+                        'collection_method' => $stripeSubscription->collection_method ?? null,
+                        'current_period_start' => $stripeSubscription->current_period_start
+                            ? Carbon::createFromTimestamp($stripeSubscription->current_period_start)->toIso8601String()
+                            : null,
+                        'current_period_end' => $stripeSubscription->current_period_end
+                            ? Carbon::createFromTimestamp($stripeSubscription->current_period_end)->toIso8601String()
+                            : null,
+                        'cancel_at' => $stripeSubscription->cancel_at
+                            ? Carbon::createFromTimestamp($stripeSubscription->cancel_at)->toIso8601String()
+                            : null,
+                        'cancel_at_period_end' => (bool) ($stripeSubscription->cancel_at_period_end ?? false),
+                        'billing_cycle_anchor' => $stripeSubscription->billing_cycle_anchor
+                            ? Carbon::createFromTimestamp($stripeSubscription->billing_cycle_anchor)->toIso8601String()
+                            : null,
+                        'price_id' => $stripeSubscription->items->data[0]->price->id ?? null,
+                        'latest_invoice' => $stripeSubscription->latest_invoice ?? null,
+                    ] : null,
+                ];
+
+                $stripeInvoices = $stripe->invoices->all([
+                    'customer' => $tenant->stripe_id,
+                    'limit' => 8,
+                ]);
+
+                foreach ($stripeInvoices->data ?? [] as $invoice) {
+                    $invoices[] = [
+                        'id' => $invoice->id ?? null,
+                        'number' => $invoice->number ?? null,
+                        'status' => $invoice->status ?? null,
+                        'amount_due' => $invoice->amount_due ?? null,
+                        'amount_paid' => $invoice->amount_paid ?? null,
+                        'amount_remaining' => $invoice->amount_remaining ?? null,
+                        'currency' => $invoice->currency ?? null,
+                        'hosted_invoice_url' => $invoice->hosted_invoice_url ?? null,
+                        'invoice_pdf' => $invoice->invoice_pdf ?? null,
+                        'created_at' => $invoice->created
+                            ? Carbon::createFromTimestamp($invoice->created)->toIso8601String()
+                            : null,
+                        'period_start' => $invoice->period_start
+                            ? Carbon::createFromTimestamp($invoice->period_start)->toIso8601String()
+                            : null,
+                        'period_end' => $invoice->period_end
+                            ? Carbon::createFromTimestamp($invoice->period_end)->toIso8601String()
+                            : null,
+                    ];
+                }
+            } catch (\Exception $e) {
+                $stripeError = $e->getMessage();
+            }
+        }
+
+        return [
+            'on_trial' => $tenant->onTrial(),
+            'trial_ends_at' => $tenant->trial_ends_at?->toIso8601String(),
+            'trial_ended' => $tenant->trialEnded(),
+            'stripe_customer_id' => $tenant->stripe_id,
+            'stripe_subscription_id' => $tenant->stripe_subscription_id,
+            'local_subscription' => $localSubscription ? [
+                'stripe_status' => $localSubscription->stripe_status,
+                'trial_ends_at' => $localSubscription->trial_ends_at?->toIso8601String(),
+                'ends_at' => $localSubscription->ends_at?->toIso8601String(),
+            ] : null,
+            'stripe' => $stripeData,
+            'invoices' => $invoices,
+            'stripe_error' => app()->environment('local') ? $stripeError : null,
+        ];
+    }
+
     public function syncPlanFromPriceId(Tenant $tenant, ?string $priceId): void
     {
         if (! $priceId) {
@@ -143,7 +334,7 @@ class TenantBillingService
         return match ($stripeStatus) {
             'active', 'trialing' => tap(self::STATUS_ACTIVE, fn () => $tenant->activate()),
             'past_due' => tap(self::STATUS_NOOP, fn () => $tenant->notify(
-                new PaymentFailedNotification($tenant->name, 0, null)
+                new PaymentFailedNotification((string) $tenant->getAttribute('name'), 0, null)
             )),
             'unpaid', 'incomplete_expired' => tap(self::STATUS_SUSPENDED, fn () => $tenant->suspend()),
             'canceled' => tap(self::STATUS_CANCELLED, fn () => $tenant->cancel()),
@@ -154,6 +345,8 @@ class TenantBillingService
     public function syncSubscription(Tenant $tenant, string $subscriptionId): void
     {
         $stripeSubscription = $this->retrieveSubscription($subscriptionId);
+        $subscriptionItems = $stripeSubscription->items->data ?? [];
+        $primaryItem = $subscriptionItems[0] ?? null;
 
         $subscription = $tenant->subscriptions()->firstOrNew([
             'stripe_id' => $stripeSubscription->id,
@@ -170,14 +363,14 @@ class TenantBillingService
         $subscription->fill([
             'type' => 'default',
             'stripe_status' => $stripeSubscription->status,
-            'stripe_price' => $stripeSubscription->items->data[0]->price->id ?? null,
-            'quantity' => $stripeSubscription->items->data[0]->quantity ?? 1,
+            'stripe_price' => $primaryItem->price->id ?? null,
+            'quantity' => $primaryItem->quantity ?? 1,
             'trial_ends_at' => $trialEndsAt,
             'ends_at' => $endsAt,
         ]);
         $subscription->save();
 
-        foreach ($stripeSubscription->items->data as $item) {
+        foreach ($subscriptionItems as $item) {
             $subscription->items()->updateOrCreate([
                 'stripe_id' => $item->id,
             ], [

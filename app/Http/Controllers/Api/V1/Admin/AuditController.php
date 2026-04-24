@@ -3,34 +3,25 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\AuditLog;
+use App\Repositories\AuditLogRepository;
 use App\Services\ApiResponseService;
 use Illuminate\Http\Request;
 
 class AuditController extends Controller
 {
+    public function __construct(
+        private readonly AuditLogRepository $repository
+    ) {}
+
     /**
      * Lista todos os logs de auditoria.
      */
     public function index(Request $request)
     {
-        $query = AuditLog::with('user');
+        $action = $request->has('action') ? $request->get('action') : null;
+        $userId = $request->has('user_id') ? (int) $request->get('user_id') : null;
 
-        if ($request->has('action')) {
-            $action = $request->get('action');
-            // Suporte para filtragem por prefixo (ex: 'tenant.signup' corresponde a 'tenant.signup_started', etc.)
-            if (str_contains($action, '*') || ! str_contains($action, '_')) {
-                $query->where('action', 'LIKE', rtrim($action, '*').'%');
-            } else {
-                $query->where('action', $action);
-            }
-        }
-
-        if ($request->has('user_id')) {
-            $query->where('user_id', $request->get('user_id'));
-        }
-
-        $logs = $query->latest()->paginate(20);
+        $logs = $this->repository->paginateWithFilters($action, $userId);
 
         return ApiResponseService::success($logs, 'Logs de auditoria recuperados');
     }

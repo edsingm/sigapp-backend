@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Tenant\DestroyMobileDeviceRequest;
+use App\Http\Requests\Tenant\StoreMobileDeviceRequest;
+use App\Http\Resources\Tenant\MobileDeviceInstallationResource;
 use App\Services\ApiResponseService;
 use App\Services\Tenant\MobilePushService;
-use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 
 class MobileDeviceController extends Controller
 {
@@ -16,30 +19,20 @@ class MobileDeviceController extends Controller
     /**
      * Registrar um novo dispositivo móvel.
      */
-    public function store(Request $request)
+    public function store(StoreMobileDeviceRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'installation_id' => ['required', 'string', 'max:255'],
-            'expo_push_token' => ['nullable', 'string', 'max:255'],
-            'device_name' => ['nullable', 'string', 'max:255'],
-            'app_version' => ['nullable', 'string', 'max:64'],
-            'platform' => ['required', 'string', 'max:32'],
-            'tenant_id' => ['nullable', 'string'],
-        ]);
+        $device = $this->mobilePushService->registerDevice($request->user(), $request->validated());
 
-        if (isset($data['tenant_id']) && (string) $data['tenant_id'] !== (string) tenant('id')) {
-            return ApiResponseService::forbidden('Tenant inválido para este dispositivo');
-        }
-
-        $device = $this->mobilePushService->registerDevice($request->user(), $data);
-
-        return ApiResponseService::success($device, 'Dispositivo registrado com sucesso');
+        return ApiResponseService::success(
+            new MobileDeviceInstallationResource($device),
+            'Dispositivo registrado com sucesso'
+        );
     }
 
     /**
      * Remover um dispositivo móvel registrado.
      */
-    public function destroy(Request $request, string $installationId)
+    public function destroy(DestroyMobileDeviceRequest $request, string $installationId): JsonResponse
     {
         $this->mobilePushService->unregisterDevice($request->user(), $installationId);
 

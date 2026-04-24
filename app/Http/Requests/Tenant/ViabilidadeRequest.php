@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Tenant;
 
+use App\Models\Tenant\Viabilidade;
 use App\Models\Tenant\TerrenoProduto;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -13,7 +14,21 @@ class ViabilidadeRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        $user = $this->user();
+
+        if ($user === null) {
+            return false;
+        }
+
+        if ($this->isMethod('post')) {
+            return $user->can('create', Viabilidade::class);
+        }
+
+        $viabilidadeId = $this->route('viabilidade') ?? $this->route('id');
+        $viabilidade = $viabilidadeId instanceof Viabilidade ? $viabilidadeId : Viabilidade::find($viabilidadeId);
+
+        return $viabilidade instanceof Viabilidade
+            && $user->can('update', $viabilidade);
     }
 
     /**

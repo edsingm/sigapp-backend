@@ -2,6 +2,10 @@
 
 namespace Tests\Feature\Tenant\Admin;
 
+use App\Http\Middleware\AddTenantContextToLogs;
+use App\Http\Middleware\ApiRequestLogger;
+use App\Http\Middleware\CheckSubscriptionStatus;
+use App\Http\Middleware\InitializeTenancyFlexible;
 use App\Models\Tenant\Position;
 use App\Models\Tenant\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -19,6 +23,13 @@ class PositionTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->withoutMiddleware([
+            InitializeTenancyFlexible::class,
+            AddTenantContextToLogs::class,
+            ApiRequestLogger::class,
+            CheckSubscriptionStatus::class,
+        ]);
 
         $this->artisan('migrate', ['--path' => 'database/migrations/tenant', '--realpath' => false]);
 
@@ -152,7 +163,7 @@ class PositionTest extends TestCase
             ->deleteJson("/api/v1/tenant-admin/positions/{$position->id}");
 
         $response->assertStatus(422)
-            ->assertJsonPath('error', 'POSITION_IN_USE');
+            ->assertJsonPath('error.code', 'POSITION_IN_USE');
     }
 
     public function test_lists_active_positions_for_select(): void

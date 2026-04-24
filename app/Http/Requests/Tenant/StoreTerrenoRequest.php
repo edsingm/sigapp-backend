@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Tenant;
 
 use App\Enums\WorkflowStatus;
+use App\Models\Tenant\Terreno;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -13,7 +14,7 @@ class StoreTerrenoRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return (bool) $this->user()?->can('create', Terreno::class);
     }
 
     /**
@@ -48,7 +49,6 @@ class StoreTerrenoRequest extends FormRequest
             'data_descarte' => 'nullable|date',
             'data_contrato' => 'nullable|date',
             'comprador_id' => 'nullable|integer|exists:users,id',
-            'tipo_captacao' => 'nullable|in:ativa,passiva,indicação',
         ];
     }
 
@@ -71,7 +71,6 @@ class StoreTerrenoRequest extends FormRequest
             'data_opcao.date' => 'Data de opção inválida.',
             'data_descarte.date' => 'Data de descarte inválida.',
             'data_contrato.date' => 'Data de contrato inválida.',
-            'tipo_captacao.in' => 'Tipo de captação deve ser ativa, passiva ou indicação.',
         ];
     }
 }

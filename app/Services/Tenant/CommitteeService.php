@@ -3,49 +3,34 @@
 namespace App\Services\Tenant;
 
 use App\Enums\WorkflowStatus;
-use App\Models\Tenant\ComiteParecerDepartamento;
-use App\Models\Tenant\ComitePendencia;
 use App\Models\Tenant\ComiteRevisao;
-use App\Models\Tenant\EntityActivity;
-use App\Models\Tenant\Terreno;
 use App\Models\Tenant\User;
+use App\Repositories\Tenant\CommitteeRepository;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
-use RuntimeException;
+use Illuminate\Validation\ValidationException;
 
 class CommitteeService
 {
     public const DEFAULT_REQUIRED_DEPARTMENTS = ['comercial', 'engenharia', 'juridico'];
+
+    public function __construct(
+        private readonly CommitteeRepository $repository,
+        private readonly LandWorkflowService $workflowService,
+    ) {}
 
     /**
      * Lista as revisões de comitê com filtros e paginação.
      */
     public function list(array $filters = []): LengthAwarePaginator
     {
-        $query = ComiteRevisao::query()
-            ->with([
-                'terreno',
-                'terreno.proprietarios',
-                'terreno.terrenoProdutos.produto',
-                'terreno.corretorExterno',
-                'terreno.viabilidadeAtual',
-                'viabilidade',
-                'pareceresDepartamento',
-                'pendencias',
-            ]);
+        return $this->repository->paginate($filters);
+    }
 
-        if (! empty($filters['status'])) {
-            $query->where('status', $filters['status']);
-        }
-
-        if (! empty($filters['search'])) {
-            $search = $filters['search'];
-            $query->whereHas('terreno', function ($builder) use ($search) {
-                $builder->where('nome', 'like', "%{$search}%");
-            });
-        }
-
-        return $query->orderByDesc('created_at')->paginate($filters['per_page'] ?? 10);
+    public function findOrFail(int|string $id): ComiteRevisao
+    {
+        return $this->repository->findOrFail($id);
     }
 
     /**
@@ -56,27 +41,25 @@ class CommitteeService
     public function create(array $data, ?User $user = null): ComiteRevisao
     {
         return DB::transaction(function () use ($data, $user) {
-            $terreno = Terreno::query()->with('viabilidadeAtual')->findOrFail($data['terreno_id']);
+            $terreno = $this->repository->findTerrenoForCommitteeOrFail($data['terreno_id']);
 
             if ($terreno->viabilidadeAtual?->approval_status !== 'aprovada') {
-                throw new RuntimeException('Somente terrenos com viabilidade aprovada podem seguir para comitê.');
+                throw ValidationException::withMessages([
+                    'terreno_id' => ['Somente terrenos com viabilidade aprovada podem seguir para comitê.'],
+                ]);
             }
 
-            $review = ComiteRevisao::query()
-                ->where('terreno_id', $terreno->id)
-                ->whereNull('final_decision')
-                ->latest('id')
-                ->first();
+            $review = $this->repository->findOpenReviewByTerreno($terreno->id);
 
             if (! $review) {
-                $review = ComiteRevisao::create([
+                $review = $this->repository->create([
                     'terreno_id' => $terreno->id,
                     'viabilidade_id' => $data['viabilidade_id'] ?? $terreno->viabilidadeAtual?->id,
                     'status' => $data['status'] ?? WorkflowStatus::AGUARDANDO_COMITE->value,
                     'required_departments' => $data['required_departments'] ?? self::DEFAULT_REQUIRED_DEPARTMENTS,
                 ]);
 
-                EntityActivity::create([
+                $this->repository->createActivity([
                     'terreno_id' => $terreno->id,
                     'entity_type' => ComiteRevisao::class,
                     'entity_id' => $review->id,
@@ -90,7 +73,7 @@ class CommitteeService
                 ]);
             }
 
-            app(LandWorkflowService::class)->transition(
+            $this->workflowService->transition(
                 $terreno,
                 WorkflowStatus::AGUARDANDO_COMITE->value,
                 $user,
@@ -107,25 +90,12 @@ class CommitteeService
      */
     public function show(ComiteRevisao $review): ComiteRevisao
     {
-        return $review->load([
-            'terreno',
-            'terreno.cidade',
-            'terreno.responsavel',
-            'terreno.corretorExterno',
-            'terreno.proprietarios',
-            'terreno.contatos',
-            'terreno.terrenoProdutos.produto',
-            'terreno.documentos',
-            'terreno.informacoes.user',
-            'terreno.viabilidades.createdBy',
-            'terreno.viabilidadeAtual.createdBy',
-            'terreno.viabilidadeAtual.approvalDecidedBy',
-            'terreno.viabilidadeAtual.secoes',
-            'terreno.viabilidadeAtual.aprovacoes.user',
-            'viabilidade',
-            'pareceresDepartamento',
-            'pendencias',
-        ]);
+        return $this->repository->loadDetail($review);
+    }
+
+    public function showById(int|string $reviewId): ComiteRevisao
+    {
+        return $this->show($this->repository->findOrFail($reviewId));
     }
 
     /**
@@ -137,24 +107,18 @@ class CommitteeService
         ComiteRevisao $review,
         array $data,
         ?User $user = null,
-        ?LandWorkflowService $workflowService = null,
     ): ComiteRevisao {
-        DB::transaction(function () use ($review, $data, $user) {
-            ComiteParecerDepartamento::updateOrCreate(
-                [
-                    'comite_revisao_id' => $review->id,
-                    'department_code' => $data['department_code'],
-                ],
-                [
-                    'reviewer_user_id' => $data['reviewer_user_id'] ?? $user?->id,
-                    'decision' => $data['decision'],
-                    'comments' => $data['comments'] ?? null,
-                    'checklist_completed' => (bool) ($data['checklist_completed'] ?? false),
-                    'reviewed_at' => now(),
-                ],
-            );
+        if (! $review->exists) {
+            throw new ModelNotFoundException('Comitê não encontrado.');
+        }
 
-            EntityActivity::create([
+        DB::transaction(function () use ($review, $data, $user) {
+            $this->repository->upsertDepartmentReview($review, [
+                ...$data,
+                'reviewer_user_id' => $data['reviewer_user_id'] ?? $user?->id,
+            ]);
+
+            $this->repository->createActivity([
                 'terreno_id' => $review->terreno_id,
                 'entity_type' => ComiteRevisao::class,
                 'entity_id' => $review->id,
@@ -167,7 +131,7 @@ class CommitteeService
         });
 
         if ($review->status === WorkflowStatus::AGUARDANDO_COMITE->value) {
-            $review->update(['status' => 'em_comite']);
+            $this->repository->update($review, ['status' => 'em_comite']);
         }
 
         return $this->show($review);
@@ -178,23 +142,27 @@ class CommitteeService
      *
      * @param  array<string, mixed>  $data
      */
-    public function finalize(ComiteRevisao $review, array $data, ?User $user, LandWorkflowService $workflowService): ComiteRevisao
+    public function finalize(ComiteRevisao $review, array $data, ?User $user): ComiteRevisao
     {
-        return DB::transaction(function () use ($review, $data, $user, $workflowService) {
+        if (! $review->exists) {
+            throw new ModelNotFoundException('Comitê não encontrado.');
+        }
+
+        return DB::transaction(function () use ($review, $data, $user) {
             $requiredDepartments = $review->required_departments ?: self::DEFAULT_REQUIRED_DEPARTMENTS;
-            $submittedDepartments = $review->pareceresDepartamento()
-                ->pluck('department_code')
-                ->all();
+            $submittedDepartments = $this->repository->reviewedDepartmentCodes($review);
 
             foreach ($requiredDepartments as $department) {
                 if (! in_array($department, $submittedDepartments, true)) {
-                    throw new RuntimeException("Falta parecer obrigatório do departamento {$department}.");
+                    throw ValidationException::withMessages([
+                        'final_decision' => ["Falta parecer obrigatório do departamento {$department}."],
+                    ]);
                 }
             }
 
             $decision = $data['final_decision'];
 
-            $review->update([
+            $review = $this->repository->update($review, [
                 'status' => $decision === 'reprovado_comite' ? 'reprovado_comite' : 'aprovado_comite',
                 'final_decision' => $decision,
                 'final_comments' => $data['final_comments'] ?? null,
@@ -206,25 +174,17 @@ class CommitteeService
                 $pendencias = $data['pendencias'] ?? [];
 
                 if (empty($pendencias)) {
-                    throw new RuntimeException('Aprovação com ressalvas exige ao menos uma pendência.');
+                    throw ValidationException::withMessages([
+                        'pendencias' => ['Aprovação com ressalvas exige ao menos uma pendência.'],
+                    ]);
                 }
 
                 foreach ($pendencias as $pendencia) {
-                    ComitePendencia::create([
-                        'comite_revisao_id' => $review->id,
-                        'terreno_id' => $review->terreno_id,
-                        'title' => $pendencia['title'],
-                        'description' => $pendencia['description'] ?? null,
-                        'severity' => $pendencia['severity'] ?? 'medium',
-                        'status' => 'open',
-                        'department_code' => $pendencia['department_code'] ?? null,
-                        'responsible_user_id' => $pendencia['responsible_user_id'] ?? null,
-                        'due_date' => $pendencia['due_date'] ?? null,
-                    ]);
+                    $this->repository->createPendencia($review, $pendencia);
                 }
             }
 
-            $workflowService->transition(
+            $this->workflowService->transition(
                 $review->terreno()->firstOrFail(),
                 $decision === 'reprovado_comite' ? WorkflowStatus::EM_ANALISE->value : WorkflowStatus::NEGOCIACAO_MINUTA->value,
                 $user,

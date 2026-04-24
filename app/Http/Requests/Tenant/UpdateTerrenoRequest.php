@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Tenant;
 
+use App\Models\Tenant\Terreno;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateTerrenoRequest extends FormRequest
@@ -11,7 +12,11 @@ class UpdateTerrenoRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        $terrenoId = $this->route('terreno') ?? $this->route('id');
+        $terreno = $terrenoId instanceof Terreno ? $terrenoId : Terreno::find($terrenoId);
+
+        return $terreno instanceof Terreno
+            && (bool) $this->user()?->can('update', $terreno);
     }
 
     /**
@@ -45,7 +50,6 @@ class UpdateTerrenoRequest extends FormRequest
             'data_descarte' => 'sometimes|nullable|date',
             'data_contrato' => 'sometimes|nullable|date',
             'comprador_id' => 'sometimes|nullable|integer|exists:users,id',
-            'tipo_captacao' => 'sometimes|in:ativa,passiva,indicação',
         ];
     }
 
@@ -68,7 +72,6 @@ class UpdateTerrenoRequest extends FormRequest
             'data_opcao.date' => 'Data de opção inválida.',
             'data_descarte.date' => 'Data de descarte inválida.',
             'data_contrato.date' => 'Data de contrato inválida.',
-            'tipo_captacao.in' => 'Tipo de captação deve ser ativa, passiva ou indicação.',
         ];
     }
 }

@@ -96,6 +96,12 @@ class TenantBillingServiceTest extends TestCase
         $tenant->shouldNotReceive('activate');
         $tenant->shouldNotReceive('suspend');
         $tenant->shouldNotReceive('cancel');
+        $tenant->shouldReceive('getAttribute')
+            ->once()
+            ->with('name')
+            ->andReturn('Tenant Test');
+        $tenant->shouldReceive('notify')
+            ->once();
 
         $service = new TenantBillingService;
 

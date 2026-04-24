@@ -2,6 +2,7 @@
 
 namespace App\Services\Tenant;
 
+use App\Enums\ProjetoStatus;
 use App\Enums\WorkflowStatus;
 use App\Models\Tenant\Contrato;
 use App\Models\Tenant\EntityActivity;
@@ -449,27 +450,27 @@ class LandWorkflowService
 
         if ($targetStatus === WorkflowStatus::LEGALIZANDO->value) {
             Projeto::where('terreno_id', $terreno->id)
-                ->where('status', Projeto::STATUS_EM_VIABILIDADE)
+                ->where('status', ProjetoStatus::EM_VIABILIDADE)
                 ->update([
-                    'status' => Projeto::STATUS_EM_LEGALIZACAO,
+                    'status' => ProjetoStatus::EM_LEGALIZACAO,
                     'updated_by' => $user?->id,
                 ]);
         }
 
         if ($targetStatus === WorkflowStatus::LEGALIZADO_FINALIZADO->value) {
             Projeto::where('terreno_id', $terreno->id)
-                ->whereNotIn('status', [Projeto::STATUS_CANCELADO, Projeto::STATUS_FINALIZADO])
+                ->whereNotIn('status', [ProjetoStatus::CANCELADO, ProjetoStatus::FINALIZADO])
                 ->update([
-                    'status' => Projeto::STATUS_FINALIZADO,
+                    'status' => ProjetoStatus::FINALIZADO,
                     'updated_by' => $user?->id,
                 ]);
         }
 
         if (in_array($targetStatus, WorkflowStatus::closure(), true)) {
             Projeto::where('terreno_id', $terreno->id)
-                ->whereNotIn('status', [Projeto::STATUS_CANCELADO, Projeto::STATUS_FINALIZADO])
+                ->whereNotIn('status', [ProjetoStatus::CANCELADO, ProjetoStatus::FINALIZADO])
                 ->update([
-                    'status' => Projeto::STATUS_CANCELADO,
+                    'status' => ProjetoStatus::CANCELADO,
                     'updated_by' => $user?->id,
                 ]);
         }

@@ -140,7 +140,7 @@ class ProjetoController extends Controller
     public function update(UpdateProjetoRequest $request, string $id)
     {
         try {
-            $projeto = Projeto::findOrFail($id);
+            $projeto = $this->service->buscar((int) $id);
             Gate::authorize('update', $projeto);
 
             $projeto = $this->service->atualizar($projeto, $request->validated());
@@ -168,7 +168,7 @@ class ProjetoController extends Controller
     public function markReady(MarkProjetoReadyRequest $request, string $id)
     {
         try {
-            $projeto = Projeto::findOrFail($id);
+            $projeto = $this->service->buscar((int) $id);
             Gate::authorize('markReady', $projeto);
 
             $projeto = $this->service->marcarProntoParaRegistro($projeto);
@@ -210,7 +210,7 @@ class ProjetoController extends Controller
     public function cancel(string $id, Request $request)
     {
         try {
-            $projeto = Projeto::findOrFail($id);
+            $projeto = $this->service->buscar((int) $id);
             Gate::authorize('cancel', $projeto);
 
             $projeto = $this->service->cancelar($projeto);

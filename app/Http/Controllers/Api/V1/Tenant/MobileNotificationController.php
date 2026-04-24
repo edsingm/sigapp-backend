@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Tenant\ListMobileNotificationsRequest;
 use App\Http\Resources\Tenant\MobileNotificationResource;
 use App\Services\ApiResponseService;
 use App\Services\Tenant\MobilePushService;
@@ -18,15 +19,13 @@ class MobileNotificationController extends Controller
     /**
      * Listar notificações móveis.
      */
-    public function index(Request $request)
+    public function index(ListMobileNotificationsRequest $request)
     {
-        $data = $request->validate([
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
-        ]);
+        $perPage = $request->validated('per_page', 20);
 
         $notifications = $this->mobilePushService->paginateNotifications(
             $request->user(),
-            (int) ($data['per_page'] ?? 20)
+            (int) $perPage
         );
 
         $notifications->through(

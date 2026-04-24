@@ -21,6 +21,10 @@ class ContratoParte extends Model
         'signer_document',
     ];
 
+    protected $casts = [
+        'contrato_id' => 'int',
+    ];
+
     public function contrato(): BelongsTo
     {
         return $this->belongsTo(Contrato::class, 'contrato_id');

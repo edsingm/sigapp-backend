@@ -7,6 +7,7 @@ use App\Models\Central\Tenant;
 use App\Models\Central\WebhookEvent;
 use App\Notifications\PaymentFailedNotification;
 use App\Notifications\TrialEndingNotification;
+use App\Repositories\Contracts\TenantRepositoryInterface;
 use App\Services\Billing\TenantBillingService;
 use App\Traits\LogsAudit;
 use Carbon\Carbon;
@@ -23,7 +24,8 @@ class WebhookController extends CashierController
     use LogsAudit;
 
     public function __construct(
-        protected TenantBillingService $billingService
+        protected TenantBillingService $billingService,
+        protected TenantRepositoryInterface $tenantRepository,
     ) {
         if ($this->requiresSignedWebhook() && $this->hasWebhookSecret()) {
             $this->middleware(VerifyWebhookSignature::class);
@@ -103,7 +105,7 @@ class WebhookController extends CashierController
             return $this->unprocessedSuccessMethod();
         }
 
-        $tenant = Tenant::find($tenantId);
+        $tenant = $this->tenantRepository->findById($tenantId);
 
         if (! $tenant) {
             $this->audit('tenant.checkout_validation_failed', "Checkout concluído mas tenant ID '{$tenantId}' não encontrado no banco.", [
@@ -256,7 +258,7 @@ class WebhookController extends CashierController
         $invoice = (array) data_get($payload, 'data.object', []);
         $customerId = $invoice['customer'] ?? null;
 
-        $tenant = Tenant::where('stripe_id', $customerId)->first();
+        $tenant = $this->tenantRepository->findByStripeId($customerId);
 
         if ($tenant) {
             $this->reconcileTenantBillingState(
@@ -285,7 +287,7 @@ class WebhookController extends CashierController
         $attempts = (int) data_get($invoice, 'attempt_count', 0);
         $invoiceUrl = data_get($invoice, 'hosted_invoice_url');
 
-        $tenant = Tenant::where('stripe_id', $customerId)->first();
+        $tenant = $this->tenantRepository->findByStripeId($customerId);
 
         if (! $tenant) {
             return $this->successMethod();
@@ -336,7 +338,7 @@ class WebhookController extends CashierController
         $subscription = (array) data_get($payload, 'data.object', []);
         $customerId = $subscription['customer'] ?? null;
 
-        $tenant = Tenant::where('stripe_id', $customerId)->first();
+        $tenant = $this->tenantRepository->findByStripeId($customerId);
 
         if ($tenant) {
             $this->reconcileTenantBillingState(
@@ -365,7 +367,7 @@ class WebhookController extends CashierController
         $subscription = (array) data_get($payload, 'data.object', []);
         $customerId = $subscription['customer'] ?? null;
 
-        $tenant = Tenant::where('stripe_id', $customerId)->first();
+        $tenant = $this->tenantRepository->findByStripeId($customerId);
 
         if ($tenant) {
             $this->reconcileTenantBillingState(
@@ -395,7 +397,7 @@ class WebhookController extends CashierController
         $subscription = (array) data_get($payload, 'data.object', []);
         $customerId = $subscription['customer'] ?? null;
 
-        $tenant = Tenant::where('stripe_id', $customerId)->first();
+        $tenant = $this->tenantRepository->findByStripeId($customerId);
 
         if ($tenant) {
             $tenant->update([
@@ -429,7 +431,7 @@ class WebhookController extends CashierController
         $customerId = data_get($subscription, 'customer');
         $trialEnd = data_get($subscription, 'trial_end');
 
-        $tenant = Tenant::where('stripe_id', $customerId)->first();
+        $tenant = $this->tenantRepository->findByStripeId($customerId);
 
         if (! $tenant || ! $trialEnd) {
             return $this->successMethod();

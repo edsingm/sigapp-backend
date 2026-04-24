@@ -2,16 +2,19 @@
 
 namespace App\Http\Requests\Tenant;
 
+use App\Models\Tenant\Projeto;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 
 class MarkProjetoReadyRequest extends FormRequest
 {
     /**
      * Determina se o usuário está autorizado a fazer esta requisição.
+     * A autorização específica do markReady é feita no controller via Gate::authorize('markReady', $projeto).
      */
     public function authorize(): bool
     {
-        return true;
+        return Gate::allows('create', Projeto::class);
     }
 
     /**

@@ -19,6 +19,11 @@ class PlanRepository implements PlanRepositoryInterface
         return Plan::ordered()->get();
     }
 
+    public function findAllActiveOrdered(): Collection
+    {
+        return Plan::active()->ordered()->get();
+    }
+
     public function paginate(int $perPage = 15): LengthAwarePaginator
     {
         return Plan::ordered()->paginate($perPage);
@@ -32,6 +37,11 @@ class PlanRepository implements PlanRepositoryInterface
     public function findBySlug(string $slug): ?Plan
     {
         return Plan::where('slug', $slug)->first();
+    }
+
+    public function findActiveBySlug(string $slug): ?Plan
+    {
+        return Plan::where('slug', $slug)->active()->first();
     }
 
     public function create(array $data): Plan

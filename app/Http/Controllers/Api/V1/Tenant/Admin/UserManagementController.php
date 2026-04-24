@@ -7,7 +7,6 @@ use App\Http\Requests\Tenant\StoreUserRequest;
 use App\Http\Requests\Tenant\UpdateUserModulePermissionsRequest;
 use App\Http\Requests\Tenant\UpdateUserRequest;
 use App\Http\Resources\Tenant\UserResource;
-use App\Models\Tenant\User;
 use App\Services\Acl\PermissionNameResolver;
 use App\Services\ApiResponseService;
 use App\Services\Tenant\TenantUserService;
@@ -33,7 +32,7 @@ class UserManagementController extends Controller
             perPage: (int) $request->integer('per_page', 15),
         );
 
-        $users->through(fn (User $user) => (new UserResource($user))->toArray($request));
+        $users->through(fn ($user) => (new UserResource($user))->toArray($request));
 
         return ApiResponseService::paginated($users, language()->t('USER_LIST_RETRIEVED'));
     }
@@ -43,7 +42,7 @@ class UserManagementController extends Controller
      */
     public function show(int $id)
     {
-        $user = User::with(['roles', 'department', 'position'])->find($id);
+        $user = $this->userService->findWithRelations($id);
 
         if (! $user) {
             return ApiResponseService::notFound(language()->t('USER_NOT_FOUND'));
@@ -67,7 +66,7 @@ class UserManagementController extends Controller
      */
     public function update(UpdateUserRequest $request, int $id)
     {
-        $user = User::with(['roles', 'department', 'position'])->find($id);
+        $user = $this->userService->findWithRelations($id);
 
         if (! $user) {
             return ApiResponseService::notFound(language()->t('USER_NOT_FOUND'));
@@ -95,7 +94,7 @@ class UserManagementController extends Controller
      */
     public function destroy(Request $request, int $id)
     {
-        $user = User::with(['roles', 'department', 'position'])->find($id);
+        $user = $this->userService->findWithRelations($id);
 
         if (! $user) {
             return ApiResponseService::notFound(language()->t('USER_NOT_FOUND'));
@@ -115,7 +114,7 @@ class UserManagementController extends Controller
      */
     public function updateModulePermissions(UpdateUserModulePermissionsRequest $request, int $id)
     {
-        $user = User::with(['roles', 'department', 'position'])->find($id);
+        $user = $this->userService->findWithRelations($id);
 
         if (! $user) {
             return ApiResponseService::notFound(language()->t('USER_NOT_FOUND'));

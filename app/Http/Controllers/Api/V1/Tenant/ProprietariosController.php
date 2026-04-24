@@ -8,14 +8,15 @@ use App\Http\Requests\Tenant\UpdateProprietarioRequest;
 use App\Http\Resources\Tenant\ProprietarioResource;
 use App\Models\Tenant\Proprietario;
 use App\Services\Tenant\LandWorkflowService;
+use App\Services\Tenant\ProprietarioService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 
 class ProprietariosController extends Controller
 {
     public function __construct(
+        protected ProprietarioService $proprietarioService,
         protected LandWorkflowService $workflowService,
     ) {}
 
@@ -31,18 +32,11 @@ class ProprietariosController extends Controller
 
         $cacheKey = "tenant:{$tenantId}:proprietarios:index:".md5(json_encode($filters));
 
-        return Cache::tags(["tenant:{$tenantId}:proprietarios"])->remember($cacheKey, now()->addMinutes(30), function () use ($request) {
+        return \Cache::tags(["tenant:{$tenantId}:proprietarios"])->remember($cacheKey, now()->addMinutes(30), function () use ($request, $tenantId) {
             $perPage = (int) ($request->input('per_page') ?? 10);
-            $terrenoId = $request->input('terreno_id');
+            $terrenoId = $request->input('terreno_id') ? (int) $request->input('terreno_id') : null;
 
-            $query = Proprietario::with(['terreno', 'createdBy', 'updatedBy'])
-                ->orderBy('created_at', 'desc');
-
-            if ($terrenoId) {
-                $query->where('terreno_id', $terrenoId);
-            }
-
-            $paginator = $query->paginate($perPage);
+            $paginator = $this->proprietarioService->list($tenantId, $perPage, $terrenoId);
 
             return $this->respondWithPagination($paginator, ProprietarioResource::class);
         });
@@ -56,17 +50,15 @@ class ProprietariosController extends Controller
         Gate::authorize('create', Proprietario::class);
 
         $data = $request->validated();
-        $userId = $request->user()->id ?? null;
+        $data['created_by'] = $request->user()->id;
+        $data['updated_by'] = $request->user()->id;
 
-        $data['created_by'] = $userId;
-        $data['updated_by'] = $userId;
-
-        $owner = Proprietario::create($data);
-        $this->workflowService->syncReadiness($owner->terreno()->firstOrFail(), $request->user(), 'owner_created');
+        $proprietario = $this->proprietarioService->create($data);
+        $this->workflowService->syncReadiness($proprietario->terreno, $request->user(), 'owner_created');
 
         return response()->json([
             'success' => true,
-            'data' => new ProprietarioResource($owner),
+            'data' => new ProprietarioResource($proprietario),
             'message' => 'Proprietário criado com sucesso!',
         ], 201);
     }
@@ -77,7 +69,8 @@ class ProprietariosController extends Controller
     public function show(Proprietario $proprietario): JsonResponse
     {
         Gate::authorize('view', $proprietario);
-        $proprietario->load(['terreno', 'createdBy', 'updatedBy']);
+
+        $proprietario = $this->proprietarioService->findWithRelations($proprietario->id);
 
         return response()->json([
             'success' => true,
@@ -92,16 +85,14 @@ class ProprietariosController extends Controller
     {
         Gate::authorize('update', $proprietario);
         $data = $request->validated();
-        $userId = $request->user()->id ?? null;
+        $data['updated_by'] = $request->user()->id;
 
-        $data['updated_by'] = $userId;
-
-        $proprietario->update($data);
-        $this->workflowService->syncReadiness($proprietario->terreno()->firstOrFail(), $request->user(), 'owner_updated');
+        $proprietario = $this->proprietarioService->update($proprietario, $data);
+        $this->workflowService->syncReadiness($proprietario->terreno, $request->user(), 'owner_updated');
 
         return response()->json([
             'success' => true,
-            'data' => new ProprietarioResource($proprietario->fresh(['terreno', 'createdBy', 'updatedBy'])),
+            'data' => new ProprietarioResource($proprietario),
             'message' => 'Proprietário atualizado com sucesso!',
         ]);
     }
@@ -112,8 +103,9 @@ class ProprietariosController extends Controller
     public function destroy(Proprietario $proprietario): JsonResponse
     {
         Gate::authorize('delete', $proprietario);
-        $terreno = $proprietario->terreno()->first();
-        $proprietario->delete();
+
+        $terreno = $proprietario->terreno;
+        $this->proprietarioService->delete($proprietario);
 
         if ($terreno) {
             $this->workflowService->syncReadiness($terreno, request()->user(), 'owner_deleted');

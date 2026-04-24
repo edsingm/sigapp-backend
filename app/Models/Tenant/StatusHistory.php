@@ -5,10 +5,11 @@ namespace App\Models\Tenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class StatusHistory extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     public const UPDATED_AT = null;
 
@@ -30,6 +31,7 @@ class StatusHistory extends Model
     protected $casts = [
         'metadata_json' => 'array',
         'created_at' => 'datetime',
+        'changed_by' => 'int',
     ];
 
     public function terreno(): BelongsTo

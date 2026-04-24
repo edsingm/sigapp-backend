@@ -1,22 +1,23 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PlanResource;
-use App\Models\Central\Plan;
+use App\Repositories\Contracts\PlanRepositoryInterface;
 use App\Services\ApiResponseService;
 
 class PlanController extends Controller
 {
-    /**
-     * Lista todos os planos ativos.
-     *
-     * GET /api/v1/plans
-     */
+    public function __construct(
+        private readonly PlanRepositoryInterface $planRepository,
+    ) {}
+
     public function index()
     {
-        $plans = Plan::active()->ordered()->get();
+        $plans = $this->planRepository->findAllActiveOrdered();
 
         return ApiResponseService::success(
             PlanResource::collection($plans),
@@ -24,14 +25,9 @@ class PlanController extends Controller
         );
     }
 
-    /**
-     * Obtém um plano específico pelo slug.
-     *
-     * GET /api/v1/plans/{slug}
-     */
     public function show(string $slug)
     {
-        $plan = Plan::where('slug', $slug)->active()->first();
+        $plan = $this->planRepository->findActiveBySlug($slug);
 
         if (! $plan) {
             return ApiResponseService::notFound(language()->t('PLAN_NOT_FOUND'));

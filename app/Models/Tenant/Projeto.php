@@ -2,6 +2,7 @@
 
 namespace App\Models\Tenant;
 
+use App\Enums\ProjetoStatus;
 use App\Traits\HasDashboardCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -12,30 +13,10 @@ class Projeto extends Model
 {
     use HasDashboardCache, HasFactory, SoftDeletes;
 
-    public const STATUS_EM_VIABILIDADE = 'em_viabilidade';
-
-    public const STATUS_EM_LEGALIZACAO = 'em_legalizacao';
-
-    public const STATUS_FINALIZADO = 'finalizado';
-
-    public const STATUS_PRONTO_PARA_REGISTRO = 'pronto_para_registro';
-
-    public const STATUS_CANCELADO = 'cancelado';
-
     protected $table = 'projetos';
 
-    protected $fillable = [
-        'nome',
-        'terreno_id',
-        'responsavel_id',
-        'status',
-        'pronto_para_registro_em',
-        'pronto_para_registro_por',
-        'created_by',
-        'updated_by',
-    ];
-
     protected $casts = [
+        'status' => ProjetoStatus::class,
         'pronto_para_registro_em' => 'datetime',
     ];
 

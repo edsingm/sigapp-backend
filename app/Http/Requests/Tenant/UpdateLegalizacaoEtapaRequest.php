@@ -13,7 +13,13 @@ class UpdateLegalizacaoEtapaRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        $etapa = $this->route('id');
+
+        if (! $etapa) {
+            return false;
+        }
+
+        return (bool) $this->user()?->can('update', [\App\Models\Tenant\LegalizacaoEtapa::class, $etapa]);
     }
 
     /**

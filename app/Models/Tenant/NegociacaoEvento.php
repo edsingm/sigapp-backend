@@ -5,10 +5,11 @@ namespace App\Models\Tenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class NegociacaoEvento extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $table = 'negociacao_eventos';
 
@@ -24,6 +25,8 @@ class NegociacaoEvento extends Model
     protected $casts = [
         'payload_json' => 'array',
         'happened_at' => 'datetime',
+        'negociacao_id' => 'int',
+        'user_id' => 'int',
     ];
 
     public function negociacao(): BelongsTo

@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use App\Ai\Agents\SIG_IA;
 use App\Ai\Tools\AnalyzeDocumentTool;
 use App\Ai\Tools\CompareAreasTool;
+use App\Ai\Tools\CreatePdfsTool;
 use App\Ai\Tools\CreateTaskTool;
 use App\Ai\Tools\DetectAnomaliesTool;
 use App\Ai\Tools\EstimateVgvTool;
@@ -75,6 +76,7 @@ class AiToolsTest extends TestCase
             GenerateInsightsTool::class,
             GetTrendsTool::class,
             CompareAreasTool::class,
+            CreatePdfsTool::class,
         ];
 
         $actual = $tools->map(fn ($t) => $t::class)->sort()->values();
@@ -286,6 +288,7 @@ class AiToolsTest extends TestCase
         $agent = new SIG_IA;
         $options = $agent->providerOptions('openrouter');
 
-        $this->assertEquals(['enabled' => true], $options['reasoning']);
+        $this->assertSame(true, $options['reasoning']['enabled'] ?? false);
+        $this->assertSame(true, $options['reasoning']['exclude'] ?? false);
     }
 }

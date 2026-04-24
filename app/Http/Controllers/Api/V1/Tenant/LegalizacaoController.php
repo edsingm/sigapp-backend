@@ -3,295 +3,159 @@
 namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Tenant\DestroyLegalizacaoRequest;
+use App\Http\Requests\Tenant\EligibleLegalizacaoTerrenosRequest;
+use App\Http\Requests\Tenant\ListLegalizacoesRequest;
+use App\Http\Requests\Tenant\RecalculateLegalizacaoProgressRequest;
+use App\Http\Requests\Tenant\ShowLegalizacaoRequest;
 use App\Http\Requests\Tenant\StoreLegalizacaoRequest;
 use App\Http\Requests\Tenant\SyncGanttRequest;
 use App\Http\Requests\Tenant\UpdateLegalizacaoRequest;
 use App\Http\Resources\Tenant\LegalizacaoDependenciaResource;
 use App\Http\Resources\Tenant\LegalizacaoEtapaResource;
 use App\Http\Resources\Tenant\LegalizacaoResource;
-use App\Models\Tenant\Legalizacao;
 use App\Services\ApiResponseService;
 use App\Services\Tenant\LegalizacaoService;
-use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Log;
 
 class LegalizacaoController extends Controller
 {
-    protected LegalizacaoService $service;
-
-    public function __construct(LegalizacaoService $service)
-    {
-        $this->service = $service;
-    }
+    public function __construct(protected LegalizacaoService $service) {}
 
     /**
      * Listar legalizações
      */
-    public function index(Request $request)
+    public function index(ListLegalizacoesRequest $request): JsonResponse
     {
-        Gate::authorize('viewAny', Legalizacao::class);
+        $tenantId = tenant('id') ?? 'central';
+        $filters = $request->validated();
+        $cacheKey = "tenant:{$tenantId}:legalizacoes:index:".md5(json_encode($filters));
 
-        try {
-            $tenantId = tenant('id') ?? 'central';
-            $filters = $request->only(['search', 'terreno_id', 'status', 'per_page', 'page']);
+        $result = Cache::tags(["tenant:{$tenantId}:legalizacoes"])->remember($cacheKey, now()->addMinutes(30), function () use ($filters) {
+            return $this->service->listar($filters);
+        });
 
-            $cacheKey = "tenant:{$tenantId}:legalizacoes:index:".md5(json_encode($filters));
-
-            $result = Cache::tags(["tenant:{$tenantId}:legalizacoes"])->remember($cacheKey, now()->addMinutes(30), function () use ($filters) {
-                return $this->service->listar($filters);
-            });
-
-            return ApiResponseService::paginated($result);
-        } catch (\Exception $e) {
-            if ($e instanceof AuthorizationException) {
-                throw $e;
-            }
-
-            Log::error('Erro ao listar legalizações', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return ApiResponseService::serverError('Erro ao listar legalizações');
-        }
+        return ApiResponseService::paginated($result);
     }
 
     /**
      * Criar nova legalização
      */
-    public function store(StoreLegalizacaoRequest $request)
+    public function store(StoreLegalizacaoRequest $request): JsonResponse
     {
-        Gate::authorize('create', Legalizacao::class);
+        $legalizacao = $this->service->criar($request->validated(), $request->user());
 
-        try {
-            $legalizacao = $this->service->criar($request->validated());
+        $tenantId = tenant('id') ?? 'central';
+        Cache::tags(["tenant:{$tenantId}:legalizacoes"])->flush();
 
-            $tenantId = tenant('id') ?? 'central';
-            Cache::tags(["tenant:{$tenantId}:legalizacoes"])->flush();
-
-            return ApiResponseService::created(
-                new LegalizacaoResource($legalizacao),
-                'Legalização criada com sucesso'
-            );
-        } catch (\Exception $e) {
-            if ($e instanceof AuthorizationException) {
-                throw $e;
-            }
-
-            Log::error('Erro ao criar legalização', [
-                'error' => $e->getMessage(),
-                'data' => $request->all(),
-            ]);
-
-            return ApiResponseService::error(
-                'CREATE_ERROR',
-                $e->getMessage(),
-                null,
-                400
-            );
-        }
+        return ApiResponseService::created(
+            new LegalizacaoResource($legalizacao),
+            'Legalização criada com sucesso'
+        );
     }
 
     /**
      * Buscar legalização por ID
      */
-    public function show(string $id)
+    public function show(ShowLegalizacaoRequest $request, string $id): JsonResponse
     {
-        try {
-            $legalizacao = Legalizacao::findOrFail($id);
-            Gate::authorize('view', $legalizacao);
+        $tenantId = tenant('id') ?? 'central';
+        $cacheKey = "tenant:{$tenantId}:legalizacoes:show:{$id}";
 
-            $tenantId = tenant('id') ?? 'central';
-            $cacheKey = "tenant:{$tenantId}:legalizacoes:show:{$id}";
+        $result = Cache::tags(["tenant:{$tenantId}:legalizacoes"])->remember($cacheKey, now()->addMinutes(30), function () use ($id) {
+            return $this->service->buscar((int) $id);
+        });
 
-            $result = Cache::tags(["tenant:{$tenantId}:legalizacoes"])->remember($cacheKey, now()->addMinutes(30), function () use ($legalizacao) {
-                return $this->service->buscar($legalizacao->id);
-            });
-
-            return ApiResponseService::success([
-                'legalizacao' => new LegalizacaoResource($result['legalizacao']),
-                'etapas' => LegalizacaoEtapaResource::collection($result['etapas']),
-                'dependencias' => LegalizacaoDependenciaResource::collection($result['dependencias']),
-            ]);
-        } catch (\Exception $e) {
-            if ($e instanceof AuthorizationException) {
-                throw $e;
-            }
-
-            Log::error('Erro ao buscar legalização', [
-                'id' => $id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return ApiResponseService::notFound('Legalização não encontrada');
-        }
+        return ApiResponseService::success([
+            'legalizacao' => new LegalizacaoResource($result['legalizacao']),
+            'etapas' => LegalizacaoEtapaResource::collection($result['etapas']),
+            'dependencias' => LegalizacaoDependenciaResource::collection($result['dependencias']),
+        ]);
     }
 
     /**
      * Atualizar legalização
      */
-    public function update(UpdateLegalizacaoRequest $request, string $id)
+    public function update(UpdateLegalizacaoRequest $request, string $id): JsonResponse
     {
-        try {
-            $legalizacao = Legalizacao::findOrFail($id);
-            Gate::authorize('update', $legalizacao);
+        $legalizacao = $this->service->findOrFail($id);
+        $legalizacao = $this->service->atualizar($legalizacao, $request->validated(), $request->user());
 
-            $legalizacao = $this->service->atualizar($legalizacao, $request->validated());
+        $tenantId = tenant('id') ?? 'central';
+        Cache::tags(["tenant:{$tenantId}:legalizacoes"])->flush();
 
-            $tenantId = tenant('id') ?? 'central';
-            Cache::tags(["tenant:{$tenantId}:legalizacoes"])->flush();
-
-            return ApiResponseService::success(
-                new LegalizacaoResource($legalizacao),
-                'Legalização atualizada com sucesso'
-            );
-        } catch (\Exception $e) {
-            if ($e instanceof AuthorizationException) {
-                throw $e;
-            }
-
-            Log::error('Erro ao atualizar legalização', [
-                'id' => $id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return ApiResponseService::serverError('Erro ao atualizar legalização');
-        }
+        return ApiResponseService::success(
+            new LegalizacaoResource($legalizacao),
+            'Legalização atualizada com sucesso'
+        );
     }
 
     /**
      * Excluir legalização
      */
-    public function destroy(string $id)
+    public function destroy(DestroyLegalizacaoRequest $request, string $id): JsonResponse
     {
-        try {
-            $legalizacao = Legalizacao::findOrFail($id);
-            Gate::authorize('delete', $legalizacao);
+        $legalizacao = $this->service->findOrFail($id);
+        $this->service->excluir($legalizacao);
 
-            $this->service->excluir($legalizacao->id);
+        $tenantId = tenant('id') ?? 'central';
+        Cache::tags(["tenant:{$tenantId}:legalizacoes"])->flush();
 
-            $tenantId = tenant('id') ?? 'central';
-            Cache::tags(["tenant:{$tenantId}:legalizacoes"])->flush();
-
-            return ApiResponseService::noContent();
-        } catch (\Exception $e) {
-            if ($e instanceof AuthorizationException) {
-                throw $e;
-            }
-
-            Log::error('Erro ao excluir legalização', [
-                'id' => $id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return ApiResponseService::serverError('Erro ao excluir legalização');
-        }
+        return ApiResponseService::noContent();
     }
 
     /**
      * Sincronizar Gantt (upsert em lote de etapas e dependências)
      */
-    public function syncGantt(SyncGanttRequest $request, string $id)
+    public function syncGantt(SyncGanttRequest $request, string $id): JsonResponse
     {
-        try {
-            $legalizacao = Legalizacao::findOrFail($id);
-            Gate::authorize('syncGantt', $legalizacao);
+        $legalizacao = $this->service->findOrFail($id);
+        $result = $this->service->syncGantt($legalizacao, $request->validated());
 
-            $result = $this->service->syncGantt($legalizacao, $request->validated());
+        $tenantId = tenant('id') ?? 'central';
+        Cache::tags([
+            "tenant:{$tenantId}:legalizacoes",
+            "tenant:{$tenantId}:legalizacao_etapas",
+            "tenant:{$tenantId}:legalizacao_dependencias",
+        ])->flush();
 
-            $tenantId = tenant('id') ?? 'central';
-            Cache::tags([
-                "tenant:{$tenantId}:legalizacoes",
-                "tenant:{$tenantId}:legalizacao_etapas",
-                "tenant:{$tenantId}:legalizacao_dependencias",
-            ])->flush();
-
-            return ApiResponseService::success([
-                'legalizacao' => new LegalizacaoResource($result['legalizacao']),
-                'etapas' => LegalizacaoEtapaResource::collection($result['etapas']),
-                'dependencias' => LegalizacaoDependenciaResource::collection($result['dependencias']),
-            ], 'Gantt sincronizado com sucesso');
-        } catch (\Exception $e) {
-            if ($e instanceof AuthorizationException) {
-                throw $e;
-            }
-
-            Log::error('Erro ao sincronizar gantt', [
-                'id' => $id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return ApiResponseService::error(
-                'SYNC_ERROR',
-                $e->getMessage(),
-                null,
-                400
-            );
-        }
+        return ApiResponseService::success([
+            'legalizacao' => new LegalizacaoResource($result['legalizacao']),
+            'etapas' => LegalizacaoEtapaResource::collection($result['etapas']),
+            'dependencias' => LegalizacaoDependenciaResource::collection($result['dependencias']),
+        ], 'Gantt sincronizado com sucesso');
     }
 
     /**
      * Listar terrenos elegíveis (status "Opção" e sem legalização)
      */
-    public function eligibleTerrenos(Request $request)
+    public function eligibleTerrenos(EligibleLegalizacaoTerrenosRequest $request): JsonResponse
     {
-        try {
-            $tenantId = tenant('id') ?? 'central';
-            $filters = $request->only(['search', 'per_page', 'page']);
+        $tenantId = tenant('id') ?? 'central';
+        $filters = $request->validated();
+        $cacheKey = "tenant:{$tenantId}:legalizacoes:eligible-terrenos:".md5(json_encode($filters));
 
-            $cacheKey = "tenant:{$tenantId}:legalizacoes:eligible-terrenos:".md5(json_encode($filters));
+        $result = Cache::tags(["tenant:{$tenantId}:legalizacoes"])->remember($cacheKey, now()->addMinutes(30), function () use ($filters) {
+            return $this->service->listarTerrenosElegiveis($filters);
+        });
 
-            $result = Cache::tags(["tenant:{$tenantId}:legalizacoes"])->remember($cacheKey, now()->addMinutes(30), function () use ($filters) {
-                return $this->service->listarTerrenosElegiveis($filters);
-            });
-
-            return ApiResponseService::paginated($result);
-        } catch (\Exception $e) {
-            if ($e instanceof AuthorizationException) {
-                throw $e;
-            }
-
-            Log::error('Erro ao listar terrenos elegíveis', [
-                'error' => $e->getMessage(),
-            ]);
-
-            return ApiResponseService::serverError('Erro ao listar terrenos elegíveis');
-        }
+        return ApiResponseService::paginated($result);
     }
 
     /**
      * Recalcular progresso da legalização
      */
-    public function recalcularProgresso(string $id)
+    public function recalcularProgresso(RecalculateLegalizacaoProgressRequest $request, string $id): JsonResponse
     {
-        try {
-            $legalizacao = Legalizacao::findOrFail($id);
-            Gate::authorize('recalcularProgresso', $legalizacao);
+        $legalizacao = $this->service->recalcularProgresso($this->service->findOrFail($id));
 
-            $legalizacao->recalcularProgresso();
+        $tenantId = tenant('id') ?? 'central';
+        Cache::tags(["tenant:{$tenantId}:legalizacoes"])->flush();
 
-            $tenantId = tenant('id') ?? 'central';
-            Cache::tags(["tenant:{$tenantId}:legalizacoes"])->flush();
-
-            return ApiResponseService::success(
-                new LegalizacaoResource($legalizacao),
-                'Progresso recalculado com sucesso'
-            );
-        } catch (\Exception $e) {
-            if ($e instanceof AuthorizationException) {
-                throw $e;
-            }
-
-            Log::error('Erro ao recalcular progresso', [
-                'id' => $id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return ApiResponseService::serverError('Erro ao recalcular progresso');
-        }
+        return ApiResponseService::success(
+            new LegalizacaoResource($legalizacao),
+            'Progresso recalculado com sucesso'
+        );
     }
 }

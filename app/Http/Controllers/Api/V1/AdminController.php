@@ -1,33 +1,36 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\Central\Tenant;
-use App\Models\User;
+use App\Http\Requests\LoginRequest;
+use App\Repositories\Contracts\CentralUserRepositoryInterface;
+use App\Repositories\Contracts\DashboardRepositoryInterface;
 use App\Services\ApiResponseService;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 
 class AdminController extends Controller
 {
+    public function __construct(
+        private readonly CentralUserRepositoryInterface $centralUserRepository,
+        private readonly DashboardRepositoryInterface $dashboardRepository,
+    ) {}
+
     /**
      * Login do Administrador
      *
      * POST /api/v1/admin/login
      */
-    public function login(Request $request)
+    public function login(LoginRequest $request)
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required', 'string'],
-            'device_name' => ['sometimes', 'string'],
-        ]);
+        $credentials = $request->validated();
 
         $requestId = $request->header('X-Request-ID');
 
-        $user = User::where('email', $credentials['email'])->first();
+        $user = $this->centralUserRepository->findByEmail($credentials['email']);
 
         if (! $user || ! Hash::check($credentials['password'], $user->password) || ! $user->is_admin) {
             Log::warning('Login de administrador rejeitado', [
@@ -73,19 +76,12 @@ class AdminController extends Controller
      */
     public function dashboard()
     {
-        // Por enquanto, retorna algumas estatísticas simples
-        // Podemos expandir isso mais tarde para buscar contagens reais das tabelas Tenant/Central
-        // Assumindo que temos acesso aos modelos Central aqui, já que isso roda no contexto central
-
-        $totalTenants = Tenant::count();
-        $recentTenants = Tenant::latest()->take(5)->get();
-
         return ApiResponseService::success([
             'stats' => [
-                'total_tenants' => $totalTenants,
-                'active_tenants' => $totalTenants, // Lógica de espaço reservado
+                'total_tenants' => $this->dashboardRepository->countTotalTenants(),
+                'active_tenants' => $this->dashboardRepository->countActiveTenants(),
             ],
-            'recent_tenants' => $recentTenants,
+            'recent_tenants' => $this->dashboardRepository->recentTenantsSimple(5),
         ], language()->t('DASHBOARD_DATA_RETRIEVED'));
     }
 }

@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\SetLocaleRequest;
+use App\Http\Resources\LocaleResource;
 use App\Services\ApiResponseService;
 use App\Services\LanguageService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class LanguageController extends Controller
 {
@@ -15,16 +16,14 @@ class LanguageController extends Controller
      *
      * PUT /api/v1/locale
      */
-    public function set(Request $request): JsonResponse
+    public function set(SetLocaleRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'locale' => ['required', 'string', 'in:'.implode(',', LanguageService::SUPPORTED_LOCALES)],
-        ]);
+        $data = $request->validated();
 
         LanguageService::setLocale($data['locale']);
 
         return ApiResponseService::success(
-            ['locale' => $data['locale']],
+            new LocaleResource(['locale' => $data['locale']]),
             language()->t('LANGUAGE_UPDATED_SUCCESFULLY')
         );
     }

@@ -4,13 +4,18 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Enums\Common\ModulesEnum;
 use App\Http\Controllers\Controller;
-use App\Models\Central\Plan;
 use App\Models\Central\PlanRolePermissionTemplate;
+use App\Repositories\Contracts\PlanRepositoryInterface;
+use App\Repositories\Contracts\PlanRolePermissionTemplateRepositoryInterface;
 use App\Services\ApiResponseService;
 use Illuminate\Http\Request;
 
 class AclController extends Controller
 {
+    public function __construct(
+        private readonly PlanRepositoryInterface $planRepository,
+        private readonly PlanRolePermissionTemplateRepositoryInterface $templateRepository,
+    ) {}
     /**
      * Obtém o catálogo de permissões do sistema agrupado por módulo.
      */
@@ -56,17 +61,13 @@ class AclController extends Controller
      */
     public function planRoleMatrix(Request $request, int $planId)
     {
-        $plan = Plan::query()->find($planId);
+        $plan = $this->planRepository->findById($planId);
 
         if (! $plan) {
             return ApiResponseService::notFound('Plano não encontrado');
         }
 
-        $templates = PlanRolePermissionTemplate::query()
-            ->where('plan_id', $plan->id)
-            ->orderBy('role_slug')
-            ->orderBy('permission_name')
-            ->get();
+        $templates = $this->templateRepository->findByPlanId($plan->id);
 
         $grouped = $templates
             ->groupBy('role_slug')

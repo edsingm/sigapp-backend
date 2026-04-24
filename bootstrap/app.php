@@ -69,11 +69,15 @@ return Application::configure(basePath: dirname(__DIR__))
         // Handle ValidationException for API
         $exceptions->renderable(function (ValidationException $e, Request $request) {
             if ($request->expectsJson()) {
+                $message = 'Os dados fornecidos são inválidos';
+
                 return response()->json([
                     'success' => false,
+                    'message' => $message,
+                    'errors' => $e->errors(),
                     'error' => [
                         'code' => 'VALIDATION_ERROR',
-                        'message' => 'Os dados fornecidos são inválidos',
+                        'message' => $message,
                         'details' => $e->errors(),
                     ],
                 ], 422);

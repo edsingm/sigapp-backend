@@ -4,37 +4,57 @@ namespace App\Services\Tenant;
 
 use App\Enums\WorkflowStatus;
 use App\Models\Tenant\Contrato;
-use App\Models\Tenant\ContratoParte;
-use App\Models\Tenant\EntityActivity;
 use App\Models\Tenant\Negociacao;
 use App\Models\Tenant\NegociacaoEvento;
-use App\Models\Tenant\Terreno;
 use App\Models\Tenant\User;
+use App\Repositories\Tenant\ContractRepository;
+use App\Repositories\Tenant\NegotiationRepository;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
-use RuntimeException;
+use Illuminate\Validation\ValidationException;
 
 class NegotiationService
 {
+    public function __construct(
+        private readonly NegotiationRepository $repository,
+        private readonly ContractRepository $contractRepository,
+        private readonly LandWorkflowService $workflowService,
+    ) {}
+
     /**
      * Lista as negociações com filtros e paginação.
      */
     public function listNegotiations(array $filters = []): LengthAwarePaginator
     {
-        $query = Negociacao::query()->with(['terreno', 'eventos', 'contratos.partes']);
+        return $this->repository->paginate($filters);
+    }
 
-        if (! empty($filters['status'])) {
-            $query->where('status', $filters['status']);
-        }
+    public function findOrFail(int|string $id): Negociacao
+    {
+        return $this->repository->findOrFail($id);
+    }
 
-        if (! empty($filters['search'])) {
-            $search = $filters['search'];
-            $query->whereHas('terreno', function ($builder) use ($search) {
-                $builder->where('nome', 'like', "%{$search}%");
-            });
-        }
+    public function findContractOrFail(int|string $id): Contrato
+    {
+        return $this->contractRepository->findOrFail($id);
+    }
 
-        return $query->orderByDesc('created_at')->paginate($filters['per_page'] ?? 10);
+    public function showById(int|string $id): Negociacao
+    {
+        return $this->repository->loadDetail($this->repository->findOrFail($id));
+    }
+
+    public function showContractById(int|string $id): Contrato
+    {
+        return $this->contractRepository->loadDetail($this->contractRepository->findOrFail($id));
+    }
+
+    /**
+     * Lista os contratos com filtros e paginação.
+     */
+    public function listContracts(array $filters = []): LengthAwarePaginator
+    {
+        return $this->contractRepository->paginate($filters);
     }
 
     /**
@@ -42,17 +62,19 @@ class NegotiationService
      *
      * @param  array<string, mixed>  $data
      */
-    public function createNegotiation(array $data, ?User $user, LandWorkflowService $workflowService): Negociacao
+    public function createNegotiation(array $data, ?User $user): Negociacao
     {
-        return DB::transaction(function () use ($data, $user, $workflowService) {
-            $terreno = Terreno::query()->with('comiteAtual')->findOrFail($data['terreno_id']);
+        return DB::transaction(function () use ($data, $user) {
+            $terreno = $this->repository->findTerrenoForNegotiationOrFail($data['terreno_id']);
             $decision = $terreno->comiteAtual?->final_decision;
 
             if (! in_array($decision, ['aprovado_comite', 'aprovado_com_ressalvas'], true)) {
-                throw new RuntimeException('Negociação exige comitê aprovado.');
+                throw ValidationException::withMessages([
+                    'terreno_id' => ['Negociação exige comitê aprovado.'],
+                ]);
             }
 
-            $negociacao = Negociacao::create([
+            $negociacao = $this->repository->create([
                 'terreno_id' => $terreno->id,
                 'status' => $data['status'] ?? WorkflowStatus::NEGOCIACAO_MINUTA->value,
                 'proposal_value' => $data['proposal_value'] ?? null,
@@ -63,9 +85,9 @@ class NegotiationService
                 'updated_by' => $user?->id,
             ]);
 
-            $workflowService->transition($terreno, $negociacao->status, $user, 'negotiation_started', $negociacao->notes);
+            $this->workflowService->transition($terreno, $negociacao->status, $user, 'negotiation_started', $negociacao->notes);
 
-            return $negociacao->fresh(['terreno', 'eventos', 'contratos.partes']);
+            return $this->repository->loadDetail($negociacao);
         });
     }
 
@@ -74,9 +96,9 @@ class NegotiationService
      *
      * @param  array<string, mixed>  $data
      */
-    public function updateNegotiation(Negociacao $negociacao, array $data, ?User $user, ?LandWorkflowService $workflowService = null): Negociacao
+    public function updateNegotiation(Negociacao $negociacao, array $data, ?User $user): Negociacao
     {
-        $negociacao->update([
+        $negociacao = $this->repository->update($negociacao, [
             'status' => $data['status'] ?? $negociacao->status,
             'proposal_value' => $data['proposal_value'] ?? $negociacao->proposal_value,
             'business_model' => $data['business_model'] ?? $negociacao->business_model,
@@ -86,8 +108,8 @@ class NegotiationService
             'updated_by' => $user?->id,
         ]);
 
-        if ($workflowService && isset($data['status'])) {
-            $workflowService->transition(
+        if (isset($data['status'])) {
+            $this->workflowService->transition(
                 $negociacao->terreno()->firstOrFail(),
                 $data['status'],
                 $user,
@@ -96,7 +118,7 @@ class NegotiationService
             );
         }
 
-        return $negociacao->fresh(['terreno', 'eventos', 'contratos.partes']);
+        return $this->repository->loadDetail($negociacao);
     }
 
     /**
@@ -106,13 +128,9 @@ class NegotiationService
      */
     public function addEvent(Negociacao $negociacao, array $data, ?User $user): NegociacaoEvento
     {
-        return NegociacaoEvento::create([
-            'negociacao_id' => $negociacao->id,
-            'event_type' => $data['event_type'],
-            'payload_json' => $data['payload_json'] ?? null,
-            'notes' => $data['notes'] ?? null,
+        return $this->repository->createEvent($negociacao, [
+            ...$data,
             'user_id' => $user?->id,
-            'happened_at' => $data['happened_at'] ?? now(),
         ]);
     }
 
@@ -139,26 +157,19 @@ class NegotiationService
 
         if (! $contract) {
             $payload['created_by'] = $user?->id;
-            $contract = Contrato::create($payload);
+            $contract = $this->contractRepository->create($payload);
         } else {
-            $contract->update($payload);
+            $contract = $this->contractRepository->update($contract, $payload);
         }
 
         if (! empty($data['partes']) && is_array($data['partes'])) {
-            $contract->partes()->delete();
+            $this->contractRepository->clearPartes($contract);
             foreach ($data['partes'] as $parte) {
-                ContratoParte::create([
-                    'contrato_id' => $contract->id,
-                    'name' => $parte['name'],
-                    'document' => $parte['document'] ?? null,
-                    'party_type' => $parte['party_type'] ?? null,
-                    'signer_name' => $parte['signer_name'] ?? null,
-                    'signer_document' => $parte['signer_document'] ?? null,
-                ]);
+                $this->contractRepository->createParte($contract, $parte);
             }
         }
 
-        return $contract->fresh(['terreno', 'negociacao', 'partes']);
+        return $this->contractRepository->loadDetail($contract);
     }
 
     /**
@@ -167,7 +178,9 @@ class NegotiationService
     public function signContract(Contrato $contract, ?User $user, LandWorkflowService $workflowService): Contrato
     {
         if (! $contract->contract_type || ! $contract->file_path || ! $contract->partes()->exists()) {
-            throw new RuntimeException('Contrato assinado exige tipo, partes e documento.');
+            throw ValidationException::withMessages([
+                'contract' => ['Contrato assinado exige tipo, partes e documento.'],
+            ]);
         }
 
         $contract->update([
@@ -185,7 +198,7 @@ class NegotiationService
             ['contract' => $contract->fresh('partes')],
         );
 
-        EntityActivity::create([
+        $this->contractRepository->createActivity([
             'terreno_id' => $contract->terreno_id,
             'entity_type' => Contrato::class,
             'entity_id' => $contract->id,
@@ -199,6 +212,6 @@ class NegotiationService
             'happened_at' => now(),
         ]);
 
-        return $contract->fresh(['terreno', 'negociacao', 'partes']);
+        return $this->contractRepository->loadDetail($contract);
     }
 }

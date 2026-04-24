@@ -4,36 +4,46 @@ namespace App\Services;
 
 use App\Models\Central\Entitlement;
 use App\Models\Central\Plan;
-use App\Models\Central\Tenant;
+use App\Models\Central\Tenant as TenantModel;
 use App\Models\Central\TenantEntitlement;
+use App\Repositories\Contracts\TenantRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use InvalidArgumentException;
 
 class TenantPlanService
 {
+    public function __construct(
+        private readonly TenantRepositoryInterface $tenantRepository,
+    ) {}
     /**
      * Atribui um plano a um tenant, independentemente do plano atual.
      */
-    public function assignPlan(string $tenantId, int $planId): Tenant
+    public function assignPlan(string $tenantId, int $planId): TenantModel
     {
-        $tenant = Tenant::findOrFail($tenantId);
+        $tenant = $this->tenantRepository->findById($tenantId);
+        if (! $tenant) {
+            throw new InvalidArgumentException('Tenant não encontrado.');
+        }
+
         $plan = Plan::find($planId);
 
         if (! $plan || ! $plan->is_active) {
             throw new InvalidArgumentException('Plano não encontrado ou inativo.');
         }
 
-        $tenant->update(['plan_id' => $planId]);
-
-        return $tenant->refresh();
+        return $this->tenantRepository->updatePlan($tenant, $planId);
     }
 
     /**
      * Realiza upgrade de plano (novo plano deve ter sort_order maior).
      */
-    public function upgradePlan(string $tenantId, int $newPlanId): Tenant
+    public function upgradePlan(string $tenantId, int $newPlanId): TenantModel
     {
-        $tenant = Tenant::findOrFail($tenantId);
+        $tenant = $this->tenantRepository->findById($tenantId);
+        if (! $tenant) {
+            throw new InvalidArgumentException('Tenant não encontrado.');
+        }
+
         $currentPlan = $tenant->plan;
         $newPlan = Plan::find($newPlanId);
 
@@ -47,17 +57,19 @@ class TenantPlanService
             );
         }
 
-        $tenant->update(['plan_id' => $newPlanId]);
-
-        return $tenant->refresh();
+        return $this->tenantRepository->updatePlan($tenant, $newPlanId);
     }
 
     /**
      * Realiza downgrade de plano (novo plano deve ter sort_order menor).
      */
-    public function downgradePlan(string $tenantId, int $newPlanId): Tenant
+    public function downgradePlan(string $tenantId, int $newPlanId): TenantModel
     {
-        $tenant = Tenant::findOrFail($tenantId);
+        $tenant = $this->tenantRepository->findById($tenantId);
+        if (! $tenant) {
+            throw new InvalidArgumentException('Tenant não encontrado.');
+        }
+
         $currentPlan = $tenant->plan;
         $newPlan = Plan::find($newPlanId);
 
@@ -71,9 +83,7 @@ class TenantPlanService
             );
         }
 
-        $tenant->update(['plan_id' => $newPlanId]);
-
-        return $tenant->refresh();
+        return $this->tenantRepository->updatePlan($tenant, $newPlanId);
     }
 
     /**
@@ -81,9 +91,12 @@ class TenantPlanService
      */
     public function listExtraEntitlements(string $tenantId): Collection
     {
-        $tenant = Tenant::findOrFail($tenantId);
+        $tenant = $this->tenantRepository->findById($tenantId);
+        if (! $tenant) {
+            throw new InvalidArgumentException('Tenant não encontrado.');
+        }
 
-        return $tenant->extraEntitlements()->with('entitlement')->get();
+        return $this->tenantRepository->listExtraEntitlements($tenant);
     }
 
     /**
@@ -94,18 +107,16 @@ class TenantPlanService
      */
     public function addExtraEntitlement(string $tenantId, int $entitlementId, mixed $value, int $price): TenantEntitlement
     {
-        $tenant = Tenant::findOrFail($tenantId);
+        $tenant = $this->tenantRepository->findById($tenantId);
+        if (! $tenant) {
+            throw new InvalidArgumentException('Tenant não encontrado.');
+        }
 
         if (! Entitlement::find($entitlementId)) {
             throw new InvalidArgumentException('Entitlement não encontrado.');
         }
 
-        return TenantEntitlement::create([
-            'tenant_id' => $tenant->id,
-            'entitlement_id' => $entitlementId,
-            'value' => $value,
-            'price' => $price,
-        ]);
+        return $this->tenantRepository->addExtraEntitlement($tenant, $entitlementId, $value, $price);
     }
 
     /**
@@ -115,13 +126,12 @@ class TenantPlanService
      */
     public function updateExtraEntitlement(string $tenantId, int $entitlementId, array $data): TenantEntitlement
     {
-        $record = TenantEntitlement::where('tenant_id', $tenantId)
-            ->where('entitlement_id', $entitlementId)
-            ->firstOrFail();
+        $tenant = $this->tenantRepository->findById($tenantId);
+        if (! $tenant) {
+            throw new InvalidArgumentException('Tenant não encontrado.');
+        }
 
-        $record->update($data);
-
-        return $record->refresh();
+        return $this->tenantRepository->updateExtraEntitlement($tenant, $entitlementId, $data);
     }
 
     /**
@@ -129,9 +139,11 @@ class TenantPlanService
      */
     public function removeExtraEntitlement(string $tenantId, int $entitlementId): void
     {
-        TenantEntitlement::where('tenant_id', $tenantId)
-            ->where('entitlement_id', $entitlementId)
-            ->firstOrFail()
-            ->delete();
+        $tenant = $this->tenantRepository->findById($tenantId);
+        if (! $tenant) {
+            throw new InvalidArgumentException('Tenant não encontrado.');
+        }
+
+        $this->tenantRepository->removeExtraEntitlement($tenant, $entitlementId);
     }
 }

@@ -3,118 +3,103 @@
 namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Tenant\DestroyCorretorExternoRequest;
+use App\Http\Requests\Tenant\ShowCorretorExternoRequest;
+use App\Http\Requests\Tenant\StoreCorretorExternoRequest;
+use App\Http\Requests\Tenant\UpdateCorretorExternoRequest;
 use App\Http\Resources\Tenant\CorretorExternoResource;
-use App\Models\Tenant\CorretorExterno;
+use App\Repositories\Tenant\CorretorExternoRepository;
+use App\Services\ApiResponseService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Gate;
 
 class CorretoresExternosController extends Controller
 {
+    public function __construct(
+        protected CorretorExternoRepository $repository
+    ) {}
+
     /**
      * Listar os corretores externos.
      */
-    public function index(Request $request): JsonResponse
+    public function index(): JsonResponse
     {
-        Gate::authorize('viewAny', CorretorExterno::class);
-
         $tenantId = tenant('id') ?? 'central';
-        $filters = $request->only(['per_page', 'page', 'search']);
-        $cacheKey = "tenant:{$tenantId}:corretores_externos:index:".md5(json_encode($filters));
+        $perPage = request()->integer('per_page', 10);
+        $filters = request()->only(['search']);
+        $cacheKey = "tenant:{$tenantId}:corretores_externos:index:".md5(json_encode($filters).":{$perPage}");
 
-        return Cache::tags(["tenant:{$tenantId}:corretores_externos"])->remember($cacheKey, now()->addMinutes(30), function () use ($request) {
-            $perPage = $request->integer('per_page', 10);
+        $paginator = Cache::tags(["tenant:{$tenantId}:corretores_externos"])
+            ->remember($cacheKey, now()->addMinutes(30), fn () =>
+                $this->repository->paginate($perPage, $filters)
+            );
 
-            $query = CorretorExterno::query();
-
-            if ($request->has('search') && $request->search) {
-                $query->search($request->search);
-            }
-
-            $query->orderBy('nome', 'asc');
-
-            $paginator = $query->paginate($perPage);
-
-            return $this->respondWithPagination($paginator, CorretorExternoResource::class);
-        });
+        return $this->respondWithPagination($paginator, CorretorExternoResource::class);
     }
 
     /**
      * Armazenar um novo corretor externo.
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreCorretorExternoRequest $request): JsonResponse
     {
-        Gate::authorize('create', CorretorExterno::class);
+        $corretor = $this->repository->create($request->validated());
 
-        $validated = $request->validate(CorretorExterno::rules());
-
-        $corretorExterno = CorretorExterno::create($validated);
-
-        return response()->json([
-            'data' => new CorretorExternoResource($corretorExterno),
-            'message' => 'Corretor externo criado com sucesso.',
-        ], 201);
+        return ApiResponseService::created(
+            new CorretorExternoResource($corretor),
+            'Corretor externo criado com sucesso.'
+        );
     }
 
     /**
      * Exibir os detalhes de um corretor externo específico.
      */
-    public function show(string $id): JsonResponse
+    public function show(ShowCorretorExternoRequest $request, string $id): JsonResponse
     {
-        $corretor = CorretorExterno::findOrFail($id);
-        Gate::authorize('view', $corretor);
+        $corretor = $this->repository->findById($id);
 
-        return response()->json(['data' => new CorretorExternoResource($corretor)]);
+        return ApiResponseService::success(
+            new CorretorExternoResource($corretor)
+        );
     }
 
     /**
      * Atualizar um corretor externo existente.
      */
-    public function update(Request $request, string $id): JsonResponse
+    public function update(UpdateCorretorExternoRequest $request, string $id): JsonResponse
     {
-        $corretor = CorretorExterno::findOrFail($id);
-        Gate::authorize('update', $corretor);
+        $corretor = $this->repository->findById($id);
+        $corretor = $this->repository->update($corretor, $request->validated());
 
-        $validated = $request->validate(CorretorExterno::rules($id));
-
-        $corretor->update($validated);
-
-        return response()->json([
-            'data' => new CorretorExternoResource($corretor),
-            'message' => 'Corretor externo atualizado com sucesso.',
-        ]);
+        return ApiResponseService::success(
+            new CorretorExternoResource($corretor),
+            'Corretor externo atualizado com sucesso.'
+        );
     }
 
     /**
      * Excluir um corretor externo.
      */
-    public function destroy(string $id): JsonResponse
+    public function destroy(DestroyCorretorExternoRequest $request, string $id): JsonResponse
     {
-        $corretor = CorretorExterno::findOrFail($id);
-        Gate::authorize('delete', $corretor);
+        $corretor = $this->repository->findById($id);
+        $this->repository->delete($corretor);
 
-        $corretor->delete();
-
-        return response()->json([
-            'message' => 'Corretor externo excluído com sucesso.',
-        ]);
+        return ApiResponseService::noContent();
     }
 
     /**
      * Listar corretores externos para seleção.
      */
-    public function corretoresForSelect()
+    public function corretoresForSelect(): JsonResponse
     {
-        Gate::authorize('viewAny', CorretorExterno::class);
-
         $tenantId = tenant('id') ?? 'central';
         $cacheKey = "tenant:{$tenantId}:corretores_externos:select";
 
-        return Cache::tags(["tenant:{$tenantId}:corretores_externos"])->remember($cacheKey, now()->addHours(1), function () {
-            $corretores = CorretorExterno::orderBy('nome', 'asc')->get(['id', 'nome']);
+        $corretores = Cache::tags(["tenant:{$tenantId}:corretores_externos"])
+            ->remember($cacheKey, now()->addHours(1), fn () =>
+                $this->repository->listForSelect()
+            );
 
-            return response()->json(['data' => $corretores]);
-        });
+        return response()->json(['data' => $corretores]);
     }
 }

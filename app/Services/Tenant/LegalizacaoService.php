@@ -2,22 +2,28 @@
 
 namespace App\Services\Tenant;
 
+use App\Enums\LegalizacaoEtapaStatus;
+use App\Enums\LegalizacaoStatus;
 use App\Enums\WorkflowStatus;
 use App\Models\Tenant\Legalizacao;
 use App\Models\Tenant\LegalizacaoDependencia;
 use App\Models\Tenant\LegalizacaoEtapa;
-use App\Models\Tenant\LegalizacaoPendencia;
 use App\Models\Tenant\Terreno;
-use Exception;
+use App\Models\Tenant\User;
+use App\Repositories\Tenant\LegalizacaoEtapaRepository;
+use App\Repositories\Tenant\LegalizacaoRepository;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class LegalizacaoService
 {
     public function __construct(
-        protected LandWorkflowService $workflowService
+        protected LegalizacaoRepository $repository,
+        protected LegalizacaoEtapaRepository $etapaRepository,
+        protected LandWorkflowService $workflowService,
     ) {}
 
     /**
@@ -25,35 +31,12 @@ class LegalizacaoService
      */
     public function listar(array $filtros = []): LengthAwarePaginator
     {
-        $query = Legalizacao::with([
-            'terreno',
-            'responsavel',
-            'etapas',
-            'createdBy',
-            'updatedBy',
-        ]);
+        return $this->repository->paginate($filtros);
+    }
 
-        if (! empty($filtros['search'])) {
-            $search = $filtros['search'];
-            $query->where(function ($q) use ($search) {
-                $q->where('nome', 'like', "%{$search}%")
-                    ->orWhereHas('terreno', function ($terrenoQuery) use ($search) {
-                        $terrenoQuery->where('nome', 'like', "%{$search}%")
-                            ->orWhere('endereco', 'like', "%{$search}%");
-                    });
-            });
-        }
-
-        if (! empty($filtros['terreno_id'])) {
-            $query->where('terreno_id', $filtros['terreno_id']);
-        }
-
-        if (! empty($filtros['status'])) {
-            $query->where('status', $filtros['status']);
-        }
-
-        return $query->orderByDesc('created_at')
-            ->paginate($filtros['per_page'] ?? 10);
+    public function findOrFail(int|string $id): Legalizacao
+    {
+        return $this->repository->findOrFail($id);
     }
 
     /**
@@ -61,16 +44,7 @@ class LegalizacaoService
      */
     public function buscar(int $legalizacaoId): array
     {
-        $legalizacao = Legalizacao::with([
-            'terreno',
-            'responsavel',
-            'etapas.responsavel',
-            'etapas.dependenciasDestino',
-            'etapas.dependenciasOrigem',
-            'pendencias',
-            'createdBy',
-            'updatedBy',
-        ])->findOrFail($legalizacaoId);
+        $legalizacao = $this->repository->loadDetail($this->repository->findOrFail($legalizacaoId));
 
         return [
             'legalizacao' => $legalizacao,
@@ -82,46 +56,49 @@ class LegalizacaoService
     /**
      * Criar nova legalização
      */
-    public function criar(array $dados): Legalizacao
+    public function criar(array $dados, ?User $user = null): Legalizacao
     {
-        return DB::transaction(function () use ($dados) {
+        return DB::transaction(function () use ($dados, $user) {
             $terreno = $this->validarTerreno($dados['terreno_id']);
             $this->validarLegalizacaoUnicaPorTerreno($dados['terreno_id']);
+            $actingUser = $user ?? Auth::user();
+            $actingUserId = $actingUser?->id ?? Auth::id();
 
-            $legalizacao = Legalizacao::create([
+            $legalizacao = $this->repository->create([
                 'terreno_id' => $dados['terreno_id'],
                 'nome' => $dados['nome'] ?? "Legalização - {$terreno->nome}",
                 'responsavel_id' => $dados['responsavel_id'] ?? null,
-                'status' => Legalizacao::STATUS_PLANEJADO,
+                'status' => LegalizacaoStatus::PLANEJADO,
                 'data_inicio_prevista' => $dados['data_inicio_prevista'] ?? null,
                 'data_conclusao_prevista' => $dados['data_conclusao_prevista'] ?? null,
                 'custo_total_previsto' => $dados['custo_total_previsto'] ?? null,
                 'observacoes' => $dados['observacoes'] ?? null,
                 'percentual_concluido' => 0,
-                'created_by' => Auth::id(),
-                'updated_by' => Auth::id(),
+                'created_by' => $actingUserId,
+                'updated_by' => $actingUserId,
             ]);
 
             $this->workflowService->transition(
                 $terreno,
                 WorkflowStatus::LEGALIZANDO->value,
-                Auth::user(),
+                $actingUser,
                 'legalization_created',
                 $dados['observacoes'] ?? null,
             );
 
-            return $legalizacao->load(['terreno', 'responsavel', 'createdBy', 'updatedBy']);
+            return $this->repository->loadDetail($legalizacao);
         });
     }
 
     /**
      * Atualizar legalização
      */
-    public function atualizar(Legalizacao $legalizacao, array $dados): Legalizacao
+    public function atualizar(Legalizacao $legalizacao, array $dados, ?User $user = null): Legalizacao
     {
-        $dados['updated_by'] = Auth::id();
+        $actingUser = $user ?? Auth::user();
+        $dados['updated_by'] = $actingUser?->id ?? Auth::id();
 
-        $legalizacao->update($dados);
+        $legalizacao = $this->repository->update($legalizacao, $dados);
 
         if (isset($dados['status'])) {
             $workflowStatus = WorkflowStatus::LEGALIZANDO->value;
@@ -129,23 +106,21 @@ class LegalizacaoService
             $this->workflowService->transition(
                 $legalizacao->terreno()->firstOrFail(),
                 $workflowStatus,
-                Auth::user(),
+                $actingUser,
                 'legalization_updated',
                 $dados['observacoes'] ?? null,
             );
         }
 
-        return $legalizacao->fresh(['terreno', 'responsavel', 'etapas', 'createdBy', 'updatedBy']);
+        return $this->repository->loadDetail($legalizacao);
     }
 
     /**
      * Excluir legalização (soft delete)
      */
-    public function excluir(int $legalizacaoId): bool
+    public function excluir(Legalizacao $legalizacao): bool
     {
-        $legalizacao = Legalizacao::findOrFail($legalizacaoId);
-
-        return $legalizacao->delete();
+        return $this->repository->delete($legalizacao);
     }
 
     /**
@@ -191,8 +166,7 @@ class LegalizacaoService
         $hasParentId = array_key_exists('parent_id', $dados);
 
         if (! empty($dados['id'])) {
-            $etapa = LegalizacaoEtapa::where('legalizacao_id', $legalizacao->id)
-                ->findOrFail($dados['id']);
+            $etapa = $this->etapaRepository->findByIdAndLegalizacao($dados['id'], $legalizacao->id);
 
             $updatePayload = [
                 'titulo' => $normalized['titulo'] ?? $etapa->titulo,
@@ -216,12 +190,10 @@ class LegalizacaoService
                 }
             }
 
-            $etapa->update($updatePayload);
-
-            return $etapa;
+            return $this->etapaRepository->update($etapa, $updatePayload);
         }
 
-        return LegalizacaoEtapa::create([
+        return $this->etapaRepository->create([
             'legalizacao_id' => $legalizacao->id,
             'titulo' => $normalized['titulo'] ?? 'Etapa sem título',
             'descricao' => $normalized['descricao'] ?? null,
@@ -231,7 +203,7 @@ class LegalizacaoService
             'fim_planejado' => $normalized['fim_planejado'] ?? ($normalized['inicio_planejado'] ?? now()->toDateString()),
             'inicio_real' => $normalized['inicio_real'] ?? null,
             'fim_real' => $normalized['fim_real'] ?? null,
-            'status' => $normalized['status'] ?? LegalizacaoEtapa::STATUS_PENDENTE,
+            'status' => LegalizacaoEtapaStatus::PENDENTE,
             'percentual' => $normalized['percentual'] ?? 0,
             'responsavel_id' => $normalized['responsavel_id'] ?? null,
             'cor' => $normalized['cor'] ?? null,
@@ -255,14 +227,14 @@ class LegalizacaoService
 
         $status = $dados['status'] ?? null;
         if ($status === 'cancelada') {
-            $status = LegalizacaoEtapa::STATUS_BLOQUEADA;
+            $status = LegalizacaoEtapaStatus::BLOQUEADA;
         }
         if ($status === 'nao_iniciada') {
-            $status = LegalizacaoEtapa::STATUS_PENDENTE;
+            $status = LegalizacaoEtapaStatus::PENDENTE;
         }
 
         $percentual = $dados['percentual'] ?? null;
-        if ($percentual === null && $status === LegalizacaoEtapa::STATUS_CONCLUIDA) {
+        if ($percentual === null && $status === LegalizacaoEtapaStatus::CONCLUIDA) {
             $percentual = 100;
         }
 
@@ -416,16 +388,21 @@ class LegalizacaoService
      */
     protected function syncOrCreateDependencia(Legalizacao $legalizacao, array $dados): LegalizacaoDependencia
     {
-        $existing = LegalizacaoDependencia::where('legalizacao_id', $legalizacao->id)
-            ->where('etapa_origem_id', $dados['etapa_origem_id'])
-            ->where('etapa_destino_id', $dados['etapa_destino_id'])
-            ->first();
+        $exists = $this->etapaRepository->dependencyExists(
+            $legalizacao->id,
+            $dados['etapa_origem_id'],
+            $dados['etapa_destino_id']
+        );
 
-        if ($existing) {
-            return $existing;
+        if ($exists) {
+            return $this->etapaRepository->findDependencyByEndpoints(
+                $legalizacao->id,
+                (int) $dados['etapa_origem_id'],
+                (int) $dados['etapa_destino_id']
+            );
         }
 
-        return LegalizacaoDependencia::create([
+        return $this->etapaRepository->createDependency([
             'legalizacao_id' => $legalizacao->id,
             'etapa_origem_id' => $dados['etapa_origem_id'],
             'etapa_destino_id' => $dados['etapa_destino_id'],
@@ -438,9 +415,7 @@ class LegalizacaoService
      */
     protected function deletarEtapas(array $etapaIds, int $legalizacaoId): void
     {
-        LegalizacaoEtapa::where('legalizacao_id', $legalizacaoId)
-            ->whereIn('id', $etapaIds)
-            ->delete();
+        $this->etapaRepository->deleteMany($etapaIds, $legalizacaoId);
     }
 
     /**
@@ -448,9 +423,7 @@ class LegalizacaoService
      */
     protected function deletarDependencias(array $dependenciaIds, int $legalizacaoId): void
     {
-        LegalizacaoDependencia::where('legalizacao_id', $legalizacaoId)
-            ->whereIn('id', $dependenciaIds)
-            ->delete();
+        $this->etapaRepository->deleteDependencies($dependenciaIds, $legalizacaoId);
     }
 
     /**
@@ -458,10 +431,39 @@ class LegalizacaoService
      */
     public function proximaOrdem(int $legalizacaoId): int
     {
-        $ultimaOrdem = LegalizacaoEtapa::where('legalizacao_id', $legalizacaoId)
-            ->max('ordem');
+        return $this->etapaRepository->getNextOrdem($legalizacaoId);
+    }
 
-        return $ultimaOrdem ? $ultimaOrdem + 1 : 1;
+    /**
+     * Adicionar etapa a uma legalização
+     */
+    public function adicionarEtapa(Legalizacao $legalizacao, array $dados): LegalizacaoEtapa
+    {
+        $etapa = $this->etapaRepository->create($dados);
+        $legalizacao->recalcularProgresso();
+
+        return $etapa;
+    }
+
+    /**
+     * Atualizar etapa
+     */
+    public function atualizarEtapa(LegalizacaoEtapa $etapa, array $dados): LegalizacaoEtapa
+    {
+        $etapa = $this->etapaRepository->update($etapa, $dados);
+        $etapa->legalizacao?->recalcularProgresso();
+
+        return $etapa;
+    }
+
+    /**
+     * Remover etapa
+     */
+    public function removerEtapa(LegalizacaoEtapa $etapa): void
+    {
+        $legalizacao = $etapa->legalizacao;
+        $this->etapaRepository->delete($etapa);
+        $legalizacao?->recalcularProgresso();
     }
 
     /**
@@ -470,11 +472,15 @@ class LegalizacaoService
     public function validarDependencia(array $dados): void
     {
         if ($dados['etapa_origem_id'] === $dados['etapa_destino_id']) {
-            throw new Exception('Uma etapa não pode depender de si mesma');
+            throw ValidationException::withMessages([
+                'dependencias' => ['Uma etapa não pode depender de si mesma.'],
+            ]);
         }
 
         if ($this->criariaCiclo((int) $dados['etapa_origem_id'], (int) $dados['etapa_destino_id'])) {
-            throw new Exception('Esta dependência criaria um ciclo circular');
+            throw ValidationException::withMessages([
+                'dependencias' => ['Esta dependência criaria um ciclo circular.'],
+            ]);
         }
     }
 
@@ -483,34 +489,7 @@ class LegalizacaoService
      */
     protected function criariaCiclo(int $origemId, int $destinoId): bool
     {
-        $visitados = [];
-        $stack = [$destinoId];
-
-        while (! empty($stack)) {
-            $atual = array_pop($stack);
-
-            if ($atual === $origemId) {
-                return true;
-            }
-
-            if (in_array($atual, $visitados, true)) {
-                continue;
-            }
-
-            $visitados[] = $atual;
-
-            $proximos = LegalizacaoDependencia::where('etapa_origem_id', $atual)
-                ->pluck('etapa_destino_id')
-                ->all();
-
-            foreach ($proximos as $proximo) {
-                if (! in_array($proximo, $visitados, true)) {
-                    $stack[] = (int) $proximo;
-                }
-            }
-        }
-
-        return false;
+        return $this->etapaRepository->wouldCreateCycle($origemId, $destinoId);
     }
 
     /**
@@ -518,9 +497,7 @@ class LegalizacaoService
      */
     protected function buscarDependenciasPorLegalizacao(int $legalizacaoId): Collection
     {
-        return LegalizacaoDependencia::with(['etapaOrigem', 'etapaDestino'])
-            ->where('legalizacao_id', $legalizacaoId)
-            ->get();
+        return $this->repository->listDependenciasByLegalizacao($legalizacaoId);
     }
 
     /**
@@ -528,21 +505,12 @@ class LegalizacaoService
      */
     public function listarTerrenosElegiveis(array $filtros = []): LengthAwarePaginator
     {
-        $query = Terreno::query()
-            ->with(['cidade', 'responsavel'])
-            ->where('workflow_status_code', WorkflowStatus::CONTRATO_ASSINADO->value)
-            ->whereDoesntHave('legalizacao');
+        return $this->repository->paginateEligibleTerrenos($filtros);
+    }
 
-        if (! empty($filtros['search'])) {
-            $search = $filtros['search'];
-            $query->where(function ($q) use ($search) {
-                $q->where('nome', 'like', "%{$search}%")
-                    ->orWhere('endereco', 'like', "%{$search}%");
-            });
-        }
-
-        return $query->orderByDesc('created_at')
-            ->paginate($filtros['per_page'] ?? 10);
+    public function recalcularProgresso(Legalizacao $legalizacao): Legalizacao
+    {
+        return $this->repository->recalculateProgress($legalizacao);
     }
 
     /**
@@ -550,14 +518,12 @@ class LegalizacaoService
      */
     protected function validarTerreno(int $terrenoId): Terreno
     {
-        $terreno = Terreno::find($terrenoId);
-
-        if (! $terreno) {
-            throw new Exception('Terreno não encontrado');
-        }
+        $terreno = $this->repository->findTerrenoOrFail($terrenoId);
 
         if ($terreno->workflow_status_code !== WorkflowStatus::CONTRATO_ASSINADO->value) {
-            throw new Exception('Somente terrenos com status "Contrato Assinado" podem iniciar legalização');
+            throw ValidationException::withMessages([
+                'terreno_id' => ['Somente terrenos com status "Contrato Assinado" podem iniciar legalização.'],
+            ]);
         }
 
         return $terreno;
@@ -568,11 +534,12 @@ class LegalizacaoService
      */
     protected function validarLegalizacaoUnicaPorTerreno(int $terrenoId): void
     {
-        $exists = Legalizacao::where('terreno_id', $terrenoId)
-            ->exists();
+        $exists = $this->repository->existsByTerreno($terrenoId);
 
         if ($exists) {
-            throw new Exception('Já existe uma legalização para este terreno');
+            throw ValidationException::withMessages([
+                'terreno_id' => ['Já existe uma legalização para este terreno.'],
+            ]);
         }
     }
 
@@ -581,18 +548,22 @@ class LegalizacaoService
      */
     public function reordenarEtapas(Legalizacao $legalizacao, array $ordens): void
     {
-        DB::transaction(function () use ($legalizacao, $ordens) {
+        $updatedBy = Auth::id();
+
+        DB::transaction(function () use ($legalizacao, $ordens, $updatedBy) {
             foreach ($ordens as $ordemData) {
                 if (! isset($ordemData['id'], $ordemData['ordem'])) {
                     continue;
                 }
 
-                $etapa = LegalizacaoEtapa::where('legalizacao_id', $legalizacao->id)
-                    ->findOrFail($ordemData['id']);
+                $etapa = $this->etapaRepository->findByIdAndLegalizacao(
+                    $ordemData['id'],
+                    $legalizacao->id
+                );
 
-                $etapa->update([
+                $this->etapaRepository->update($etapa, [
                     'ordem' => $ordemData['ordem'],
-                    'updated_by' => Auth::id(),
+                    'updated_by' => $updatedBy,
                 ]);
             }
         });
@@ -608,28 +579,24 @@ class LegalizacaoService
             'updated_by' => Auth::id(),
         ];
 
-        if ($status === LegalizacaoEtapa::STATUS_CONCLUIDA) {
+        if ($status === LegalizacaoEtapaStatus::CONCLUIDA) {
             $payload['percentual'] = 100;
             if (! $etapa->fim_real) {
                 $payload['fim_real'] = now()->toDateString();
             }
         }
 
-        if ($status === LegalizacaoEtapa::STATUS_EM_ANDAMENTO && ! $etapa->inicio_real) {
+        if ($status === LegalizacaoEtapaStatus::EM_ANDAMENTO && ! $etapa->inicio_real) {
             $payload['inicio_real'] = now()->toDateString();
         }
 
-        $etapa->update($payload);
+        $etapa = $this->etapaRepository->update($etapa, $payload);
 
         $legalizacao = $etapa->legalizacao;
         $legalizacao?->recalcularProgresso();
 
-        if ($legalizacao && $status === LegalizacaoEtapa::STATUS_CONCLUIDA) {
-            $temPendenciaCritica = LegalizacaoPendencia::query()
-                ->where('legalizacao_id', $legalizacao->id)
-                ->where('status', 'open')
-                ->where('is_critical', true)
-                ->exists();
+        if ($legalizacao && $status === LegalizacaoEtapaStatus::CONCLUIDA) {
+            $temPendenciaCritica = $this->repository->hasCriticalOpenPendencia($legalizacao->id);
 
             if ($temPendenciaCritica) {
                 $this->workflowService->transition(

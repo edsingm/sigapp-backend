@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Tenant;
 
+use App\Models\Tenant\Produto;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 
 class UpdateProdutoRequest extends FormRequest
 {
@@ -11,7 +13,7 @@ class UpdateProdutoRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return Gate::allows('update', Produto::class);
     }
 
     /**

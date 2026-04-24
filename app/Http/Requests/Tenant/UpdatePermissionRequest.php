@@ -13,7 +13,9 @@ class UpdatePermissionRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        $user = $this->user();
+
+        return $user !== null && $user->hasAnyRole(['admin', 'ADMIN', 'director', 'DIRECTOR']);
     }
 
     /**
@@ -28,10 +30,11 @@ class UpdatePermissionRequest extends FormRequest
                 'sometimes',
                 'required',
                 'string',
-                'max:255',
-                Rule::unique('permissions', 'name')->ignore($this->route('permission')),
+                'max:160',
+                Rule::unique('permissions', 'name')
+                    ->where('guard_name', 'web')
+                    ->ignore($this->route('permission')),
             ],
-            'guard_name' => 'nullable|string|max:255',
         ];
     }
 

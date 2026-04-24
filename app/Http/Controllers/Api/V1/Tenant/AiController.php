@@ -3,13 +3,13 @@
 namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Tenant\ChatAiRequest;
+use App\Repositories\AiConversationRepository;
 use App\Services\AiDataRedactor;
 use App\Services\AiProviderRouter;
 use App\Services\AiTelemetryService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Ai\Contracts\ConversationStore;
@@ -17,16 +17,17 @@ use Laravel\Ai\Exceptions\RateLimitedException;
 
 class AiController extends Controller
 {
+    public function __construct(
+        private readonly AiConversationRepository $conversationRepository
+    ) {}
+
     /**
      * Lista as conversas do usuário autenticado (50 mais recentes).
      */
     public function conversations(): JsonResponse
     {
-        $rows = DB::table('agent_conversations')
-            ->where('user_id', Auth::id())
-            ->orderByDesc('updated_at')
-            ->limit(50)
-            ->get(['id', 'title', 'created_at', 'updated_at']);
+        $userId = (int) Auth::id();
+        $rows = $this->conversationRepository->getRecentConversations($userId);
 
         return new JsonResponse(['data' => $rows]);
     }
@@ -36,20 +37,11 @@ class AiController extends Controller
      */
     public function conversationMessages(string $id): JsonResponse
     {
-        $exists = DB::table('agent_conversations')
-            ->where('id', $id)
-            ->where('user_id', Auth::id())
-            ->exists();
-
-        if (! $exists) {
+        if (! $this->conversationRepository->conversationExists((int) $id, Auth::id())) {
             return new JsonResponse(['message' => 'Conversa não encontrada.'], 404);
         }
 
-        $messages = DB::table('agent_conversation_messages')
-            ->where('conversation_id', $id)
-            ->whereIn('role', ['user', 'assistant'])
-            ->orderBy('created_at')
-            ->get(['id', 'role', 'content', 'created_at']);
+        $messages = $this->conversationRepository->getMessages((int) $id);
 
         return new JsonResponse(['data' => $messages]);
     }
@@ -72,16 +64,11 @@ class AiController extends Controller
      * e devolve o ID gerado no header `X-Conversation-Id`.
      */
     public function chat(
-        Request $request,
+        ChatAiRequest $request,
         AiTelemetryService $telemetryService,
         AiProviderRouter $providerRouter,
         AiDataRedactor $redactor
     ): mixed {
-        $request->validate([
-            'message' => ['required', 'string', 'max:2000'],
-            'conversation_id' => ['nullable', 'string', 'uuid'],
-        ]);
-
         $user = Auth::id();
         $message = $request->string('message')->toString();
         $conversationId = $request->input('conversation_id');
@@ -92,12 +79,7 @@ class AiController extends Controller
         try {
             // Conversa existente: verificar ownership
             if ($conversationId) {
-                $exists = DB::table('agent_conversations')
-                    ->where('id', $conversationId)
-                    ->where('user_id', $user)
-                    ->exists();
-
-                if (! $exists) {
+                if (! $this->conversationRepository->conversationExists((int) $conversationId, $user)) {
                     return new JsonResponse(['message' => 'Conversa não encontrada.'], 404);
                 }
             } else {

@@ -1,135 +1,125 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Tenant\Admin\DestroyProdutoRequest;
+use App\Http\Requests\Tenant\Admin\ListProdutosRequest;
+use App\Http\Requests\Tenant\Admin\RestoreProdutoRequest;
+use App\Http\Requests\Tenant\Admin\ShowProdutoRequest;
 use App\Http\Requests\Tenant\StoreProdutoRequest;
 use App\Http\Requests\Tenant\UpdateProdutoRequest;
 use App\Http\Resources\Tenant\ProdutoResource;
-use App\Models\Tenant\Produto;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Gate;
+use App\Services\ApiResponseService;
+use App\Services\Tenant\ProdutoService;
 
 class ProdutosController extends Controller
 {
-    /**
-     * Exibe uma listagem do recurso.
-     */
-    public function index(Request $request): JsonResponse
+    public function __construct(
+        private readonly ProdutoService $produtoService,
+    ) {}
+
+    public function index(ListProdutosRequest $request)
     {
-        Gate::authorize('viewAny', Produto::class);
+        $perPage = $request->integer('per_page', 10);
+        $produtos = $this->produtoService->list($perPage);
 
-        $tenantId = tenant('id') ?? 'central';
-        $filters = $request->only(['per_page', 'page']);
-        $cacheKey = "tenant:{$tenantId}:produtos:index:".md5(json_encode($filters));
-
-        return Cache::tags(["tenant:{$tenantId}:produtos"])->remember($cacheKey, now()->addMinutes(30), function () use ($request) {
-            $perPage = (int) ($request->input('per_page') ?? 10);
-            $paginator = Produto::orderBy('created_at', 'desc')
-                ->paginate($perPage);
-
-            return $this->respondWithPagination($paginator, ProdutoResource::class);
-        });
+        return ProdutoResource::collection($produtos)
+            ->additional([
+                'message' => 'Produtos recuperados com sucesso',
+                'current_page' => $produtos->currentPage(),
+                'last_page' => $produtos->lastPage(),
+                'total' => $produtos->total(),
+                'per_page' => $produtos->perPage(),
+            ]);
     }
 
-    /**
-     * Armazena um recurso recém-criado.
-     */
-    public function store(StoreProdutoRequest $request): JsonResponse
+    public function forSelect(ListProdutosRequest $request)
     {
-        Gate::authorize('create', Produto::class);
+        $search = $request->string('search')->toString();
+        $produtos = $this->produtoService->searchForSelect($search);
 
-        $data = $request->validated();
-        $produto = Produto::create($data);
-
-        return response()->json([
-            'success' => true,
-            'data' => new ProdutoResource($produto),
-            'message' => 'Produto criado com sucesso!',
-        ], 201);
+        return ApiResponseService::success($produtos, 'Produtos recuperados com sucesso');
     }
 
-    /**
-     * Exibe o recurso especificado.
-     */
-    public function show(string $id): JsonResponse
+    public function show(ShowProdutoRequest $request, int $id)
     {
-        $produto = Produto::withTrashed()->findOrFail($id);
-        Gate::authorize('view', $produto);
+        $produto = $this->produtoService->findById($id);
 
-        return response()->json([
-            'success' => true,
-            'data' => new ProdutoResource($produto),
-        ]);
+        if (! $produto) {
+            return ApiResponseService::notFound('Produto não encontrado');
+        }
+
+        return ApiResponseService::success(
+            new ProdutoResource($produto),
+            'Produto recuperado com sucesso'
+        );
     }
 
-    /**
-     * Atualiza o recurso especificado.
-     */
-    public function update(UpdateProdutoRequest $request, string $id): JsonResponse
+    public function store(StoreProdutoRequest $request)
     {
-        $produto = Produto::findOrFail($id);
-        Gate::authorize('update', $produto);
-        $data = $request->validated();
+        $validated = $request->validated();
+        $validated['created_by'] = $request->user()->id;
 
-        $produto->update($data);
+        $produto = $this->produtoService->create($validated);
 
-        return response()->json([
-            'success' => true,
-            'data' => new ProdutoResource($produto),
-            'message' => 'Produto atualizado com sucesso!',
-        ]);
+        return ApiResponseService::created(
+            new ProdutoResource($produto),
+            'Produto criado com sucesso'
+        );
     }
 
-    /**
-     * Remove o recurso especificado.
-     */
-    public function destroy(string $id): JsonResponse
+    public function update(UpdateProdutoRequest $request, int $id)
     {
-        $produto = Produto::findOrFail($id);
-        Gate::authorize('delete', $produto);
-        $produto->delete();
+        $produto = $this->produtoService->findById($id);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Produto excluído com sucesso!',
-        ]);
+        if (! $produto) {
+            return ApiResponseService::notFound('Produto não encontrado');
+        }
+
+        $validated = $request->validated();
+        $validated['updated_by'] = $request->user()->id;
+
+        $produto = $this->produtoService->update($produto, $validated);
+
+        return ApiResponseService::success(
+            new ProdutoResource($produto),
+            'Produto atualizado com sucesso'
+        );
     }
 
-    /**
-     * Restaura o recurso especificado.
-     */
-    public function restore(string $id): JsonResponse
+    public function destroy(DestroyProdutoRequest $request, int $id)
     {
-        $produto = Produto::withTrashed()->findOrFail($id);
-        Gate::authorize('restore', $produto);
-        $produto->restore();
+        $produto = $this->produtoService->findById($id);
 
-        return response()->json([
-            'success' => true,
-            'data' => new ProdutoResource($produto),
-            'message' => 'Produto restaurado com sucesso!',
-        ]);
+        if (! $produto) {
+            return ApiResponseService::notFound('Produto não encontrado');
+        }
+
+        $this->produtoService->delete($produto);
+
+        return ApiResponseService::success(null, 'Produto excluído com sucesso');
     }
 
-    /**
-     * Listar produtos para seleção.
-     */
-    public function produtosForSelect(Request $request): JsonResponse
+    public function restore(RestoreProdutoRequest $request, int $id)
     {
-        Gate::authorize('viewAny', Produto::class);
+        $produto = $this->produtoService->findById($id, withTrashed: true);
 
-        $search = $request->input('search', '');
+        if (! $produto) {
+            return ApiResponseService::notFound('Produto não encontrado');
+        }
 
-        $produtos = Produto::where('name', 'like', '%'.$search.'%')
-            ->orderBy('name')
-            ->get();
+        if (! $produto->trashed()) {
+            return ApiResponseService::success(null, 'O produto já está ativo');
+        }
 
-        return response()->json([
-            'success' => true,
-            'data' => $produtos,
-        ]);
+        $this->produtoService->restore($produto);
+
+        return ApiResponseService::success(
+            new ProdutoResource($produto),
+            'Produto restaurado com sucesso'
+        );
     }
 }

@@ -10,11 +10,18 @@ interface PlanRepositoryInterface
 {
     public function all(): Collection;
 
+    /**
+     * @return Collection<int, Plan>
+     */
+    public function findAllActiveOrdered(): Collection;
+
     public function paginate(int $perPage = 15): LengthAwarePaginator;
 
     public function findById(int $id): ?Plan;
 
     public function findBySlug(string $slug): ?Plan;
+
+    public function findActiveBySlug(string $slug): ?Plan;
 
     public function create(array $data): Plan;
 

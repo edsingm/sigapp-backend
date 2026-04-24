@@ -29,6 +29,11 @@ class DepartmentService
         return $this->repository->allActive();
     }
 
+    public function findById(int $id): ?Department
+    {
+        return $this->repository->findById($id);
+    }
+
     /**
      * @param  array<string, mixed>  $data
      */

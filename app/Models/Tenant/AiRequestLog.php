@@ -5,10 +5,11 @@ namespace App\Models\Tenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class AiRequestLog extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $table = 'ai_request_logs';
 
@@ -37,6 +38,7 @@ class AiRequestLog extends Model
         'estimated_cost_usd' => 'decimal:6',
         'duration_ms' => 'integer',
         'tool_calls_count' => 'integer',
+        'user_id' => 'int',
     ];
 
     public function user(): BelongsTo

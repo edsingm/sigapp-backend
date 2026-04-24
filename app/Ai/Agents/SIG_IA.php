@@ -26,6 +26,7 @@ use App\Ai\Tools\ProactiveMonitorTool;
 use App\Ai\Tools\SearchDocumentsTool;
 use App\Ai\Tools\TransitionWorkflowTool;
 use App\Ai\Tools\UpdateTaskStatusTool;
+use App\Ai\Tools\CreatePdfsTool;
 use App\Services\AiAnomalyDetectionService;
 use App\Services\AiEmbeddingService;
 use App\Services\AiInsightGeneratorService;
@@ -271,6 +272,7 @@ PROMPT;
             new GenerateInsightsTool(app(AiInsightGeneratorService::class)),
             new GetTrendsTool(app(AiInsightGeneratorService::class)),
             new CompareAreasTool(app(AiInsightGeneratorService::class)),
+            new CreatePdfsTool,
         ];
     }
 

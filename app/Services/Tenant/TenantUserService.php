@@ -4,6 +4,7 @@ namespace App\Services\Tenant;
 
 use App\Enums\Common\RolesEnum;
 use App\Models\Tenant\User;
+use App\Repositories\Tenant\UserRepository;
 use App\Services\Acl\PermissionNameResolver;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Hash;
@@ -11,7 +12,16 @@ use Spatie\Permission\Models\Permission;
 
 class TenantUserService
 {
-    private const ADMIN_ROLE_NAMES = [RolesEnum::ADMIN->value, RolesEnum::DIRECTOR->value];
+    public function __construct(
+        private readonly UserRepository $userRepository,
+    ) {}
+
+    private const ADMIN_ROLE_NAMES = [
+        RolesEnum::ADMIN->value,
+        RolesEnum::DIRECTOR->value,
+        'admin',
+        'director',
+    ];
 
     /**
      * Lista usuários com busca opcional, filtro de função e ordenação.
@@ -31,7 +41,7 @@ class TenantUserService
         $order = strtolower($order) === 'desc' ? 'desc' : 'asc';
         $perPage = min($perPage, 100);
 
-        $query = User::query()->with(['roles', 'department', 'position']);
+        $query = $this->userRepository->queryWithRelations();
 
         if ($search !== null && $search !== '') {
             $query->where(function ($q) use ($search) {
@@ -48,13 +58,21 @@ class TenantUserService
     }
 
     /**
+     * @param  array<int, string>  $relations
+     */
+    public function findWithRelations(int|string $id, array $relations = ['roles', 'department', 'position']): ?User
+    {
+        return $this->userRepository->findWithRelations($id, $relations);
+    }
+
+    /**
      * Cria um novo usuário com a função especificada.
      *
      * @param  array<string, mixed>  $data
      */
     public function create(array $data): User
     {
-        $user = User::create([
+        $user = $this->userRepository->create([
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
@@ -152,11 +170,6 @@ class TenantUserService
      */
     public function adminEligibleCount(): int
     {
-        return User::query()
-            ->whereHas('roles', function ($q) {
-                $q->whereIn('name', self::ADMIN_ROLE_NAMES)
-                    ->where('guard_name', 'web');
-            })
-            ->count();
+        return $this->userRepository->adminEligibleCount(self::ADMIN_ROLE_NAMES);
     }
 }

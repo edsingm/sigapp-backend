@@ -19,8 +19,7 @@ use Tests\TestCase;
  *
  * Pelo design atual o serviço mantém estado interno entre chamadas
  * (caches mutáveis). Os testes de regressão para esse comportamento
- * estão marcados com @group statefulness e serão habilitados após
- * a refatoração que extrai o ViabilidadeFluxoContext.
+ * serão habilitados após a refatoração que extrai o ViabilidadeFluxoContext.
  */
 class ViabilidadeUnificadoServiceTest extends TestCase
 {

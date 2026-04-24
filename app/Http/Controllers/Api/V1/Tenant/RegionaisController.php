@@ -1,133 +1,108 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Tenant\Admin\DestroyRegionalRequest;
+use App\Http\Requests\Tenant\Admin\ListRegionaisRequest;
+use App\Http\Requests\Tenant\Admin\SelectRegionaisRequest;
+use App\Http\Requests\Tenant\Admin\ShowRegionalRequest;
 use App\Http\Requests\Tenant\StoreRegionalRequest;
 use App\Http\Requests\Tenant\UpdateRegionalRequest;
 use App\Http\Resources\Tenant\RegionalResource;
-use App\Models\Tenant\Regional;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Gate;
+use App\Services\ApiResponseService;
+use App\Services\Tenant\RegionalService;
 
 class RegionaisController extends Controller
 {
-    /**
-     * Exibe uma listagem do recurso.
-     */
-    public function index(Request $request): JsonResponse
+    public function __construct(
+        private readonly RegionalService $regionalService,
+    ) {}
+
+    public function index(ListRegionaisRequest $request)
     {
-        Gate::authorize('viewAny', Regional::class);
+        $perPage = $request->integer('per_page', 10);
+        $search = $request->has('q') ? $request->string('q')->toString() : null;
+        $regionais = $this->regionalService->list($perPage, $search);
 
-        $tenantId = tenant('id') ?? 'central';
-        $filters = $request->only(['per_page', 'page', 'q']);
-        $cacheKey = "tenant:{$tenantId}:regionais:index:".md5(json_encode($filters));
-
-        return Cache::tags(["tenant:{$tenantId}:regionais"])->remember($cacheKey, now()->addMinutes(30), function () use ($request) {
-            $perPage = $request->integer('per_page', 10);
-            $query = Regional::query()->with(['responsavel', 'createdBy', 'updatedBy']);
-
-            if ($request->has('q') && $request->q) {
-                $search = $request->q;
-                $query->where(function ($q) use ($search) {
-                    $q->where('nome', 'like', "%{$search}%")
-                        ->orWhere('cidade', 'like', "%{$search}%")
-                        ->orWhere('estado', 'like', "%{$search}%");
-                });
-            }
-
-            $query->orderBy('nome', 'asc');
-            $paginator = $query->paginate($perPage);
-
-            return $this->respondWithPagination($paginator, RegionalResource::class);
-        });
+        return RegionalResource::collection($regionais)
+            ->additional([
+                'message' => 'Regionais recuperadas com sucesso',
+                'current_page' => $regionais->currentPage(),
+                'last_page' => $regionais->lastPage(),
+                'total' => $regionais->total(),
+                'per_page' => $regionais->perPage(),
+            ]);
     }
 
-    /**
-     * Armazena um recurso recém-criado.
-     */
-    public function store(StoreRegionalRequest $request): JsonResponse
+    public function forSelect(SelectRegionaisRequest $request)
     {
-        Gate::authorize('create', Regional::class);
+        $regionais = $this->regionalService->forSelect();
 
-        $data = $request->validated();
-        $userId = $request->user()->id ?? null;
-        $data['created_by'] = $userId;
-        $data['updated_by'] = $userId;
-
-        $regional = Regional::create($data);
-
-        return response()->json([
-            'success' => true,
-            'data' => new RegionalResource($regional->load(['responsavel', 'createdBy', 'updatedBy'])),
-            'message' => 'Regional criada com sucesso!',
-        ], 201);
+        return ApiResponseService::success(
+            $regionais->map(fn ($r) => ['id' => $r->id, 'nome' => $r->nome])->values(),
+            'Regionais recuperadas com sucesso'
+        );
     }
 
-    /**
-     * Exibe o recurso especificado.
-     */
-    public function show(string $id): JsonResponse
+    public function show(ShowRegionalRequest $request, int $id)
     {
-        $regional = Regional::with(['responsavel', 'createdBy', 'updatedBy'])->findOrFail($id);
-        Gate::authorize('view', $regional);
+        $regional = $this->regionalService->findById($id);
 
-        return response()->json([
-            'success' => true,
-            'data' => new RegionalResource($regional),
-        ]);
+        if (! $regional) {
+            return ApiResponseService::notFound('Regional não encontrada');
+        }
+
+        return ApiResponseService::success(
+            new RegionalResource($regional),
+            'Regional recuperada com sucesso'
+        );
     }
 
-    /**
-     * Atualiza o recurso especificado.
-     */
-    public function update(UpdateRegionalRequest $request, string $id): JsonResponse
+    public function store(StoreRegionalRequest $request)
     {
-        $regional = Regional::findOrFail($id);
-        Gate::authorize('update', $regional);
-        $data = $request->validated();
-        $data['updated_by'] = $request->user()->id ?? null;
+        $validated = $request->validated();
+        $validated['created_by'] = $request->user()->id;
 
-        $regional->update($data);
+        $regional = $this->regionalService->create($validated);
 
-        return response()->json([
-            'success' => true,
-            'data' => new RegionalResource($regional->load(['responsavel', 'createdBy', 'updatedBy'])),
-            'message' => 'Regional atualizada com sucesso!',
-        ]);
+        return ApiResponseService::created(
+            new RegionalResource($regional),
+            'Regional criada com sucesso'
+        );
     }
 
-    /**
-     * Remove o recurso especificado.
-     */
-    public function destroy(string $id): JsonResponse
+    public function update(UpdateRegionalRequest $request, int $id)
     {
-        $regional = Regional::findOrFail($id);
-        Gate::authorize('delete', $regional);
-        $regional->delete();
+        $regional = $this->regionalService->findById($id);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Regional excluída com sucesso!',
-        ]);
+        if (! $regional) {
+            return ApiResponseService::notFound('Regional não encontrada');
+        }
+
+        $validated = $request->validated();
+        $validated['updated_by'] = $request->user()->id;
+
+        $regional = $this->regionalService->update($regional, $validated);
+
+        return ApiResponseService::success(
+            new RegionalResource($regional),
+            'Regional atualizada com sucesso'
+        );
     }
 
-    /**
-     * Retorna lista de regionais para select.
-     */
-    public function regionaisForSelect(): JsonResponse
+    public function destroy(DestroyRegionalRequest $request, int $id)
     {
-        Gate::authorize('viewAny', Regional::class);
+        $regional = $this->regionalService->findById($id);
 
-        $regionais = Regional::select('id', 'nome')
-            ->orderBy('nome')
-            ->get();
+        if (! $regional) {
+            return ApiResponseService::notFound('Regional não encontrada');
+        }
 
-        return response()->json([
-            'success' => true,
-            'data' => $regionais,
-        ]);
+        $this->regionalService->delete($regional);
+
+        return ApiResponseService::success(null, 'Regional excluída com sucesso');
     }
 }

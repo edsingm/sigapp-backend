@@ -3,53 +3,42 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\StoreAdminPostRequest;
+use App\Http\Requests\Admin\UpdateAdminPostRequest;
+use App\Http\Resources\AdminPostResource;
 use App\Models\Central\Post;
-use Illuminate\Http\Request;
-use Illuminate\Support\Str;
+use App\Services\Admin\PostAdminService;
+use App\Services\ApiResponseService;
 
 class PostController extends Controller
 {
+    public function __construct(
+        private readonly PostAdminService $service
+    ) {}
+
     /**
      * Lista todos os artigos com paginação.
      */
     public function index()
     {
-        $posts = Post::with('author:id,name')
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+        $posts = $this->service
+            ->paginate(10)
+            ->through(fn (Post $post): array => AdminPostResource::make($post)->resolve());
 
-        return response()->json([
-            'success' => true,
-            'data' => $posts,
-        ]);
+        return ApiResponseService::paginated($posts);
     }
 
     /**
      * Cria um novo artigo.
      */
-    public function store(Request $request)
+    public function store(StoreAdminPostRequest $request)
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'excerpt' => 'nullable|string',
-            'content' => 'required|string',
-            'category' => 'nullable|string',
-            'image' => 'nullable|string',
-            'read_time' => 'nullable|string',
-            'featured' => 'boolean',
-            'published' => 'boolean',
-        ]);
+        $post = $this->service->create($request->validated(), $request->user()->id);
 
-        $validated['author_id'] = $request->user()->id;
-        $validated['slug'] = Str::slug($validated['title']);
-
-        $post = Post::create($validated);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Artigo criado com sucesso',
-            'data' => $post,
-        ], 201);
+        return ApiResponseService::created(
+            AdminPostResource::make($post)->resolve(),
+            'Artigo criado com sucesso'
+        );
     }
 
     /**
@@ -57,39 +46,22 @@ class PostController extends Controller
      */
     public function show(Post $post)
     {
-        return response()->json([
-            'success' => true,
-            'data' => $post->load('author:id,name'),
-        ]);
+        return ApiResponseService::success(
+            AdminPostResource::make($this->service->show($post))->resolve()
+        );
     }
 
     /**
      * Atualiza um artigo existente.
      */
-    public function update(Request $request, Post $post)
+    public function update(UpdateAdminPostRequest $request, Post $post)
     {
-        $validated = $request->validate([
-            'title' => 'string|max:255',
-            'excerpt' => 'nullable|string',
-            'content' => 'string',
-            'category' => 'nullable|string',
-            'image' => 'nullable|string',
-            'read_time' => 'nullable|string',
-            'featured' => 'boolean',
-            'published' => 'boolean',
-        ]);
+        $post = $this->service->update($post, $request->validated());
 
-        if (isset($validated['title'])) {
-            $validated['slug'] = Str::slug($validated['title']);
-        }
-
-        $post->update($validated);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Artigo atualizado com sucesso',
-            'data' => $post,
-        ]);
+        return ApiResponseService::success(
+            AdminPostResource::make($post)->resolve(),
+            'Artigo atualizado com sucesso'
+        );
     }
 
     /**
@@ -97,11 +69,8 @@ class PostController extends Controller
      */
     public function destroy(Post $post)
     {
-        $post->delete();
+        $this->service->delete($post);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Artigo excluído com sucesso',
-        ]);
+        return ApiResponseService::success(null, 'Artigo excluído com sucesso');
     }
 }

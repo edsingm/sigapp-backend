@@ -23,6 +23,12 @@ class TerrenoContato extends Model
         'updated_by',
     ];
 
+    protected $casts = [
+        'terreno_id' => 'int',
+        'created_by' => 'int',
+        'updated_by' => 'int',
+    ];
+
     public function terreno(): BelongsTo
     {
         return $this->belongsTo(Terreno::class, 'terreno_id');

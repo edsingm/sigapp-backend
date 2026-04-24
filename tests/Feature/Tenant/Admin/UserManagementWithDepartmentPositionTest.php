@@ -2,6 +2,10 @@
 
 namespace Tests\Feature\Tenant\Admin;
 
+use App\Http\Middleware\AddTenantContextToLogs;
+use App\Http\Middleware\ApiRequestLogger;
+use App\Http\Middleware\CheckSubscriptionStatus;
+use App\Http\Middleware\InitializeTenancyFlexible;
 use App\Models\Tenant\Department;
 use App\Models\Tenant\Position;
 use App\Models\Tenant\User;
@@ -24,6 +28,13 @@ class UserManagementWithDepartmentPositionTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->withoutMiddleware([
+            InitializeTenancyFlexible::class,
+            AddTenantContextToLogs::class,
+            ApiRequestLogger::class,
+            CheckSubscriptionStatus::class,
+        ]);
 
         $this->artisan('migrate', ['--path' => 'database/migrations/tenant', '--realpath' => false]);
 

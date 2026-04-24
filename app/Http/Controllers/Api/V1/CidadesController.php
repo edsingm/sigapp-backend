@@ -3,25 +3,34 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\Central\Cidade;
+use App\Http\Requests\BuscarCidadesRequest;
+use App\Http\Requests\DadosCidadeRequest;
+use App\Http\Resources\CidadeBuscaResource;
+use App\Http\Resources\CidadeDadosResource;
+use App\Http\Resources\CidadeOpcaoResource;
+use App\Http\Resources\EstadoResource;
+use App\Repositories\CidadeRepository;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
 class CidadesController extends Controller
 {
+    public function __construct(
+        private readonly CidadeRepository $cidadeRepository,
+    ) {}
+
     /**
      * Retorna lista de estados únicos (JSON).
      */
     public function index(): JsonResponse
     {
         $states = Cache::rememberForever('central:states', function () {
-            return Cidade::states()->get();
+            return $this->cidadeRepository->listStates();
         });
 
         return response()->json([
             'success' => true,
-            'data' => $states,
+            'data' => EstadoResource::collection($states),
         ]);
     }
 
@@ -33,52 +42,34 @@ class CidadesController extends Controller
         $cacheKey = "central:cities:{$stateCode}";
 
         $cities = Cache::rememberForever($cacheKey, function () use ($stateCode) {
-            return Cidade::citiesByState($stateCode)->get(['code', 'city as name']);
+            return $this->cidadeRepository->listByState($stateCode);
         });
 
         return response()->json([
             'success' => true,
-            'data' => $cities,
+            'data' => CidadeOpcaoResource::collection($cities),
         ]);
     }
 
     /**
      * Busca cidades pelo nome ou termo parcial.
      */
-    public function buscar(Request $request): JsonResponse
+    public function buscar(BuscarCidadesRequest $request): JsonResponse
     {
-        $request->validate([
-            'termo' => ['required', 'string', 'min:2', 'max:100'],
-        ]);
-
-        $termo = $request->query('termo');
-
-        $cidades = Cidade::whereRaw(
-            'unaccent(city) ILIKE unaccent(?)',
-            ["%{$termo}%"]
-        )
-            ->orderBy('city')
-            ->limit(100)
-            ->get(['code', 'city', 'state', 'state_code']);
+        $cidades = $this->cidadeRepository->searchByTerm((string) $request->validated('termo'));
 
         return response()->json([
             'status' => 'OK',
-            'data' => $cidades,
+            'data' => CidadeBuscaResource::collection($cidades),
         ]);
     }
 
     /**
      * Retorna dados detalhados de uma cidade pelo código.
      */
-    public function dados(Request $request): JsonResponse
+    public function dados(DadosCidadeRequest $request): JsonResponse
     {
-        $request->validate([
-            'cityCode' => ['required', 'string', 'max:20'],
-        ]);
-
-        $cityCode = $request->query('cityCode');
-
-        $cidade = Cidade::where('code', $cityCode)->first();
+        $cidade = $this->cidadeRepository->findByCode((string) $request->validated('cityCode'));
         if (! $cidade) {
             return response()->json([
                 'status' => 'ERROR',
@@ -88,7 +79,7 @@ class CidadesController extends Controller
 
         return response()->json([
             'status' => 'OK',
-            'data' => $cidade,
+            'data' => new CidadeDadosResource($cidade),
         ]);
     }
 }

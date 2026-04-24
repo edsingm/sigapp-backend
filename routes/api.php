@@ -195,9 +195,9 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
 
                         // Tenants
                         Route::get('/tenants', [TenantController::class, 'index'])->name('tenants.index');
-                        Route::get('/tenants/{id}', [TenantController::class, 'show'])->name('tenants.show');
-                        Route::post('/tenants/{id}/activate', [TenantController::class, 'activate'])->name('tenants.activate');
-                        Route::post('/tenants/{id}/suspend', [TenantController::class, 'suspend'])->name('tenants.suspend');
+                        Route::get('/tenants/{tenant}', [TenantController::class, 'show'])->name('tenants.show');
+                        Route::post('/tenants/{tenant}/activate', [TenantController::class, 'activate'])->name('tenants.activate');
+                        Route::post('/tenants/{tenant}/suspend', [TenantController::class, 'suspend'])->name('tenants.suspend');
 
                         // Tenant Plan Management
                         Route::post('/tenants/{id}/plan', [TenantPlanController::class, 'assignPlan'])->name('tenants.plan.assign');

@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api\V1\Tenant;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\PlanSwapRequest;
 use App\Http\Resources\PlanResource;
-use App\Models\Central\Plan;
+use App\Repositories\Contracts\PlanRepositoryInterface;
 use App\Services\ApiResponseService;
 use App\Services\Billing\TenantBillingService;
 use App\Traits\LogsAudit;
@@ -18,6 +18,7 @@ class PlanSwapController extends Controller
 
     public function __construct(
         protected TenantBillingService $billingService,
+        private readonly PlanRepositoryInterface $planRepository,
     ) {}
 
     /**
@@ -30,13 +31,9 @@ class PlanSwapController extends Controller
      */
     public function swap(PlanSwapRequest $request): JsonResponse
     {
-        abort_unless(auth()->user()?->isAdmin(), 403);
-
         $tenant = tenancy()->tenant;
 
-        $newPlan = Plan::where('slug', $request->validated('plan_slug'))
-            ->active()
-            ->first();
+        $newPlan = $this->planRepository->findActiveBySlug($request->validated('plan_slug'));
 
         if (! $newPlan) {
             return ApiResponseService::notFound('PLAN_NOT_FOUND');

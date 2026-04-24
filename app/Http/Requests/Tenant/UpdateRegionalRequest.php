@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests\Tenant;
 
+use App\Models\Tenant\Regional;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 
 class UpdateRegionalRequest extends FormRequest
 {
@@ -12,7 +14,7 @@ class UpdateRegionalRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return Gate::allows('update', Regional::class);
     }
 
     /**

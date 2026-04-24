@@ -2,178 +2,67 @@
 
 namespace App\Http\Controllers\Api\V1\Tenant;
 
-use App\Enums\WorkflowStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Tenant\ActivateViabilidadeRequest;
+use App\Http\Requests\Tenant\CompareViabilidadesRequest;
+use App\Http\Requests\Tenant\DecideViabilidadeApprovalRequest;
+use App\Http\Requests\Tenant\DestroyViabilidadeRequest;
+use App\Http\Requests\Tenant\DuplicateViabilidadeRequest;
+use App\Http\Requests\Tenant\RecalculateViabilidadeRequest;
+use App\Http\Requests\Tenant\RestoreViabilidadeRequest;
+use App\Http\Requests\Tenant\SubmitViabilidadeApprovalRequest;
 use App\Http\Requests\Tenant\ViabilidadeRequest;
+use App\Http\Resources\Tenant\ViabilidadeCalculationResource;
 use App\Http\Resources\Tenant\ViabilidadeResource;
+use App\Http\Resources\Tenant\ViabilidadeSelectResource;
 use App\Models\Tenant\Viabilidade;
-use App\Services\Acl\PermissionNameResolver;
-use App\Services\Tenant\LandWorkflowService;
-use App\Services\Tenant\MobilePushService;
+use App\Services\ApiResponseService;
 use App\Services\Tenant\Viabilidade\ViabilidadeService;
 use Exception;
-use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Spatie\LaravelPdf\Facades\Pdf;
 
 class ViabilidadeController extends Controller
 {
-    protected ViabilidadeService $viabilidadeService;
-
     public function __construct(
-        ViabilidadeService $viabilidadeService,
-        protected MobilePushService $mobilePushService,
-        protected LandWorkflowService $workflowService,
-        protected PermissionNameResolver $permissions,
-    ) {
-        $this->viabilidadeService = $viabilidadeService;
-    }
+        private readonly ViabilidadeService $viabilidadeService,
+    ) {}
 
     /**
      * Ativar uma viabilidade (mudar status de rascunho para ativo)
      */
-    public function ativar(int $id): JsonResponse
+    public function ativar(ActivateViabilidadeRequest $request, int $id): JsonResponse
     {
-        try {
-            $user = request()->user();
-
-            if (! $user) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Usuário não autenticado.',
-                ], 401);
-            }
-
-            // $canActivate = $user->hasRole('admin')
-            //     || ($user->hasAnyRole(['diretor', 'gestor', 'coordenador']) && $user->isDepartamentoNovosNegocios());
-
-            // if (!$canActivate) {
-            //     Log::warning('Acesso negado no ViabilidadeController::ativar', [
-            //         'viabilidade_id' => $id,
-            //         'user_id' => $user->id,
-            //     ]);
-
-            //     return response()->json([
-            //         'success' => false,
-            //         'message' => 'Acesso não autorizado. Apenas diretor, gestor ou coordenador do departamento de Novos Negócios podem ativar viabilidades.'
-            //     ], 403);
-            // }
-
-            $viabilidade = Viabilidade::findOrFail($id);
-            Gate::authorize('ativar', $viabilidade);
-            $viabilidade->update(['status' => 'ativo']);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Viabilidade salva com sucesso',
-                'data' => $viabilidade->load(['terreno', 'createdBy', 'updatedBy']),
-            ]);
-
-        } catch (Exception $e) {
-            if ($e instanceof AuthorizationException) {
-                throw $e;
-            }
-
-            Log::error('Erro no ViabilidadeController::ativar', [
-                'viabilidade_id' => $id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao salvar viabilidade',
-            ], 500);
-        }
+        return ApiResponseService::success(
+            new ViabilidadeResource($this->viabilidadeService->ativar($id, $request->user())),
+            'Viabilidade salva com sucesso'
+        );
     }
 
     /**
      * Solicitar aprovação de uma viabilidade.
      */
-    public function solicitarAprovacao(Request $request, int $id): JsonResponse
+    public function solicitarAprovacao(SubmitViabilidadeApprovalRequest $request, int $id): JsonResponse
     {
-        try {
-            $viabilidade = Viabilidade::findOrFail($id);
-            Gate::authorize('requestApproval', $viabilidade);
+        $viabilidade = $this->viabilidadeService->solicitarAprovacao(
+            $id,
+            $request->validated('approval_notes'),
+            $request->user(),
+        );
 
-            $validated = $request->validate([
-                'approval_notes' => ['nullable', 'string', 'max:5000'],
-            ]);
-
-            $viabilidade->update([
-                'approval_status' => 'em_aprovacao',
-                'approval_requested_at' => now(),
-                'submitted_at' => now(),
-                'approval_decided_at' => null,
-                'approval_decided_by' => null,
-                'approval_notes' => $validated['approval_notes'] ?? null,
-                'updated_by' => $request->user()?->id,
-            ]);
-            $this->workflowService->transition(
-                $viabilidade->terreno()->firstOrFail(),
-                WorkflowStatus::AGUARDANDO_VIABILIDADE->value,
-                $request->user(),
-                'viability_submitted',
-                $validated['approval_notes'] ?? null,
-            );
-
-            $viabilidade->loadMissing('terreno');
-
-            $this->mobilePushService->notifyUsersWithPermission(
-                (string) $this->permissions->forModel(Viabilidade::class, 'approve'),
-                [
-                    'title' => 'Viabilidade aguardando aprovação',
-                    'body' => "A viabilidade do terreno {$viabilidade->terreno?->nome} aguarda decisão.",
-                    'type' => 'viabilidade.solicitar_aprovacao',
-                    'entity_type' => 'viabilidade',
-                    'entity_id' => (string) $viabilidade->id,
-                    'target_route' => "/terrenos/{$viabilidade->terreno_id}",
-                    'payload' => [
-                        'tenant_slug' => tenant('slug'),
-                        'viabilidade_id' => $viabilidade->id,
-                        'terreno_id' => $viabilidade->terreno_id,
-                    ],
-                ],
-                $request->user()
-            );
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Aprovação da viabilidade solicitada com sucesso',
-                'data' => new ViabilidadeResource(
-                    $viabilidade->fresh(['terreno', 'createdBy', 'approvalDecidedBy'])
-                ),
-            ]);
-        } catch (ModelNotFoundException) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Viabilidade não encontrada',
-            ], 404);
-        } catch (Exception $e) {
-            if ($e instanceof AuthorizationException) {
-                throw $e;
-            }
-
-            Log::error('Erro no ViabilidadeController::solicitarAprovacao', [
-                'viabilidade_id' => $id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao solicitar aprovação da viabilidade',
-            ], 500);
-        }
+        return ApiResponseService::success(
+            new ViabilidadeResource($viabilidade),
+            'Aprovação da viabilidade solicitada com sucesso'
+        );
     }
 
     /**
      * Aprovar uma viabilidade.
      */
-    public function aprovar(Request $request, int $id): JsonResponse
+    public function aprovar(DecideViabilidadeApprovalRequest $request, int $id): JsonResponse
     {
         return $this->decidirAprovacao($request, $id, 'aprovada');
     }
@@ -181,7 +70,7 @@ class ViabilidadeController extends Controller
     /**
      * Reprovar uma viabilidade.
      */
-    public function reprovar(Request $request, int $id): JsonResponse
+    public function reprovar(DecideViabilidadeApprovalRequest $request, int $id): JsonResponse
     {
         return $this->decidirAprovacao($request, $id, 'reprovada');
     }
@@ -192,7 +81,7 @@ class ViabilidadeController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            Gate::authorize('viewAny', Viabilidade::class);
+            $this->authorize('viewAny', Viabilidade::class);
 
             $tenantId = tenant('id') ?? 'central';
             $filtros = $request->only(['search', 'terreno_id', 'per_page', 'page']);
@@ -202,24 +91,13 @@ class ViabilidadeController extends Controller
                 return $this->viabilidadeService->listarTodasViabilidades($filtros);
             });
 
-            return response()->json([
-                'success' => true,
-                'data' => $viabilidades,
-            ]);
-
+            return ApiResponseService::paginated(
+                $viabilidades->through(fn (Viabilidade $viabilidade): array => ViabilidadeResource::make($viabilidade)->resolve())
+            );
         } catch (Exception $e) {
-            if ($e instanceof AuthorizationException) {
-                throw $e;
-            }
+            Log::error('Erro no ViabilidadeController::index', ['error' => $e->getMessage()]);
 
-            Log::error('Erro no ViabilidadeController::index', [
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao listar viabilidades',
-            ], 500);
+            return ApiResponseService::serverError('Erro ao listar viabilidades');
         }
     }
 
@@ -229,26 +107,15 @@ class ViabilidadeController extends Controller
     public function store(ViabilidadeRequest $request): JsonResponse
     {
         try {
-            Gate::authorize('create', Viabilidade::class);
-
-            // Dados já validados pelo ViabilidadeRequest
-            $dados = $request->validated();
-
-            // Criar viabilidade com DRE
-            $resultado = $this->viabilidadeService->criarViabilidadeComDre($dados);
+            $resultado = $this->viabilidadeService->criarViabilidadeComDre($request->validated(), $request->user());
             Log::info('Viabilidade criada com sucesso', $resultado);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Viabilidade criada com sucesso',
-                'data' => $resultado,
-            ], 201);
+            return ApiResponseService::created(
+                new ViabilidadeCalculationResource($resultado),
+                'Viabilidade criada com sucesso'
+            );
 
         } catch (Exception $e) {
-            if ($e instanceof AuthorizationException) {
-                throw $e;
-            }
-
             Log::error('Erro no ViabilidadeController::store', [
                 'request_data' => $request->validated(),
                 'error' => $e->getMessage(),
@@ -256,10 +123,9 @@ class ViabilidadeController extends Controller
                 'line' => $e->getLine(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 422);
+            return ApiResponseService::validationError([
+                'viabilidade' => [$e->getMessage()],
+            ]);
         }
     }
 
@@ -268,32 +134,12 @@ class ViabilidadeController extends Controller
      */
     public function show(int $id): JsonResponse
     {
-        try {
-            $viabilidade = Viabilidade::findOrFail($id);
-            Gate::authorize('view', $viabilidade);
+        $viabilidade = $this->viabilidadeService->findOrFail($id);
+        $this->authorize('view', $viabilidade);
 
-            $resultado = $this->viabilidadeService->buscarViabilidadeComDre($id);
-
-            return response()->json([
-                'success' => true,
-                'data' => $resultado,
-            ]);
-
-        } catch (Exception $e) {
-            if ($e instanceof AuthorizationException) {
-                throw $e;
-            }
-
-            Log::error('Erro no ViabilidadeController::show', [
-                'viabilidade_id' => $id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Viabilidade não encontrada',
-            ], 404);
-        }
+        return ApiResponseService::success(
+            new ViabilidadeCalculationResource($this->viabilidadeService->buscarViabilidadeComDre($viabilidade))
+        );
     }
 
     /**
@@ -302,140 +148,41 @@ class ViabilidadeController extends Controller
     public function update(ViabilidadeRequest $request, int $id): JsonResponse
     {
         try {
-            $viabilidade = Viabilidade::findOrFail($id);
-            Gate::authorize('update', $viabilidade);
+            $resultado = $this->viabilidadeService->atualizarViabilidadeComDre($id, $request->validated(), $request->user());
 
-            // Dados já validados pelo ViabilidadeRequest
-            $dados = $request->validated();
-
-            // Atualizar viabilidade com DRE
-            $resultado = $this->viabilidadeService->atualizarViabilidadeComDre($viabilidade, $dados);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Viabilidade atualizada com sucesso',
-                'data' => $resultado,
-            ]);
+            return ApiResponseService::success(
+                new ViabilidadeCalculationResource($resultado),
+                'Viabilidade atualizada com sucesso'
+            );
 
         } catch (Exception $e) {
-            if ($e instanceof AuthorizationException) {
-                throw $e;
-            }
-
             Log::error('Erro no ViabilidadeController::update', [
                 'viabilidade_id' => $id,
                 'request_data' => $request->validated(),
                 'error' => $e->getMessage(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 422);
+            return ApiResponseService::validationError([
+                'viabilidade' => [$e->getMessage()],
+            ]);
         }
     }
 
-    protected function decidirAprovacao(Request $request, int $id, string $decision): JsonResponse
+    protected function decidirAprovacao(DecideViabilidadeApprovalRequest $request, int $id, string $decision): JsonResponse
     {
-        try {
-            $viabilidade = Viabilidade::findOrFail($id);
-            Gate::authorize('approve', $viabilidade);
+        $viabilidade = $this->viabilidadeService->decidirAprovacao(
+            $id,
+            $decision,
+            $request->validated('approval_notes'),
+            $request->user(),
+        );
 
-            $validated = $request->validate([
-                'approval_notes' => ['nullable', 'string', 'max:5000'],
-            ]);
-
-            $approvalStatus = $viabilidade->approval_status ?? ($viabilidade->status === 'ativo' ? 'aprovada' : 'pendente');
-
-            if ($approvalStatus !== 'em_aprovacao') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'A viabilidade precisa estar em aprovação antes desta decisão.',
-                ], 422);
-            }
-
-            $payload = [
-                'approval_status' => $decision,
-                'approval_decided_at' => now(),
-                'approval_decided_by' => $request->user()?->id,
-                'approval_notes' => $validated['approval_notes'] ?? $viabilidade->approval_notes,
-                'updated_by' => $request->user()?->id,
-            ];
-
-            if ($decision === 'aprovada') {
-                $payload['status'] = 'ativo';
-                $payload['locked_at'] = now();
-            } else {
-                $payload['status'] = 'rascunho';
-                $payload['locked_at'] = null;
-            }
-
-            $viabilidade->update($payload);
-            $this->viabilidadeService->registrarAprovacao($viabilidade, $decision, $validated['approval_notes'] ?? null);
-            $this->workflowService->transition(
-                $viabilidade->terreno()->firstOrFail(),
-                $decision === 'aprovada' ? WorkflowStatus::VIABILIDADE_APROVADA->value : WorkflowStatus::EM_ANALISE->value,
-                $request->user(),
-                'viability_decided',
-                $validated['approval_notes'] ?? null,
-            );
-            $viabilidade->loadMissing('terreno');
-
-            $this->mobilePushService->notifyAllUsers(
-                [
-                    'title' => $decision === 'aprovada'
-                        ? 'Viabilidade aprovada'
-                        : 'Viabilidade reprovada',
-                    'body' => $decision === 'aprovada'
-                        ? "A viabilidade do terreno {$viabilidade->terreno?->nome} foi aprovada."
-                        : "A viabilidade do terreno {$viabilidade->terreno?->nome} foi reprovada.",
-                    'type' => $decision === 'aprovada'
-                        ? 'viabilidade.aprovada'
-                        : 'viabilidade.reprovada',
-                    'entity_type' => 'viabilidade',
-                    'entity_id' => (string) $viabilidade->id,
-                    'target_route' => "/terrenos/{$viabilidade->terreno_id}",
-                    'payload' => [
-                        'tenant_slug' => tenant('slug'),
-                        'viabilidade_id' => $viabilidade->id,
-                        'terreno_id' => $viabilidade->terreno_id,
-                    ],
-                ],
-                $request->user()
-            );
-
-            $message = $decision === 'aprovada'
+        return ApiResponseService::success(
+            new ViabilidadeResource($viabilidade),
+            $decision === 'aprovada'
                 ? 'Viabilidade aprovada com sucesso'
-                : 'Viabilidade reprovada com sucesso';
-
-            return response()->json([
-                'success' => true,
-                'message' => $message,
-                'data' => new ViabilidadeResource(
-                    $viabilidade->fresh(['terreno', 'createdBy', 'approvalDecidedBy'])
-                ),
-            ]);
-        } catch (ModelNotFoundException) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Viabilidade não encontrada',
-            ], 404);
-        } catch (Exception $e) {
-            if ($e instanceof AuthorizationException) {
-                throw $e;
-            }
-
-            Log::error('Erro no ViabilidadeController::decidirAprovacao', [
-                'viabilidade_id' => $id,
-                'decision' => $decision,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao registrar a decisão da aprovação',
-            ], 500);
-        }
+                : 'Viabilidade reprovada com sucesso'
+        );
     }
 
     /**
@@ -446,29 +193,19 @@ class ViabilidadeController extends Controller
     public function byTerreno(int $terrenoId): JsonResponse
     {
         try {
-            Gate::authorize('viewAny', Viabilidade::class);
+            $this->authorize('viewAny', Viabilidade::class);
 
-            $viabilidades = $this->viabilidadeService->listarViabilidadesPorTerreno($terrenoId);
-
-            return response()->json([
-                'success' => true,
-                'data' => $viabilidades,
-            ]);
-
+            return ApiResponseService::success(
+                ViabilidadeResource::collection($this->viabilidadeService->listarViabilidadesPorTerreno($terrenoId))
+            );
         } catch (Exception $e) {
-            if ($e instanceof AuthorizationException) {
-                throw $e;
-            }
 
             Log::error('Erro no ViabilidadeController::byTerreno', [
                 'terreno_id' => $terrenoId,
                 'error' => $e->getMessage(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao buscar viabilidades da área',
-            ], 500);
+            return ApiResponseService::serverError('Erro ao buscar viabilidades da área');
         }
     }
 
@@ -478,152 +215,100 @@ class ViabilidadeController extends Controller
     public function latest(int $terrenoId): JsonResponse
     {
         try {
-            Gate::authorize('viewAny', Viabilidade::class);
+            $this->authorize('viewAny', Viabilidade::class);
 
             $viabilidade = $this->viabilidadeService->buscarViabilidadeAtual($terrenoId);
 
             if (! $viabilidade) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Nenhuma viabilidade encontrada para este terreno',
-                ], 404);
+                return ApiResponseService::notFound('Nenhuma viabilidade encontrada para este terreno');
             }
 
-            return response()->json([
-                'success' => true,
-                'data' => $viabilidade,
-            ]);
-
+            return ApiResponseService::success(new ViabilidadeResource($viabilidade));
         } catch (Exception $e) {
-            if ($e instanceof AuthorizationException) {
-                throw $e;
-            }
 
             Log::error('Erro no ViabilidadeController::latest', [
                 'terreno_id' => $terrenoId,
                 'error' => $e->getMessage(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao buscar viabilidade mais recente',
-            ], 500);
+            return ApiResponseService::serverError('Erro ao buscar viabilidade mais recente');
         }
     }
 
     /**
      * Duplicar viabilidade
      */
-    public function duplicate(int $id): JsonResponse
+    public function duplicate(DuplicateViabilidadeRequest $request, int $id): JsonResponse
     {
         try {
-            $viabilidade = Viabilidade::findOrFail($id);
-            Gate::authorize('duplicate', $viabilidade);
-
-            $novaViabilidade = $this->viabilidadeService->duplicarViabilidade($id);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Viabilidade duplicada com sucesso',
-                'data' => $novaViabilidade->load(['terreno', 'createdBy', 'updatedBy']),
-            ], 201);
+            return ApiResponseService::created(
+                new ViabilidadeResource($this->viabilidadeService->duplicarViabilidade($id, $request->user())),
+                'Viabilidade duplicada com sucesso'
+            );
 
         } catch (Exception $e) {
-            if ($e instanceof AuthorizationException) {
-                throw $e;
-            }
-
             Log::error('Erro no ViabilidadeController::duplicate', [
                 'viabilidade_id' => $id,
                 'error' => $e->getMessage(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 422);
+            return ApiResponseService::validationError([
+                'viabilidade' => [$e->getMessage()],
+            ]);
         }
     }
 
     /**
      * Excluir viabilidade
      */
-    public function destroy(int $id): JsonResponse
+    public function destroy(DestroyViabilidadeRequest $request, int $id): JsonResponse
     {
         try {
-            $viabilidade = Viabilidade::findOrFail($id);
-            Gate::authorize('delete', $viabilidade);
-
             $resultado = $this->viabilidadeService->excluirViabilidade($id);
 
             if ($resultado) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Viabilidade excluída com sucesso',
-                ]);
+                return ApiResponseService::success(null, 'Viabilidade excluída com sucesso');
             }
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao excluir viabilidade',
-            ], 500);
-
+            return ApiResponseService::serverError('Erro ao excluir viabilidade');
         } catch (Exception $e) {
-            if ($e instanceof AuthorizationException) {
-                throw $e;
-            }
 
             Log::error('Erro no ViabilidadeController::destroy', [
                 'viabilidade_id' => $id,
                 'error' => $e->getMessage(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 422);
+            return ApiResponseService::validationError([
+                'viabilidade' => [$e->getMessage()],
+            ]);
         }
     }
 
     /**
      * Comparar duas viabilidades
      */
-    public function compare(Request $request): JsonResponse
+    public function compare(CompareViabilidadesRequest $request): JsonResponse
     {
         try {
-            Gate::authorize('compare', Viabilidade::class);
+            $comparacao = $this->viabilidadeService->compareByIds(
+                (int) $request->validated('viabilidade_1_id'),
+                (int) $request->validated('viabilidade_2_id'),
+            );
 
-            $viabilidade1Id = $request->input('viabilidade_1_id');
-            $viabilidade2Id = $request->input('viabilidade_2_id');
-
-            if (! $viabilidade1Id || ! $viabilidade2Id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'IDs das duas viabilidades são obrigatórios',
-                ], 422);
-            }
-
-            $comparacao = $this->viabilidadeService->compararViabilidades($viabilidade1Id, $viabilidade2Id);
-
-            return response()->json([
-                'success' => true,
-                'data' => $comparacao,
+            return ApiResponseService::success([
+                'viabilidade_1' => (new ViabilidadeCalculationResource($comparacao['viabilidade_1']))->resolve(),
+                'viabilidade_2' => (new ViabilidadeCalculationResource($comparacao['viabilidade_2']))->resolve(),
             ]);
-
         } catch (Exception $e) {
-            if ($e instanceof AuthorizationException) {
-                throw $e;
-            }
 
             Log::error('Erro no ViabilidadeController::compare', [
-                'request_data' => $request->all(),
+                'request_data' => $request->validated(),
                 'error' => $e->getMessage(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 422);
+            return ApiResponseService::validationError([
+                'viabilidade' => [$e->getMessage()],
+            ]);
         }
     }
 
@@ -633,56 +318,37 @@ class ViabilidadeController extends Controller
     public function gerarDre(int $id): JsonResponse
     {
         try {
-            $viabilidade = Viabilidade::findOrFail($id);
-            Gate::authorize('gerarDre', $viabilidade);
+            $viabilidade = $this->viabilidadeService->findOrFail($id);
+            $this->authorize('gerarDre', $viabilidade);
 
             $resultado = $this->viabilidadeService->buscarViabilidadeComDre($id);
 
-            return response()->json([
-                'success' => true,
-                'data' => $resultado['dre_resultados'],
-            ]);
-
+            return ApiResponseService::success($resultado['dre_resultados']);
         } catch (Exception $e) {
-            if ($e instanceof AuthorizationException) {
-                throw $e;
-            }
 
             Log::error('Erro no ViabilidadeController::gerarDre', [
                 'viabilidade_id' => $id,
                 'error' => $e->getMessage(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao gerar DRE: '.$e->getMessage(),
-            ], 500);
+            return ApiResponseService::serverError('Erro ao gerar DRE: '.$e->getMessage());
         }
     }
 
     /**
      * Recalcular DRE de uma viabilidade existente
      */
-    public function recalcular(int $id): JsonResponse
+    public function recalcular(RecalculateViabilidadeRequest $request, int $id): JsonResponse
     {
         try {
-            $viabilidade = Viabilidade::findOrFail($id);
-            Gate::authorize('recalcular', $viabilidade);
+            $resultado = $this->viabilidadeService->recalcularDre($id, $request->user());
 
-            // Recalcular DRE com os dados atuais da viabilidade
-            $resultado = $this->viabilidadeService->recalcularDre($viabilidade);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Viabilidade recalculada com sucesso',
-                'data' => $resultado,
-            ]);
+            return ApiResponseService::success(
+                new ViabilidadeCalculationResource($resultado),
+                'Viabilidade recalculada com sucesso'
+            );
 
         } catch (Exception $e) {
-            if ($e instanceof AuthorizationException) {
-                throw $e;
-            }
-
             Log::error('Erro no ViabilidadeController::recalcular', [
                 'viabilidade_id' => $id,
                 'error' => $e->getMessage(),
@@ -690,43 +356,30 @@ class ViabilidadeController extends Controller
                 'line' => $e->getLine(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao recalcular viabilidade: '.$e->getMessage(),
-            ], 422);
+            return ApiResponseService::validationError([
+                'viabilidade' => ['Erro ao recalcular viabilidade: '.$e->getMessage()],
+            ]);
         }
     }
 
     /**
      * Restaurar viabilidade excluída
      */
-    public function restore(int $id): JsonResponse
+    public function restore(RestoreViabilidadeRequest $request, int $id): JsonResponse
     {
         try {
-            $viabilidade = Viabilidade::withTrashed()->findOrFail($id);
-            Gate::authorize('restore', $viabilidade);
-            $viabilidade->restore();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Viabilidade restaurada com sucesso',
-                'data' => $viabilidade->load(['terreno', 'createdBy', 'updatedBy']),
-            ]);
-
+            return ApiResponseService::success(
+                new ViabilidadeResource($this->viabilidadeService->restore($id)),
+                'Viabilidade restaurada com sucesso'
+            );
         } catch (Exception $e) {
-            if ($e instanceof AuthorizationException) {
-                throw $e;
-            }
 
             Log::error('Erro no ViabilidadeController::restore', [
                 'viabilidade_id' => $id,
                 'error' => $e->getMessage(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao restaurar viabilidade',
-            ], 500);
+            return ApiResponseService::serverError('Erro ao restaurar viabilidade');
         }
     }
 
@@ -758,28 +411,9 @@ class ViabilidadeController extends Controller
     public function exportPdf(int $id)
     {
         try {
-            $viabilidade = Viabilidade::findOrFail($id);
-            Gate::authorize('export', $viabilidade);
-
-            $resultado = $this->viabilidadeService->buscarViabilidadeComDre($id);
-            $viabilidade = $resultado['viabilidade'];
-            $dre = $resultado['dre_resultados'];
-
-            if (! $dre || ! isset($dre['totais'])) {
-                // Tenta recalcular se estiver vazio
-                $resultado = $this->viabilidadeService->recalcularDre($viabilidade);
-                $dre = $resultado['dre_resultados'];
-            }
-
-            if (! $dre) {
-                throw new Exception('Não foi possível carregar ou gerar os dados do DRE para esta viabilidade.');
-            }
-
-            $data = [
-                'viabilidade' => $viabilidade,
-                'dre' => $dre,
-                'dataGeracao' => now()->format('d/m/Y H:i'),
-            ];
+            $viabilidade = $this->viabilidadeService->findOrFail($id);
+            $this->authorize('export', $viabilidade);
+            $data = $this->viabilidadeService->exportData($id);
 
             return Pdf::view('exports.viabilidade-pdf', $data)
                 ->format('a4')
@@ -794,10 +428,6 @@ class ViabilidadeController extends Controller
                 ->toResponse(request());
 
         } catch (Exception $e) {
-            if ($e instanceof AuthorizationException) {
-                throw $e;
-            }
-
             Log::error('Erro no ViabilidadeController::exportPdf', [
                 'viabilidade_id' => $id,
                 'error' => $e->getMessage(),
@@ -818,46 +448,20 @@ class ViabilidadeController extends Controller
     public function forSelect(Request $request): JsonResponse
     {
         try {
-            Gate::authorize('viewAny', Viabilidade::class);
+            $this->authorize('viewAny', Viabilidade::class);
 
-            $terrenoId = $request->input('terreno_id');
-
-            $query = Viabilidade::query()->with('terreno');
-
-            if ($terrenoId) {
-                $query->where('terreno_id', $terrenoId);
-            }
-
-            $viabilidades = $query->orderBy('created_at', 'desc')->get();
-
-            $resultado = $viabilidades->map(function ($v) {
-                $data = $v->created_at->format('d/m/Y H:i');
-
-                return [
-                    'id' => $v->id,
-                    'label' => "Viabilidade #{$v->id} - {$v->terreno->nome} ({$data})",
-                    'terreno_id' => $v->terreno_id,
-                ];
-            });
-
-            return response()->json([
-                'success' => true,
-                'data' => $resultado,
-            ]);
-
+            return ApiResponseService::success(
+                ViabilidadeSelectResource::collection(
+                    $this->viabilidadeService->forSelect($request->integer('terreno_id') ?: null)
+                )
+            );
         } catch (Exception $e) {
-            if ($e instanceof AuthorizationException) {
-                throw $e;
-            }
 
             Log::error('Erro no ViabilidadeController::forSelect', [
                 'error' => $e->getMessage(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao buscar viabilidades',
-            ], 500);
+            return ApiResponseService::serverError('Erro ao buscar viabilidades');
         }
     }
 }

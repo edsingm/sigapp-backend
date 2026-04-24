@@ -3,24 +3,29 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ExchangeTicketRequest;
+use App\Http\Requests\ForgotPasswordRequest;
 use App\Http\Requests\LoginRequest;
+use App\Http\Requests\ResetPasswordRequest;
+use App\Http\Requests\SelectTenantRequest;
+use App\Http\Requests\UpdateProfileRequest;
 use App\Http\Resources\CentralUserResource;
 use App\Http\Resources\UserResource;
-use App\Models\Central\Tenant;
 use App\Models\User as CentralUser;
+use App\Repositories\Contracts\TenantRepositoryInterface;
 use App\Services\ApiResponseService;
 use App\Services\Auth\CentralLoginBrokerService;
 use App\Services\Auth\TenantLoginService;
 use App\Services\Auth\TenantPasswordResetService;
-use App\Services\LanguageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
-use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password as PasswordRule;
 use OpenApi\Attributes as OA;
 
 class AuthController extends Controller
 {
+    public function __construct(
+        private readonly TenantRepositoryInterface $tenantRepository,
+    ) {}
     /**
      * Realizar o login do usuário.
      */
@@ -30,10 +35,7 @@ class AuthController extends Controller
             $tenantIdentifier = $tenantLogin->resolveLocalTenantIdentifier($request);
 
             if ($tenantIdentifier !== null) {
-                $tenant = Tenant::query()
-                    ->where('id', $tenantIdentifier)
-                    ->orWhere('slug', $tenantIdentifier)
-                    ->first();
+                $tenant = $this->tenantRepository->findByIdOrSlug($tenantIdentifier);
 
                 if (! $tenant) {
                     return ApiResponseService::notFound('TENANT_NOT_FOUND');
@@ -75,13 +77,9 @@ class AuthController extends Controller
     /**
      * Selecionar um tenant após o login central.
      */
-    public function selectTenant(Request $request, CentralLoginBrokerService $broker)
+    public function selectTenant(SelectTenantRequest $request, CentralLoginBrokerService $broker)
     {
-        $data = $request->validate([
-            'broker_session_id' => ['required', 'string'],
-            'tenant_id' => ['required', 'string'],
-            'device_name' => ['sometimes', 'string', 'max:255'],
-        ]);
+        $data = $request->validated();
 
         $result = $broker->selectTenant(
             (string) $data['broker_session_id'],
@@ -100,12 +98,9 @@ class AuthController extends Controller
     /**
      * Trocar um ticket por um token de acesso.
      */
-    public function exchangeTicket(Request $request, CentralLoginBrokerService $broker)
+    public function exchangeTicket(ExchangeTicketRequest $request, CentralLoginBrokerService $broker)
     {
-        $data = $request->validate([
-            'ticket' => ['required', 'string', 'min:32'],
-            'device_name' => ['sometimes', 'string', 'max:255'],
-        ]);
+        $data = $request->validated();
 
         $result = $broker->redeemTransferTicket(
             (string) $data['ticket'],
@@ -128,11 +123,9 @@ class AuthController extends Controller
     /**
      * Enviar link de recuperação de senha.
      */
-    public function forgotPassword(Request $request, TenantPasswordResetService $passwordResetService)
+    public function forgotPassword(ForgotPasswordRequest $request, TenantPasswordResetService $passwordResetService)
     {
-        $data = $request->validate([
-            'email' => ['required', 'email'],
-        ]);
+        $data = $request->validated();
 
         if (tenancy()->initialized) {
             $passwordResetService->sendResetLinkForCurrentTenant((string) $data['email']);
@@ -146,14 +139,9 @@ class AuthController extends Controller
     /**
      * Redefinir a senha do usuário.
      */
-    public function resetPassword(Request $request, TenantPasswordResetService $passwordResetService)
+    public function resetPassword(ResetPasswordRequest $request, TenantPasswordResetService $passwordResetService)
     {
-        $data = $request->validate([
-            'email' => ['required', 'email'],
-            'token' => ['required', 'string'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'tenant_identifier' => ['sometimes', 'string'],
-        ]);
+        $data = $request->validated();
 
         $tenantIdentifier = $data['tenant_identifier'] ?? null;
 
@@ -182,10 +170,7 @@ class AuthController extends Controller
             ]);
         }
 
-        $tenant = Tenant::query()
-            ->where('id', $tenantIdentifier)
-            ->orWhere('slug', $tenantIdentifier)
-            ->first();
+        $tenant = $this->tenantRepository->findByIdOrSlug($tenantIdentifier);
 
         if (! $tenant) {
             return ApiResponseService::notFound('TENANT_NOT_FOUND');
@@ -267,16 +252,10 @@ class AuthController extends Controller
      *
      * PUT /api/v1/auth/me
      */
-    public function updateMe(Request $request)
+    public function updateMe(UpdateProfileRequest $request)
     {
         $user = $request->user();
-
-        $validated = $request->validate([
-            'name' => ['sometimes', 'string', 'max:255'],
-            'email' => ['sometimes', 'email', Rule::unique('users', 'email')->ignore($user->id)],
-            'locale' => ['sometimes', 'string', 'in:'.implode(',', LanguageService::SUPPORTED_LOCALES)],
-            'password' => ['sometimes', 'confirmed', PasswordRule::defaults()],
-        ]);
+        $validated = $request->validated();
 
         $user->fill(collect($validated)->except('password')->toArray());
 

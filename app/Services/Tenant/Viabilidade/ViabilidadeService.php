@@ -4,48 +4,54 @@ namespace App\Services\Tenant\Viabilidade;
 
 use App\Enums\WorkflowStatus;
 use App\Models\Tenant\Terreno;
+use App\Models\Tenant\User;
 use App\Models\Tenant\Viabilidade;
-use App\Models\Tenant\ViabilidadeAprovacao;
+use App\Repositories\Tenant\ViabilidadeRepository;
+use App\Services\Acl\PermissionNameResolver;
 use App\Services\Tenant\LandWorkflowService;
+use App\Services\Tenant\MobilePushService;
 use Exception;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class ViabilidadeService
 {
-    protected ViabilidadeUnificadoService $unificadoService;
-
     public function __construct(
-        ViabilidadeUnificadoService $unificadoService,
-        protected LandWorkflowService $workflowService,
-    ) {
-        $this->unificadoService = $unificadoService;
+        private readonly ViabilidadeUnificadoService $unificadoService,
+        private readonly LandWorkflowService $workflowService,
+        private readonly MobilePushService $mobilePushService,
+        private readonly PermissionNameResolver $permissions,
+        private readonly ViabilidadeRepository $repository,
+    ) {}
+
+    public function findOrFail(int|string $id): Viabilidade
+    {
+        return $this->repository->findOrFail($id);
+    }
+
+    public function findWithTrashedOrFail(int|string $id): Viabilidade
+    {
+        return $this->repository->findWithTrashedOrFail($id);
     }
 
     /**
      * Listar viabilidades por terreno
      */
-    public function listarViabilidadesPorTerreno(int $terrenoId)
+    public function listarViabilidadesPorTerreno(int $terrenoId): EloquentCollection
     {
-        return Viabilidade::with(['terreno', 'createdBy', 'updatedBy'])
-            ->where('terreno_id', $terrenoId)
-            ->orderByDesc('version')
-            ->orderByDesc('created_at')
-            ->get();
+        return $this->repository->listByTerreno($terrenoId);
     }
 
     /**
      * Buscar viabilidade atual (mais recente) de um terreno
      */
-    public function buscarViabilidadeAtual(int $terrenoId)
+    public function buscarViabilidadeAtual(int $terrenoId): ?Viabilidade
     {
-        return Viabilidade::with(['terreno', 'createdBy', 'updatedBy'])
-            ->where('terreno_id', $terrenoId)
-            ->where('is_current', true)
-            ->orderByDesc('version')
-            ->orderByDesc('created_at')
-            ->first();
+        return $this->repository->latestByTerreno($terrenoId);
     }
 
     /**
@@ -65,23 +71,22 @@ class ViabilidadeService
     /**
      * Criar nova viabilidade e gerar DRE automaticamente
      */
-    public function criarViabilidadeComDre(array $dados): array
+    public function criarViabilidadeComDre(array $dados, ?User $actor = null): array
     {
-        return DB::transaction(function () use ($dados) {
+        return DB::transaction(function () use ($dados, $actor) {
+            $actor ??= Auth::user();
             $this->validarDados($dados);
-            $terreno = Terreno::query()->findOrFail($dados['terreno_id']);
-            $nextVersion = ((int) Viabilidade::where('terreno_id', $dados['terreno_id'])->max('version')) + 1;
+            $terreno = $this->repository->findTerrenoOrFail($dados['terreno_id']);
+            $nextVersion = $this->repository->nextVersionForTerreno((int) $dados['terreno_id']);
 
-            Viabilidade::where('terreno_id', $dados['terreno_id'])
-                ->where('is_current', true)
-                ->update(['is_current' => false]);
+            $this->repository->clearCurrentForTerreno((int) $dados['terreno_id']);
 
-            $viabilidade = Viabilidade::create([
+            $viabilidade = $this->repository->create([
                 ...collect($dados)->except(['produtos'])->toArray(),
                 'version' => $nextVersion,
                 'is_current' => true,
-                'created_by' => Auth::id(),
-                'updated_by' => Auth::id(),
+                'created_by' => $actor?->id,
+                'updated_by' => $actor?->id,
             ]);
 
             $dreResultados = $this->unificadoService->gerarFluxoMensal(
@@ -90,7 +95,7 @@ class ViabilidadeService
                 $dados['produtos'] ?? null
             );
 
-            $viabilidade->update([
+            $viabilidade = $this->repository->update($viabilidade, [
                 'resultados_dre' => $dreResultados,
             ]);
 
@@ -100,7 +105,8 @@ class ViabilidadeService
             );
 
             return [
-                'viabilidade' => $viabilidade->load(['terreno', 'createdBy', 'updatedBy', 'secoes', 'aprovacoes']),
+                'viabilidade' => $this->repository->loadDefaultRelations($viabilidade),
+                'dre_resultados' => $dreResultados,
             ];
         });
     }
@@ -108,15 +114,18 @@ class ViabilidadeService
     /**
      * Atualizar viabilidade e recalcular DRE
      */
-    public function atualizarViabilidadeComDre(Viabilidade $viabilidade, array $dados): array
+    public function atualizarViabilidadeComDre(Viabilidade|int|string $viabilidade, array $dados, ?User $actor = null): array
     {
-        return DB::transaction(function () use ($viabilidade, $dados) {
+        return DB::transaction(function () use ($viabilidade, $dados, $actor) {
+            $actor ??= Auth::user();
+            $viabilidade = $viabilidade instanceof Viabilidade ? $viabilidade : $this->repository->findOrFail($viabilidade);
+
             // Se houver validação específica de update, chamar aqui
             // $this->validarDados($dados); // Opcional, dependendo da regra
 
-            $viabilidade->update([
+            $viabilidade = $this->repository->update($viabilidade, [
                 ...collect($dados)->except(['produtos'])->toArray(),
-                'updated_by' => Auth::id(),
+                'updated_by' => $actor?->id,
             ]);
 
             $dreResultados = $this->unificadoService->gerarFluxoMensal(
@@ -125,12 +134,12 @@ class ViabilidadeService
                 $dados['produtos'] ?? null
             );
 
-            $viabilidade->update([
+            $viabilidade = $this->repository->update($viabilidade, [
                 'resultados_dre' => $dreResultados,
             ]);
 
             return [
-                'viabilidade' => $viabilidade->fresh(['terreno', 'createdBy', 'updatedBy', 'secoes', 'aprovacoes']),
+                'viabilidade' => $this->repository->loadDefaultRelations($viabilidade),
                 'dre_resultados' => $dreResultados,
             ];
         });
@@ -139,34 +148,24 @@ class ViabilidadeService
     /**
      * Buscar viabilidade com DRE por ID
      */
-    public function buscarViabilidadeComDre(int $viabilidadeId): array
+    public function buscarViabilidadeComDre(Viabilidade|int|string $viabilidade): array
     {
-        try {
-            $viabilidade = Viabilidade::with(['terreno.cidade', 'createdBy', 'updatedBy'])
-                ->findOrFail($viabilidadeId);
+        $viabilidade = $viabilidade instanceof Viabilidade ? $viabilidade : $this->repository->findOrFail($viabilidade);
+        $viabilidade = $this->repository->loadDreRelations($viabilidade);
 
-            $dreResultados = $viabilidade->resultados_dre;
+        $dreResultados = $viabilidade->resultados_dre;
 
-            // Verifica se precisa recalcular (estrutura antiga ou vazio)
-            if ($this->precisaRecalcularDre($dreResultados)) {
-                $dreResultados = $this->recalcularDre($viabilidade)['dre_resultados'];
-            }
-
-            return [
-                'viabilidade' => $viabilidade,
-                'dre_resultados' => $dreResultados,
-            ];
-
-        } catch (Exception $e) {
-            Log::error('Erro ao buscar viabilidade com DRE', [
-                'viabilidade_id' => $viabilidadeId,
-                'error' => $e->getMessage(),
-            ]);
-            throw new Exception('Erro ao buscar viabilidade: '.$e->getMessage());
+        if ($this->precisaRecalcularDre($dreResultados)) {
+            $dreResultados = $this->recalcularDre($viabilidade)['dre_resultados'];
         }
+
+        return [
+            'viabilidade' => $this->repository->loadDreRelations($viabilidade),
+            'dre_resultados' => $dreResultados,
+        ];
     }
 
-    private function precisaRecalcularDre($dreResultados): bool
+    private function precisaRecalcularDre(mixed $dreResultados): bool
     {
         if (empty($dreResultados)) {
             return true;
@@ -187,24 +186,9 @@ class ViabilidadeService
     /**
      * Listar todas as viabilidades com paginação e filtros
      */
-    public function listarTodasViabilidades(array $filtros = [])
+    public function listarTodasViabilidades(array $filtros = []): LengthAwarePaginator
     {
-        $query = Viabilidade::with(['terreno', 'createdBy', 'updatedBy']);
-
-        if (! empty($filtros['search'])) {
-            $search = $filtros['search'];
-            $query->whereHas('terreno', function ($q) use ($search) {
-                $q->where('nome', 'like', "%{$search}%");
-            });
-        }
-
-        if (! empty($filtros['terreno_id'])) {
-            $query->where('terreno_id', $filtros['terreno_id']);
-        }
-
-        return $query->orderBy('created_at', 'desc')
-            ->orderByDesc('version')
-            ->paginate($filtros['per_page'] ?? 10);
+        return $this->repository->paginate($filtros);
     }
 
     /**
@@ -216,7 +200,7 @@ class ViabilidadeService
             throw new Exception('ID do terreno é obrigatório');
         }
 
-        if (! Terreno::find($dados['terreno_id'])) {
+        if (! $this->repository->terrenoExists($dados['terreno_id'])) {
             throw new Exception('Terreno não encontrado');
         }
 
@@ -243,14 +227,15 @@ class ViabilidadeService
     /**
      * Duplicar viabilidade (para criar nova versão)
      */
-    public function duplicarViabilidade(int $viabilidadeId): Viabilidade
+    public function duplicarViabilidade(int $viabilidadeId, ?User $actor = null): Viabilidade
     {
-        $viabilidadeOriginal = Viabilidade::findOrFail($viabilidadeId);
-        $nextVersion = ((int) Viabilidade::where('terreno_id', $viabilidadeOriginal->terreno_id)->max('version')) + 1;
+        $actor ??= Auth::user();
+        $viabilidadeOriginal = $this->repository->findOrFail($viabilidadeId);
+        $nextVersion = $this->repository->nextVersionForTerreno($viabilidadeOriginal->terreno_id);
 
         $dadosNova = $viabilidadeOriginal->toArray();
-        $dadosNova['created_by'] = Auth::id();
-        $dadosNova['updated_by'] = Auth::id();
+        $dadosNova['created_by'] = $actor?->id;
+        $dadosNova['updated_by'] = $actor?->id;
         $dadosNova['resultados_dre'] = null;
         $dadosNova['approval_status'] = 'pendente';
         $dadosNova['approval_requested_at'] = null;
@@ -263,25 +248,15 @@ class ViabilidadeService
         $dadosNova['version'] = $nextVersion;
         $dadosNova['is_current'] = true;
 
-        Viabilidade::where('terreno_id', $viabilidadeOriginal->terreno_id)
-            ->where('is_current', true)
-            ->update(['is_current' => false]);
+        $this->repository->clearCurrentForTerreno($viabilidadeOriginal->terreno_id);
 
         // Remove campos gerados automaticamente
         unset($dadosNova['id'], $dadosNova['created_at'], $dadosNova['updated_at'], $dadosNova['deleted_at']);
 
-        $novaViabilidade = Viabilidade::create($dadosNova);
-        $viabilidadeOriginal->loadMissing('secoes');
-        foreach ($viabilidadeOriginal->secoes as $secao) {
-            $novaViabilidade->secoes()->create([
-                'section_code' => $secao->section_code,
-                'section_name' => $secao->section_name,
-                'content_json' => $secao->content_json,
-                'status' => $secao->status,
-            ]);
-        }
+        $novaViabilidade = $this->repository->create($dadosNova);
+        $this->repository->copySections($viabilidadeOriginal, $novaViabilidade);
 
-        return $novaViabilidade;
+        return $this->repository->loadDefaultRelations($novaViabilidade);
     }
 
     /**
@@ -289,44 +264,236 @@ class ViabilidadeService
      */
     public function excluirViabilidade(int $viabilidadeId): bool
     {
-        $viabilidade = Viabilidade::findOrFail($viabilidadeId);
+        $viabilidade = $this->repository->findOrFail($viabilidadeId);
 
-        return $viabilidade->delete();
+        return $this->repository->delete($viabilidade);
     }
 
     /**
      * Recalcular DRE de uma viabilidade existente
      */
-    public function recalcularDre(Viabilidade $viabilidade): array
+    public function recalcularDre(Viabilidade|int|string $viabilidade, ?User $actor = null): array
     {
-        return DB::transaction(function () use ($viabilidade) {
+        return DB::transaction(function () use ($viabilidade, $actor) {
+            $actor ??= Auth::user();
+            $viabilidade = $viabilidade instanceof Viabilidade ? $viabilidade : $this->repository->findOrFail($viabilidade);
+
             $dreResultados = $this->unificadoService->gerarFluxoMensal(
                 $viabilidade->terreno_id,
                 $viabilidade->id
             );
 
-            $viabilidade->update([
+            $viabilidade = $this->repository->update($viabilidade, [
                 'resultados_dre' => $dreResultados,
-                'updated_by' => Auth::id(),
+                'updated_by' => $actor?->id,
                 'updated_at' => now(),
             ]);
 
             return [
-                'viabilidade' => $viabilidade->fresh(['terreno', 'createdBy', 'updatedBy']),
+                'viabilidade' => $this->repository->loadDefaultRelations($viabilidade),
                 'dre_resultados' => $dreResultados,
             ];
         });
     }
 
-    public function registrarAprovacao(Viabilidade $viabilidade, string $decision, ?string $comments = null): void
+    public function registrarAprovacao(Viabilidade $viabilidade, string $decision, ?string $comments = null, ?User $actor = null): void
     {
-        ViabilidadeAprovacao::create([
-            'viabilidade_id' => $viabilidade->id,
-            'user_id' => Auth::id(),
-            'decision' => $decision,
-            'comments' => $comments,
-            'created_at' => now(),
+        $actor ??= Auth::user();
+
+        $this->repository->createApproval($viabilidade, $actor?->id, $decision, $comments);
+    }
+
+    public function ativar(int|string $viabilidadeId, ?User $actor = null): Viabilidade
+    {
+        $actor ??= Auth::user();
+        $viabilidade = $this->repository->findOrFail($viabilidadeId);
+
+        return $this->repository->loadDefaultRelations(
+            $this->repository->update($viabilidade, [
+                'status' => 'ativo',
+                'updated_by' => $actor?->id,
+            ])
+        );
+    }
+
+    public function solicitarAprovacao(int|string $viabilidadeId, ?string $approvalNotes, ?User $actor = null): Viabilidade
+    {
+        $actor ??= Auth::user();
+        $viabilidade = $this->repository->loadDefaultRelations(
+            $this->repository->findOrFail($viabilidadeId)
+        );
+
+        $viabilidade = $this->repository->update($viabilidade, [
+            'approval_status' => 'em_aprovacao',
+            'approval_requested_at' => now(),
+            'submitted_at' => now(),
+            'approval_decided_at' => null,
+            'approval_decided_by' => null,
+            'approval_notes' => $approvalNotes,
+            'updated_by' => $actor?->id,
         ]);
+
+        $terreno = $viabilidade->terreno ?? $this->repository->findTerrenoOrFail($viabilidade->terreno_id);
+
+        $this->workflowService->transition(
+            $terreno,
+            WorkflowStatus::AGUARDANDO_VIABILIDADE->value,
+            $actor,
+            'viability_submitted',
+            $approvalNotes,
+        );
+
+        $this->mobilePushService->notifyUsersWithPermission(
+            (string) $this->permissions->forModel(Viabilidade::class, 'approve'),
+            [
+                'title' => 'Viabilidade aguardando aprovação',
+                'body' => "A viabilidade do terreno {$terreno->nome} aguarda decisão.",
+                'type' => 'viabilidade.solicitar_aprovacao',
+                'entity_type' => 'viabilidade',
+                'entity_id' => (string) $viabilidade->id,
+                'target_route' => "/terrenos/{$viabilidade->terreno_id}",
+                'payload' => [
+                    'tenant_slug' => tenant('slug'),
+                    'viabilidade_id' => $viabilidade->id,
+                    'terreno_id' => $viabilidade->terreno_id,
+                ],
+            ],
+            $actor
+        );
+
+        return $this->repository->loadDefaultRelations($viabilidade);
+    }
+
+    public function decidirAprovacao(int|string $viabilidadeId, string $decision, ?string $approvalNotes, ?User $actor = null): Viabilidade
+    {
+        $actor ??= Auth::user();
+        $viabilidade = $this->repository->loadDefaultRelations(
+            $this->repository->findOrFail($viabilidadeId)
+        );
+
+        $approvalStatus = $viabilidade->approval_status ?? ($viabilidade->status === 'ativo' ? 'aprovada' : 'pendente');
+
+        if ($approvalStatus !== 'em_aprovacao') {
+            throw ValidationException::withMessages([
+                'approval_notes' => ['A viabilidade precisa estar em aprovação antes desta decisão.'],
+            ]);
+        }
+
+        $payload = [
+            'approval_status' => $decision,
+            'approval_decided_at' => now(),
+            'approval_decided_by' => $actor?->id,
+            'approval_notes' => $approvalNotes ?? $viabilidade->approval_notes,
+            'updated_by' => $actor?->id,
+        ];
+
+        if ($decision === 'aprovada') {
+            $payload['status'] = 'ativo';
+            $payload['locked_at'] = now();
+        } else {
+            $payload['status'] = 'rascunho';
+            $payload['locked_at'] = null;
+        }
+
+        $viabilidade = $this->repository->update($viabilidade, $payload);
+        $this->registrarAprovacao($viabilidade, $decision, $approvalNotes, $actor);
+
+        $terreno = $viabilidade->terreno ?? $this->repository->findTerrenoOrFail($viabilidade->terreno_id);
+
+        $this->workflowService->transition(
+            $terreno,
+            $decision === 'aprovada' ? WorkflowStatus::VIABILIDADE_APROVADA->value : WorkflowStatus::EM_ANALISE->value,
+            $actor,
+            'viability_decided',
+            $approvalNotes,
+        );
+
+        $this->mobilePushService->notifyAllUsers(
+            [
+                'title' => $decision === 'aprovada'
+                    ? 'Viabilidade aprovada'
+                    : 'Viabilidade reprovada',
+                'body' => $decision === 'aprovada'
+                    ? "A viabilidade do terreno {$terreno->nome} foi aprovada."
+                    : "A viabilidade do terreno {$terreno->nome} foi reprovada.",
+                'type' => $decision === 'aprovada'
+                    ? 'viabilidade.aprovada'
+                    : 'viabilidade.reprovada',
+                'entity_type' => 'viabilidade',
+                'entity_id' => (string) $viabilidade->id,
+                'target_route' => "/terrenos/{$viabilidade->terreno_id}",
+                'payload' => [
+                    'tenant_slug' => tenant('slug'),
+                    'viabilidade_id' => $viabilidade->id,
+                    'terreno_id' => $viabilidade->terreno_id,
+                ],
+            ],
+            $actor
+        );
+
+        return $this->repository->loadDefaultRelations($viabilidade);
+    }
+
+    public function restore(int|string $viabilidadeId): Viabilidade
+    {
+        $viabilidade = $this->repository->findWithTrashedOrFail($viabilidadeId);
+
+        return $this->repository->loadDefaultRelations(
+            $this->repository->restore($viabilidade)
+        );
+    }
+
+    /**
+     * @return Collection<int, array{id: int, label: string, terreno_id: int}>
+     */
+    public function forSelect(?int $terrenoId = null): Collection
+    {
+        return $this->repository->forSelect($terrenoId)->map(function (Viabilidade $viabilidade): array {
+            $data = $viabilidade->created_at?->format('d/m/Y H:i') ?? '';
+
+            return [
+                'id' => $viabilidade->id,
+                'label' => "Viabilidade #{$viabilidade->id} - {$viabilidade->terreno?->nome} ({$data})",
+                'terreno_id' => $viabilidade->terreno_id,
+            ];
+        })->values();
+    }
+
+    /**
+     * @return array{viabilidade_1: array<string, mixed>, viabilidade_2: array<string, mixed>}
+     */
+    public function compareByIds(int $id1, int $id2): array
+    {
+        return [
+            'viabilidade_1' => $this->buscarViabilidadeComDre($id1),
+            'viabilidade_2' => $this->buscarViabilidadeComDre($id2),
+        ];
+    }
+
+    /**
+     * @return array{viabilidade: Viabilidade, dre: array<string, mixed>, dataGeracao: string}
+     */
+    public function exportData(int|string $viabilidadeId): array
+    {
+        $resultado = $this->buscarViabilidadeComDre($viabilidadeId);
+        /** @var Viabilidade $viabilidade */
+        $viabilidade = $resultado['viabilidade'];
+        $dre = $resultado['dre_resultados'];
+
+        if (! $dre || ! isset($dre['totais'])) {
+            $resultado = $this->recalcularDre($viabilidade);
+            $dre = $resultado['dre_resultados'];
+        }
+
+        if (! $dre) {
+            throw new Exception('Não foi possível carregar ou gerar os dados do DRE para esta viabilidade.');
+        }
+
+        return [
+            'viabilidade' => $viabilidade,
+            'dre' => $dre,
+            'dataGeracao' => now()->format('d/m/Y H:i'),
+        ];
     }
 
     protected function advanceWorkflowForNewViability(Terreno $terreno, int $version): void

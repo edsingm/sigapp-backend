@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Tenant;
 
+use App\Models\Tenant\Projeto;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 
 class StoreProjetoRequest extends FormRequest
 {
@@ -11,7 +13,7 @@ class StoreProjetoRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return Gate::allows('create', Projeto::class);
     }
 
     /**

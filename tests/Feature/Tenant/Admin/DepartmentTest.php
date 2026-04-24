@@ -2,6 +2,10 @@
 
 namespace Tests\Feature\Tenant\Admin;
 
+use App\Http\Middleware\AddTenantContextToLogs;
+use App\Http\Middleware\ApiRequestLogger;
+use App\Http\Middleware\CheckSubscriptionStatus;
+use App\Http\Middleware\InitializeTenancyFlexible;
 use App\Models\Tenant\Department;
 use App\Models\Tenant\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -19,6 +23,13 @@ class DepartmentTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->withoutMiddleware([
+            InitializeTenancyFlexible::class,
+            AddTenantContextToLogs::class,
+            ApiRequestLogger::class,
+            CheckSubscriptionStatus::class,
+        ]);
 
         $this->artisan('migrate', ['--path' => 'database/migrations/tenant', '--realpath' => false]);
 
@@ -131,7 +142,7 @@ class DepartmentTest extends TestCase
             ->deleteJson("/api/v1/tenant-admin/departments/{$department->id}");
 
         $response->assertStatus(422)
-            ->assertJsonPath('error', 'DEPARTMENT_IN_USE');
+            ->assertJsonPath('error.code', 'DEPARTMENT_IN_USE');
     }
 
     public function test_lists_active_departments_for_select(): void

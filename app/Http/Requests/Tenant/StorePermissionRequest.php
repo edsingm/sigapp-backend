@@ -4,6 +4,7 @@ namespace App\Http\Requests\Tenant;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StorePermissionRequest extends FormRequest
 {
@@ -12,7 +13,9 @@ class StorePermissionRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        $user = $this->user();
+
+        return $user !== null && $user->hasAnyRole(['admin', 'ADMIN', 'director', 'DIRECTOR']);
     }
 
     /**
@@ -23,8 +26,12 @@ class StorePermissionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required|string|max:255|unique:permissions,name',
-            'guard_name' => 'nullable|string|max:255',
+            'name' => [
+                'required',
+                'string',
+                'max:160',
+                Rule::unique('permissions', 'name')->where('guard_name', 'web'),
+            ],
         ];
     }
 

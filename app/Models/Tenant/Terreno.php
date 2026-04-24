@@ -2,6 +2,7 @@
 
 namespace App\Models\Tenant;
 
+use App\Enums\ProjetoStatus;
 use App\Enums\WorkflowStatus;
 use App\Models\Central\Cidade;
 use App\Traits\HasDashboardCache;
@@ -282,8 +283,8 @@ class Terreno extends Model
     {
         return $this->hasOne(Projeto::class, 'terreno_id')
             ->whereIn('status', [
-                Projeto::STATUS_EM_VIABILIDADE,
-                Projeto::STATUS_EM_LEGALIZACAO,
+                ProjetoStatus::EM_VIABILIDADE,
+                ProjetoStatus::EM_LEGALIZACAO,
             ])
             ->latestOfMany();
     }

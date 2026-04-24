@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Http\Controllers\Controller;
 use App\Models\Tenant\Terreno;
+use App\Repositories\Tenant\TerrenoRepository;
 use App\Services\AiPredictiveAnalysisService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Gate;
@@ -11,7 +12,8 @@ use Illuminate\Support\Facades\Gate;
 class AiPredictiveAnalysisController extends Controller
 {
     public function __construct(
-        protected AiPredictiveAnalysisService $predictiveService
+        protected AiPredictiveAnalysisService $predictiveService,
+        protected TerrenoRepository $terrenoRepository,
     ) {}
 
     /**
@@ -23,7 +25,7 @@ class AiPredictiveAnalysisController extends Controller
             return new JsonResponse(['message' => 'Acesso negado.'], 403);
         }
 
-        $terreno = Terreno::find($terrenoId);
+        $terreno = $this->terrenoRepository->findById($terrenoId);
         if (! $terreno) {
             return new JsonResponse(['message' => 'Terreno não encontrado.'], 404);
         }
@@ -46,7 +48,7 @@ class AiPredictiveAnalysisController extends Controller
             return new JsonResponse(['message' => 'Acesso negado.'], 403);
         }
 
-        $terreno = Terreno::find($terrenoId);
+        $terreno = $this->terrenoRepository->findById($terrenoId);
         if (! $terreno) {
             return new JsonResponse(['message' => 'Terreno não encontrado.'], 404);
         }

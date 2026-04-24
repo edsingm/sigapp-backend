@@ -4,8 +4,9 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SignupRequest;
-use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
+use App\Repositories\Contracts\PlanRepositoryInterface;
+use App\Repositories\Contracts\TenantRepositoryInterface;
 use App\Services\ApiResponseService;
 use App\Services\Billing\StripeCheckoutService;
 use App\Services\Billing\TenantBillingService;
@@ -23,6 +24,8 @@ class SignupController extends Controller
         protected TenantBillingService $billingService,
         protected TenantSignupService $signupService,
         protected StripeCheckoutService $checkoutService,
+        protected PlanRepositoryInterface $planRepository,
+        protected TenantRepositoryInterface $tenantRepository,
     ) {}
 
     /**
@@ -34,7 +37,7 @@ class SignupController extends Controller
     {
         $validated = $request->validated();
 
-        $plan = Plan::where('slug', $validated['plan_slug'])->active()->first();
+        $plan = $this->planRepository->findActiveBySlug($validated['plan_slug']);
 
         if (! $plan) {
             return ApiResponseService::notFound('PLAN_NOT_FOUND');
@@ -105,7 +108,7 @@ class SignupController extends Controller
             $session = $this->billingService->retrieveCheckoutSession($sessionId);
 
             $tenantId = data_get($session, 'metadata.tenant_id');
-            $tenant = $tenantId ? Tenant::find($tenantId) : null;
+            $tenant = $tenantId ? $this->tenantRepository->findById($tenantId) : null;
             $tenant ??= $this->billingService->findTenantBySignupCheckoutSessionId($sessionId);
 
             if (! $tenant) {

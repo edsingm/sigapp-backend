@@ -1,0 +1,52 @@
+includes:
+    - vendor/phpstan/phpstan/conf/bleedingEdge.neon
+    - phpstan.baseline.neon
+
+parameters:
+    level: 8
+    paths:
+        - app
+        - tests
+    excludePaths:
+        - app/Http/Controllers/Api/V1/Admin/AdminBrokersController.php (?)
+        - app/Http/Controllers/Api/V1/Admin/PlanAdminController.php (?)
+    ignoreErrors:
+        # Eloquent Model return types that don't match static analysis expectations
+        - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Builder::firstOrFail\(\)#'
+        - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Builder::findOrFail\(\)#'
+        - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Builder::find\(\)#'
+        - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Builder::first\(\)#'
+        - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Builder::get\(\)#'
+        - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Builder::pluck\(\)#'
+        - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Builder::exists\(\)#'
+        - '#Call to an undefined static method App\\Models\\.+::orderBy\(\)#'
+        - '#Call to an undefined static method App\\Models\\.+::search\(\)#'
+        - '#Call to an undefined static method App\\Models\\.+::findOrFail\(\)#'
+        - '#Call to an undefined static method App\\Models\\.+::create\(\)#'
+        - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Builder.+::search\(\)#'
+        - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Builder.+::orderBy\(\)#'
+        - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Builder.+::first\(\)#'
+        - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Builder.+::get\(\)#'
+        - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Builder.+::pluck\(\)#'
+        - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Builder.+::select\(\)#'
+        - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Builder.+::with\(\)#'
+        - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Builder.+::whereHas\(\)#'
+        - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Builder.+::doesntHave\(\)#'
+        - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Builder.+::orWhere\(\)#'
+        - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Builder.+::whereDate\(\)#'
+        - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Builder.+::latest\(\)#'
+        - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Builder.+::orderByDesc\(\)#'
+        - '#Call to an undefined method Illuminate\\Database\\Query\\Builder::.+#'
+        - '#Method .+ return type has no signature intersection with interface App\\Repositories\\Contracts\\.+Interface#'
+        - '#Parameter .+ of method App\\Repositories\\Contracts\\.+Interface::.+ has wrong type#'
+        - '#Method .+ return type has no signature intersection with interface Illuminate\\Database\\Eloquent\\Model#'
+        - '#Parameter .+ of method has wrong type Illuminate\\Database\\Eloquent\\Builder#'
+        - '#Method .+ return type with generic class Illuminate\\Database\\Eloquent\\Collection does not specify its types#'
+        - '#Method .+ return type with generic class Illuminate\\Contracts\\Pagination\\LengthAwarePaginator does not specify its types#'
+        - '#Call to an undefined method Illuminate\\Contracts\\Pagination\\LengthAwarePaginator::getCollection\(\)#'
+        - '#Method .+ has parameter .+ with no value type specified in iterable type array#'
+        - '#Method .+ return type with generic interface Illuminate\\Database\\Eloquent\\Builder does not specify its types#'
+        - '#Method .+ return type with generic interface Illuminate\\Contracts\\Pagination\\LengthAwarePaginator does not specify its types#'
+        - '#Call to an undefined static method App\\Models\\Tenant\\Projeto::find\(\)#'
+    reportUnmatchedIgnoredErrors: false
+    phpVersion: 80200

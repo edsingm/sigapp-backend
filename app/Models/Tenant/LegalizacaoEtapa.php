@@ -2,6 +2,7 @@
 
 namespace App\Models\Tenant;
 
+use App\Enums\LegalizacaoEtapaStatus;
 use App\Traits\HasDashboardCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -12,16 +13,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class LegalizacaoEtapa extends Model
 {
     use HasDashboardCache, HasFactory, SoftDeletes;
-
-    public const STATUS_PENDENTE = 'pendente';
-
-    public const STATUS_EM_ANDAMENTO = 'em_andamento';
-
-    public const STATUS_CONCLUIDA = 'concluida';
-
-    public const STATUS_BLOQUEADA = 'bloqueada';
-
-    public const STATUS_ATRASADA = 'atrasada';
 
     protected $table = 'legalizacao_etapas';
 
@@ -52,6 +43,7 @@ class LegalizacaoEtapa extends Model
     ];
 
     protected $casts = [
+        'status' => LegalizacaoEtapaStatus::class,
         'inicio_planejado' => 'date',
         'fim_planejado' => 'date',
         'inicio_real' => 'date',

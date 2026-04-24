@@ -29,6 +29,11 @@ class PositionService
         return $this->repository->allActive();
     }
 
+    public function findById(int $id): ?Position
+    {
+        return $this->repository->findById($id);
+    }
+
     /**
      * @param  array<string, mixed>  $data
      */

@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Tenant;
 
 use App\Enums\WorkflowStatus;
+use App\Models\Tenant\Terreno;
 use Illuminate\Foundation\Http\FormRequest;
 
 class FilterTerrenosRequest extends FormRequest
@@ -12,7 +13,7 @@ class FilterTerrenosRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return (bool) $this->user()?->can('viewAny', Terreno::class);
     }
 
     /**

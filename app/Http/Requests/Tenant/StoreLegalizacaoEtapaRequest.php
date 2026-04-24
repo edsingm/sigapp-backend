@@ -12,7 +12,7 @@ class StoreLegalizacaoEtapaRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return (bool) $this->user()?->can('create', \App\Models\Tenant\LegalizacaoEtapa::class);
     }
 
     /**

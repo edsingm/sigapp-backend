@@ -14,7 +14,9 @@ class StoreUserRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        $user = $this->user();
+
+        return $user !== null && $user->hasAnyRole(['admin', 'ADMIN', 'director', 'DIRECTOR']);
     }
 
     /**
@@ -33,17 +35,11 @@ class StoreUserRequest extends FormRequest
                 'email',
                 'max:255',
                 Rule::unique(User::class),
-                function ($attribute, $value, $fail) {
-                    if (! str_ends_with($value, '@lrgconstrutora.com.br')) {
-                        $fail('O e-mail deve ser um endereço institucional @lrgconstrutora.com.br.');
-                    }
-                },
             ],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'department_id' => ['required', 'integer', 'exists:departments,id'],
             'position_id' => ['required', 'integer', 'exists:positions,id'],
-            'roles' => ['nullable', 'array'],
-            'roles.*' => ['exists:roles,id'],
+            'role' => ['nullable', 'string', Rule::exists('roles', 'name')],
             'status' => ['nullable', 'string', 'in:Active,Inactive,Suspended'],
             'phone' => ['nullable', 'string', 'max:20'],
             'cpf' => ['nullable', 'string', 'max:14', 'unique:users'],

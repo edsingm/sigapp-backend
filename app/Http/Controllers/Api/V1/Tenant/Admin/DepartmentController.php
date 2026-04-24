@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\StoreDepartmentRequest;
 use App\Http\Requests\Tenant\UpdateDepartmentRequest;
 use App\Http\Resources\Tenant\DepartmentResource;
-use App\Models\Tenant\Department;
 use App\Services\ApiResponseService;
 use App\Services\Tenant\DepartmentService;
 use Illuminate\Http\JsonResponse;
@@ -28,7 +27,7 @@ class DepartmentController extends Controller
             'per_page' => (int) $request->integer('per_page', 15),
         ]);
 
-        $departments->through(fn (Department $d) => (new DepartmentResource($d))->toArray($request));
+        $departments->through(fn ($department) => (new DepartmentResource($department))->toArray($request));
 
         return ApiResponseService::paginated($departments, 'Departments retrieved successfully.');
     }
@@ -45,7 +44,7 @@ class DepartmentController extends Controller
 
     public function show(int $id): JsonResponse
     {
-        $department = Department::find($id);
+        $department = $this->service->findById($id);
 
         if (! $department) {
             return ApiResponseService::notFound('Department not found.');
@@ -63,7 +62,7 @@ class DepartmentController extends Controller
 
     public function update(UpdateDepartmentRequest $request, int $id): JsonResponse
     {
-        $department = Department::find($id);
+        $department = $this->service->findById($id);
 
         if (! $department) {
             return ApiResponseService::notFound('Department not found.');
@@ -76,7 +75,7 @@ class DepartmentController extends Controller
 
     public function destroy(int $id): JsonResponse
     {
-        $department = Department::find($id);
+        $department = $this->service->findById($id);
 
         if (! $department) {
             return ApiResponseService::notFound('Department not found.');

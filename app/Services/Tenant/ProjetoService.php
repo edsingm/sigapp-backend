@@ -2,6 +2,7 @@
 
 namespace App\Services\Tenant;
 
+use App\Enums\ProjetoStatus;
 use App\Enums\WorkflowStatus;
 use App\Http\Resources\Tenant\ComiteRevisaoResource;
 use App\Http\Resources\Tenant\ContratoResource;
@@ -25,6 +26,7 @@ class ProjetoService
     public function __construct(
         protected LegalizacaoService $legalizacaoService,
         protected LandWorkflowService $workflowService,
+        protected \App\Repositories\Contracts\ProjetoRepositoryInterface $repository,
     ) {}
 
     /**
@@ -32,38 +34,7 @@ class ProjetoService
      */
     public function listar(array $filters = []): LengthAwarePaginator
     {
-        $query = Projeto::query()
-            ->with([
-                'responsavel',
-                'terreno',
-                'terreno.viabilidadeAtual.approvalDecidedBy',
-                'terreno.comiteAtual',
-                'terreno.negociacaoAtual',
-                'terreno.contratoAtual',
-                'terreno.legalizacao',
-                'prontoParaRegistroPor',
-            ]);
-
-        if (! empty($filters['status'])) {
-            $query->where('status', $filters['status']);
-        }
-
-        if (! empty($filters['search'])) {
-            $search = $filters['search'];
-            $query->where(function (Builder $builder) use ($search) {
-                $builder
-                    ->where('nome', 'like', "%{$search}%")
-                    ->orWhereHas('terreno', function (Builder $terrenoQuery) use ($search) {
-                        $terrenoQuery
-                            ->where('nome', 'like', "%{$search}%")
-                            ->orWhere('endereco', 'like', "%{$search}%");
-                    });
-            });
-        }
-
-        $paginator = $query
-            ->orderByDesc('created_at')
-            ->paginate($filters['per_page'] ?? 10);
+        $paginator = $this->repository->listWithFilters($filters);
 
         $paginator->getCollection()->each(function (Projeto $projeto) {
             $this->refreshStatus($projeto);
@@ -106,11 +77,11 @@ class ProjetoService
             $terreno = $this->validarTerrenoElegivel($data['terreno_id']);
             $this->validarProjetoAtivoUnico($terreno->id);
 
-            $projeto = Projeto::create([
+            $projeto = $this->repository->create([
                 'nome' => $data['nome'],
                 'terreno_id' => $terreno->id,
                 'responsavel_id' => $data['responsavel_id'] ?? null,
-                'status' => Projeto::STATUS_EM_LEGALIZACAO,
+                'status' => ProjetoStatus::EM_LEGALIZACAO,
                 'created_by' => Auth::id(),
                 'updated_by' => Auth::id(),
             ]);
@@ -140,35 +111,11 @@ class ProjetoService
      */
     public function buscar(int $id): Projeto
     {
-        $projeto = Projeto::query()
-            ->with([
-                'responsavel',
-                'createdBy',
-                'updatedBy',
-                'prontoParaRegistroPor',
-                'terreno',
-                'terreno.cidade',
-                'terreno.responsavel',
-                'terreno.proprietarios',
-                'terreno.contatos',
-                'terreno.informacoes',
-                'terreno.viabilidadeAtual.createdBy',
-                'terreno.viabilidadeAtual.approvalDecidedBy',
-                'terreno.viabilidadeAtual.secoes',
-                'terreno.viabilidadeAtual.aprovacoes.user',
-                'terreno.comiteAtual.pareceresDepartamento',
-                'terreno.comiteAtual.pendencias',
-                'terreno.negociacaoAtual.eventos',
-                'terreno.contratoAtual.negociacao',
-                'terreno.contratoAtual.partes',
-                'terreno.legalizacao.terreno',
-                'terreno.legalizacao.responsavel',
-                'terreno.legalizacao.etapas',
-                'terreno.legalizacao.pendencias',
-                'terreno.tasks.assignedUser',
-                'terreno.activities',
-            ])
-            ->findOrFail($id);
+        $projeto = $this->repository->findWithFullRelations($id);
+
+        if (! $projeto) {
+            throw new \RuntimeException('Projeto não encontrado.');
+        }
 
         $this->refreshStatus($projeto);
 
@@ -218,7 +165,7 @@ class ProjetoService
             $payload['responsavel_id'] = $data['responsavel_id'];
         }
 
-        if (array_key_exists('status', $data) && ! in_array($projeto->status, [Projeto::STATUS_FINALIZADO, Projeto::STATUS_CANCELADO], true)) {
+        if (array_key_exists('status', $data) && ! in_array($projeto->status, [ProjetoStatus::FINALIZADO, ProjetoStatus::CANCELADO], true)) {
             $payload['status'] = $data['status'];
         }
 
@@ -235,7 +182,7 @@ class ProjetoService
     public function cancelar(Projeto $projeto): Projeto
     {
         $projeto->update([
-            'status' => Projeto::STATUS_CANCELADO,
+            'status' => ProjetoStatus::CANCELADO,
             'updated_by' => Auth::id(),
         ]);
 
@@ -256,7 +203,7 @@ class ProjetoService
 
         return DB::transaction(function () use ($projeto) {
             $projeto->update([
-                'status' => Projeto::STATUS_FINALIZADO,
+                'status' => ProjetoStatus::FINALIZADO,
                 'updated_by' => Auth::id(),
             ]);
 
@@ -280,9 +227,9 @@ class ProjetoService
         $terreno = $projeto->terreno;
         $legalizacao = $terreno?->legalizacao;
         $projectIsActive = ! in_array($projeto->status, [
-            Projeto::STATUS_FINALIZADO,
-            Projeto::STATUS_CANCELADO,
-            Projeto::STATUS_PRONTO_PARA_REGISTRO,
+            ProjetoStatus::FINALIZADO,
+            ProjetoStatus::CANCELADO,
+            ProjetoStatus::PRONTO_PARA_REGISTRO,
         ], true);
 
         return [
@@ -321,9 +268,9 @@ class ProjetoService
     public function refreshStatus(Projeto $projeto): Projeto
     {
         if (in_array($projeto->status, [
-            Projeto::STATUS_FINALIZADO,
-            Projeto::STATUS_CANCELADO,
-            Projeto::STATUS_PRONTO_PARA_REGISTRO,
+            ProjetoStatus::FINALIZADO,
+            ProjetoStatus::CANCELADO,
+            ProjetoStatus::PRONTO_PARA_REGISTRO,
         ], true)) {
             return $projeto;
         }
@@ -349,9 +296,7 @@ class ProjetoService
      */
     protected function validarTerrenoElegivel(int $terrenoId): Terreno
     {
-        $terreno = Terreno::query()
-            ->with(['legalizacao'])
-            ->findOrFail($terrenoId);
+        $terreno = $this->repository->findTerrenoElegivel($terrenoId);
 
         if ($terreno->workflow_status_code !== WorkflowStatus::CONTRATO_ASSINADO->value) {
             throw new \RuntimeException('Somente terrenos com status "Contrato Assinado" podem iniciar um projeto.');
@@ -367,15 +312,7 @@ class ProjetoService
      */
     protected function validarProjetoAtivoUnico(int $terrenoId): void
     {
-        $exists = Projeto::query()
-            ->where('terreno_id', $terrenoId)
-            ->whereIn('status', [
-                Projeto::STATUS_EM_VIABILIDADE,
-                Projeto::STATUS_EM_LEGALIZACAO,
-            ])
-            ->exists();
-
-        if ($exists) {
+        if ($this->repository->existsActiveProjetoForTerreno($terrenoId)) {
             throw new \RuntimeException('Já existe um projeto ativo para este terreno.');
         }
     }
@@ -386,14 +323,14 @@ class ProjetoService
     protected function resolveStatusFromRelations(?Terreno $terreno): string
     {
         if (in_array($terreno?->workflow_status_code, [WorkflowStatus::LEGALIZADO_FINALIZADO->value], true)) {
-            return Projeto::STATUS_FINALIZADO;
+            return ProjetoStatus::FINALIZADO;
         }
 
         if ($terreno?->legalizacao || $terreno?->workflow_status_code === WorkflowStatus::LEGALIZANDO->value) {
-            return Projeto::STATUS_EM_LEGALIZACAO;
+            return ProjetoStatus::EM_LEGALIZACAO;
         }
 
-        return Projeto::STATUS_EM_VIABILIDADE;
+        return ProjetoStatus::EM_VIABILIDADE;
     }
 
     /**
@@ -401,11 +338,11 @@ class ProjetoService
      */
     protected function nextStep(Projeto $projeto, mixed $legalizacao): string
     {
-        if (in_array($projeto->status, [Projeto::STATUS_FINALIZADO, Projeto::STATUS_PRONTO_PARA_REGISTRO], true)) {
+        if (in_array($projeto->status, [ProjetoStatus::FINALIZADO, ProjetoStatus::PRONTO_PARA_REGISTRO], true)) {
             return 'Projeto concluído e terreno finalizado.';
         }
 
-        if ($projeto->status === Projeto::STATUS_CANCELADO) {
+        if ($projeto->status === ProjetoStatus::CANCELADO) {
             return 'Projeto cancelado.';
         }
 

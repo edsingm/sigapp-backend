@@ -2,6 +2,8 @@
 
 namespace App\Models\Tenant;
 
+use App\Enums\LegalizacaoEtapaStatus;
+use App\Enums\LegalizacaoStatus;
 use App\Enums\WorkflowStatus;
 use App\Traits\HasDashboardCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -13,14 +15,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Legalizacao extends Model
 {
     use HasDashboardCache, HasFactory, SoftDeletes;
-
-    public const STATUS_PLANEJADO = 'planejado';
-
-    public const STATUS_EM_ANDAMENTO = 'em_andamento';
-
-    public const STATUS_CONCLUIDO = 'concluido';
-
-    public const STATUS_CANCELADO = 'cancelado';
 
     protected $table = 'legalizacoes';
 
@@ -61,6 +55,7 @@ class Legalizacao extends Model
     ];
 
     protected $casts = [
+        'status' => LegalizacaoStatus::class,
         'data_inicio_planejada' => 'date',
         'data_fim_planejada' => 'date',
         'data_inicio_prevista' => 'date',
@@ -117,8 +112,8 @@ class Legalizacao extends Model
 
         if ($etapas->isEmpty()) {
             $this->percentual_concluido = 0;
-            if ($this->status !== self::STATUS_CANCELADO) {
-                $this->status = self::STATUS_PLANEJADO;
+            if ($this->status !== LegalizacaoStatus::CANCELADO) {
+                $this->status = LegalizacaoStatus::PLANEJADO;
             }
             $this->save();
 
@@ -128,14 +123,14 @@ class Legalizacao extends Model
         $percentualMedio = (int) round((float) $etapas->avg('percentual'));
         $this->percentual_concluido = max(0, min(100, $percentualMedio));
 
-        if ($this->status !== self::STATUS_CANCELADO) {
-            $allDone = $etapas->every(fn (LegalizacaoEtapa $etapa) => $etapa->status === LegalizacaoEtapa::STATUS_CONCLUIDA);
+        if ($this->status !== LegalizacaoStatus::CANCELADO) {
+            $allDone = $etapas->every(fn (LegalizacaoEtapa $etapa) => $etapa->status === LegalizacaoEtapaStatus::CONCLUIDA);
             if ($allDone) {
-                $this->status = self::STATUS_CONCLUIDO;
-            } elseif ($this->percentual_concluido > 0 || $etapas->contains(fn (LegalizacaoEtapa $etapa) => $etapa->status === LegalizacaoEtapa::STATUS_EM_ANDAMENTO)) {
-                $this->status = self::STATUS_EM_ANDAMENTO;
+                $this->status = LegalizacaoStatus::CONCLUIDO;
+            } elseif ($this->percentual_concluido > 0 || $etapas->contains(fn (LegalizacaoEtapa $etapa) => $etapa->status === LegalizacaoEtapaStatus::EM_ANDAMENTO)) {
+                $this->status = LegalizacaoStatus::EM_ANDAMENTO;
             } else {
-                $this->status = self::STATUS_PLANEJADO;
+                $this->status = LegalizacaoStatus::PLANEJADO;
             }
         }
 

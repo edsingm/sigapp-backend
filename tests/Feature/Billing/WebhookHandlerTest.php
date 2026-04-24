@@ -255,6 +255,15 @@ class WebhookHandlerTest extends TestCase
             'customer' => $tenant->stripe_id,
             'id' => $subscriptionId,
             'status' => 'past_due',
+            'items' => [
+                'data' => [
+                    [
+                        'id' => 'si_test',
+                        'price' => ['id' => 'price_test', 'product' => 'prod_test'],
+                        'quantity' => 1,
+                    ],
+                ],
+            ],
         ])->assertOk();
 
         // Tenant deve continuar ativo (não suspenso)

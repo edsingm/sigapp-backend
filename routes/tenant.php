@@ -93,9 +93,12 @@ Route::middleware([
 
             // Bootstrap: modules, plan and user RBAC for navbar/feature gating
             Route::get('/start', [ModulesController::class, 'index']);
+            Route::get('/modules', [ModulesController::class, 'modules']);
 
-            Route::get('/tenant/subscription', [TenantController::class, 'subscription']);
-            Route::post('/tenant/billing-portal', [TenantController::class, 'billingPortal']);
+            Route::get('/tenant/subscription', [TenantController::class, 'subscription'])
+                ->middleware('tenant.admin');
+            Route::post('/tenant/billing-portal', [TenantController::class, 'billingPortal'])
+                ->middleware('tenant.admin');
 
             // Billing — troca de plano e atualização de método de pagamento
             // Acessíveis mesmo com assinatura suspensa (tenant pode reativar/atualizar sem bloqueio)
@@ -127,8 +130,8 @@ Route::middleware([
                             ->name('tenant-admin.users.module-permissions');
                         Route::get('roles/select', [AdminRoleController::class, 'forSelect'])
                             ->name('tenant-admin.roles.select');
-                        Route::apiResource('roles', AdminRoleController::class)->only(['index', 'show']);
-                        Route::apiResource('permissions', AdminPermissionController::class)->only(['index', 'show']);
+                        Route::apiResource('roles', AdminRoleController::class);
+                        Route::apiResource('permissions', AdminPermissionController::class);
 
                         // Departments
                         Route::get('departments/select', [AdminDepartmentController::class, 'forSelect'])
@@ -179,16 +182,17 @@ Route::middleware([
 
                 // Regionais
                 Route::middleware('check.feature:regionals')->group(function () {
-                    Route::get('/regionais/select', [RegionaisController::class, 'regionaisForSelect']);
+                    Route::get('/regionais/select', [RegionaisController::class, 'forSelect']);
                     Route::apiResource('regionais', RegionaisController::class);
                 });
 
                 // Produtos
                 Route::middleware('check.feature:product_settings')->group(function () {
-                    Route::get('/produtos/select', [ProdutosController::class, 'produtosForSelect']);
+                    Route::get('/produtos/select', [ProdutosController::class, 'forSelect']);
                     Route::post('/produtos', [ProdutosController::class, 'store'])
                         ->middleware('enforce.limits:products');
                     Route::apiResource('produtos', ProdutosController::class)->except(['store']);
+                    Route::post('/produtos/{produto}/restore', [ProdutosController::class, 'restore']);
                 });
 
                 // Proprietarios

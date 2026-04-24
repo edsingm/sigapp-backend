@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Tenant;
 
+use App\Models\Tenant\Legalizacao;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreLegalizacaoRequest extends FormRequest
@@ -11,7 +12,7 @@ class StoreLegalizacaoRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return (bool) $this->user()?->can('create', Legalizacao::class);
     }
 
     /**

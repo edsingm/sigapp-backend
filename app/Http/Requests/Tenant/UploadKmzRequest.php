@@ -2,13 +2,20 @@
 
 namespace App\Http\Requests\Tenant;
 
+use App\Models\Tenant\Terreno;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UploadKmzRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        $user = $this->user();
+        $terrenoId = $this->route('terreno') ?? $this->route('id');
+        $terreno = $terrenoId instanceof Terreno ? $terrenoId : Terreno::find($terrenoId);
+
+        return $user !== null
+            && $terreno instanceof Terreno
+            && $user->can('update', $terreno);
     }
 
     public function rules(): array

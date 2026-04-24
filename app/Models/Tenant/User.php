@@ -31,7 +31,10 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasDashboardCache, HasFactory, HasRoles, Notifiable;
 
-    private const ADMIN_ROLE_NAMES = [RolesEnum::ADMIN->value];
+    private const ADMIN_ROLE_NAMES = [
+        RolesEnum::ADMIN->value,
+        'admin',
+    ];
 
     protected $guard_name = 'web';
 

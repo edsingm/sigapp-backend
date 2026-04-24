@@ -1,203 +1,99 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V1\Tenant\Admin;
 
 use App\Enums\Common\RolesEnum;
 use App\Http\Controllers\Controller;
-use App\Models\Tenant\User;
+use App\Http\Requests\Tenant\Admin\DestroyRoleRequest;
+use App\Http\Requests\Tenant\Admin\ListRolesRequest;
+use App\Http\Requests\Tenant\Admin\ShowRoleRequest;
+use App\Http\Requests\Tenant\StoreRoleRequest;
+use App\Http\Requests\Tenant\UpdateRoleRequest;
+use App\Http\Resources\Tenant\Admin\RoleResource;
+use App\Http\Resources\Tenant\Admin\RoleSelectResource;
+use App\Services\Acl\RoleService;
 use App\Services\ApiResponseService;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
-use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 class RoleController extends Controller
 {
-    /** Roles definidas pelo sistema (enum) — não podem ser renomeadas nem excluídas. */
-    private static function protectedRoleNames(): array
-    {
-        return array_column(RolesEnum::cases(), 'value');
-    }
+    public function __construct(
+        private readonly RoleService $roleService,
+    ) {}
 
-    /**
-     * Listar roles para inputs de seleção (apenas id + nome, sem relações pesadas).
-     */
     public function forSelect()
     {
-        $roles = Role::query()
-            ->where('guard_name', 'web')
-            ->orderBy('name')
-            ->get(['id', 'name']);
+        $roles = $this->roleService->forSelect();
 
-        return ApiResponseService::success($roles->map(fn (Role $role) => [
-            'id' => $role->id,
-            'name' => $role->name,
-            'label' => RolesEnum::tryFrom($role->name)?->label() ?? $role->name,
-        ])->values(), 'Roles recuperadas com sucesso');
+        return ApiResponseService::success(
+            RoleSelectResource::collection($roles),
+            'Roles recuperadas com sucesso'
+        );
     }
 
-    /**
-     * Listar roles do tenant.
-     */
-    public function index(Request $request)
+    public function index(ListRolesRequest $request)
     {
-        $roles = Role::query()
-            ->where('guard_name', 'web')
-            ->when($request->filled('search'), function ($query) use ($request) {
-                $search = $request->string('search')->toString();
-                $query->where('name', 'like', "%{$search}%");
-            })
-            ->with('permissions:id,name,guard_name')
-            ->withCount('permissions')
-            ->orderBy('name')
-            ->get();
+        $roles = $this->roleService->list($request->validated('search'));
+        $usersPerRole = collect($roles)->mapWithKeys(fn ($role) => [
+            $role->id => $this->roleService->countUsers($role),
+        ]);
 
-        $rolePivot = config('permission.table_names.model_has_roles');
-        $rolePivotKey = config('permission.column_names.role_foreign_key') ?? 'role_id';
+        $payload = $roles->map(function ($role) use ($usersPerRole) {
+            $resource = new RoleResource($role);
+            $role->users_count = $usersPerRole[$role->id] ?? 0;
 
-        $usersPerRole = DB::table($rolePivot)
-            ->select($rolePivotKey, DB::raw('count(*) as total'))
-            ->where('model_type', User::class)
-            ->groupBy($rolePivotKey)
-            ->pluck('total', $rolePivotKey);
-
-        $payload = $roles->map(function (Role $role) use ($usersPerRole) {
-            return [
-                'id' => $role->id,
-                'name' => $role->name,
-                'guard_name' => $role->guard_name,
-                'permissions' => $role->permissions->map(fn (Permission $permission) => [
-                    'id' => $permission->id,
-                    'name' => $permission->name,
-                ])->values(),
-                'permissions_count' => $role->permissions_count,
-                'users_count' => (int) ($usersPerRole[$role->id] ?? 0),
-                'created_at' => $role->created_at?->toIso8601String(),
-                'updated_at' => $role->updated_at?->toIso8601String(),
-            ];
+            return $resource->toArray(request());
         })->values();
 
         return ApiResponseService::success($payload, 'Roles recuperadas com sucesso');
     }
 
-    /**
-     * Exibir uma única role do tenant.
-     */
-    public function show(int $id)
+    public function show(ShowRoleRequest $request, int $id)
     {
-        $role = Role::query()
-            ->where('guard_name', 'web')
-            ->with('permissions:id,name,guard_name')
-            ->withCount('permissions')
-            ->find($id);
+        $role = $this->roleService->findById($id);
 
         if (! $role) {
             return ApiResponseService::notFound('Role não encontrada');
         }
 
-        $rolePivot = config('permission.table_names.model_has_roles');
-        $rolePivotKey = config('permission.column_names.role_foreign_key') ?? 'role_id';
-        $usersCount = DB::table($rolePivot)
-            ->where($rolePivotKey, $role->id)
-            ->where('model_type', User::class)
-            ->count();
+        $usersCount = $this->roleService->countUsers($role);
 
-        return ApiResponseService::success([
-            'id' => $role->id,
-            'name' => $role->name,
-            'guard_name' => $role->guard_name,
-            'permissions' => $role->permissions->map(fn (Permission $permission) => [
-                'id' => $permission->id,
-                'name' => $permission->name,
-            ])->values(),
-            'permissions_count' => $role->permissions_count,
-            'users_count' => $usersCount,
-            'created_at' => $role->created_at?->toIso8601String(),
-            'updated_at' => $role->updated_at?->toIso8601String(),
-        ], 'Role recuperada com sucesso');
+        $resource = new RoleResource($role);
+        $role->users_count = $usersCount;
+
+        return ApiResponseService::success($resource, 'Role recuperada com sucesso');
     }
 
-    /**
-     * Criar uma role do tenant.
-     */
-    public function store(Request $request)
+    public function store(StoreRoleRequest $request)
     {
-        $validated = $request->validate([
-            'name' => [
-                'required',
-                'string',
-                'max:120',
-                Rule::unique('roles', 'name')->where('guard_name', 'web'),
-            ],
-            'permission_ids' => ['sometimes', 'array'],
-            'permission_ids.*' => [
-                'integer',
-                Rule::exists('permissions', 'id')->where('guard_name', 'web'),
-            ],
-        ]);
-
-        $role = Role::create([
-            'name' => $validated['name'],
-            'guard_name' => 'web',
-        ]);
-
-        if (! empty($validated['permission_ids'])) {
-            $permissions = Permission::whereIn('id', $validated['permission_ids'])
-                ->where('guard_name', 'web')
-                ->get();
-            $role->syncPermissions($permissions);
-        }
+        $validated = $request->validated();
+        $role = $this->roleService->create(
+            $validated['name'],
+            $validated['permission_ids'] ?? []
+        );
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        return ApiResponseService::created([
-            'id' => $role->id,
-            'name' => $role->name,
-            'guard_name' => $role->guard_name,
-            'permissions' => $role->permissions()
-                ->select('permissions.id', 'permissions.name')
-                ->orderBy('permissions.name')
-                ->get(),
-            'permissions_count' => $role->permissions()->count(),
-            'users_count' => 0,
-            'created_at' => $role->created_at?->toIso8601String(),
-            'updated_at' => $role->updated_at?->toIso8601String(),
-        ], 'Role criada com sucesso');
+        return ApiResponseService::created(
+            new RoleResource($role),
+            'Role criada com sucesso'
+        );
     }
 
-    /**
-     * Atualizar uma role do tenant.
-     */
-    public function update(Request $request, int $id)
+    public function update(UpdateRoleRequest $request, int $id)
     {
-        $role = Role::query()
-            ->where('guard_name', 'web')
-            ->find($id);
+        $role = $this->roleService->findById($id);
 
         if (! $role) {
             return ApiResponseService::notFound('Role não encontrada');
         }
 
-        $validated = $request->validate([
-            'name' => [
-                'sometimes',
-                'string',
-                'max:120',
-                Rule::unique('roles', 'name')
-                    ->where('guard_name', 'web')
-                    ->ignore($role->id),
-            ],
-            'permission_ids' => ['sometimes', 'array'],
-            'permission_ids.*' => [
-                'integer',
-                Rule::exists('permissions', 'id')->where('guard_name', 'web'),
-            ],
-        ]);
+        $validated = $request->validated();
 
         if (array_key_exists('name', $validated)) {
-            if (in_array($role->name, self::protectedRoleNames(), true) && $validated['name'] !== $role->name) {
+            if ($this->roleService->isProtected($role) && $validated['name'] !== $role->name) {
                 return ApiResponseService::error(
                     'PROTECTED_ROLE',
                     'As roles do sistema são protegidas e não podem ser renomeadas.',
@@ -205,68 +101,45 @@ class RoleController extends Controller
                     400
                 );
             }
-
-            $role->name = $validated['name'];
-            $role->save();
         }
 
-        if (array_key_exists('permission_ids', $validated)) {
-            if ($role->name === RolesEnum::ADMIN->value) {
-                return ApiResponseService::error(
-                    'PROTECTED_ROLE_PERMISSIONS',
-                    'As permissões da role ADMIN são gerenciadas pelo sistema e não podem ser alteradas manualmente.',
-                    null,
-                    400
-                );
-            }
-
-            $permissions = Permission::whereIn('id', $validated['permission_ids'])
-                ->where('guard_name', 'web')
-                ->get();
-            $role->syncPermissions($permissions);
+        if (
+            array_key_exists('permission_ids', $validated)
+            && $role->name === RolesEnum::ADMIN->value
+        ) {
+            return ApiResponseService::error(
+                'PROTECTED_ROLE_PERMISSIONS',
+                'As permissões da role ADMIN são gerenciadas pelo sistema e não podem ser alteradas manualmente.',
+                null,
+                400
+            );
         }
+
+        $role = $this->roleService->update(
+            $role,
+            $validated['name'] ?? $role->name,
+            array_key_exists('permission_ids', $validated) ? $validated['permission_ids'] : null
+        );
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        $role->load('permissions:id,name,guard_name');
-        $role->loadCount('permissions');
+        $role->users_count = $this->roleService->countUsers($role);
 
-        $rolePivot = config('permission.table_names.model_has_roles');
-        $rolePivotKey = config('permission.column_names.role_foreign_key') ?? 'role_id';
-        $usersCount = DB::table($rolePivot)
-            ->where($rolePivotKey, $role->id)
-            ->where('model_type', User::class)
-            ->count();
-
-        return ApiResponseService::success([
-            'id' => $role->id,
-            'name' => $role->name,
-            'guard_name' => $role->guard_name,
-            'permissions' => $role->permissions->map(fn (Permission $permission) => [
-                'id' => $permission->id,
-                'name' => $permission->name,
-            ])->values(),
-            'permissions_count' => $role->permissions_count,
-            'users_count' => $usersCount,
-            'created_at' => $role->created_at?->toIso8601String(),
-            'updated_at' => $role->updated_at?->toIso8601String(),
-        ], 'Role atualizada com sucesso');
+        return ApiResponseService::success(
+            new RoleResource($role),
+            'Role atualizada com sucesso'
+        );
     }
 
-    /**
-     * Excluir uma role do tenant.
-     */
-    public function destroy(int $id)
+    public function destroy(DestroyRoleRequest $request, int $id)
     {
-        $role = Role::query()
-            ->where('guard_name', 'web')
-            ->find($id);
+        $role = $this->roleService->findById($id);
 
         if (! $role) {
             return ApiResponseService::notFound('Role não encontrada');
         }
 
-        if (in_array($role->name, self::protectedRoleNames(), true)) {
+        if ($this->roleService->isProtected($role)) {
             return ApiResponseService::error(
                 'PROTECTED_ROLE',
                 'As roles do sistema são protegidas e não podem ser removidas.',
@@ -275,18 +148,11 @@ class RoleController extends Controller
             );
         }
 
-        $rolePivot = config('permission.table_names.model_has_roles');
-        $rolePivotKey = config('permission.column_names.role_foreign_key') ?? 'role_id';
-        $usersCount = DB::table($rolePivot)
-            ->where($rolePivotKey, $role->id)
-            ->where('model_type', User::class)
-            ->count();
-
-        if ($usersCount > 0) {
+        if (! $this->roleService->canDelete($role)) {
             return ApiResponseService::conflict('Não é possível excluir uma role atribuída a usuários');
         }
 
-        $role->delete();
+        $this->roleService->delete($role);
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         return ApiResponseService::noContent();

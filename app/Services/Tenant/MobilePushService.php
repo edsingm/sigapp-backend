@@ -2,6 +2,7 @@
 
 namespace App\Services\Tenant;
 
+use App\Enums\LegalizacaoEtapaStatus;
 use App\Models\Tenant\LegalizacaoEtapa;
 use App\Models\Tenant\MobileDeviceInstallation;
 use App\Models\Tenant\MobileNotification;
@@ -171,8 +172,8 @@ class MobilePushService
         $overdue = LegalizacaoEtapa::query()
             ->with(['legalizacao.terreno', 'responsavel'])
             ->whereNotIn('status', [
-                LegalizacaoEtapa::STATUS_CONCLUIDA,
-                LegalizacaoEtapa::STATUS_BLOQUEADA,
+                LegalizacaoEtapaStatus::CONCLUIDA,
+                LegalizacaoEtapaStatus::BLOQUEADA,
             ])
             ->where(function (Builder $query) use ($today) {
                 $query->whereDate('data_prevista', '<', $today)

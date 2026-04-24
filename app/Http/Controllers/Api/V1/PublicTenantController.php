@@ -3,13 +3,16 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\Central\Tenant;
+use App\Repositories\Contracts\TenantRepositoryInterface;
 use App\Services\ApiResponseService;
 use Illuminate\Support\Str;
-use Stancl\Tenancy\Database\Models\Domain;
 
 class PublicTenantController extends Controller
 {
+    public function __construct(
+        private readonly TenantRepositoryInterface $tenantRepository,
+    ) {}
+
     /**
      * Verificar a disponibilidade de um subdomínio (slug).
      */
@@ -17,13 +20,8 @@ class PublicTenantController extends Controller
     {
         $normalizedSubdomain = Str::slug($subdomain);
 
-        $exists = Tenant::query()
-            ->where('slug', $normalizedSubdomain)
-            ->exists();
-
-        $exists = $exists || Domain::query()
-            ->where('domain', $normalizedSubdomain)
-            ->exists();
+        $exists = $this->tenantRepository->existsBySlug($normalizedSubdomain)
+            || $this->tenantRepository->existsByDomain($normalizedSubdomain);
 
         return ApiResponseService::success([
             'available' => ! $exists,

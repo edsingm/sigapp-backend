@@ -10,6 +10,11 @@ class TerrenoInfos extends Model
 
     protected $fillable = ['terreno_id', 'descricao', 'created_by', 'user_id'];
 
+    protected $casts = [
+        'created_by' => 'int',
+        'user_id' => 'int',
+    ];
+
     public function terreno()
     {
         return $this->belongsTo(Terreno::class);

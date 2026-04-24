@@ -3,31 +3,30 @@
 namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Tenant\FinalizeCommitteeDecisionRequest;
+use App\Http\Requests\Tenant\ListCommitteeReviewsRequest;
+use App\Http\Requests\Tenant\ShowCommitteeReviewRequest;
+use App\Http\Requests\Tenant\StoreCommitteeReviewRequest;
+use App\Http\Requests\Tenant\UpsertCommitteeDepartmentReviewRequest;
 use App\Http\Resources\Tenant\ComiteRevisaoResource;
 use App\Models\Tenant\ComiteRevisao;
 use App\Services\ApiResponseService;
 use App\Services\Tenant\CommitteeService;
-use App\Services\Tenant\LandWorkflowService;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
 
 class CommitteeController extends Controller
 {
     public function __construct(
-        protected CommitteeService $service,
-        protected LandWorkflowService $workflowService,
+        private readonly CommitteeService $service,
     ) {}
 
     /**
      * Listar revisões de comitê.
      */
-    public function index(Request $request)
+    public function index(ListCommitteeReviewsRequest $request)
     {
-        Gate::authorize('viewAny', ComiteRevisao::class);
-
-        $result = $this->service->list($request->only(['status', 'search', 'per_page']));
+        $result = $this->service->list($request->validated());
         $result->through(
-            fn (ComiteRevisao $review) => (new ComiteRevisaoResource($review))->resolve()
+            fn (ComiteRevisao $review): array => (new ComiteRevisaoResource($review))->resolve()
         );
 
         return ApiResponseService::paginated($result, 'Revisões de comitê carregadas com sucesso');
@@ -36,19 +35,9 @@ class CommitteeController extends Controller
     /**
      * Criar uma nova revisão de comitê.
      */
-    public function store(Request $request)
+    public function store(StoreCommitteeReviewRequest $request)
     {
-        Gate::authorize('create', ComiteRevisao::class);
-
-        $validated = $request->validate([
-            'terreno_id' => ['required', 'integer', 'exists:terrenos,id'],
-            'viabilidade_id' => ['nullable', 'integer', 'exists:viabilidades,id'],
-            'status' => ['nullable', 'string'],
-            'required_departments' => ['nullable', 'array'],
-            'required_departments.*' => ['string'],
-        ]);
-
-        $review = $this->service->create($validated, $request->user());
+        $review = $this->service->create($request->validated(), $request->user());
 
         return ApiResponseService::created(new ComiteRevisaoResource($review), 'Comitê criado com sucesso');
     }
@@ -56,35 +45,22 @@ class CommitteeController extends Controller
     /**
      * Exibir os detalhes de uma revisão de comitê específica.
      */
-    public function show(string $id)
+    public function show(ShowCommitteeReviewRequest $request, string $id)
     {
-        $review = ComiteRevisao::findOrFail($id);
-        Gate::authorize('view', $review);
-
-        return ApiResponseService::success(new ComiteRevisaoResource($this->service->show($review)));
+        return ApiResponseService::success(
+            new ComiteRevisaoResource($this->service->showById($id))
+        );
     }
 
     /**
      * Criar ou atualizar o parecer de um departamento.
      */
-    public function upsertDepartmentReview(Request $request, string $id)
+    public function upsertDepartmentReview(UpsertCommitteeDepartmentReviewRequest $request, string $id)
     {
-        $review = ComiteRevisao::findOrFail($id);
-        Gate::authorize('update', $review);
-
-        $validated = $request->validate([
-            'department_code' => ['required', 'string'],
-            'reviewer_user_id' => ['nullable', 'integer', 'exists:users,id'],
-            'decision' => ['required', 'string', 'in:aprovado,aprovado_com_ressalvas,reprovado'],
-            'comments' => ['nullable', 'string'],
-            'checklist_completed' => ['nullable', 'boolean'],
-        ]);
-
         $updated = $this->service->upsertDepartmentReview(
-            $review,
-            $validated,
+            $this->service->findOrFail($id),
+            $request->validated(),
             $request->user(),
-            $this->workflowService,
         );
 
         return ApiResponseService::success(new ComiteRevisaoResource($updated), 'Parecer registrado com sucesso');
@@ -93,24 +69,13 @@ class CommitteeController extends Controller
     /**
      * Finalizar a decisão do comitê.
      */
-    public function finalize(Request $request, string $id)
+    public function finalize(FinalizeCommitteeDecisionRequest $request, string $id)
     {
-        $review = ComiteRevisao::findOrFail($id);
-        Gate::authorize('update', $review);
-
-        $validated = $request->validate([
-            'final_decision' => ['required', 'string', 'in:aprovado_comite,aprovado_com_ressalvas,reprovado_comite'],
-            'final_comments' => ['nullable', 'string'],
-            'pendencias' => ['nullable', 'array'],
-            'pendencias.*.title' => ['required_with:pendencias', 'string'],
-            'pendencias.*.description' => ['nullable', 'string'],
-            'pendencias.*.severity' => ['nullable', 'string'],
-            'pendencias.*.department_code' => ['nullable', 'string'],
-            'pendencias.*.responsible_user_id' => ['nullable', 'integer', 'exists:users,id'],
-            'pendencias.*.due_date' => ['nullable', 'date'],
-        ]);
-
-        $updated = $this->service->finalize($review, $validated, $request->user(), $this->workflowService);
+        $updated = $this->service->finalize(
+            $this->service->findOrFail($id),
+            $request->validated(),
+            $request->user(),
+        );
 
         return ApiResponseService::success(new ComiteRevisaoResource($updated), 'Decisão de comitê registrada com sucesso');
     }

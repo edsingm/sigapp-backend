@@ -32,6 +32,7 @@ use App\Repositories\Contracts\DashboardRepositoryInterface;
 use App\Repositories\Contracts\TenantRepositoryInterface;
 use App\Repositories\Contracts\TerrenoExportRepositoryInterface;
 use App\Repositories\Contracts\TerrenoProdutoRepositoryInterface;
+use App\Repositories\Contracts\ProjetoRepositoryInterface;
 use App\Repositories\CentralUserRepository;
 use App\Repositories\EntitlementRepository;
 use App\Repositories\PostRepository;
@@ -39,9 +40,12 @@ use App\Repositories\ProprietarioRepository;
 use App\Repositories\PlanRepository;
 use App\Repositories\PlanRolePermissionTemplateRepository;
 use App\Repositories\TenantRepository;
+use App\Repositories\ProjetoRepository;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Cashier\Cashier;
+
+
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -66,6 +70,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(DashboardRepositoryInterface::class, \App\Repositories\DashboardRepository::class);
         $this->app->bind(TerrenoExportRepositoryInterface::class, \App\Repositories\TerrenoExportRepository::class);
         $this->app->bind(PlanRolePermissionTemplateRepositoryInterface::class, PlanRolePermissionTemplateRepository::class);
+        $this->app->bind(ProjetoRepositoryInterface::class, ProjetoRepository::class);
     }
 
     /**

@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             EntitlementSeeder::class,
             PlanRolePermissionTemplateSeeder::class,
             CentralAdminSeeder::class,
+            CidadesSeeder::class,
         ]);
     }
 }

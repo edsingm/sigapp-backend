@@ -2,6 +2,8 @@
 
 namespace App\Services\Tenant\Viabilidade;
 
+use App\Enums\PerfilFinanciamento;
+
 /**
  * Encapsula todo o estado mutável produzido durante um cálculo de fluxo.
  *
@@ -11,6 +13,8 @@ namespace App\Services\Tenant\Viabilidade;
  */
 final class ViabilidadeFluxoContext
 {
+    public PerfilFinanciamento $perfil = PerfilFinanciamento::CEF;
+
     /** @var array<string, array<string, float>> Cache de recursos próprios por mês */
     public array $recursosProprios = [];
 
@@ -40,4 +44,19 @@ final class ViabilidadeFluxoContext
 
     /** Mês em que a demanda mínima CEF foi atingida (formato Y-m) */
     public ?string $mesDemandaAtingida = null;
+
+    public float $parceriaVgvTotal = 0.0;
+
+    public float $parceriaVgvPago = 0.0;
+
+    /**
+     * Parcelas atrasadas para recuperação parcial de inadimplência.
+     *
+     * Estrutura: [mesDestino => valorAcumulado]
+     * Quando inadimplencia% das receitas atrasa, o valor é movido para
+     * atrasoMeses à frente neste cache.
+     *
+     * @var array<string, float>
+     */
+    public array $parcelasAtrasadas = [];
 }

@@ -2,6 +2,7 @@
 
 namespace App\Models\Tenant;
 
+use App\Enums\PerfilFinanciamento;
 use App\Traits\HasDashboardCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -9,6 +10,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * @property int $id
+ * @property int $terreno_id
+ * @property \App\Enums\PerfilFinanciamento|null $perfil_financiamento
+ * @property string|null $status
+ * @property string|null $approval_status
+ */
 class Viabilidade extends Model
 {
     use HasDashboardCache, HasFactory, SoftDeletes;
@@ -91,6 +99,7 @@ class Viabilidade extends Model
         'devolucao_aporte_percentual',
         'distribuicao_lucros_percentual_obra',
         'taxa_exposicao_aplicada',
+        'perfil_financiamento',
     ];
 
     protected $fillable = [
@@ -155,6 +164,7 @@ class Viabilidade extends Model
         'devolucao_aporte_percentual',
         'distribuicao_lucros_percentual_obra',
         'taxa_exposicao_aplicada',
+        'perfil_financiamento',
         'resultados_dre',
         'status',
         'approval_status',
@@ -224,6 +234,7 @@ class Viabilidade extends Model
         'devolucao_aporte_percentual' => 'decimal:2',
         'distribuicao_lucros_percentual_obra' => 'decimal:2',
         'taxa_exposicao_aplicada' => 'decimal:4',
+        'perfil_financiamento' => PerfilFinanciamento::class,
         'prazo_lancamento' => 'integer',
         'prazo_incorporacao' => 'integer',
         'resultados_dre' => 'array',
@@ -245,6 +256,7 @@ class Viabilidade extends Model
      * @var array
      */
     protected $attributes = [
+        'perfil_financiamento' => 'cef',
         'parceria_vgv' => '0.00',
         'compra_terreno' => '0.00',
         'infra_nao_incidente' => '0.00',

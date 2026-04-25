@@ -496,21 +496,21 @@
         <div class="section-title">Indicadores-Chave de Performance</div>
         <div class="kpi-grid">
             <div class="kpi-card highlight">
-                <div class="kpi-label">VGV Total (Parceria)</div>
-                <div class="kpi-value">R$ {{ number_format($dre['totais']['receita'] ?? 0, 0, ',', '.') }}</div>
+                <div class="kpi-label">VGV Total</div>
+                <div class="kpi-value">R$ {{ number_format($dre['dre_itens']['receita_total_vendas'] ?? 0, 0, ',', '.') }}</div>
                 <div class="kpi-subtitle" style="color: rgba(255,255,255,0.7);">Valor Geral de Vendas</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-label">Lucro Líquido</div>
-                <div class="kpi-value {{ ($dre['totais']['lucro'] ?? 0) >= 0 ? 'positive' : 'negative' }}">
-                    R$ {{ number_format($dre['totais']['lucro'] ?? 0, 0, ',', '.') }}
+                <div class="kpi-value {{ ($dre['dre_itens']['lucro_liquido_projeto'] ?? 0) >= 0 ? 'positive' : 'negative' }}">
+                    R$ {{ number_format($dre['dre_itens']['lucro_liquido_projeto'] ?? 0, 0, ',', '.') }}
                 </div>
                 <div class="kpi-subtitle">Resultado Final</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-label">Margem Líquida</div>
-                <div class="kpi-value {{ ($dre['indicadores']['margem_liquida'] ?? 0) >= 0 ? 'positive' : 'negative' }}">
-                    {{ number_format($dre['indicadores']['margem_liquida'] ?? 0, 1, ',', '.') }}%
+                <div class="kpi-value {{ ($dre['dre_itens']['indicadores']['margem_liquida_percentual'] ?? 0) >= 0 ? 'positive' : 'negative' }}">
+                    {{ number_format($dre['dre_itens']['indicadores']['margem_liquida_percentual'] ?? 0, 1, ',', '.') }}%
                 </div>
                 <div class="kpi-subtitle">Lucro / Receita</div>
             </div>
@@ -520,6 +520,50 @@
                     {{ number_format($dre['indicadores']['roi_percentual'] ?? 0, 1, ',', '.') }}%
                 </div>
                 <div class="kpi-subtitle">Retorno s/ Investimento</div>
+            </div>
+        </div>
+
+        <div class="section-title">Fluxo de Caixa (Resumo)</div>
+        <div class="params-grid">
+            <div>
+                <table class="params-table">
+                    <tr>
+                        <td>Receitas (Total)</td>
+                        <td>R$ {{ number_format($dre['dre_caixa']['receita_total'] ?? 0, 2, ',', '.') }}</td>
+                    </tr>
+                    <tr>
+                        <td>Despesas (Total)</td>
+                        <td>R$ {{ number_format($dre['dre_caixa']['despesas_total'] ?? 0, 2, ',', '.') }}</td>
+                    </tr>
+                    <tr style="font-weight: 700;">
+                        <td>Resultado (Caixa)</td>
+                        <td>R$ {{ number_format($dre['dre_caixa']['resultado_total'] ?? 0, 2, ',', '.') }}</td>
+                    </tr>
+                    <tr>
+                        <td>Margem Líquida (Caixa)</td>
+                        <td>{{ number_format($dre['dre_caixa']['margem_liquida_percentual'] ?? 0, 2, ',', '.') }}%</td>
+                    </tr>
+                </table>
+            </div>
+            <div>
+                <table class="params-table">
+                    <tr>
+                        <td>Exposição Máxima (Operacional)</td>
+                        <td>R$ {{ number_format($dre['indicadores']['exposicao_maxima_operacional'] ?? 0, 2, ',', '.') }}</td>
+                    </tr>
+                    <tr>
+                        <td>Payback (Operacional)</td>
+                        <td>{{ (int) ($dre['indicadores']['payback_operacional_meses'] ?? 0) }} meses</td>
+                    </tr>
+                    <tr>
+                        <td>TIR (Operacional a.a.)</td>
+                        <td>{{ number_format($dre['indicadores']['tir_operacional'] ?? 0, 2, ',', '.') }}%</td>
+                    </tr>
+                    <tr>
+                        <td>TIR (Financeira a.a.)</td>
+                        <td>{{ number_format($dre['indicadores']['tir_financeira'] ?? 0, 2, ',', '.') }}%</td>
+                    </tr>
+                </table>
             </div>
         </div>
 
@@ -570,7 +614,7 @@
         </div>
 
         <!-- DRE Table -->
-        <div class="section-title">Demonstrativo de Resultado do Exercício (DRE)</div>
+        <div class="section-title">DRE Gerencial (Competência Simplificada)</div>
         <table class="dre-table">
             <thead>
                 <tr>
@@ -820,6 +864,58 @@
                 @endif
             </tbody>
         </table>
+
+        <div class="section-title">DRE Contábil (POC) — Resumo</div>
+        <div class="params-grid">
+            <div>
+                <table class="params-table">
+                    <tr>
+                        <td>Receita Reconhecida (POC)</td>
+                        <td>R$ {{ number_format($dre['dre_contabil_poc_mensal_blocos']['resumo']['receita_reconhecida_poc_total'] ?? 0, 2, ',', '.') }}</td>
+                    </tr>
+                    <tr>
+                        <td>Custo Direto (POC)</td>
+                        <td>R$ {{ number_format($dre['dre_contabil_poc_mensal_blocos']['resumo']['custo_direto_total'] ?? 0, 2, ',', '.') }}</td>
+                    </tr>
+                    <tr>
+                        <td>Impostos (POC)</td>
+                        <td>R$ {{ number_format($dre['dre_contabil_poc_mensal_blocos']['resumo']['impostos_total'] ?? 0, 2, ',', '.') }}</td>
+                    </tr>
+                    <tr>
+                        <td>Operacional (POC)</td>
+                        <td>R$ {{ number_format($dre['dre_contabil_poc_mensal_blocos']['resumo']['despesas_operacionais_total'] ?? 0, 2, ',', '.') }}</td>
+                    </tr>
+                    <tr>
+                        <td>Financeiro (POC)</td>
+                        <td>R$ {{ number_format($dre['dre_contabil_poc_mensal_blocos']['resumo']['despesas_financeiras_total'] ?? 0, 2, ',', '.') }}</td>
+                    </tr>
+                    <tr style="font-weight: 700;">
+                        <td>Resultado (POC)</td>
+                        <td>R$ {{ number_format($dre['dre_contabil_poc_mensal_blocos']['resumo']['resultado_contabil_total'] ?? 0, 2, ',', '.') }}</td>
+                    </tr>
+                </table>
+            </div>
+            <div>
+                <table class="params-table">
+                    <tr>
+                        <td>Margem (POC)</td>
+                        <td>{{ number_format($dre['dre_contabil_poc_mensal_blocos']['resumo']['margem_contabil_percentual'] ?? 0, 2, ',', '.') }}%</td>
+                    </tr>
+                    <tr>
+                        <td>Receita Caixa − Receita Bruta</td>
+                        <td>R$ {{ number_format($dre['ponte_reconciliacao']['deltas']['receita_caixa_menos_receita_bruta'] ?? 0, 2, ',', '.') }}</td>
+                    </tr>
+                    <tr>
+                        <td>Resultado Caixa − Lucro (DRE Gerencial)</td>
+                        <td>R$ {{ number_format($dre['ponte_reconciliacao']['deltas']['resultado_caixa_menos_lucro_dre_gerencial'] ?? 0, 2, ',', '.') }}</td>
+                    </tr>
+                    <tr>
+                        <td>Lucro (DRE Gerencial) − Resultado (POC)</td>
+                        <td>R$ {{ number_format($dre['ponte_reconciliacao']['deltas']['lucro_dre_gerencial_menos_resultado_poc'] ?? 0, 2, ',', '.') }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
 
         <!-- Balance Evolution Chart -->
         <div class="chart-section">

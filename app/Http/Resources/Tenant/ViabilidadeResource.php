@@ -77,6 +77,7 @@ class ViabilidadeResource extends JsonResource
             'devolucao_aporte_percentual' => (float) $this->devolucao_aporte_percentual,
             'distribuicao_lucros_percentual_obra' => (float) $this->distribuicao_lucros_percentual_obra,
             'taxa_exposicao_aplicada' => (float) $this->taxa_exposicao_aplicada,
+            'perfil_financiamento' => $this->perfil_financiamento?->value ?? 'cef',
             'status' => $this->status,
             'approval_status' => $this->approval_status ?? ($this->status === 'ativo' ? 'aprovada' : 'pendente'),
             'approval_requested_at' => $this->approval_requested_at?->toIso8601String(),

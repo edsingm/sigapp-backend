@@ -108,6 +108,7 @@ class ViabilidadeRequest extends FormRequest
             'devolucao_aporte_percentual' => 'nullable|numeric|min:0|max:100',
             'distribuicao_lucros_percentual_obra' => 'nullable|numeric|min:0|max:100',
             'taxa_exposicao_aplicada' => 'nullable|numeric|min:0|max:100',
+            'perfil_financiamento' => 'nullable|string|in:cef,proprio',
             'produtos' => 'nullable|array',
             'produtos.*.id' => 'required|exists:terreno_produtos,id',
             'produtos.*.unidades' => 'required|numeric|min:0',
@@ -186,6 +187,7 @@ class ViabilidadeRequest extends FormRequest
             'devolucao_aporte_percentual' => 'devolução de aporte percentual',
             'distribuicao_lucros_percentual_obra' => 'distribuição de lucros percentual obra',
             'taxa_exposicao_aplicada' => 'taxa de exposição aplicada',
+            'perfil_financiamento' => 'perfil de financiamento',
         ];
     }
 

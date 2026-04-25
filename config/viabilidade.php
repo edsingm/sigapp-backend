@@ -70,6 +70,42 @@ return [
             '3_dorm' => 15.0,
             'lotes' => 0.0,
         ],
+
+        /*
+        |----------------------------------------------------------------------
+        | Perfil de Financiamento
+        |----------------------------------------------------------------------
+        | 'cef'     = Repasse Caixa (RT + Medição de Obra)
+        | 'proprio' = Financiamento próprio (apenas recebíveis do cliente)
+        */
+        'perfil_financiamento' => 'cef',
+
+        /*
+        |----------------------------------------------------------------------
+        | Modelo de Recebíveis — Financiamento Próprio (Balões)
+        |----------------------------------------------------------------------
+        | Usado quando perfil_financiamento = 'proprio'.
+        | baloes_anuais: array de {mes, percentual} — ex: [{mes: 12, percentual: 5}, {mes: 24, percentual: 5}]
+        | balao_entrega: 'saldo_restante' (quitação) ou percentual fixo
+        */
+        'baloes_anuais' => [
+            ['mes' => 12, 'percentual' => 5.0],
+            ['mes' => 24, 'percentual' => 5.0],
+        ],
+        'balao_entrega_modo' => 'saldo_restante',
+
+        /*
+        |----------------------------------------------------------------------
+        | Inadimplência / Atraso (apenas perfil próprio)
+        |----------------------------------------------------------------------
+        | inadimplencia:     % das parcelas que atrasam (0.0 a 1.0)
+        | atraso_meses:      quantos meses depois a parcela atrasada entra
+        |                    (0 = haircut direto, sem recuperação)
+        | taxa_perda:        % da parcela atrasada que NUNCA entra (0.0 a 1.0)
+        */
+        'inadimplencia' => 0.10,
+        'atraso_meses' => 2,
+        'taxa_perda' => 0.02,
     ],
 
     /*

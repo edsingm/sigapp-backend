@@ -88,7 +88,7 @@ class Produto extends Model
     ];
 
     protected $casts = [
-        'private_area' => 'boolean',
+        'private_area' => 'decimal:2',
         'm2_cost' => 'decimal:2',
         'infra_cost' => 'decimal:2',
         'sinal' => 'decimal:2',

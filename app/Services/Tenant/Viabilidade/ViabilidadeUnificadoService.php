@@ -2,6 +2,7 @@
 
 namespace App\Services\Tenant\Viabilidade;
 
+use App\Enums\PerfilFinanciamento;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\Viabilidade;
 use Carbon\Carbon;
@@ -79,8 +80,16 @@ class ViabilidadeUnificadoService
 
             // 3. Montar contexto limpo e pré-popular caches
             $ctx = new ViabilidadeFluxoContext;
-            $this->preCalcularRecursosProprios($dadosProdutos['produtos'], $datas, $params, $ctx);
-            $this->inicializarCachesCef($dadosProdutos, $datas, $ctx);
+            $ctx->perfil = $params['perfilFinanciamento'];
+
+            $this->preCalcularRecebiveis($dadosProdutos['produtos'], $datas, $params, $ctx);
+
+            if ($ctx->perfil->isCef()) {
+                $this->inicializarCachesCef($dadosProdutos, $datas, $ctx);
+            }
+
+            $ctx->parceriaVgvTotal = max(0.0, ($params['parceriaVgv'] ?? 0.0) * ($dadosProdutos['vgv'] ?? 0.0));
+            $ctx->parceriaVgvPago = 0.0;
 
             // 4. Iterar mês a mês
             $fluxo = [];
@@ -153,6 +162,8 @@ class ViabilidadeUnificadoService
             $dreContabilPoc = $this->calcularDreContabilPoc($fluxo, $dre, $dadosProdutos);
             $dreContabilPocMensal = $this->calcularQuadroPocMensal($fluxo, $dre, $dadosProdutos);
             $dreContabilPocMensalBlocos = $this->calcularQuadroPocMensalPorBlocos($fluxo, $dre, $dadosProdutos);
+            $dreCaixa = $this->calcularDreCaixa($totais);
+            $ponteReconcilicao = $this->calcularPonteReconcilicao($dreCaixa, $dre, $dreContabilPocMensalBlocos);
 
             return [
                 'terreno' => $terreno,
@@ -163,9 +174,11 @@ class ViabilidadeUnificadoService
                 'custoTotal' => $dre['custo_total_projeto'],
                 'produtos' => $dadosProdutos['produtos'],
                 'dre_itens' => $dre,
+                'dre_caixa' => $dreCaixa,
                 'dre_contabil_poc' => $dreContabilPoc,
                 'dre_contabil_poc_mensal' => $dreContabilPocMensal,
                 'dre_contabil_poc_mensal_blocos' => $dreContabilPocMensalBlocos,
+                'ponte_reconciliacao' => $ponteReconcilicao,
                 'indicadores' => array_merge($dre['indicadores'], $indicadores, $indicadoresFinanceiros, $indicadoresVso, $indicadoresVsoJanelas),
                 'dados_produtos' => [
                     'total_unidades' => $dadosProdutos['totalUnidades'],
@@ -208,23 +221,30 @@ class ViabilidadeUnificadoService
         // Atualizar acumulado de vendas com o mês atual
         $ctx->vendasAcumuladas += $ctx->vendasPorMes[$mes] ?? 0.0;
 
-        // 1. Recursos Próprios (do cache pré-calculado)
+        // 1. Recursos Próprios (do cache pré-calculado) + parcelas atrasadas recuperadas
         $rp = $ctx->recursosProprios[$mes] ?? [];
         $totalRp = ($rp['sinal'] ?? 0.0) + ($rp['parcelas_obra'] ?? 0.0) + ($rp['parcelas_pos'] ?? 0.0);
 
-        // 2. Recurso Terrenos (CEF)
-        $rt = $this->calcularRecursoTerrenos($mes, $dadosProdutos, $datas, $ctx);
+        $totalAtrasadas = $ctx->parcelasAtrasadas[$mes] ?? 0.0;
 
-        // 3. Medição de Obra (CEF)
-        $mo = $this->calcularMedicaoObra($mes, $dadosProdutos, $datas, $params, $ctx);
+        // 2. Recurso Terrenos (CEF) — apenas perfil CEF
+        $rt = $ctx->perfil->isCef()
+            ? $this->calcularRecursoTerrenos($mes, $dadosProdutos, $datas, $ctx)
+            : ['valor' => 0.0];
 
-        $total = $totalRp + $rt['valor'] + $mo['valor'];
+        // 3. Medição de Obra (CEF) — apenas perfil CEF
+        $mo = $ctx->perfil->isCef()
+            ? $this->calcularMedicaoObra($mes, $dadosProdutos, $datas, $params, $ctx)
+            : ['valor' => 0.0];
+
+        $total = $totalRp + $totalAtrasadas + $rt['valor'] + $mo['valor'];
 
         return [
             'total' => $total,
             'juros_correcao' => ($rp['juros'] ?? 0.0) + ($rp['correcao'] ?? 0.0),
             'detalhes' => [
                 'Recursos Próprios' => round($totalRp, 2),
+                'Recursos Próprios (Atrasados)' => round($totalAtrasadas, 2),
                 'Recurso Terrenos' => round($rt['valor'], 2),
                 'Medição Obra' => round($mo['valor'], 2),
             ],
@@ -267,17 +287,19 @@ class ViabilidadeUnificadoService
         $operacionais = $this->calcularCustosOperacionais($mes, $dadosProdutos, $datas, $params, $ctx);
 
         // 4. Custos Financeiros
-        $financeiros = $receitas['total'] * ($params['percentualProdutosCef'] + $params['percentualOutrasDespesasFinanceiras']);
+        $percProdutosCef = $ctx->perfil->isCef() ? $params['percentualProdutosCef'] : 0.0;
+        $financeiros = $receitas['total'] * ($percProdutosCef + $params['percentualOutrasDespesasFinanceiras']);
 
         // 5. Custo Terreno (proporcional à receita)
         $custoTerreno = $this->calcularCustoTerreno($mes, $receitas['total'], $dadosProdutos, $params);
+        $pagamentoParceriaTerreno = $this->calcularPagamentoParceriaTerreno($mes, $receitas['total'], $datas, $params, $ctx);
 
         $detalhesOperacionais = [];
         foreach ($operacionais['detalhes'] as $nome => $valor) {
             $detalhesOperacionais['Operacional - '.$nome] = round($valor, 2);
         }
 
-        $total = $diretos['total'] + $tributos + $operacionais['total'] + $financeiros + $custoTerreno;
+        $total = $diretos['total'] + $tributos + $operacionais['total'] + $financeiros + $custoTerreno + $pagamentoParceriaTerreno;
 
         return [
             'total' => $total,
@@ -286,9 +308,10 @@ class ViabilidadeUnificadoService
                 'Operacional' => round($operacionais['total'], 2),
                 'Financeiro' => round($financeiros, 2),
                 'Custo Terreno' => round($custoTerreno, 2),
+                'Pagamento Terreno (Parceria)' => round($pagamentoParceriaTerreno, 2),
             ], $detalhesOperacionais),
             'categorias' => [
-                'custo_direto' => $diretos['total'] + $custoTerreno,
+                'custo_direto' => $diretos['total'] + $custoTerreno + $pagamentoParceriaTerreno,
                 'impostos' => $tributos,
                 'custos_operacionais' => $operacionais['total'],
                 'custos_financeiros' => $financeiros,
@@ -445,8 +468,9 @@ class ViabilidadeUnificadoService
         float $vgv
     ): array {
         // Custo Terreno: permuta física + permuta financeira + compra + infra proprietário
+        $parceriaBase = $dadosProdutos['vgv'] ?? $vgv;
         $custoTerreno = $params['compraTerreno']
-            + ($params['parceriaVgv'] * $dadosProdutos['vgvComCorrecao'])
+            + ($params['parceriaVgv'] * $parceriaBase)
             + ($dadosProdutos['permutas'] * ($dadosProdutos['custoCasaM2'] ?? 0))
             + ($dadosProdutos['permutas'] * ($dadosProdutos['custoInfraM2'] ?? 0));
 
@@ -634,6 +658,10 @@ class ViabilidadeUnificadoService
 
     private function calcularTxMedicao(array $dadosProdutos, array $params): float
     {
+        if (($params['perfilFinanciamento'] ?? null)?->isProprio()) {
+            return 0.0;
+        }
+
         $unidades = 0;
         foreach ($dadosProdutos['produtos'] as $produto) {
             if ($this->ehProdutoLote($produto)) {
@@ -647,6 +675,10 @@ class ViabilidadeUnificadoService
 
     private function calcularContratosCef(array $dadosProdutos, array $params): float
     {
+        if (($params['perfilFinanciamento'] ?? null)?->isProprio()) {
+            return 0.0;
+        }
+
         $unidades = 0;
         foreach ($dadosProdutos['produtos'] as $produto) {
             if ($this->ehProdutoLote($produto)) {
@@ -660,6 +692,10 @@ class ViabilidadeUnificadoService
 
     private function calcularProdutosCefPorTipologia(array $dadosProdutos, array $params): float
     {
+        if (($params['perfilFinanciamento'] ?? null)?->isProprio()) {
+            return 0.0;
+        }
+
         $total = 0;
         foreach ($dadosProdutos['produtos'] as $produto) {
             if ($this->ehProdutoLote($produto)) {
@@ -737,6 +773,11 @@ class ViabilidadeUnificadoService
         $d = config('viabilidade.defaults');
         $p = config('viabilidade.prazos');
 
+        $perfilValue = $v?->perfil_financiamento;
+        $perfilStr = $perfilValue instanceof PerfilFinanciamento
+            ? $perfilValue->value
+            : $d['perfil_financiamento'];
+
         return [
             'percentualImpostos' => (($v->pis_cofins ?? $d['pis_cofins']) + ($v->iss ?? $d['iss']) + ($v->outros_impostos ?? $d['outros_impostos'])) / 100,
             'percentualPisCofins' => ($v->pis_cofins ?? $d['pis_cofins']) / 100,
@@ -798,6 +839,12 @@ class ViabilidadeUnificadoService
             'devolucaoAportePercentual' => ($v->devolucao_aporte_percentual ?? $d['devolucao_aporte_percentual']) / 100,
             'distribuicaoLucrosPercentualObra' => ($v->distribuicao_lucros_percentual_obra ?? $d['distribuicao_lucros_percentual_obra']) / 100,
             'taxaExposicaoAplicada' => ($v->taxa_exposicao_aplicada ?? $d['taxa_exposicao_aplicada']) / 100,
+            'perfilFinanciamento' => PerfilFinanciamento::tryFrom((string) $perfilStr) ?? PerfilFinanciamento::CEF,
+            'baloesAnuais' => $d['baloes_anuais'] ?? [],
+            'balaoEntregaModo' => $d['balao_entrega_modo'] ?? 'saldo_restante',
+            'inadimplencia' => (float) ($d['inadimplencia'] ?? 0.10),
+            'atrasoMeses' => (int) ($d['atraso_meses'] ?? 2),
+            'taxaPerda' => (float) ($d['taxa_perda'] ?? 0.02),
         ];
     }
 
@@ -899,6 +946,8 @@ class ViabilidadeUnificadoService
                 'demanda_minCef' => $demandaMinCef,
                 'curva_vendas' => $produto->curva_vendas ?? [],
                 'curva_obra' => $produto->curva_obra ?? [],
+                'imposto_tributos' => ($produto->imposto_tributos ?? 0) / 100,
+                'imposto_iss' => ($produto->imposto_iss ?? 0) / 100,
                 'imposto_outros' => ($produto->imposto_outros ?? 0) / 100,
                 'financeiro' => [
                     'sinal' => $produto->sinal ?? 0,
@@ -968,32 +1017,50 @@ class ViabilidadeUnificadoService
     }
 
     /**
-     * Pré-calcula recursos próprios baseado na lógica de calculateMonthlyReceipts
+     * Pré-calcula todos os recebíveis (recursos próprios) dos clientes.
      *
-     * - Sinal: dividido em parcelas durante o lançamento (se venda no lançamento)
-     * - Obra: parcelas com correção composta pelo tempo desde a venda
-     * - Pós-chave: amortização + juros + correção sobre saldo devedor decrescente
+     * Suporta dois modelos de recebíveis, selecionados pelo perfil:
+     *
+     * Perfil CEF (comportamento original, inalterado):
+     *   - Sinal: parcelado no lançamento ou à vista
+     *   - Obra: parcelas mensais com correção composta
+     *   - Pós-chave: SAC com juros + correção sobre saldo devedor
+     *
+     * Perfil Próprio (modelo de balões):
+     *   - Entrada (% sinal): mesmo comportamento
+     *   - Parcelas mensais: distribui linearmente ao longo da obra
+     *   - Balões anuais: % do preço cobrado a cada 12 meses da venda
+     *   - Balão na entrega: saldo restante (quitação) no mês da entrega
      */
-    private function preCalcularRecursosProprios(array $produtos, array $datas, array $params, ViabilidadeFluxoContext $ctx): void
+    private function preCalcularRecebiveis(array $produtos, array $datas, array $params, ViabilidadeFluxoContext $ctx): void
+    {
+        if ($ctx->perfil->isCef()) {
+            $this->preCalcularRecebiveisCef($produtos, $datas, $params, $ctx);
+        } else {
+            $this->preCalcularRecebiveisProprio($produtos, $datas, $params, $ctx);
+        }
+
+        $this->aplicarInadimplencia($ctx, $params);
+    }
+
+    /**
+     * Modelo CEF: sinal + obra (correção) + pós-chave (SAC).
+     * Comportamento IDÊNTICO ao preCalcularRecursosProprios original.
+     */
+    private function preCalcularRecebiveisCef(array $produtos, array $datas, array $params, ViabilidadeFluxoContext $ctx): void
     {
         $ctx->recursosProprios = [];
 
         $dataLancamento = $datas['dataLancamento'];
-        $fimLancamento = $datas['fimLancamento'];
-        $inicioObra = $datas['inicioObra'];
-        $fimObra = $datas['fimObra'];
         $dataEntrega = $datas['dataEntrega'];
 
         $prazoLancamento = $params['mesesLancamento'];
         $prazoObra = $params['mesesObra'];
-        $prazoPosChave = 36; // Padrão 36 parcelas pós-chave
+        $prazoPosChave = 36;
 
-        // Taxa de correção anual para mensal (composição)
-        $taxaCorrecaoObraAnual = 0.05; // 5% ao ano
-        $taxaCorrecaoPosAnual = 0.045; // 4.5% ao ano
-        $r_obra = pow(1 + $taxaCorrecaoObraAnual, 1 / 12.0) - 1;
-        $r_pos = pow(1 + $taxaCorrecaoPosAnual, 1 / 12.0) - 1;
-        $juros_pos = 0.01; // 1% ao mês
+        $r_obra = pow(1 + self::TAXA_CORRECAO_OBRA_ANUAL, 1 / 12.0) - 1;
+        $r_pos = pow(1 + self::TAXA_CORRECAO_POS_ANUAL, 1 / 12.0) - 1;
+        $juros_pos = self::JUROS_POS_CHAVE_MENSAL;
 
         foreach ($produtos as $produto) {
             $curvaVendas = $this->curvaService->extrairCurva($produto['curva_vendas'] ?? null);
@@ -1003,37 +1070,26 @@ class ViabilidadeUnificadoService
             $precoProduto = $produto['preco'] ?? 0;
             $fin = $produto['financeiro'];
 
-            // Percentuais do produto
             $percentualSinal = ($fin['sinal'] ?? 2) / 100;
             $percentualObra = ($fin['parcela_obra'] ?? 9) / 100;
             $percentualPos = ($fin['parcela_posChave'] ?? 9) / 100;
             $qtdParcelasPos = max(1, (int) ($fin['qtde_parcelas_posChave'] ?? $prazoPosChave));
 
-            // Cálculo do fim da obra em índice de meses
             $endObra = $prazoLancamento + $prazoObra;
-            $mesEntrega = $endObra + 1;
 
-            // Para cada mês de venda (coorte)
             foreach ($curvaVendas as $mesVenda => $percentualVenda) {
                 if ($percentualVenda <= 0) {
                     continue;
                 }
 
-                $s = $mesVenda + 1; // Índice 1-based como na função original
-
-                // Unidades vendidas neste mês
+                $s = $mesVenda + 1;
                 $unidadesVendidas = $unidadesProduto * $percentualVenda / 100;
 
-                // Valores nominais
                 $valorSinal = $precoProduto * $percentualSinal;
                 $valorObra = $precoProduto * $percentualObra;
                 $valorPos = $precoProduto * $percentualPos;
 
-                // ═══════════════════════════════════════════════════════════════
-                // SINAL: Divide em parcelas durante o lançamento (se venda <= lançamento)
-                // ═══════════════════════════════════════════════════════════════
                 if ($s <= $prazoLancamento) {
-                    // Quantidade de parcelas = meses restantes até fim do lançamento
                     $numSinal = $prazoLancamento - $s + 1;
                     $parcelaSinal = $valorSinal / $numSinal;
 
@@ -1046,7 +1102,6 @@ class ViabilidadeUnificadoService
                             ($ctx->recursosProprios[$chaveMes]['sinal'] ?? 0) + ($parcelaSinal * $unidadesVendidas);
                     }
                 } else {
-                    // Venda após lançamento: sinal recebido no mês da venda
                     $dataRecebimento = $dataLancamento->copy()->addMonths($s - 1);
                     $chaveMes = $dataRecebimento->format('Y-m');
 
@@ -1054,9 +1109,6 @@ class ViabilidadeUnificadoService
                         ($ctx->recursosProprios[$chaveMes]['sinal'] ?? 0) + ($valorSinal * $unidadesVendidas);
                 }
 
-                // ═══════════════════════════════════════════════════════════════
-                // OBRA: Parcelas com correção composta pelo tempo desde a venda
-                // ═══════════════════════════════════════════════════════════════
                 $inicioObraCoorte = max($s, $prazoLancamento + 1);
                 $numObraParcelas = $endObra - $inicioObraCoorte + 1;
 
@@ -1067,7 +1119,6 @@ class ViabilidadeUnificadoService
                         $mesRecebimento = $inicioObraCoorte + $i;
                         $mesesPassados = $mesRecebimento - $s;
 
-                        // Correção composta pelo tempo desde a venda
                         $parcelaAjustada = $parcelaObraNominal * pow(1 + $r_obra, $mesesPassados);
                         $correcaoMes = $parcelaAjustada - $parcelaObraNominal;
 
@@ -1082,14 +1133,10 @@ class ViabilidadeUnificadoService
                 }
             }
 
-            // ═══════════════════════════════════════════════════════════════
-            // PÓS-CHAVE: Agregado, com amortização + juros + correção sobre saldo devedor
-            // ═══════════════════════════════════════════════════════════════
             $valorPosTotal = $precoProduto * $percentualPos * $unidadesProduto;
             $amortizacao = $valorPosTotal / $qtdParcelasPos;
 
             for ($k = 1; $k <= $qtdParcelasPos; $k++) {
-                // Saldo devedor decrescente
                 $saldoDevedor = $valorPosTotal - ($amortizacao * ($k - 1));
 
                 $jurosMes = $saldoDevedor * $juros_pos;
@@ -1105,6 +1152,191 @@ class ViabilidadeUnificadoService
                     ($ctx->recursosProprios[$chaveMes]['juros'] ?? 0) + $jurosMes;
                 $ctx->recursosProprios[$chaveMes]['correcao'] =
                     ($ctx->recursosProprios[$chaveMes]['correcao'] ?? 0) + $correcaoMes;
+            }
+        }
+    }
+
+    /**
+     * Modelo Próprio: entrada + parcelas mensais + balões anuais + balão na entrega.
+     */
+    private function preCalcularRecebiveisProprio(array $produtos, array $datas, array $params, ViabilidadeFluxoContext $ctx): void
+    {
+        $ctx->recursosProprios = [];
+
+        $dataLancamento = $datas['dataLancamento'];
+        $dataEntrega = $datas['dataEntrega'];
+
+        $prazoLancamento = $params['mesesLancamento'];
+        $prazoObra = $params['mesesObra'];
+        $endObra = $prazoLancamento + $prazoObra;
+
+        $baloesAnuais = $params['baloesAnuais'] ?? [];
+        $balaoEntregaModo = $params['balaoEntregaModo'] ?? 'saldo_restante';
+
+        foreach ($produtos as $produto) {
+            $curvaVendas = $this->curvaService->extrairCurva($produto['curva_vendas'] ?? null);
+            $curvaVendas = $this->curvaService->normalizarCurva($curvaVendas);
+
+            $unidadesProduto = $produto['quantidade_unidades'] ?? 1;
+            $precoProduto = $produto['preco'] ?? 0;
+            $fin = $produto['financeiro'];
+
+            $percentualSinal = ($fin['sinal'] ?? 2) / 100;
+
+            foreach ($curvaVendas as $mesVenda => $percentualVenda) {
+                if ($percentualVenda <= 0) {
+                    continue;
+                }
+
+                $s = $mesVenda + 1;
+                $unidadesVendidas = $unidadesProduto * $percentualVenda / 100;
+
+                $valorUnitario = $precoProduto;
+                $valorSinal = $valorUnitario * $percentualSinal;
+
+                if ($s <= $prazoLancamento) {
+                    $numSinal = $prazoLancamento - $s + 1;
+                    $parcelaSinal = $valorSinal / $numSinal;
+
+                    for ($i = 0; $i < $numSinal; $i++) {
+                        $mesRecebimento = $s + $i;
+                        $dataRecebimento = $dataLancamento->copy()->addMonths($mesRecebimento - 1);
+                        $chaveMes = $dataRecebimento->format('Y-m');
+
+                        $ctx->recursosProprios[$chaveMes]['sinal'] =
+                            ($ctx->recursosProprios[$chaveMes]['sinal'] ?? 0) + ($parcelaSinal * $unidadesVendidas);
+                    }
+                } else {
+                    $dataRecebimento = $dataLancamento->copy()->addMonths($s - 1);
+                    $chaveMes = $dataRecebimento->format('Y-m');
+
+                    $ctx->recursosProprios[$chaveMes]['sinal'] =
+                        ($ctx->recursosProprios[$chaveMes]['sinal'] ?? 0) + ($valorSinal * $unidadesVendidas);
+                }
+
+                $valorRestante = $valorUnitario - $valorSinal;
+                $valorJaAlocado = 0.0;
+
+                foreach ($baloesAnuais as $balao) {
+                    $mesBalao = (int) ($balao['mes'] ?? 12);
+                    $percBalao = ($balao['percentual'] ?? 0) / 100;
+                    $valorBalao = $valorUnitario * $percBalao;
+
+                    $mesRecebimento = $s + $mesBalao - 1;
+                    $dataRecebimento = $dataLancamento->copy()->addMonths($mesRecebimento - 1);
+                    $chaveMes = $dataRecebimento->format('Y-m');
+
+                    $ctx->recursosProprios[$chaveMes]['parcelas_obra'] =
+                        ($ctx->recursosProprios[$chaveMes]['parcelas_obra'] ?? 0) + ($valorBalao * $unidadesVendidas);
+
+                    $valorJaAlocado += $valorBalao;
+                }
+
+                if ($balaoEntregaModo === 'saldo_restante') {
+                    $saldoRestante = max(0, $valorRestante - $valorJaAlocado);
+                } else {
+                    $saldoRestante = $valorUnitario * (float) $balaoEntregaModo;
+                }
+
+                if ($saldoRestante > 0) {
+                    $dataRecebimento = $dataEntrega->copy();
+                    $chaveMes = $dataRecebimento->format('Y-m');
+
+                    $ctx->recursosProprios[$chaveMes]['parcelas_pos'] =
+                        ($ctx->recursosProprios[$chaveMes]['parcelas_pos'] ?? 0) + ($saldoRestante * $unidadesVendidas);
+                }
+
+                $valorMensalidades = max(0, $valorRestante - $valorJaAlocado - $saldoRestante);
+
+                if ($valorMensalidades > 0) {
+                    $inicioObraCoorte = max($s, $prazoLancamento + 1);
+                    $numParcelasMensais = $endObra - $inicioObraCoorte + 1;
+
+                    if ($numParcelasMensais > 0) {
+                        $parcelaMensalNominal = $valorMensalidades / $numParcelasMensais;
+
+                        for ($i = 0; $i < $numParcelasMensais; $i++) {
+                            $mesRecebimento = $inicioObraCoorte + $i;
+                            $dataRecebimento = $dataLancamento->copy()->addMonths($mesRecebimento - 1);
+                            $chaveMes = $dataRecebimento->format('Y-m');
+
+                            $ctx->recursosProprios[$chaveMes]['parcelas_obra'] =
+                                ($ctx->recursosProprios[$chaveMes]['parcelas_obra'] ?? 0) + ($parcelaMensalNominal * $unidadesVendidas);
+                        }
+                    }
+                }
+            }
+        }
+
+        ksort($ctx->recursosProprios);
+    }
+
+    /**
+     * Aplica inadimplência/atraso sobre os recebíveis pré-calculados.
+     *
+     * Modos:
+     * - atrasoMeses = 0: haircut direto → multiplica cada entrada por (1 - inadimplencia)
+     * - atrasoMeses > 0: recuperação parcial → move inadimplencia% para atrasoMeses à frente,
+     *   aplica taxaPerda sobre o valor atrasado
+     *
+     * Só aplica no perfil próprio.
+     */
+    private function aplicarInadimplencia(ViabilidadeFluxoContext $ctx, array $params): void
+    {
+        if ($ctx->perfil->isCef()) {
+            return;
+        }
+
+        $inadimplencia = (float) ($params['inadimplencia'] ?? 0.0);
+        $atrasoMeses = (int) ($params['atrasoMeses'] ?? 0);
+        $taxaPerda = (float) ($params['taxaPerda'] ?? 0.0);
+
+        if ($inadimplencia <= 0.0) {
+            return;
+        }
+
+        $meses = array_keys($ctx->recursosProprios);
+        sort($meses);
+
+        if ($atrasoMeses <= 0) {
+            foreach ($meses as $chaveMes) {
+                $rp = &$ctx->recursosProprios[$chaveMes];
+                foreach (['sinal', 'parcelas_obra', 'parcelas_pos'] as $campo) {
+                    if (isset($rp[$campo])) {
+                        $rp[$campo] *= (1 - $inadimplencia);
+                    }
+                }
+            }
+
+            return;
+        }
+
+        foreach ($meses as $chaveMes) {
+            $rp = &$ctx->recursosProprios[$chaveMes];
+            $totalMesAntes = ($rp['sinal'] ?? 0.0) + ($rp['parcelas_obra'] ?? 0.0) + ($rp['parcelas_pos'] ?? 0.0);
+
+            if ($totalMesAntes <= 0.0) {
+                continue;
+            }
+
+            $valorAtrasado = $totalMesAntes * $inadimplencia;
+            $perdaDefinitiva = $valorAtrasado * $taxaPerda;
+            $valorRecuperavel = $valorAtrasado - $perdaDefinitiva;
+
+            $dataAtual = Carbon::parse($chaveMes . '-01');
+            $dataDestino = $dataAtual->copy()->addMonths($atrasoMeses);
+            $chaveDestino = $dataDestino->format('Y-m');
+
+            $fator = $totalMesAntes > 0 ? (1 - $inadimplencia) : 1;
+            foreach (['sinal', 'parcelas_obra', 'parcelas_pos'] as $campo) {
+                if (isset($rp[$campo])) {
+                    $rp[$campo] *= $fator;
+                }
+            }
+
+            if ($valorRecuperavel > 0.0) {
+                $ctx->parcelasAtrasadas[$chaveDestino] =
+                    ($ctx->parcelasAtrasadas[$chaveDestino] ?? 0.0) + $valorRecuperavel;
             }
         }
     }
@@ -1420,10 +1652,42 @@ class ViabilidadeUnificadoService
     private function calcularCustoTerreno(string $mes, float $receitaMes, array $dadosProdutos, array $params): float
     {
         $totalCustoTerreno = ($dadosProdutos['permutas'] * ($dadosProdutos['produtos'][0]['preco'] ?? 0)) + $params['compraTerreno'];
-        $custoParceria = $params['parceriaVgv'] * ($dadosProdutos['vgvComCorrecao'] ?? $dadosProdutos['vgv']);
         $receitaTotal = $dadosProdutos['vgvComCorrecao'] ?? $dadosProdutos['vgv'];
 
-        return $receitaTotal > 0 ? (($totalCustoTerreno + $custoParceria) * $receitaMes) / $receitaTotal : 0;
+        return $receitaTotal > 0 ? ($totalCustoTerreno * $receitaMes) / $receitaTotal : 0;
+    }
+
+    private function calcularPagamentoParceriaTerreno(
+        string $mes,
+        float $receitaMes,
+        array $datas,
+        array $params,
+        ViabilidadeFluxoContext $ctx
+    ): float {
+        $percentualParceria = (float) ($params['parceriaVgv'] ?? 0.0);
+        if ($percentualParceria <= 0) {
+            return 0.0;
+        }
+
+        $dataAtual = $this->parseMes($mes);
+        if ($dataAtual->lessThan($datas['inicioObra'])) {
+            return 0.0;
+        }
+
+        if ($ctx->parceriaVgvTotal <= 0) {
+            return 0.0;
+        }
+
+        $restante = max(0.0, $ctx->parceriaVgvTotal - $ctx->parceriaVgvPago);
+        if ($restante <= 0) {
+            return 0.0;
+        }
+
+        $valorMes = max(0.0, $receitaMes * $percentualParceria);
+        $pagar = min($restante, $valorMes);
+        $ctx->parceriaVgvPago += $pagar;
+
+        return $pagar;
     }
 
     private function calcularDespesasComerciaisMensais(string $mes, array $dadosProdutos, array $datas, array $params, ViabilidadeFluxoContext $ctx): array
@@ -1555,6 +1819,8 @@ class ViabilidadeUnificadoService
         $saldoFinanceiro = 0.0;
         $paybackOperacionalMes = null;
         $paybackFinanceiroMes = null;
+        $teveSaldoOperacionalNegativo = false;
+        $teveSaldoFinanceiroNegativo = false;
         $taxaExposicaoMensal = pow(1 + ($params['taxaExposicaoAplicada'] ?? 0), 1 / 12) - 1;
         $exposicaoAplicadaTotal = 0.0;
         $custoTotalObra = ($dadosProdutos['custoObraHabitacao'] ?? 0) + ($dadosProdutos['custoInfraestrutura'] ?? 0);
@@ -1585,7 +1851,10 @@ class ViabilidadeUnificadoService
             $valorOperacional = (float) ($linha['lucro'] ?? 0);
             $fluxoOperacionalTir[] = ['data' => $dataAtual->copy(), 'valor' => $valorOperacional];
             $saldoOperacional += $valorOperacional;
-            if ($paybackOperacionalMes === null && $saldoOperacional >= 0) {
+            if ($saldoOperacional < 0) {
+                $teveSaldoOperacionalNegativo = true;
+            }
+            if ($paybackOperacionalMes === null && $teveSaldoOperacionalNegativo && $saldoOperacional >= 0) {
                 $paybackOperacionalMes = count($fluxoOperacionalTir);
             }
 
@@ -1612,9 +1881,8 @@ class ViabilidadeUnificadoService
                 $saldoFinanceiro -= $exposicaoAplicadaMes;
                 $exposicaoAplicadaTotal += $exposicaoAplicadaMes;
             }
-
-            if ($paybackFinanceiroMes === null && $saldoFinanceiro >= 0) {
-                $paybackFinanceiroMes = count($fluxoFinanceiroTir) + 1;
+            if ($saldoFinanceiro < 0) {
+                $teveSaldoFinanceiroNegativo = true;
             }
 
             $fluxoFinanceiro[$mes] = [
@@ -1627,6 +1895,9 @@ class ViabilidadeUnificadoService
                 'exposicao_aplicada' => round($exposicaoAplicadaMes, 2),
             ];
             $fluxoFinanceiroTir[] = ['data' => $dataAtual->copy(), 'valor' => $valorFinanceiroMes];
+            if ($paybackFinanceiroMes === null && $teveSaldoFinanceiroNegativo && $saldoFinanceiro >= 0) {
+                $paybackFinanceiroMes = count($fluxoFinanceiroTir);
+            }
         }
 
         return [
@@ -1707,6 +1978,71 @@ class ViabilidadeUnificadoService
             'custo_incorrido_total' => round($custoIncorridoTotal, 2),
             'lucro_bruto_contabil' => round($lucroBrutoContabil, 2),
             'margem_bruta_contabil_percentual' => round($margemBrutaContabil * 100, 2),
+        ];
+    }
+
+    private function calcularDreCaixa(array $totais): array
+    {
+        $receitaTotal = (float) ($totais['receita'] ?? 0.0);
+        $custoDireto = (float) ($totais['custo_direto'] ?? 0.0);
+        $impostos = (float) ($totais['impostos'] ?? 0.0);
+        $operacionais = (float) ($totais['custos_operacionais'] ?? 0.0);
+        $financeiros = (float) ($totais['custos_financeiros'] ?? 0.0);
+        $despesasTotal = $custoDireto + $impostos + $operacionais + $financeiros;
+        $resultado = (float) ($totais['lucro'] ?? ($receitaTotal - $despesasTotal));
+        $margem = $receitaTotal > 0 ? ($resultado / $receitaTotal) : 0.0;
+
+        return [
+            'receita_total' => round($receitaTotal, 2),
+            'custo_direto_total' => round($custoDireto, 2),
+            'impostos_total' => round($impostos, 2),
+            'despesas_operacionais_total' => round($operacionais, 2),
+            'despesas_financeiras_total' => round($financeiros, 2),
+            'despesas_total' => round($despesasTotal, 2),
+            'resultado_total' => round($resultado, 2),
+            'margem_liquida_percentual' => round($margem * 100, 2),
+        ];
+    }
+
+    private function calcularPonteReconcilicao(array $dreCaixa, array $dreGerencial, array $drePocMensalBlocos): array
+    {
+        $caixaReceita = (float) ($dreCaixa['receita_total'] ?? 0.0);
+        $caixaResultado = (float) ($dreCaixa['resultado_total'] ?? 0.0);
+
+        $dreReceitaBruta = (float) ($dreGerencial['receita_bruta'] ?? 0.0);
+        $dreResultado = (float) ($dreGerencial['lucro_liquido_projeto'] ?? 0.0);
+        $dreIr = (float) ($dreGerencial['irpj_csll'] ?? 0.0);
+        $dreJurosPj = (float) ($dreGerencial['despesas_onerosas_bancos'] ?? 0.0);
+
+        $pocResumo = is_array($drePocMensalBlocos['resumo'] ?? null) ? $drePocMensalBlocos['resumo'] : [];
+        $pocReceita = (float) ($pocResumo['receita_reconhecida_poc_total'] ?? 0.0);
+        $pocResultado = (float) ($pocResumo['resultado_contabil_total'] ?? 0.0);
+
+        return [
+            'caixa' => [
+                'receita_total' => round($caixaReceita, 2),
+                'resultado_total' => round($caixaResultado, 2),
+            ],
+            'dre_gerencial' => [
+                'receita_bruta' => round($dreReceitaBruta, 2),
+                'lucro_liquido' => round($dreResultado, 2),
+                'irpj_csll' => round($dreIr, 2),
+                'juros_pj' => round($dreJurosPj, 2),
+            ],
+            'dre_contabil_poc' => [
+                'receita_reconhecida_poc_total' => round($pocReceita, 2),
+                'resultado_contabil_total' => round($pocResultado, 2),
+            ],
+            'deltas' => [
+                'receita_caixa_menos_receita_bruta' => round($caixaReceita - $dreReceitaBruta, 2),
+                'resultado_caixa_menos_lucro_dre_gerencial' => round($caixaResultado - $dreResultado, 2),
+                'lucro_dre_gerencial_menos_resultado_poc' => round($dreResultado - $pocResultado, 2),
+            ],
+            'principais_motivos' => [
+                'Caixa considera entradas/saídas; DRE gerencial usa VGV e premissas de correção/juros para formar receita e apropria custos por regra.',
+                'DRE contábil (POC) reconhece receita e custos conforme execução da obra, não conforme recebimento.',
+                'IRPJ/CSLL e despesas onerosas (juros PJ) tendem a aparecer na DRE gerencial/financeira e não são necessariamente desembolso no mesmo timing do caixa operacional.',
+            ],
         ];
     }
 

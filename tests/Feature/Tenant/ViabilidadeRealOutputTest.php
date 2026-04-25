@@ -84,7 +84,9 @@ class ViabilidadeRealOutputTest extends TestCase
         $this->assertIsArray($resultado);
         $this->assertArrayHasKey('fluxo_mensal', $resultado);
         $this->assertArrayHasKey('dre_itens', $resultado);
+        $this->assertArrayHasKey('dre_caixa', $resultado);
         $this->assertArrayHasKey('dre_contabil_poc_mensal_blocos', $resultado);
+        $this->assertArrayHasKey('ponte_reconciliacao', $resultado);
         $this->assertNotEmpty($resultado['fluxo_mensal']);
 
         $primeirosMeses = array_slice($resultado['fluxo_mensal'], 0, 3, true);

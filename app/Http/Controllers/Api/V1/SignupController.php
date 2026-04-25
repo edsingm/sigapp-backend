@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SignupRequest;
 use App\Models\Central\Tenant;
+use App\Models\Central\Plan;
 use App\Repositories\Contracts\PlanRepositoryInterface;
 use App\Repositories\Contracts\TenantRepositoryInterface;
 use App\Services\ApiResponseService;

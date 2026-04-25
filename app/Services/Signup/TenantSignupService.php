@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Stancl\Tenancy\Database\Models\Domain;
+use App\Exceptions\SignupSlugReservedException;
 
 class TenantSignupService
 {
@@ -31,9 +32,24 @@ class TenantSignupService
 
         $tenant = DB::transaction(function () use ($validated, $plan, $request, $contractConfig, $requestedSlug, $effectiveSlug) {
             $existingTenant = Tenant::where('slug', $effectiveSlug)->lockForUpdate()->first();
+
+            if (
+                $existingTenant
+                && $existingTenant->status === Tenant::STATUS_PENDING
+                && $existingTenant->created_at->lt(now()->subDay())
+            ) {
+                $existingTenant->domains()->delete();
+                $existingTenant->delete();
+                $existingTenant = null;
+            }
+
             $existingDomain = Domain::query()->where('domain', $effectiveSlug)->lockForUpdate()->first();
 
             if ($existingTenant || $existingDomain) {
+                if ($existingTenant && $existingTenant->status === Tenant::STATUS_PENDING) {
+                    throw new SignupSlugReservedException();
+                }
+
                 $this->audit('tenant.signup_slug_conflict', "Slug '{$effectiveSlug}' indisponível no cadastro.", [
                     'requested_slug' => $requestedSlug,
                     'effective_slug' => $effectiveSlug,

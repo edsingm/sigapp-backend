@@ -73,9 +73,9 @@ class PublicTenantSubdomainAvailabilityTest extends TestCase
             ]);
 
         $response
-            ->assertStatus(422)
+            ->assertStatus(409)
             ->assertJsonPath('success', false)
-            ->assertJsonPath('error.code', 'VALIDATION_ERROR');
+            ->assertJsonPath('error.code', 'CONFLICT');
 
         $this->assertDatabaseMissing('tenants', [
             'slug' => 'ed-broker-98gm',

@@ -60,6 +60,7 @@
     "SUBDOMAIN_AVAILABLE": "Subdomínio disponível",
     "SUBDOMAIN_UNAVAILABLE": "Este subdomínio já está em uso internamente. Por favor, escolha outro",
     "SUBDOMAIN_UNVAVAILABLE": "Subdomínio indisponível",
+    "SUBDOMAIN_RESERVED": "Subdomínio reservado por até 24 horas. Tente novamente mais tarde ou escolha outro.",
     "SUCCESS": "Sucesso",
     "SUCCESS_OPERATION": "Operação realizada com sucesso",
     "SUPERVISOR": "Supervisor",

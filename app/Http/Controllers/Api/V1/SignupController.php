@@ -13,6 +13,7 @@ use App\Services\Billing\StripeCheckoutService;
 use App\Services\Billing\TenantBillingService;
 use App\Services\Signup\TenantSignupService;
 use App\Traits\LogsAudit;
+use App\Exceptions\SignupSlugReservedException;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Stancl\Tenancy\Exceptions\TenantDatabaseAlreadyExistsException;
@@ -66,6 +67,8 @@ class SignupController extends Controller
 
         } catch (ValidationException $e) {
             return ApiResponseService::validationError($e->errors());
+        } catch (SignupSlugReservedException $e) {
+            return ApiResponseService::conflict('SUBDOMAIN_RESERVED');
         } catch (TenantDatabaseAlreadyExistsException $e) {
             $this->audit('tenant.signup_failed', 'Signup falhou: banco de dados do tenant já existe.', [
                 'error' => $e->getMessage(),

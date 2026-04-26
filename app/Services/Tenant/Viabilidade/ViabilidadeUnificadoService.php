@@ -72,8 +72,8 @@ class ViabilidadeUnificadoService
                 throw new Exception('Não foi possível calcular dados válidos dos produtos.');
             }
 
-            // Agregar curva_obra de todos os produtos (peso = quantidade_unidades)
-            $dadosProdutos['curvaObraAgregada'] = $this->agregarCurvaObra($dadosProdutos['produtos']);
+            // Agregar curva_obra baseada no prazo de obra (CurvaService, Curva S padrão)
+            $dadosProdutos['curvaObraAgregada'] = $this->agregarCurvaObra($params['mesesObra']);
 
             // 2. Calcular datas dos períodos
             $datas = $this->calcularPeriodos($dadosProdutos['dataInicio'], $params);
@@ -748,7 +748,6 @@ class ViabilidadeUnificadoService
                     'imposto_iss',
                     'demanda_minCef',
                     'curva_vendas',
-                    'curva_obra',
                     'avaliacao_lotesCef',
                 ]),
             ])
@@ -945,7 +944,6 @@ class ViabilidadeUnificadoService
                 'pgto_por_lote' => $pgtoPorLote,
                 'demanda_minCef' => $demandaMinCef,
                 'curva_vendas' => $produto->curva_vendas ?? [],
-                'curva_obra' => $produto->curva_obra ?? [],
                 'imposto_tributos' => ($produto->imposto_tributos ?? 0) / 100,
                 'imposto_iss' => ($produto->imposto_iss ?? 0) / 100,
                 'imposto_outros' => ($produto->imposto_outros ?? 0) / 100,
@@ -1556,7 +1554,7 @@ class ViabilidadeUnificadoService
         $mesObraAtual = (int) $inicioObra->diffInMonths($dataAtual->startOfMonth()) + 1;
 
         // Obter percentual da curva S agregada para este mês
-        $curvaObra = $dadosProdutos['curvaObraAgregada'] ?? $this->agregarCurvaObra($dadosProdutos['produtos'] ?? []);
+        $curvaObra = $dadosProdutos['curvaObraAgregada'] ?? $this->agregarCurvaObra($params['mesesObra']);
         $indice = $mesObraAtual - 1;
         $percObraMes = $curvaObra[$indice] ?? 0.0;
 
@@ -1606,7 +1604,7 @@ class ViabilidadeUnificadoService
 
         if ($periodo === 'Obra') {
             $mesObraIndex = (int) $datas['inicioObra']->diffInMonths($dataAtual) + 1;
-            $curvaObra = $dadosProdutos['curvaObraAgregada'] ?? $this->agregarCurvaObra($dadosProdutos['produtos'] ?? []);
+            $curvaObra = $dadosProdutos['curvaObraAgregada'] ?? $this->agregarCurvaObra($params['mesesObra']);
             $percentualMes = $curvaObra[$mesObraIndex - 1] ?? 0.0;
             $custos['Obra'] = round($custoObraTotal * ($percentualMes / 100), 2);
             $custos['Canteiro'] = round($params['canteiroMensal'], 2);
@@ -2205,46 +2203,12 @@ class ViabilidadeUnificadoService
     }
 
     /**
-     * Agrega curva_obra de todos os produtos (peso = quantidade_unidades).
+     * Obtém a curva de obra baseada no prazo de obra da viabilidade via CurvaService.
+     * Não depende mais de curva_obra por produto — usa a Curva S padrão do sistema.
      */
-    private function agregarCurvaObra(array $produtos): array
+    private function agregarCurvaObra(int $mesesObra): array
     {
-        $curvas = [];
-        $pesos = [];
-
-        foreach ($produtos as $produto) {
-            $curva = $this->curvaService->extrairCurva($produto['curva_obra'] ?? null);
-            if (empty($curva)) {
-                continue;
-            }
-            $curvas[] = $this->curvaService->normalizarCurva($curva);
-            $pesos[] = $produto['quantidade_unidades'] ?? 1;
-        }
-
-        if (empty($curvas)) {
-            return [];
-        }
-
-        // Interpolar todas as curvas para o mesmo tamanho (maior)
-        $maxMeses = max(array_map('count', $curvas));
-
-        foreach ($curvas as $i => $curva) {
-            if (count($curva) < $maxMeses) {
-                $curvas[$i] = $this->curvaService->interpolarCurva($curva, $maxMeses);
-            }
-        }
-
-        // Média ponderada
-        $totalPeso = array_sum($pesos);
-        $agregada = array_fill(0, $maxMeses, 0.0);
-
-        foreach ($curvas as $i => $curva) {
-            foreach ($curva as $j => $valor) {
-                $agregada[$j] += $valor * ($pesos[$i] / $totalPeso);
-            }
-        }
-
-        return $this->curvaService->normalizarCurva($agregada);
+        return $this->curvaService->getCurvaObraParaPrazo($mesesObra);
     }
 
     private function calcularTir(array $fluxo, float $estimativa = 0.01): float

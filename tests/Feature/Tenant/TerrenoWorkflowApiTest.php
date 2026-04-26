@@ -93,7 +93,7 @@ class TerrenoWorkflowApiTest extends TestCase
             ->assertUnprocessable()
             ->assertJsonPath(
                 'errors.target_status.0',
-                'Cadastre proprietário, corretor e ao menos um produto antes de seguir para viabilidade.'
+                'Cadastre ao menos um produto no terreno antes de seguir para viabilidade.'
             );
     }
 

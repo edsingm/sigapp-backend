@@ -295,7 +295,7 @@ class LandWorkflowService
     protected function assertPrerequisites(Terreno $terreno, string $targetStatus, array $context = []): void
     {
         if ($targetStatus === WorkflowStatus::AGUARDANDO_VIABILIDADE->value && ! $this->hasMinimumReadiness($terreno)) {
-            throw new RuntimeException('Cadastre proprietário, corretor e ao menos um produto antes de seguir para viabilidade.');
+            throw new RuntimeException('Cadastre ao menos um produto no terreno antes de seguir para viabilidade.');
         }
 
         if ($targetStatus === WorkflowStatus::VIABILIDADE_APROVADA->value && $terreno->viabilidadeAtual?->approval_status !== 'aprovada') {
@@ -481,9 +481,7 @@ class LandWorkflowService
      */
     protected function hasMinimumReadiness(Terreno $terreno): bool
     {
-        return $terreno->proprietarios()->exists()
-            && filled($terreno->corretor_id)
-            && $terreno->terrenoProdutos()->exists();
+        return $terreno->terrenoProdutos()->exists();
     }
 
     /**

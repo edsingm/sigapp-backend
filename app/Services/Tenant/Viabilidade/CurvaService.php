@@ -288,14 +288,9 @@ class CurvaService
 
             $nome = (string) ($produto['nome'] ?? 'Produto');
             $curvaVendas = $this->extrairCurva($produto['curva_vendas'] ?? null);
-            $curvaObra = $this->extrairCurva($produto['curva_obra'] ?? null);
 
             if ($curvaVendas === []) {
                 $faltando[] = "{$nome}: curva_vendas";
-            }
-
-            if ($curvaObra === []) {
-                $faltando[] = "{$nome}: curva_obra";
             }
         }
 

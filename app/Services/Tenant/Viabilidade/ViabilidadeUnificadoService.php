@@ -60,6 +60,9 @@ class ViabilidadeUnificadoService
             $params = $this->montarParametros($viabilidade);
             $dadosProdutos = $this->processarProdutos($terreno, $params, $customProdutos);
 
+            // Mesclar parâmetros vindos dos produtos (fonte de verdade)
+            $params = $this->mesclarParametrosProduto($params, $dadosProdutos);
+
             // Validação: curvas obrigatórias devem estar preenchidas nos produtos
             $validacaoCurvas = $this->curvaService->validarCurvasObrigatorias($dadosProdutos['produtos']);
             if (! $validacaoCurvas['valid']) {
@@ -749,6 +752,27 @@ class ViabilidadeUnificadoService
                     'demanda_minCef',
                     'curva_vendas',
                     'avaliacao_lotesCef',
+                    'baloes_anuais',
+                    'balao_entrega_modo',
+                    'gastos_mensaisStand',
+                    'comissao_house',
+                    'porcentagem_comissaoHouse',
+                    'porcentagem_comissaoImobs',
+                    'pagto_comissaoNaVenda',
+                    'marketing_lancamento',
+                    'marketing_antesLancamento',
+                    'custo_contratacaoCef',
+                    'pj_taxaJuros',
+                    'pj_carenciaPosObra',
+                    'pj_qtdeParcelasPosCarencia',
+                    'assist_tecnica1',
+                    'assist_tecnica2',
+                    'assist_tecnica3',
+                    'assist_tecnica4',
+                    'assist_tecnica5',
+                    'incorp_ri',
+                    'incorp_entrega',
+                    'incorp_ateLancamento',
                 ]),
             ])
             ->findOrFail($terrenoId);
@@ -786,23 +810,15 @@ class ViabilidadeUnificadoService
             'parceriaVgv' => ($v->parceria_vgv ?? $d['parceria_vgv']) / 100,
             'infraNaoIncidente' => ($v->infra_nao_incidente ?? $d['infra_nao_incidente']) / 100,
             'percentualIncorporacao' => ($v->incorporacao ?? $d['incorporacao']) / 100,
-            'incorporacaoRi' => ($v->incorporacao_ri ?? $d['incorporacao_ri']) / 100,
-            'incorporacaoEntrega' => ($v->incorporacao_entrega ?? $d['incorporacao_entrega']) / 100,
-            'incorporacaoAteLancamento' => ($v->incorporacao_ate_lancamento ?? $d['incorporacao_ate_lancamento']) / 100,
             'custoAreaComum' => $v->area_comum ?? $d['area_comum'],
             'percentualContrapartidas' => ($v->contrapartidas ?? $d['contrapartidas']) / 100,
             'canteiroMensal' => $v->canteiro_mensal ?? $d['canteiro_mensal'],
             'moAdministrativa' => $v->mo_administrativa ?? $d['mo_administrativa'],
             'percentualSeguros' => ($v->seguros ?? $d['seguros']) / 100,
             'percentualAssistenciaTecnica' => ($v->assistencia_tecnica ?? $d['assistencia_tecnica']) / 100,
-            'assistenciaTecnicaCurva' => $v->assistencia_tecnica_curva ?? $d['assistencia_tecnica_curva'],
             'percentualDespesasComerciais' => ($v->despesas_comerciais ?? $d['despesas_comerciais']) / 100,
             'standVendas' => $v->stand_vendas ?? $d['stand_vendas'],
             'mobiliaDecoracao' => $v->mobilia_decoracao ?? $d['mobilia_decoracao'],
-            'gastosMensaisStand' => ($v->gastos_mensais_stand ?? $d['gastos_mensais_stand']) / 100,
-            'comissaoHousePercentual' => ($v->comissao_house_percentual ?? $d['comissao_house_percentual']) / 100,
-            'comissaoImobiliariasPercentual' => ($v->comissao_imobiliarias_percentual ?? $d['comissao_imobiliarias_percentual']) / 100,
-            'percentualVendasHouse' => ($v->percentual_vendas_house ?? $d['percentual_vendas_house']) / 100,
             'ajudaCustoGerente' => $v->ajuda_custo_gerente ?? $d['ajuda_custo_gerente'],
             'ajudaCustoGerenteRegional' => $v->ajuda_custo_gerente_regional ?? $d['ajuda_custo_gerente_regional'],
             'reembolsoLogistica' => $v->reembolso_logistica ?? $d['reembolso_logistica'],
@@ -811,15 +827,11 @@ class ViabilidadeUnificadoService
             'bonusGerenteRegional' => ($v->bonus_gerente_regional ?? $d['bonus_gerente_regional']) / 100,
             'bonusCredito' => ($v->bonus_credito ?? $d['bonus_credito']) / 100,
             'bonusGestorComercial' => ($v->bonus_gestor_comercial ?? $d['bonus_gestor_comercial']) / 100,
-            'pagamentoComissaoVenda' => ($v->pagamento_comissao_venda ?? $d['pagamento_comissao_venda']) / 100,
             'pagamentoComissaoDesligamento' => ($v->pagamento_comissao_desligamento ?? $d['pagamento_comissao_desligamento']) / 100,
             'parcelamentoComissaoMeses' => (int) ($v->parcelamento_comissao_meses ?? $d['parcelamento_comissao_meses']),
             'percentualMarketing' => ($v->marketing ?? $d['marketing']) / 100,
-            'marketingLancamento' => ($v->marketing_lancamento ?? $d['marketing_lancamento']) / 100,
-            'marketingInicioAntesLancamento' => (int) ($v->marketing_inicio_antes_lancamento ?? $d['marketing_inicio_antes_lancamento']),
             'custoItbiIptu' => ($v->itbi_iptu ?? $d['itbi_iptu']) / 100,
             'custoRegistro' => $v->registro ?? $d['registro'],
-            'custoMedicaoContratacao' => $v->medicao_contratacao ?? $d['medicao_contratacao'],
             'custoContratosCef' => $v->contratos_cef ?? $d['contratos_cef'],
             'percentualProdutosCef' => ($v->produtos_cef ?? $d['produtos_cef']) / 100,
             'percentualOutrasDespesasFinanceiras' => ($v->outras_despesas_financeiras ?? $d['outras_despesas_financeiras']) / 100,
@@ -830,17 +842,12 @@ class ViabilidadeUnificadoService
             'mesesPosObra' => $p['meses_pos_obra'],
             'variavelCorrecao' => $p['variavel_correcao'],
             'compraTerreno' => $v->compra_terreno ?? 0,
-            'taxaJurosPj' => ($v->taxa_juros_pj ?? $d['taxa_juros_pj']) / 100,
             'percentualAntecipacaoPj' => ($v->percentual_antecipacao_pj ?? $d['percentual_antecipacao_pj']) / 100,
-            'carenciaPjMeses' => (int) ($v->carencia_pj_meses ?? $d['carencia_pj_meses']),
-            'amortizacaoPjParcelas' => (int) ($v->amortizacao_pj_parcelas ?? $d['amortizacao_pj_parcelas']),
             'aporteAdicionalMensal' => $v->aporte_adicional_mensal ?? $d['aporte_adicional_mensal'],
             'devolucaoAportePercentual' => ($v->devolucao_aporte_percentual ?? $d['devolucao_aporte_percentual']) / 100,
             'distribuicaoLucrosPercentualObra' => ($v->distribuicao_lucros_percentual_obra ?? $d['distribuicao_lucros_percentual_obra']) / 100,
             'taxaExposicaoAplicada' => ($v->taxa_exposicao_aplicada ?? $d['taxa_exposicao_aplicada']) / 100,
             'perfilFinanciamento' => PerfilFinanciamento::tryFrom((string) $perfilStr) ?? PerfilFinanciamento::CEF,
-            'baloesAnuais' => $d['baloes_anuais'] ?? [],
-            'balaoEntregaModo' => $d['balao_entrega_modo'] ?? 'saldo_restante',
             'inadimplencia' => (float) ($d['inadimplencia'] ?? 0.10),
             'atrasoMeses' => (int) ($d['atraso_meses'] ?? 2),
             'taxaPerda' => (float) ($d['taxa_perda'] ?? 0.02),
@@ -944,9 +951,26 @@ class ViabilidadeUnificadoService
                 'pgto_por_lote' => $pgtoPorLote,
                 'demanda_minCef' => $demandaMinCef,
                 'curva_vendas' => $produto->curva_vendas ?? [],
+                'baloes_anuais' => $produto->baloes_anuais ?? [],
+                'balao_entrega_modo' => $produto->balao_entrega_modo ?? 'saldo_restante',
                 'imposto_tributos' => ($produto->imposto_tributos ?? 0) / 100,
                 'imposto_iss' => ($produto->imposto_iss ?? 0) / 100,
                 'imposto_outros' => ($produto->imposto_outros ?? 0) / 100,
+                'gastos_mensais_stand' => (float) ($produto->gastos_mensaisStand ?? 0),
+                'comissao_house' => (float) ($produto->comissao_house ?? 0) / 100,
+                'porcentagem_comissao_house' => (float) ($produto->porcentagem_comissaoHouse ?? 0) / 100,
+                'porcentagem_comissao_imobs' => (float) ($produto->porcentagem_comissaoImobs ?? 0) / 100,
+                'pagto_comissao_venda' => (float) ($produto->pagto_comissaoNaVenda ?? 0) / 100,
+                'marketing_lancamento' => (float) ($produto->marketing_lancamento ?? 0) / 100,
+                'marketing_antes_lancamento' => (int) ($produto->marketing_antesLancamento ?? 0),
+                'custo_contratacao_cef' => (float) ($produto->custo_contratacaoCef ?? 0),
+                'pj_taxa_juros' => (float) ($produto->pj_taxaJuros ?? 0) / 100,
+                'pj_carencia_pos_obra' => (int) ($produto->pj_carenciaPosObra ?? 0),
+                'pj_qtde_parcelas' => (int) ($produto->pj_qtdeParcelasPosCarencia ?? 0),
+                'assist_tecnica_curva' => $this->extrairAssistenciaTecnicaProduto($produto),
+                'incorp_ri' => (float) ($produto->incorp_ri ?? 0) / 100,
+                'incorp_entrega' => (float) ($produto->incorp_entrega ?? 0) / 100,
+                'incorp_ate_lancamento' => (float) ($produto->incorp_ateLancamento ?? 0) / 100,
                 'financeiro' => [
                     'sinal' => $produto->sinal ?? 0,
                     'parcela_obra' => $produto->parcela_obra ?? 0,
@@ -977,6 +1001,89 @@ class ViabilidadeUnificadoService
         $dados['dataInicio'] = Carbon::now()->addYears(2);
 
         return $dados;
+    }
+
+    /**
+     * Extrai a curva de assistência técnica do produto (5 colunas → array).
+     *
+     * @return array<int, float>
+     */
+    private function extrairAssistenciaTecnicaProduto($produto): array
+    {
+        return [
+            (float) ($produto->assist_tecnica1 ?? 50),
+            (float) ($produto->assist_tecnica2 ?? 20),
+            (float) ($produto->assist_tecnica3 ?? 10),
+            (float) ($produto->assist_tecnica4 ?? 10),
+            (float) ($produto->assist_tecnica5 ?? 10),
+        ];
+    }
+
+    /**
+     * Mescla parâmetros vindos dos produtos nos $params do projeto.
+     *
+     * Para campos que todos os produtos devem compartilhar (ex: taxa de juros PJ),
+     * usa média ponderada por quantidade de unidades. Se nenhum produto tiver
+     * o campo preenchido, mantém o valor original dos $params.
+     *
+     * @param  array<string, mixed>  $params
+     * @param  array<string, mixed>  $dadosProdutos
+     * @return array<string, mixed>
+     */
+    private function mesclarParametrosProduto(array $params, array $dadosProdutos): array
+    {
+        $produtos = $dadosProdutos['produtos'] ?? [];
+        if (empty($produtos)) {
+            return $params;
+        }
+
+        $extrair = function (string $campo, mixed $fallback) use ($produtos): mixed {
+            // Para arrays (ex: assistencia_tecnica_curva), retorna o primeiro encontrado
+            $primeiro = $produtos[0][$campo] ?? null;
+            if (is_array($primeiro) && !empty($primeiro)) {
+                return $primeiro;
+            }
+
+            $somaPonderada = 0.0;
+            $unidadesComValor = 0;
+            foreach ($produtos as $p) {
+                $valor = $p[$campo] ?? null;
+                if ($valor !== null && $valor != 0 && !is_array($valor)) {
+                    $unidades = (int) ($p['quantidade_unidades'] ?? 0);
+                    $somaPonderada += (float) $valor * $unidades;
+                    $unidadesComValor += $unidades;
+                }
+            }
+            if ($unidadesComValor > 0) {
+                return $somaPonderada / $unidadesComValor;
+            }
+            foreach ($produtos as $p) {
+                $valor = $p[$campo] ?? null;
+                if ($valor !== null && $valor != 0 && !is_array($valor)) {
+                    return $valor;
+                }
+            }
+            return $fallback;
+        };
+
+        // Parâmetros que vêm do Produto: usar o valor do produto, com fallback no config
+        $params['gastosMensaisStand'] = (float) $extrair('gastos_mensais_stand', $params['gastosMensaisStand'] ?? 0.01);
+        $params['comissaoHousePercentual'] = (float) $extrair('comissao_house', $params['comissaoHousePercentual'] ?? 0.03);
+        $params['percentualVendasHouse'] = (float) $extrair('porcentagem_comissao_house', $params['percentualVendasHouse'] ?? 0.50);
+        $params['comissaoImobiliariasPercentual'] = (float) $extrair('porcentagem_comissao_imobs', $params['comissaoImobiliariasPercentual'] ?? 0.035);
+        $params['pagamentoComissaoVenda'] = (float) $extrair('pagto_comissao_venda', $params['pagamentoComissaoVenda'] ?? 0.50);
+        $params['marketingLancamento'] = (float) $extrair('marketing_lancamento', $params['marketingLancamento'] ?? 0.25);
+        $params['marketingInicioAntesLancamento'] = (int) $extrair('marketing_antes_lancamento', $params['marketingInicioAntesLancamento'] ?? 3);
+        $params['custoMedicaoContratacao'] = (float) $extrair('custo_contratacao_cef', $params['custoMedicaoContratacao'] ?? 2000);
+        $params['taxaJurosPj'] = (float) $extrair('pj_taxa_juros', $params['taxaJurosPj'] ?? 0.105);
+        $params['carenciaPjMeses'] = (int) $extrair('pj_carencia_pos_obra', $params['carenciaPjMeses'] ?? 6);
+        $params['amortizacaoPjParcelas'] = (int) $extrair('pj_qtde_parcelas', $params['amortizacaoPjParcelas'] ?? 18);
+        $params['assistenciaTecnicaCurva'] = $extrair('assist_tecnica_curva', $params['assistenciaTecnicaCurva'] ?? [50, 20, 10, 10, 10]);
+        $params['incorporacaoRi'] = (float) $extrair('incorp_ri', $params['incorporacaoRi'] ?? 0.30);
+        $params['incorporacaoEntrega'] = (float) $extrair('incorp_entrega', $params['incorporacaoEntrega'] ?? 0.15);
+        $params['incorporacaoAteLancamento'] = (float) $extrair('incorp_ate_lancamento', $params['incorporacaoAteLancamento'] ?? 0.80);
+
+        return $params;
     }
 
     private function calcularPeriodos(Carbon $dataInicio, array $params): array
@@ -1056,10 +1163,6 @@ class ViabilidadeUnificadoService
         $prazoObra = $params['mesesObra'];
         $prazoPosChave = 36;
 
-        $r_obra = pow(1 + self::TAXA_CORRECAO_OBRA_ANUAL, 1 / 12.0) - 1;
-        $r_pos = pow(1 + self::TAXA_CORRECAO_POS_ANUAL, 1 / 12.0) - 1;
-        $juros_pos = self::JUROS_POS_CHAVE_MENSAL;
-
         foreach ($produtos as $produto) {
             $curvaVendas = $this->curvaService->extrairCurva($produto['curva_vendas'] ?? null);
             $curvaVendas = $this->curvaService->normalizarCurva($curvaVendas);
@@ -1072,6 +1175,14 @@ class ViabilidadeUnificadoService
             $percentualObra = ($fin['parcela_obra'] ?? 9) / 100;
             $percentualPos = ($fin['parcela_posChave'] ?? 9) / 100;
             $qtdParcelasPos = max(1, (int) ($fin['qtde_parcelas_posChave'] ?? $prazoPosChave));
+
+            // Taxas de correção e juros do Produto (fonte de verdade)
+            $taxaCorrecaoObraAnual = ((float) ($fin['correcao_anualObra'] ?? 5)) / 100;
+            $taxaCorrecaoPosAnual = ((float) ($fin['correcao_anualPosChave'] ?? 4.5)) / 100;
+            $jurosMensalPos = ((float) ($fin['juros_mensalPosChave'] ?? 1)) / 100;
+
+            $r_obra = pow(1 + $taxaCorrecaoObraAnual, 1 / 12.0) - 1;
+            $r_pos = pow(1 + $taxaCorrecaoPosAnual, 1 / 12.0) - 1;
 
             $endObra = $prazoLancamento + $prazoObra;
 
@@ -1137,7 +1248,7 @@ class ViabilidadeUnificadoService
             for ($k = 1; $k <= $qtdParcelasPos; $k++) {
                 $saldoDevedor = $valorPosTotal - ($amortizacao * ($k - 1));
 
-                $jurosMes = $saldoDevedor * $juros_pos;
+                $jurosMes = $saldoDevedor * $jurosMensalPos;
                 $correcaoMes = $saldoDevedor * $r_pos;
                 $pagamentoMes = $amortizacao + $jurosMes + $correcaoMes;
 
@@ -1156,6 +1267,9 @@ class ViabilidadeUnificadoService
 
     /**
      * Modelo Próprio: entrada + parcelas mensais + balões anuais + balão na entrega.
+     *
+     * Os balões (anuais e entrega) são lidos de cada produto, permitindo que
+     * diferentes tipologias tenham cronogramas de pagamento distintos.
      */
     private function preCalcularRecebiveisProprio(array $produtos, array $datas, array $params, ViabilidadeFluxoContext $ctx): void
     {
@@ -1168,9 +1282,6 @@ class ViabilidadeUnificadoService
         $prazoObra = $params['mesesObra'];
         $endObra = $prazoLancamento + $prazoObra;
 
-        $baloesAnuais = $params['baloesAnuais'] ?? [];
-        $balaoEntregaModo = $params['balaoEntregaModo'] ?? 'saldo_restante';
-
         foreach ($produtos as $produto) {
             $curvaVendas = $this->curvaService->extrairCurva($produto['curva_vendas'] ?? null);
             $curvaVendas = $this->curvaService->normalizarCurva($curvaVendas);
@@ -1180,6 +1291,9 @@ class ViabilidadeUnificadoService
             $fin = $produto['financeiro'];
 
             $percentualSinal = ($fin['sinal'] ?? 2) / 100;
+
+            $baloesAnuais = $produto['baloes_anuais'] ?? [];
+            $balaoEntregaModo = $produto['balao_entrega_modo'] ?? 'saldo_restante';
 
             foreach ($curvaVendas as $mesVenda => $percentualVenda) {
                 if ($percentualVenda <= 0) {

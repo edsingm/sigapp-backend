@@ -500,36 +500,37 @@ Montados em `montarParametros()` a partir de `config/viabilidade.php` (defaults)
 
 ## 12. Curvas S (CurvaService)
 
-Não existem mais curvas hardcoded ou tipologias enumeradas. Todas as curvas vêm diretamente da tabela `produtos` do tenant:
+As curvas de venda vêm da tabela `produtos` do tenant, enquanto a curva de obra é centralizada no `CurvaService`:
 
-| Coluna | Tipo | Descrição |
-|--------|------|-----------|
-| `curva_vendas` | JSON array | Percentuais de vendas mês a mês (soma ~100%). Tamanho do array = duração da comercialização |
-| `curva_obra` | JSON array | Curva S de obra — avanço físico mês a mês (soma ~100%). Tamanho do array = duração da obra |
+| Fonte | Tipo | Descrição |
+|-------|------|-----------|
+| `produtos.curva_vendas` | JSON array | Percentuais de vendas mês a mês (soma ~100%). Tamanho do array = duração da comercialização |
+| `CurvaService.getPercentualCustoObra()` | Método | Curva S de obra — avanço físico mês a mês baseado no prazo total da obra (18, 20, 24, 30, 36 meses) |
 
-Ambas são obrigatórias para o cálculo. O método `gerarFluxoMensal()` valida a presença de ambas antes de iniciar o cálculo.
+A `curva_vendas` é obrigatória por produto. A curva de obra não está mais na tabela `produtos` — o `ViabilidadeUnificadoService` obtém a curva S diretamente do `CurvaService` com base no `prazo_obra` informado na viabilidade.
 
 ### O CurvaService (utilitários)
 
-O `CurvaService` contém apenas funções utilitárias para manipular curvas:
+O `CurvaService` centraliza as curvas de desembolso de obra (Curva S) e funções utilitárias para manipular curvas de venda:
 
 | Método | Descrição |
 |--------|-----------|
-| `extrairCurva(array|string|null $valor): array` | Extrai curva de um JSON ou array do produto, filtra negativos |
+| `getPercentualCustoObra(int $mesesTotal, int $mesAtual): float` | Retorna o % do custo de obra para um mês específico usando Curva S padrão |
+| `getCurvaObraParaPrazo(int $meses): array` | Retorna a Curva S completa para um prazo de obra |
+| `extrairCurva(array\|string\|null $valor): array` | Extrai curva de um JSON ou array do produto, filtra negativos |
 | `normalizarCurva(array $curva): array` | Ajusta curva para soma = 100% |
 | `ajustarCurva(array $curva, int $meses): array` | Corta ou preenche com zeros para atingir exatamente `$meses` elementos |
 | `interpolarCurva(array $curva, int $meses): array` | Redimensiona curva via interpolação linear e normaliza |
-| `validarCurvasObrigatorias(array $produtos): array` | Valida se todos os produtos têm `curva_vendas` e `curva_obra` |
+| `validarCurvasObrigatorias(array $produtos): array` | Valida se todos os produtos têm `curva_vendas` |
 
-### Agrregação de Curva de Obra
+### Agregação de Curva de Obra
 
-Quando há múltiplos produtos num terreno, as curvas individuais de obra são agregadas em uma curva ponderada (`curvaObraAgregada`):
+A curva de obra é calculada via `CurvaService.agregarCurvaObra(mesesObra)` — sem dependência de `curva_obra` por produto:
 
-1. Cada produto contribui com sua `curva_obra`, normalizada para soma = 100%
-2. O peso de cada produto é `quantidade_unidades`
-3. As curvas são interpoladas para o mesmo tamanho (max entre elas e `mesesObra`)
-4. Calcula-se a média ponderada por peso
+1. O `CurvaService` seleciona a Curva S padrão correspondente ao prazo de obra (18, 20, 24, 30 ou 36 meses)
+2. Para prazos intermediários, utiliza interpolação linear entre as curvas vizinhas
+3. A curva resultante é normalizada para soma = 100%
 
-Essa curva agregada é usada em:
+Essa curva é usada em:
 - **Custos Diretos**: distribuir o custo total de obra mês a mês (`calcularCustosDiretos`)
 - **Medição de Obra CEF**: calcular o percentual físico acumulado (`calcularMedicaoObra`)

@@ -62,7 +62,8 @@ class Produto extends Model
         'imposto_iss',
         'imposto_outros',
         'curva_vendas',
-        'curva_obra',
+        'baloes_anuais',
+        'balao_entrega_modo',
         'incorp_ri',
         'incorp_entrega',
         'incorp_ateLancamento',
@@ -118,6 +119,6 @@ class Produto extends Model
         'pj_carenciaPosObra' => 'int',
         'pj_qtdeParcelasPosCarencia' => 'int',
         'curva_vendas' => 'array',
-        'curva_obra' => 'array',
+        'baloes_anuais' => 'array',
     ];
 }

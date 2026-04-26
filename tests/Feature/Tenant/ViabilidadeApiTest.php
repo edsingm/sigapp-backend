@@ -215,7 +215,6 @@ class ViabilidadeApiTest extends TestCase
             'm2_cost' => 1800,
             'infra_cost' => 300,
             'curva_vendas' => [10, 20, 20, 20, 15, 15],
-            'curva_obra' => [10, 15, 20, 20, 20, 15],
         ]);
 
         return TerrenoProduto::create([

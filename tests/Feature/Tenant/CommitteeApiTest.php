@@ -139,7 +139,6 @@ class CommitteeApiTest extends TestCase
             'm2_cost' => 1800,
             'infra_cost' => 300,
             'curva_vendas' => [20, 20, 20, 20, 20],
-            'curva_obra' => [20, 20, 20, 20, 20],
         ]);
 
         TerrenoProduto::create([

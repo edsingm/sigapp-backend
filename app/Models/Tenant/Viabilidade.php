@@ -99,7 +99,6 @@ class Viabilidade extends Model
         'devolucao_aporte_percentual',
         'distribuicao_lucros_percentual_obra',
         'taxa_exposicao_aplicada',
-        'perfil_financiamento',
     ];
 
     protected $fillable = [

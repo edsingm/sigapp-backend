@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\Seeders;
+namespace Database\Seeders\Tenant;
 
 use App\Enums\PerfilFinanciamento;
 use App\Models\Tenant\PremissasViabilidade;

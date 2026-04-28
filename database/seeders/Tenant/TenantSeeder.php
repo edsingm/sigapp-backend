@@ -22,6 +22,7 @@ class TenantSeeder extends Seeder
             $this->call(ProdutoSeeder::class);
             $this->call(CorretorExternoSeeder::class);
             $this->call(RegionalSeeder::class);
+            $this->call(PremissasViabilidadeSeeder::class);
         }
 
     }

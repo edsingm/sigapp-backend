@@ -18,10 +18,10 @@ O sistema é uma **engine de análise financeira de projetos imobiliários** que
 | Model | `app/Models/Tenant/ViabilidadeAprovacao.php` |
 | Model | `app/Models/Tenant/ViabilidadeSecao.php` |
 | Controller | `app/Http/Controllers/Api/V1/Tenant/ViabilidadeController.php` |
-| Service | `app/Services/Tenant/Viabilidade/ViabilidadeService.php` |
-| Service | `app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php` (1079 linhas) |
-| Service | `app/Services/Tenant/Viabilidade/CurvaService.php` |
-| Service | `app/Services/Tenant/Viabilidade/ImpostosService.php` |
+| Service | `app/Services/Tenant/Viabilidade/v1/ViabilidadeService.php` |
+| Service | `app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php` (1079 linhas) |
+| Service | `app/Services/Tenant/Viabilidade/v1/CurvaService.php` |
+| Service | `app/Services/Tenant/Viabilidade/v1/ImpostosService.php` |
 | Request | `app/Http/Requests/Tenant/ViabilidadeRequest.php` |
 | Config | `config/viabilidade.php` |
 | Migration | `database/migrations/tenant/2026_02_07_000000_create_viabilidades_table.php` |

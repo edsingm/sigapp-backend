@@ -17,7 +17,7 @@ use App\Http\Resources\Tenant\ViabilidadeResource;
 use App\Http\Resources\Tenant\ViabilidadeSelectResource;
 use App\Models\Tenant\Viabilidade;
 use App\Services\ApiResponseService;
-use App\Services\Tenant\Viabilidade\ViabilidadeService;
+use App\Services\Tenant\Viabilidade\v1\ViabilidadeService;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;

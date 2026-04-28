@@ -1,6 +1,6 @@
 # Documentação Técnica — Motor de Cálculo de Viabilidade
 
-**Arquivo:** `app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php`  
+**Arquivo:** `app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php`  
 **Última revisão:** Abril 2026
 
 ---

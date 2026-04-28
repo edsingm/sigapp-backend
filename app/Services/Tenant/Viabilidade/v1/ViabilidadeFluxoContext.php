@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Tenant\Viabilidade;
+namespace App\Services\Tenant\Viabilidade\v1;
 
 use App\Enums\PerfilFinanciamento;
 
@@ -44,6 +44,9 @@ final class ViabilidadeFluxoContext
 
     /** Mês em que a demanda mínima CEF foi atingida (formato Y-m) */
     public ?string $mesDemandaAtingida = null;
+
+    /** Indica se a Taxa de Contratação já foi paga (1x no 1º mês de lançamento) */
+    public bool $txContratacaoPaga = false;
 
     public float $parceriaVgvTotal = 0.0;
 

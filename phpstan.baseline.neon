@@ -13417,1030 +13417,1030 @@ parameters:
 			path: app/Services/Tenant/TerrenoWorkflowService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\CurvaService::ajustarCurva() has parameter $curva with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\CurvaService::ajustarCurva() has parameter $curva with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/CurvaService.php
+			path: app/Services/Tenant/Viabilidade/v1/CurvaService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\CurvaService::ajustarCurva() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\CurvaService::ajustarCurva() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/CurvaService.php
+			path: app/Services/Tenant/Viabilidade/v1/CurvaService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\CurvaService::extrairCurva() has parameter $valor with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\CurvaService::extrairCurva() has parameter $valor with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/CurvaService.php
+			path: app/Services/Tenant/Viabilidade/v1/CurvaService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\CurvaService::interpolarCurva() has parameter $curva with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\CurvaService::interpolarCurva() has parameter $curva with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/CurvaService.php
+			path: app/Services/Tenant/Viabilidade/v1/CurvaService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\CurvaService::interpolarCurva() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\CurvaService::interpolarCurva() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/CurvaService.php
+			path: app/Services/Tenant/Viabilidade/v1/CurvaService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\CurvaService::normalizarCurva() has parameter $curva with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\CurvaService::normalizarCurva() has parameter $curva with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/CurvaService.php
+			path: app/Services/Tenant/Viabilidade/v1/CurvaService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\CurvaService::normalizarCurva() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\CurvaService::normalizarCurva() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/CurvaService.php
+			path: app/Services/Tenant/Viabilidade/v1/CurvaService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\CurvaService::validarCurvasObrigatorias() has parameter $produtos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\CurvaService::validarCurvasObrigatorias() has parameter $produtos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/CurvaService.php
+			path: app/Services/Tenant/Viabilidade/v1/CurvaService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ImpostosService::calcularImpostosDre() has parameter $produtos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ImpostosService::calcularImpostosDre() has parameter $produtos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ImpostosService.php
+			path: app/Services/Tenant/Viabilidade/v1/ImpostosService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ImpostosService::calcularImpostosDre() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ImpostosService::calcularImpostosDre() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ImpostosService.php
+			path: app/Services/Tenant/Viabilidade/v1/ImpostosService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ImpostosService::calcularImpostosProduto() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ImpostosService::calcularImpostosProduto() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ImpostosService.php
+			path: app/Services/Tenant/Viabilidade/v1/ImpostosService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ImpostosService::calcularJurosPJ() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ImpostosService::calcularJurosPJ() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ImpostosService.php
+			path: app/Services/Tenant/Viabilidade/v1/ImpostosService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ImpostosService::calcularTributosMensais() has parameter $params with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ImpostosService::calcularTributosMensais() has parameter $params with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ImpostosService.php
+			path: app/Services/Tenant/Viabilidade/v1/ImpostosService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ImpostosService::calcularTributosMensais() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ImpostosService::calcularTributosMensais() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ImpostosService.php
+			path: app/Services/Tenant/Viabilidade/v1/ImpostosService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ImpostosService::calcularTributosPorProduto() has parameter $params with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ImpostosService::calcularTributosPorProduto() has parameter $params with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ImpostosService.php
+			path: app/Services/Tenant/Viabilidade/v1/ImpostosService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ImpostosService::calcularTributosPorProduto() has parameter $produtos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ImpostosService::calcularTributosPorProduto() has parameter $produtos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ImpostosService.php
+			path: app/Services/Tenant/Viabilidade/v1/ImpostosService.php
 
 		-
 			rawMessage: Access to an undefined property App\Models\Tenant\Viabilidade::$approval_notes.
 			identifier: property.notFound
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeService.php
 
 		-
 			rawMessage: Access to an undefined property App\Models\Tenant\Viabilidade::$created_at.
 			identifier: property.notFound
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeService.php
 
 		-
 			rawMessage: Access to an undefined property App\Models\Tenant\Viabilidade::$id.
 			identifier: property.notFound
 			count: 9
-			path: app/Services/Tenant/Viabilidade/ViabilidadeService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeService.php
 
 		-
 			rawMessage: Access to an undefined property App\Models\Tenant\Viabilidade::$resultados_dre.
 			identifier: property.notFound
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeService.php
 
 		-
 			rawMessage: Access to an undefined property App\Models\Tenant\Viabilidade::$status.
 			identifier: property.notFound
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeService.php
 
 		-
 			rawMessage: Access to an undefined property App\Models\Tenant\Viabilidade::$terreno.
 			identifier: property.notFound
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeService.php
 
 		-
 			rawMessage: Access to an undefined property App\Models\Tenant\Viabilidade::$terreno_id.
 			identifier: property.notFound
 			count: 11
-			path: app/Services/Tenant/Viabilidade/ViabilidadeService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeService.php
 
 		-
 			rawMessage: Access to an undefined property App\Models\Tenant\Viabilidade::$version.
 			identifier: property.notFound
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeService.php
 
 		-
 			rawMessage: Access to an undefined property Illuminate\Contracts\Auth\Authenticatable::$id.
 			identifier: property.notFound
 			count: 11
-			path: app/Services/Tenant/Viabilidade/ViabilidadeService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeService::atualizarViabilidadeComDre() has parameter $dados with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeService::atualizarViabilidadeComDre() has parameter $dados with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeService::atualizarViabilidadeComDre() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeService::atualizarViabilidadeComDre() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeService::buscarViabilidadeComDre() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeService::buscarViabilidadeComDre() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeService::compararViabilidades() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeService::compararViabilidades() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeService::criarViabilidadeComDre() has parameter $dados with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeService::criarViabilidadeComDre() has parameter $dados with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeService::criarViabilidadeComDre() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeService::criarViabilidadeComDre() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeService::forSelect() should return Illuminate\Support\Collection<int, array{id: int, label: string, terreno_id: int}> but returns Illuminate\Support\Collection<int, array{id: mixed, label: string, terreno_id: mixed}>.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeService::forSelect() should return Illuminate\Support\Collection<int, array{id: int, label: string, terreno_id: int}> but returns Illuminate\Support\Collection<int, array{id: mixed, label: string, terreno_id: mixed}>.'
 			identifier: return.type
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeService::listarTodasViabilidades() has parameter $filtros with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeService::listarTodasViabilidades() has parameter $filtros with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeService::listarTodasViabilidades() return type with generic interface Illuminate\Contracts\Pagination\LengthAwarePaginator does not specify its types: TKey, TValue'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeService::listarTodasViabilidades() return type with generic interface Illuminate\Contracts\Pagination\LengthAwarePaginator does not specify its types: TKey, TValue'
 			identifier: missingType.generics
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeService::listarViabilidadesPorTerreno() return type with generic class Illuminate\Database\Eloquent\Collection does not specify its types: TKey, TModel'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeService::listarViabilidadesPorTerreno() return type with generic class Illuminate\Database\Eloquent\Collection does not specify its types: TKey, TModel'
 			identifier: missingType.generics
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeService::recalcularDre() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeService::recalcularDre() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeService::validarDados() has parameter $dados with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeService::validarDados() has parameter $dados with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeService::validarDados() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeService::validarDados() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeService.php
 
 		-
 			rawMessage: 'Parameter #1 $callback of method Illuminate\Database\Eloquent\Collection<int,App\Models\Tenant\Viabilidade>::map() contains unresolvable type.'
 			identifier: argument.unresolvableType
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeService.php
 
 		-
 			rawMessage: 'Parameter #2 $exclude of method App\Services\Tenant\MobilePushService::notifyAllUsers() expects App\Models\Tenant\User|null, Illuminate\Contracts\Auth\Authenticatable|null given.'
 			identifier: argument.type
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeService.php
 
 		-
 			rawMessage: 'Parameter #3 $exclude of method App\Services\Tenant\MobilePushService::notifyUsersWithPermission() expects App\Models\Tenant\User|null, Illuminate\Contracts\Auth\Authenticatable|null given.'
 			identifier: argument.type
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeService.php
 
 		-
 			rawMessage: 'Parameter #3 $user of method App\Services\Tenant\LandWorkflowService::transition() expects App\Models\Tenant\User|null, Illuminate\Contracts\Auth\Authenticatable|null given.'
 			identifier: argument.type
 			count: 3
-			path: app/Services/Tenant/Viabilidade/ViabilidadeService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeService.php
 
 		-
-			rawMessage: 'Parameter #4 $actor of method App\Services\Tenant\Viabilidade\ViabilidadeService::registrarAprovacao() expects App\Models\Tenant\User|null, Illuminate\Contracts\Auth\Authenticatable|null given.'
+			rawMessage: 'Parameter #4 $actor of method App\Services\Tenant\Viabilidade\v1\ViabilidadeService::registrarAprovacao() expects App\Models\Tenant\User|null, Illuminate\Contracts\Auth\Authenticatable|null given.'
 			identifier: argument.type
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeService.php
 
 		-
 			rawMessage: 'Return type of call to method Illuminate\Database\Eloquent\Collection<int,App\Models\Tenant\Viabilidade>::map() contains unresolvable type.'
 			identifier: method.unresolvableReturnType
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeService.php
 
 		-
 			rawMessage: 'Return type of call to method Illuminate\Support\Collection<int,array<string, mixed>>::values() contains unresolvable type.'
 			identifier: method.unresolvableReturnType
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeService.php
 
 		-
 			rawMessage: Access to an undefined property App\Models\Tenant\Terreno::$terrenoProdutos.
 			identifier: property.notFound
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
 			rawMessage: 'Argument of an invalid type Carbon\CarbonPeriod supplied for foreach, only iterables are supported.'
 			identifier: foreach.nonIterable
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
 			rawMessage: 'Call to an undefined static method App\Models\Tenant\Terreno::select().'
 			identifier: staticMethod.notFound
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
 			rawMessage: 'Call to an undefined static method App\Models\Tenant\Viabilidade::findOrFail().'
 			identifier: staticMethod.notFound
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
 			rawMessage: 'Call to an undefined static method App\Models\Tenant\Viabilidade::where().'
 			identifier: staticMethod.notFound
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
 			rawMessage: 'Comparison operation "<=" between 0.005|0.01|0.02|0.05 and -1 is always false.'
 			identifier: smallerOrEqual.alwaysFalse
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
 			rawMessage: 'Comparison operation ">" between int<1, max> and 0 is always true.'
 			identifier: greater.alwaysTrue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: Constant App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::JUROS_POS_CHAVE_MENSAL is unused.
+			rawMessage: Constant App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::JUROS_POS_CHAVE_MENSAL is unused.
 			identifier: classConstant.unused
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: Constant App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::PRAZO_POS_CHAVE_PADRAO is unused.
+			rawMessage: Constant App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::PRAZO_POS_CHAVE_PADRAO is unused.
 			identifier: classConstant.unused
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: Constant App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::TAXA_CORRECAO_OBRA_ANUAL is unused.
+			rawMessage: Constant App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::TAXA_CORRECAO_OBRA_ANUAL is unused.
 			identifier: classConstant.unused
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: Constant App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::TAXA_CORRECAO_POS_ANUAL is unused.
+			rawMessage: Constant App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::TAXA_CORRECAO_POS_ANUAL is unused.
 			identifier: classConstant.unused
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::agregarCurvaObra() has parameter $produtos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::agregarCurvaObra() has parameter $produtos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::agregarCurvaObra() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::agregarCurvaObra() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::buscarViabilidade() has parameter $viabilidadeRef with no type specified.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::buscarViabilidade() has parameter $viabilidadeRef with no type specified.'
 			identifier: missingType.parameter
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularAssistenciaTecnicaMensal() has parameter $datas with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularAssistenciaTecnicaMensal() has parameter $datas with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularAssistenciaTecnicaMensal() has parameter $params with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularAssistenciaTecnicaMensal() has parameter $params with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularBaseSemTerrenistaProduto() has parameter $produto with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularBaseSemTerrenistaProduto() has parameter $produto with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularComissaoBase() has parameter $params with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularComissaoBase() has parameter $params with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularComissaoDesligamentoMensal() has parameter $params with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularComissaoDesligamentoMensal() has parameter $params with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularContratosCef() has parameter $dadosProdutos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularContratosCef() has parameter $dadosProdutos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularContratosCef() has parameter $params with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularContratosCef() has parameter $params with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularCustoTerreno() has parameter $dadosProdutos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularCustoTerreno() has parameter $dadosProdutos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularCustoTerreno() has parameter $params with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularCustoTerreno() has parameter $params with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularCustosDiretos() has parameter $dadosProdutos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularCustosDiretos() has parameter $dadosProdutos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularCustosDiretos() has parameter $datas with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularCustosDiretos() has parameter $datas with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularCustosDiretos() has parameter $params with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularCustosDiretos() has parameter $params with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularCustosDiretos() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularCustosDiretos() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularCustosDiretosDre() has parameter $dadosProdutos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularCustosDiretosDre() has parameter $dadosProdutos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularCustosDiretosDre() has parameter $params with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularCustosDiretosDre() has parameter $params with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularCustosDiretosDre() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularCustosDiretosDre() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularCustosOperacionais() has parameter $dadosProdutos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularCustosOperacionais() has parameter $dadosProdutos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularCustosOperacionais() has parameter $datas with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularCustosOperacionais() has parameter $datas with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularCustosOperacionais() has parameter $params with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularCustosOperacionais() has parameter $params with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularCustosOperacionais() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularCustosOperacionais() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularDespesas() has parameter $dadosProdutos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularDespesas() has parameter $dadosProdutos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularDespesas() has parameter $datas with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularDespesas() has parameter $datas with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularDespesas() has parameter $params with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularDespesas() has parameter $params with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularDespesas() has parameter $receitas with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularDespesas() has parameter $receitas with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularDespesas() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularDespesas() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularDespesasComerciaisDetalhadas() has parameter $dadosProdutos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularDespesasComerciaisDetalhadas() has parameter $dadosProdutos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularDespesasComerciaisDetalhadas() has parameter $params with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularDespesasComerciaisDetalhadas() has parameter $params with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularDespesasComerciaisDetalhadas() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularDespesasComerciaisDetalhadas() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularDespesasComerciaisMensais() has parameter $dadosProdutos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularDespesasComerciaisMensais() has parameter $dadosProdutos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularDespesasComerciaisMensais() has parameter $datas with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularDespesasComerciaisMensais() has parameter $datas with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularDespesasComerciaisMensais() has parameter $params with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularDespesasComerciaisMensais() has parameter $params with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularDespesasComerciaisMensais() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularDespesasComerciaisMensais() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularDespesasOperacionaisDre() has parameter $dadosProdutos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularDespesasOperacionaisDre() has parameter $dadosProdutos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularDespesasOperacionaisDre() has parameter $params with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularDespesasOperacionaisDre() has parameter $params with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularDespesasOperacionaisDre() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularDespesasOperacionaisDre() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularDre() has parameter $dadosProdutos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularDre() has parameter $dadosProdutos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularDre() has parameter $fluxo with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularDre() has parameter $fluxo with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularDre() has parameter $params with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularDre() has parameter $params with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularDre() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularDre() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularDreContabilPoc() has parameter $dadosProdutos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularDreContabilPoc() has parameter $dadosProdutos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularDreContabilPoc() has parameter $dre with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularDreContabilPoc() has parameter $dre with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularDreContabilPoc() has parameter $fluxo with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularDreContabilPoc() has parameter $fluxo with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularDreContabilPoc() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularDreContabilPoc() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularIndicadoresFinanceiros() has parameter $dadosProdutos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularIndicadoresFinanceiros() has parameter $dadosProdutos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularIndicadoresFinanceiros() has parameter $datas with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularIndicadoresFinanceiros() has parameter $datas with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularIndicadoresFinanceiros() has parameter $fluxo with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularIndicadoresFinanceiros() has parameter $fluxo with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularIndicadoresFinanceiros() has parameter $params with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularIndicadoresFinanceiros() has parameter $params with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularIndicadoresFinanceiros() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularIndicadoresFinanceiros() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularIndicadoresVso() has parameter $dadosProdutos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularIndicadoresVso() has parameter $dadosProdutos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularIndicadoresVso() has parameter $fluxo with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularIndicadoresVso() has parameter $fluxo with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularIndicadoresVso() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularIndicadoresVso() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularIndicadoresVsoJanelas() has parameter $dadosProdutos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularIndicadoresVsoJanelas() has parameter $dadosProdutos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularIndicadoresVsoJanelas() has parameter $fluxo with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularIndicadoresVsoJanelas() has parameter $fluxo with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularIndicadoresVsoJanelas() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularIndicadoresVsoJanelas() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularItbiPorTipologia() has parameter $dadosProdutos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularItbiPorTipologia() has parameter $dadosProdutos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularItbiPorTipologia() has parameter $params with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularItbiPorTipologia() has parameter $params with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularMarketingDetalhado() has parameter $dadosProdutos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularMarketingDetalhado() has parameter $dadosProdutos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularMarketingDetalhado() has parameter $params with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularMarketingDetalhado() has parameter $params with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularMarketingMensal() has parameter $dadosProdutos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularMarketingMensal() has parameter $dadosProdutos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularMarketingMensal() has parameter $datas with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularMarketingMensal() has parameter $datas with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularMarketingMensal() has parameter $params with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularMarketingMensal() has parameter $params with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularMarketingMensal() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularMarketingMensal() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularMedicaoObra() has parameter $dadosProdutos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularMedicaoObra() has parameter $dadosProdutos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularMedicaoObra() has parameter $datas with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularMedicaoObra() has parameter $datas with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularMedicaoObra() has parameter $params with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularMedicaoObra() has parameter $params with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularMedicaoObra() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularMedicaoObra() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularPeriodos() has parameter $params with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularPeriodos() has parameter $params with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularPeriodos() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularPeriodos() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularProdutosCefPorTipologia() has parameter $dadosProdutos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularProdutosCefPorTipologia() has parameter $dadosProdutos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularProdutosCefPorTipologia() has parameter $params with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularProdutosCefPorTipologia() has parameter $params with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularQuadroPocMensal() has parameter $dadosProdutos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularQuadroPocMensal() has parameter $dadosProdutos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularQuadroPocMensal() has parameter $dre with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularQuadroPocMensal() has parameter $dre with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularQuadroPocMensal() has parameter $fluxo with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularQuadroPocMensal() has parameter $fluxo with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularQuadroPocMensal() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularQuadroPocMensal() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularQuadroPocMensalPorBlocos() has parameter $dadosProdutos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularQuadroPocMensalPorBlocos() has parameter $dadosProdutos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularQuadroPocMensalPorBlocos() has parameter $dre with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularQuadroPocMensalPorBlocos() has parameter $dre with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularQuadroPocMensalPorBlocos() has parameter $fluxo with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularQuadroPocMensalPorBlocos() has parameter $fluxo with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularQuadroPocMensalPorBlocos() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularQuadroPocMensalPorBlocos() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularReceitas() has parameter $dadosProdutos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularReceitas() has parameter $dadosProdutos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularReceitas() has parameter $datas with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularReceitas() has parameter $datas with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularReceitas() has parameter $params with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularReceitas() has parameter $params with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularReceitas() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularReceitas() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularRecursoTerrenos() has parameter $dadosProdutos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularRecursoTerrenos() has parameter $dadosProdutos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularRecursoTerrenos() has parameter $datas with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularRecursoTerrenos() has parameter $datas with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularRecursoTerrenos() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularRecursoTerrenos() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularRegistroPorTipologia() has parameter $dadosProdutos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularRegistroPorTipologia() has parameter $dadosProdutos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularRegistroPorTipologia() has parameter $params with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularRegistroPorTipologia() has parameter $params with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularRtMesVenda() has parameter $dadosProdutos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularRtMesVenda() has parameter $dadosProdutos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularSegurosMensal() has parameter $dadosProdutos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularSegurosMensal() has parameter $dadosProdutos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularSegurosMensal() has parameter $datas with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularSegurosMensal() has parameter $datas with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularSegurosMensal() has parameter $params with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularSegurosMensal() has parameter $params with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularSegurosPorTipologia() has parameter $dadosProdutos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularSegurosPorTipologia() has parameter $dadosProdutos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularSegurosPorTipologia() has parameter $params with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularSegurosPorTipologia() has parameter $params with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularTir() has parameter $fluxo with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularTir() has parameter $fluxo with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularTxMedicao() has parameter $dadosProdutos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularTxMedicao() has parameter $dadosProdutos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::calcularTxMedicao() has parameter $params with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::calcularTxMedicao() has parameter $params with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::custoObraTotal() has parameter $d with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::custoObraTotal() has parameter $d with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::ehProdutoLote() has parameter $produto with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::ehProdutoLote() has parameter $produto with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::gerarFluxoMensal() has parameter $customProdutos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::gerarFluxoMensal() has parameter $customProdutos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::gerarFluxoMensal() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::gerarFluxoMensal() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::identificarPeriodo() has parameter $datas with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::identificarPeriodo() has parameter $datas with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::inicializarCachesCef() has parameter $dadosProdutos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::inicializarCachesCef() has parameter $dadosProdutos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::inicializarCachesCef() has parameter $datas with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::inicializarCachesCef() has parameter $datas with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::montarParametros() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::montarParametros() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::preCalcularRecursosProprios() has parameter $datas with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::preCalcularRecursosProprios() has parameter $datas with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::preCalcularRecursosProprios() has parameter $params with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::preCalcularRecursosProprios() has parameter $params with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::preCalcularRecursosProprios() has parameter $produtos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::preCalcularRecursosProprios() has parameter $produtos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::processarProdutos() has parameter $customProdutos with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::processarProdutos() has parameter $customProdutos with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::processarProdutos() has parameter $params with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::processarProdutos() has parameter $params with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::processarProdutos() return type has no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::processarProdutos() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
-			rawMessage: 'Method App\Services\Tenant\Viabilidade\ViabilidadeUnificadoService::unidadesConstrutora() has parameter $d with no value type specified in iterable type array.'
+			rawMessage: 'Method App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService::unidadesConstrutora() has parameter $d with no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
 			rawMessage: 'Parameter #1 $num of function round expects float|int, array|float|int given.'
 			identifier: argument.type
 			count: 1
-			path: app/Services/Tenant/Viabilidade/ViabilidadeUnificadoService.php
+			path: app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php
 
 		-
 			rawMessage: Access to an undefined property Illuminate\Database\Eloquent\Model|Stancl\Tenancy\Contracts\Tenant::$id.

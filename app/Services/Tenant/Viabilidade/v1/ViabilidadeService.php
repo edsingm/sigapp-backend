@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Tenant\Viabilidade;
+namespace App\Services\Tenant\Viabilidade\v1;
 
 use App\Enums\WorkflowStatus;
 use App\Models\Tenant\Terreno;

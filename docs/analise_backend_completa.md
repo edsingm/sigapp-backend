@@ -381,7 +381,7 @@ Services como:
 - `App\Services\Tenant\LegalizacaoService`
 - `App\Services\Tenant\ProjetoService`
 - `App\Services\Tenant\NegotiationService`
-- `App\Services\Tenant\Viabilidade\ViabilidadeService`
+- `App\Services\Tenant\Viabilidade\v1\ViabilidadeService`
 - `App\Services\Tenant\TenantUserService`
 - `App\Services\Billing\TenantBillingService`
 

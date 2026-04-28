@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Tenant\Viabilidade;
+namespace App\Services\Tenant\Viabilidade\v1;
 
 /**
  * ImpostosService - Centraliza todos os cálculos de impostos e tributos
@@ -71,11 +71,16 @@ class ImpostosService
     /**
      * Calcula impostos para a DRE completa (visão consolidada)
      *
+     * Planilha: PIS/COFINS incide sobre Receita Bruta (VGV + juros/correção).
+     * ISS e Outras Deduções incidem sobre VGV Venda (sem juros/correção).
+     * IRPJ/CSLL são pré-calculados no processamento de produtos.
+     *
      * @param  array  $produtos  Dados dos produtos processados
-     * @param  float  $vgvSemTerrenista  VGV sem valor do terrenista
+     * @param  float  $receitaBruta  Receita Bruta total (VGV + juros/correção)
+     * @param  float  $vgvSemTerrenista  VGV sem valor do terrenista (base para ISS e Outras Deduções)
      * @return array Impostos detalhados
      */
-    public function calcularImpostosDre(array $produtos, float $vgvSemTerrenista): array
+    public function calcularImpostosDre(array $produtos, float $receitaBruta, float $vgvSemTerrenista): array
     {
         $pis = 0;
         $cofins = 0;
@@ -85,10 +90,20 @@ class ImpostosService
         $outrasDeducoes = 0;
 
         foreach ($produtos as $produto) {
-            // Impostos já calculados no processamento de produtos
+            // Proporção do produto na Receita Bruta total (para ratear PIS/COFINS)
+            $proporcaoBruta = $vgvSemTerrenista > 0
+                ? ($produto['vgv_produto'] ?? 0) / $vgvSemTerrenista
+                : 0;
+            $receitaBrutaProduto = $receitaBruta * $proporcaoBruta;
+
+            // PIS/COFINS: base = Receita Bruta × tributos%  (planilha DRE R53)
+            $tributosPct = $produto['imposto_tributos'] ?? 0;
+            $valorImposto = $receitaBrutaProduto * $tributosPct;
+            $pis += $valorImposto * 0.0925;
+            $cofins += $valorImposto * 0.4275;
+
+            // ISS e Outras Deduções mantêm base VGV (pré-calculados)
             if (isset($produto['financeiro'])) {
-                $pis += $produto['financeiro']['imposto_pis'] ?? 0;
-                $cofins += $produto['financeiro']['imposto_cofins'] ?? 0;
                 $iss += $produto['financeiro']['imposto_iss'] ?? 0;
                 $outrasDeducoes += $produto['financeiro']['outras_deducoes'] ?? 0;
                 $irpj += $produto['financeiro']['irrpj'] ?? 0;
@@ -163,52 +178,35 @@ class ImpostosService
     ): array {
         $percentualAntecipado = $percentualAntecipado ?? (config('viabilidade.defaults.percentual_antecipacao_pj', 10) / 100);
         $taxaAnual = $taxaAnual ?? (config('viabilidade.defaults.taxa_juros_pj', 10.5) / 100);
-        $taxaMensal = $tipoJuros === 'simples' ? ($taxaAnual / 12) : (pow(1 + $taxaAnual, 1 / 12) - 1);
+        $taxaMensal = pow(1 + $taxaAnual, 1 / 12) - 1;
         $carenciaMeses = max(0, $carenciaMeses);
         $amortizacaoParcelas = max(0, $amortizacaoParcelas);
-        $prazoEfetivo = max(1, $mesesPrazo);
-        $baseAntecipacao = max(0, $valorObra + max(0, $valorBaseAdicional));
+
+        // Antecipação: apenas sobre o custo da obra (planilha: 10% × obra)
+        $baseAntecipacao = max(0, $valorObra);
         $valorAntecipado = $baseAntecipacao * max(0, $percentualAntecipado);
-        $saldoDevedor = $valorAntecipado;
-        $jurosTotais = 0.0;
 
-        if ($carenciaMeses > 0) {
-            for ($i = 0; $i < $carenciaMeses; $i++) {
-                $jurosTotais += $saldoDevedor * $taxaMensal;
-            }
-        }
+        // Juros simples durante obra + carência (planilha: taxa fixa todos os meses)
+        $mesesSimples = $mesesPrazo + $carenciaMeses;
 
-        if ($amortizacaoParcelas > 0) {
-            $amortizacaoMensal = $valorAntecipado / $amortizacaoParcelas;
-            for ($i = 0; $i < $amortizacaoParcelas; $i++) {
-                $jurosMes = $saldoDevedor * $taxaMensal;
-                $jurosTotais += $jurosMes;
-                $saldoDevedor = max(0, $saldoDevedor - $amortizacaoMensal);
-            }
-            $prazoEfetivo = $carenciaMeses + $amortizacaoParcelas;
-        } else {
-            if ($tipoJuros === 'simples') {
-                $jurosTotais += $valorAntecipado * $taxaMensal * $mesesPrazo;
-            } else {
-                $montante = $valorAntecipado * pow(1 + $taxaMensal, $mesesPrazo);
-                $jurosTotais += ($montante - $valorAntecipado);
-            }
-            $prazoEfetivo = max(1, $carenciaMeses + $mesesPrazo);
-        }
+        // Fórmula planilha: juros = P × taxa × (meses_simples + (amortiz_parcelas + 1) / 2)
+        $fatorJuros = $mesesSimples + ($amortizacaoParcelas > 0 ? ($amortizacaoParcelas + 1) / 2 : 0);
+        $jurosTotais = $valorAntecipado * $taxaMensal * $fatorJuros;
 
         $totalPagar = $valorAntecipado + $jurosTotais;
+        $prazoEfetivo = max(1, $mesesSimples + $amortizacaoParcelas);
 
         return [
             'valor_obra' => $valorObra,
             'valor_antecipado' => round($valorAntecipado, 2),
             'taxa_mensal' => $taxaMensal,
             'prazo_meses' => $prazoEfetivo,
-            'tipo_juros' => $tipoJuros,
+            'tipo_juros' => 'planilha',
             'carencia_meses' => $carenciaMeses,
             'amortizacao_parcelas' => $amortizacaoParcelas,
             'juros_totais' => round($jurosTotais, 2),
             'valor_total_pagar' => round($totalPagar, 2),
-            'parcela_mensal' => round($totalPagar / $prazoEfetivo, 2),
+            'parcela_mensal' => $totalPagar > 0 ? round(($amortizacaoParcelas > 0 ? $valorAntecipado / $amortizacaoParcelas : 0) + ($jurosTotais / max(1, $mesesSimples + $amortizacaoParcelas)), 2) : 0,
         ];
     }
 }

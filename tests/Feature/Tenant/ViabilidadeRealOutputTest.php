@@ -959,5 +959,7 @@ class ViabilidadeRealOutputTest extends TestCase
         Artisan::call('migrate', ['--path' => 'database/migrations/tenant/2026_03_20_000000_add_viabilidade_campos_planilha.php']);
         Artisan::call('migrate', ['--path' => 'database/migrations/tenant/2026_04_26_212214_add_data_lancamento_to_viabilidades_table.php']);
         Artisan::call('migrate', ['--path' => 'database/migrations/tenant/2026_04_27_000001_add_taxas_cef_to_viabilidades_table.php']);
+        Artisan::call('migrate', ['--path' => 'database/migrations/tenant/2026_04_27_195000_create_premissas_viabilidade_table.php']);
+        Artisan::call('migrate', ['--path' => 'database/migrations/tenant/2026_04_27_200000_add_versionamento_e_snapshot.php']);
     }
 }

@@ -4,6 +4,7 @@ namespace Tests\Unit\Services\Viabilidade;
 
 use App\Services\Tenant\Viabilidade\v1\CurvaService;
 use App\Services\Tenant\Viabilidade\v1\ImpostosService;
+use App\Services\Tenant\Viabilidade\v1\PremissasViabilidadeService;
 use App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService;
 use App\Services\Tenant\Viabilidade\v1\Calculos\DespesasCalculator;
 use App\Services\Tenant\Viabilidade\v1\Calculos\DreCalculator;
@@ -62,6 +63,7 @@ class ViabilidadeUnificadoServiceTest extends TestCase
             $pocCalculator,
             $produtosProcessor,
         );
+        $premissasService = new PremissasViabilidadeService;
 
         return new ViabilidadeUnificadoService(
             $curvaService,
@@ -73,6 +75,7 @@ class ViabilidadeUnificadoServiceTest extends TestCase
             $pocCalculator,
             $produtosProcessor,
             $fluxoMensalCalculator,
+            $premissasService,
         );
     }
 

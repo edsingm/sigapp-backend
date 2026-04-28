@@ -40,6 +40,7 @@ class ViabilidadeUnificadoService
         protected readonly PocCalculator $pocCalculator,
         protected readonly ProdutosProcessor $produtosProcessor,
         protected readonly FluxoMensalCalculator $fluxoMensalCalculator,
+        protected readonly PremissasViabilidadeService $premissasService,
     ) {}
 
     /**
@@ -59,7 +60,11 @@ class ViabilidadeUnificadoService
             $terreno = $this->buscarTerreno($terrenoId);
             $viabilidade = $this->buscarViabilidade($terrenoId, $viabilidadeRef);
             $params = $this->montarParametros($viabilidade);
-            return $this->fluxoMensalCalculator->calcular($terreno, $params, $customProdutos);
+            $resultado = $this->fluxoMensalCalculator->calcular($terreno, $params, $customProdutos);
+
+            $this->salvarSnapshot($viabilidade, $resultado);
+
+            return $resultado;
         } catch (Exception $e) {
             Log::error('Erro ao gerar fluxo mensal: '.$e->getMessage(), [
                 'terrenoId' => $terrenoId,
@@ -192,71 +197,87 @@ class ViabilidadeUnificadoService
 
     private function montarParametros(?Viabilidade $v): array
     {
-        $d = config('viabilidade.defaults');
-        $p = config('viabilidade.prazos');
-
         $perfilValue = $v?->perfil_financiamento;
         $perfilStr = $perfilValue instanceof PerfilFinanciamento
             ? $perfilValue->value
-            : $d['perfil_financiamento'];
+            : 'cef';
+
+        $defaults = $this->premissasService->resolverDefaults($perfilStr);
 
         return [
-            'percentualImpostos' => (($v->pis_cofins ?? $d['pis_cofins']) + ($v->iss ?? $d['iss']) + ($v->outros_impostos ?? $d['outros_impostos'])) / 100,
-            'percentualPisCofins' => ($v->pis_cofins ?? $d['pis_cofins']) / 100,
-            'percentualIss' => ($v->iss ?? $d['iss']) / 100,
-            'percentualOutrosImpostos' => ($v->outros_impostos ?? $d['outros_impostos']) / 100,
-            'percentualComissao' => ($v->comissao ?? $d['comissao']) / 100,
-            'parceriaVgv' => ($v->parceria_vgv ?? $d['parceria_vgv']) / 100,
-            'infraNaoIncidente' => ($v->infra_nao_incidente ?? $d['infra_nao_incidente']) / 100,
-            'porcentagemLoteProprietario' => ($v->porcentagem_lote_proprietario ?? $d['porcentagem_lote_proprietario'] ?? 10) / 100,
-            'percentualIncorporacao' => ($v->incorporacao ?? $d['incorporacao']) / 100,
-            'custoAreaComum' => $v->area_comum ?? $d['area_comum'],
-            'percentualContrapartidas' => ($v->contrapartidas ?? $d['contrapartidas']) / 100,
-            'canteiroMensal' => $v->canteiro_mensal ?? $d['canteiro_mensal'],
-            'moAdministrativa' => $v->mo_administrativa ?? $d['mo_administrativa'],
-            'percentualSeguros' => ($v->seguros ?? $d['seguros']) / 100,
-            'percentualAssistenciaTecnica' => ($v->assistencia_tecnica ?? $d['assistencia_tecnica']) / 100,
-            'percentualDespesasComerciais' => ($v->despesas_comerciais ?? $d['despesas_comerciais']) / 100,
-            'standVendas' => $v->stand_vendas ?? $d['stand_vendas'],
-            'mobiliaDecoracao' => $v->mobilia_decoracao ?? $d['mobilia_decoracao'],
-            'ajudaCustoGerente' => $v->ajuda_custo_gerente ?? $d['ajuda_custo_gerente'],
-            'ajudaCustoGerenteRegional' => $v->ajuda_custo_gerente_regional ?? $d['ajuda_custo_gerente_regional'],
-            'reembolsoLogistica' => $v->reembolso_logistica ?? $d['reembolso_logistica'],
-            'bonusCca' => $v->bonus_cca ?? $d['bonus_cca'],
-            'bonusGerente' => ($v->bonus_gerente ?? $d['bonus_gerente']) / 100,
-            'bonusGerenteRegional' => ($v->bonus_gerente_regional ?? $d['bonus_gerente_regional']) / 100,
-            'bonusCredito' => ($v->bonus_credito ?? $d['bonus_credito']) / 100,
-            'bonusGestorComercial' => ($v->bonus_gestor_comercial ?? $d['bonus_gestor_comercial']) / 100,
-            'pagamentoComissaoDesligamento' => ($v->pagamento_comissao_desligamento ?? $d['pagamento_comissao_desligamento']) / 100,
-            'parcelamentoComissaoMeses' => (int) ($v->parcelamento_comissao_meses ?? $d['parcelamento_comissao_meses']),
-            'percentualMarketing' => ($v->marketing ?? $d['marketing']) / 100,
-            'custoItbiIptu' => ($v->itbi_iptu ?? $d['itbi_iptu']) / 100,
-            'custoRegistro' => $v->registro ?? $d['registro'],
-            'custoContratacaoCef' => $v->custo_contratacao_cef ?? $d['custo_contratacao_cef'] ?? 0,
-            'custoMedicaoCef' => $v->custo_medicao_cef ?? $d['custo_medicao_cef'] ?? 0,
-            'custoContratosCef' => $v->contratos_cef ?? $d['contratos_cef'],
-            'percentualProdutosCef' => ($v->produtos_cef ?? $d['produtos_cef']) / 100,
-            'percentualOutrasDespesasFinanceiras' => ($v->outras_despesas_financeiras ?? $d['outras_despesas_financeiras']) / 100,
-            'mesesObra' => (int) ($v->prazo_obra ?? $d['prazo_obra']),
-            'mesesIncorporacao' => (int) ($v->prazo_incorporacao ?? $p['meses_incorporacao']),
-            'mesesLancamento' => (int) ($v->prazo_lancamento ?? $p['meses_lancamento']),
-            'mesesEntrega' => $p['meses_entrega'],
-            'mesesPosObra' => $p['meses_pos_obra'],
-            'variavelCorrecao' => $p['variavel_correcao'],
-            'compraTerreno' => $v->compra_terreno ?? 0,
-            'percentualAntecipacaoPj' => ($v->percentual_antecipacao_pj ?? $d['percentual_antecipacao_pj']) / 100,
-            'aporteAdicionalMensal' => $v->aporte_adicional_mensal ?? $d['aporte_adicional_mensal'],
-            'devolucaoAportePercentual' => ($v->devolucao_aporte_percentual ?? $d['devolucao_aporte_percentual']) / 100,
-            'distribuicaoLucrosPercentualObra' => ($v->distribuicao_lucros_percentual_obra ?? $d['distribuicao_lucros_percentual_obra']) / 100,
-            'taxaExposicaoAplicada' => ($v->taxa_exposicao_aplicada ?? $d['taxa_exposicao_aplicada']) / 100,
+            'percentualImpostos' => (($v->pis_cofins ?? $defaults['pis_cofins']) + ($v->iss ?? $defaults['iss']) + ($v->outros_impostos ?? $defaults['outros_impostos'])) / 100,
+            'percentualPisCofins' => ($v->pis_cofins ?? $defaults['pis_cofins']) / 100,
+            'percentualIss' => ($v->iss ?? $defaults['iss']) / 100,
+            'percentualOutrosImpostos' => ($v->outros_impostos ?? $defaults['outros_impostos']) / 100,
+            'percentualComissao' => ($v->comissao ?? $defaults['comissao']) / 100,
+            'parceriaVgv' => ($v->parceria_vgv ?? $defaults['parceria_vgv']) / 100,
+            'infraNaoIncidente' => ($v->infra_nao_incidente ?? $defaults['infra_nao_incidente']) / 100,
+            'porcentagemLoteProprietario' => ($v->porcentagem_lote_proprietario ?? $defaults['porcentagem_lote_proprietario']) / 100,
+            'percentualIncorporacao' => ($v->incorporacao ?? $defaults['incorporacao']) / 100,
+            'custoAreaComum' => $v->area_comum ?? $defaults['area_comum'],
+            'percentualContrapartidas' => ($v->contrapartidas ?? $defaults['contrapartidas']) / 100,
+            'canteiroMensal' => $v->canteiro_mensal ?? $defaults['canteiro_mensal'],
+            'moAdministrativa' => $v->mo_administrativa ?? $defaults['mo_administrativa'],
+            'percentualSeguros' => ($v->seguros ?? $defaults['seguros']) / 100,
+            'percentualAssistenciaTecnica' => ($v->assistencia_tecnica ?? $defaults['assistencia_tecnica']) / 100,
+            'percentualDespesasComerciais' => ($v->despesas_comerciais ?? $defaults['despesas_comerciais']) / 100,
+            'standVendas' => $v->stand_vendas ?? $defaults['stand_vendas'],
+            'mobiliaDecoracao' => $v->mobilia_decoracao ?? $defaults['mobilia_decoracao'],
+            'ajudaCustoGerente' => $v->ajuda_custo_gerente ?? $defaults['ajuda_custo_gerente'],
+            'ajudaCustoGerenteRegional' => $v->ajuda_custo_gerente_regional ?? $defaults['ajuda_custo_gerente_regional'],
+            'reembolsoLogistica' => $v->reembolso_logistica ?? $defaults['reembolso_logistica'],
+            'bonusCca' => $v->bonus_cca ?? $defaults['bonus_cca'],
+            'bonusGerente' => ($v->bonus_gerente ?? $defaults['bonus_gerente']) / 100,
+            'bonusGerenteRegional' => ($v->bonus_gerente_regional ?? $defaults['bonus_gerente_regional']) / 100,
+            'bonusCredito' => ($v->bonus_credito ?? $defaults['bonus_credito']) / 100,
+            'bonusGestorComercial' => ($v->bonus_gestor_comercial ?? $defaults['bonus_gestor_comercial']) / 100,
+            'pagamentoComissaoDesligamento' => ($v->pagamento_comissao_desligamento ?? $defaults['pagamento_comissao_desligamento']) / 100,
+            'parcelamentoComissaoMeses' => (int) ($v->parcelamento_comissao_meses ?? $defaults['parcelamento_comissao_meses']),
+            'percentualMarketing' => ($v->marketing ?? $defaults['marketing']) / 100,
+            'custoItbiIptu' => ($v->itbi_iptu ?? $defaults['itbi_iptu']) / 100,
+            'custoRegistro' => $v->registro ?? $defaults['registro'],
+            'custoContratacaoCef' => $v->custo_contratacao_cef ?? $defaults['custo_contratacao_cef'],
+            'custoMedicaoCef' => $v->custo_medicao_cef ?? $defaults['custo_medicao_cef'],
+            'custoContratosCef' => $v->contratos_cef ?? $defaults['contratos_cef'],
+            'percentualProdutosCef' => ($v->produtos_cef ?? $defaults['produtos_cef']) / 100,
+            'percentualOutrasDespesasFinanceiras' => ($v->outras_despesas_financeiras ?? $defaults['outras_despesas_financeiras']) / 100,
+            'mesesObra' => (int) ($v->prazo_obra ?? $defaults['prazo_obra']),
+            'mesesIncorporacao' => (int) ($v->prazo_incorporacao ?? $defaults['meses_incorporacao']),
+            'mesesLancamento' => (int) ($v->prazo_lancamento ?? $defaults['meses_lancamento']),
+            'mesesEntrega' => $defaults['meses_entrega'],
+            'mesesPosObra' => $defaults['meses_pos_obra'],
+            'variavelCorrecao' => $defaults['variavel_correcao'],
+            'compraTerreno' => $v->compra_terreno ?? $defaults['compra_terreno'],
+            'percentualAntecipacaoPj' => ($v->percentual_antecipacao_pj ?? $defaults['percentual_antecipacao_pj']) / 100,
+            'aporteAdicionalMensal' => $v->aporte_adicional_mensal ?? $defaults['aporte_adicional_mensal'],
+            'devolucaoAportePercentual' => ($v->devolucao_aporte_percentual ?? $defaults['devolucao_aporte_percentual']) / 100,
+            'distribuicaoLucrosPercentualObra' => ($v->distribuicao_lucros_percentual_obra ?? $defaults['distribuicao_lucros_percentual_obra']) / 100,
+            'taxaExposicaoAplicada' => ($v->taxa_exposicao_aplicada ?? $defaults['taxa_exposicao_aplicada']) / 100,
             'perfilFinanciamento' => PerfilFinanciamento::tryFrom((string) $perfilStr) ?? PerfilFinanciamento::CEF,
-            'dataLancamento' => $v->data_lancamento 
-                ? Carbon::parse($v->data_lancamento) 
-                : Carbon::now()->addYears(2),
-            'inadimplencia' => (float) ($d['inadimplencia'] ?? 0.10),
-            'atrasoMeses' => (int) ($d['atraso_meses'] ?? 2),
-            'taxaPerda' => (float) ($d['taxa_perda'] ?? 0.02),
+            'dataLancamento' => $v->data_lancamento
+                ? Carbon::parse($v->data_lancamento)
+                : $defaults['data_lancamento_padrao'],
+            'inadimplencia' => (float) $defaults['inadimplencia'],
+            'atrasoMeses' => (int) $defaults['atraso_meses'],
+            'taxaPerda' => (float) $defaults['taxa_perda'],
         ];
+    }
+
+    /**
+     * Salva um snapshot das premissas utilizadas no cálculo na viabilidade.
+     * Inclui o resultado do cálculo para rastreabilidade completa.
+     */
+    private function salvarSnapshot(Viabilidade $viabilidade, array $resultado): void
+    {
+        $viabilidade->premissas_snapshot = [
+            'calculado_em' => now()->toDateTimeString(),
+            'parametros' => $resultado['parametros_utilizados'] ?? [],
+            'indicadores' => $resultado['indicadores'] ?? [],
+            'vgv' => $resultado['vgv'] ?? null,
+            'total_unidades' => $resultado['totalUnidades'] ?? null,
+        ];
+
+        $viabilidade->saveQuietly();
     }
 
 }

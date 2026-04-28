@@ -41,9 +41,6 @@ class ProdutoSeeder extends Seeder
                 'correcao_anualSinal' => 0.00, //decimal 5,2 -> correção anual sobre o sinal do imóvel em percentual
                 'correcao_anualObra' => 0.05, //decimal 5,2 -> correção anual sobre a obra do imóvel em percentual
                 'correcao_anualPosChave' => 0.045, //decimal 5,2 -> correção anual sobre a chave do imóvel em percentual
-                'imposto_tributos' => 0.04, //decimal 5,2 -> imposto de tributos sobre o imóvel em percentual
-                'imposto_iss' => 0.00, //decimal 5,2 -> imposto de ISS sobre o imóvel em percentual
-                'imposto_outros' => 0.05, //decimal 5,2 -> imposto de outros impostos sobre o imóvel em percentual
                 'curva_vendas' => [10, 9, 8.1, 7.3, 6.6, 5.9, 5.3, 3.4, 3.4, 3.4, 3.4, 3.4, 2.4, 3.4, 3.4, 3.4, 3.4, 3.4, 3.4, 3.4, 3.4],
                 'baloes_anuais' => [
                     ['mes' => 12, 'percentual' => 3.0],
@@ -68,8 +65,6 @@ class ProdutoSeeder extends Seeder
                 'pagto_comissaoNaVenda' => 0.50, //decimal 5,2 -> porcentagem de comissao pagas na venda sobre o valor do imóvel em percentual
                 'marketing_antesLancamento' => 0.25, //decimal 5,2 -> porcentagem de marketing antes do lançamento do projeto, calculado sobre o valor total do marketing
                 'marketing_lancamento' => 0.75, //decimal 5,2 -> porcentagem de marketing após o lançamento do projeto
-                'custo_contratacaoCef' => 24000.00, //decimal 12,2
-                'pj_taxaJuros' => 0.1050, //decimal 5,4
                 'pj_carenciaPosObra' => 6, //integer
                 'pj_qtdeParcelasPosCarencia' => 18, //integer
             ]

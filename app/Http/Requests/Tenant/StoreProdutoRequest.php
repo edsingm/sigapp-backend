@@ -42,9 +42,6 @@ class StoreProdutoRequest extends FormRequest
             'correcao_anualSinal' => 'nullable|numeric',
             'correcao_anualObra' => 'nullable|numeric',
             'correcao_anualPosChave' => 'nullable|numeric',
-            'imposto_tributos' => 'nullable|numeric|min:0',
-            'imposto_iss' => 'nullable|numeric|min:0',
-            'imposto_outros' => 'nullable|numeric|min:0',
             'curva_vendas' => 'nullable|array',
             'incorp_ri' => 'nullable|numeric|min:0',
             'incorp_entrega' => 'nullable|numeric|min:0',
@@ -64,8 +61,6 @@ class StoreProdutoRequest extends FormRequest
             'pagto_comissaoNaVenda' => 'nullable|numeric|min:0',
             'marketing_antesLancamento' => 'nullable|numeric|min:0',
             'marketing_lancamento' => 'nullable|numeric|min:0',
-            'custo_contratacaoCef' => 'nullable|numeric|min:0',
-            'pj_taxaJuros' => 'nullable|numeric',
             'pj_carenciaPosObra' => 'nullable|string|max:255',
             'pj_qtdeParcelasPosCarencia' => 'nullable|string|max:255',
         ];

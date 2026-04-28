@@ -1,5 +1,13 @@
 <?php
 
+/**
+ * ATENÇÃO: Este arquivo é usado APENAS como fonte de seed inicial
+ * (PremissasViabilidadeSeeder). Em runtime, os valores vêm EXCLUSIVAMENTE
+ * da tabela premissas_viabilidade no banco de dados.
+ *
+ * NÃO utilize config('viabilidade') em código de produção.
+ */
+
 return [
     /*
     |--------------------------------------------------------------------------
@@ -91,7 +99,6 @@ return [
         'meses_lancamento' => 6,
         'meses_entrega' => 1,
         'meses_pos_obra' => 60,
-        'variavel_correcao' => 0.027545,
     ],
 
     /*

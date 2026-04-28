@@ -5,109 +5,100 @@ namespace App\Services\Tenant\Viabilidade\v1;
 use App\Enums\PerfilFinanciamento;
 use App\Models\Tenant\PremissasViabilidade;
 use Carbon\Carbon;
+use RuntimeException;
 
 class PremissasViabilidadeService
 {
     /**
-     * Resolve os valores padrão das premissas, nesta ordem:
-     * 1. Registro ativo e vigente em premissas_viabilidade (banco), filtrado por perfil
-     * 2. config('viabilidade.defaults') + config('viabilidade.prazos')
+     * Resolve os valores padrão das premissas exclusivamente do banco de dados.
      *
-     * Retorna um array com os mesmos nomes que o antigo montarParametros()
-     * consumia de $d e $p, para que a refatoração seja drop-in.
+     * Se não houver registro ativo e vigente em premissas_viabilidade para o
+     * perfil solicitado, lança RuntimeException.
      *
-     * @param string|null $perfil Perfil de financiamento para filtrar premissas ('cef' ou 'proprio')
+     * O config/viabilidade.php é usado apenas como fonte de seed inicial e
+     * NÃO é consultado em runtime.
+     *
+     * @param  string|null  $perfil  Perfil de financiamento ('cef' ou 'proprio')
+     * @return array<string, mixed>
+     *
+     * @throws RuntimeException Se não houver premissa ativa no banco
      */
     public function resolverDefaults(?string $perfil = null): array
     {
         $premissa = PremissasViabilidade::carregarAtiva($perfil);
-        $d = config('viabilidade.defaults', []);
-        $p = config('viabilidade.prazos', []);
 
-        return [
-            'pis_cofins'                 => $this->float($premissa?->pis_cofins, $d['pis_cofins'] ?? 4.0),
-            'iss'                        => $this->float($premissa?->iss, $d['iss'] ?? 0.0),
-            'outros_impostos'            => $this->float($premissa?->outros_impostos, $d['outros_impostos'] ?? 0.5),
-            'comissao'                   => $this->float($premissa?->comissao, $d['comissao'] ?? 0.0),
-            'parceria_vgv'               => $this->float($premissa?->parceria_vgv, $d['parceria_vgv'] ?? 0.0),
-            'infra_nao_incidente'        => $this->float($premissa?->infra_nao_incidente, $d['infra_nao_incidente'] ?? 1.0),
-            'incorporacao'               => $this->float($premissa?->incorporacao, $d['incorporacao'] ?? 1.0),
-            'area_comum'                 => $this->float($premissa?->area_comum, $d['area_comum'] ?? 0.0),
-            'contrapartidas'             => $this->float($premissa?->contrapartidas, $d['contrapartidas'] ?? 0.0),
-            'canteiro_mensal'            => $this->float($premissa?->canteiro_mensal, $d['canteiro_mensal'] ?? 85715.0),
-            'mo_administrativa'          => $this->float($premissa?->mo_administrativa, $d['mo_administrativa'] ?? 62502.0),
-            'seguros'                    => $this->float($premissa?->seguros, $d['seguros'] ?? 0.5),
-            'assistencia_tecnica'        => $this->float($premissa?->assistencia_tecnica, $d['assistencia_tecnica'] ?? 1.0),
-            'despesas_comerciais'        => $this->float($premissa?->despesas_comerciais, $d['despesas_comerciais'] ?? 5.0),
-            'stand_vendas'               => $this->float($premissa?->stand_vendas, $d['stand_vendas'] ?? 0.0),
-            'mobilia_decoracao'          => $this->float($premissa?->mobilia_decoracao, $d['mobilia_decoracao'] ?? 90000.0),
-            'ajuda_custo_gerente'        => $this->float($premissa?->ajuda_custo_gerente, $d['ajuda_custo_gerente'] ?? 5000.0),
-            'ajuda_custo_gerente_regional' => $this->float($premissa?->ajuda_custo_gerente_regional, $d['ajuda_custo_gerente_regional'] ?? 2733.0),
-            'reembolso_logistica'        => $this->float($premissa?->reembolso_logistica, $d['reembolso_logistica'] ?? 5000.0),
-            'bonus_cca'                  => $this->float($premissa?->bonus_cca, $d['bonus_cca'] ?? 350.0),
-            'bonus_gerente'              => $this->float($premissa?->bonus_gerente, $d['bonus_gerente'] ?? 0.3),
-            'bonus_gerente_regional'     => $this->float($premissa?->bonus_gerente_regional, $d['bonus_gerente_regional'] ?? 0.12),
-            'bonus_credito'              => $this->float($premissa?->bonus_credito, $d['bonus_credito'] ?? 0.05),
-            'bonus_gestor_comercial'     => $this->float($premissa?->bonus_gestor_comercial, $d['bonus_gestor_comercial'] ?? 0.05),
-            'pagamento_comissao_desligamento' => $this->float($premissa?->pagamento_comissao_desligamento, $d['pagamento_comissao_desligamento'] ?? 50.0),
-            'parcelamento_comissao_meses' => $this->int($premissa?->parcelamento_comissao_meses, $d['parcelamento_comissao_meses'] ?? 18),
-            'marketing'                  => $this->float($premissa?->marketing, $d['marketing'] ?? 1.0),
-            'itbi_iptu'                  => $this->float($premissa?->itbi_iptu, $d['itbi_iptu'] ?? 1.1),
-            'registro'                   => $this->float($premissa?->registro, $d['registro'] ?? 2500.0),
-            'custo_contratacao_cef'      => $this->float($premissa?->custo_contratacao_cef, $d['custo_contratacao_cef'] ?? 0.0),
-            'custo_medicao_cef'          => $this->float($premissa?->custo_medicao_cef, $d['custo_medicao_cef'] ?? 0.0),
-            'contratos_cef'              => $this->float($premissa?->contratos_cef, $d['contratos_cef'] ?? 300.0),
-            'produtos_cef'               => $this->float($premissa?->produtos_cef, $d['produtos_cef'] ?? 0.5),
-            'outras_despesas_financeiras' => $this->float($premissa?->outras_despesas_financeiras, $d['outras_despesas_financeiras'] ?? 0.3),
-            'despesas_onerosas_bancos'   => $this->float($premissa?->despesas_onerosas_bancos, $d['despesas_onerosas_bancos'] ?? 10.0),
-            'prazo_obra'                 => $this->int($premissa?->prazo_obra, $d['prazo_obra'] ?? 36),
-            'compra_terreno'              => $this->float($premissa?->compra_terreno, 0.0),
-            'porcentagem_lote_proprietario' => $this->float($premissa?->porcentagem_lote_proprietario, $d['porcentagem_lote_proprietario'] ?? 10.0),
-            'taxa_juros_pj'              => $this->float($premissa?->taxa_juros_pj, $d['taxa_juros_pj'] ?? 10.5),
-            'percentual_antecipacao_pj'  => $this->float($premissa?->percentual_antecipacao_pj, $d['percentual_antecipacao_pj'] ?? 10.0),
-            'aporte_adicional_mensal'    => $this->float($premissa?->aporte_adicional_mensal, $d['aporte_adicional_mensal'] ?? 0.0),
-            'devolucao_aporte_percentual' => $this->float($premissa?->devolucao_aporte_percentual, $d['devolucao_aporte_percentual'] ?? 20.0),
-            'distribuicao_lucros_percentual_obra' => $this->float($premissa?->distribuicao_lucros_percentual_obra, $d['distribuicao_lucros_percentual_obra'] ?? 100.0),
-            'taxa_exposicao_aplicada'    => $this->float($premissa?->taxa_exposicao_aplicada, $d['taxa_exposicao_aplicada'] ?? 12.5),
-            'avaliacao_lotes_cef'        => $premissa?->avaliacao_lotes_cef ?? $d['avaliacao_lotes_cef'] ?? [],
-            'perfil_financiamento'       => $this->perfilStr($premissa?->perfil_financiamento, $d['perfil_financiamento'] ?? 'cef'),
-            'inadimplencia'              => $this->float($premissa?->inadimplencia, $d['inadimplencia'] ?? 0.10),
-            'atraso_meses'               => $this->int($premissa?->atraso_meses, $d['atraso_meses'] ?? 2),
-            'taxa_perda'                 => $this->float($premissa?->taxa_perda, $d['taxa_perda'] ?? 0.02),
-            'meses_incorporacao'         => $this->int($premissa?->meses_incorporacao, $p['meses_incorporacao'] ?? 18),
-            'meses_lancamento'           => $this->int($premissa?->meses_lancamento, $p['meses_lancamento'] ?? 6),
-            'meses_entrega'              => $this->int($premissa?->meses_entrega, $p['meses_entrega'] ?? 1),
-            'meses_pos_obra'             => $this->int($premissa?->meses_pos_obra, $p['meses_pos_obra'] ?? 60),
-            'variavel_correcao'          => $this->float($premissa?->variavel_correcao, $p['variavel_correcao'] ?? 0.027545),
-            'data_lancamento_padrao'     => $this->dataLancamentoPadrao(),
-        ];
-    }
-
-    private function float(mixed $dbValue, mixed $fallback): float
-    {
-        $value = $dbValue ?? $fallback;
-
-        return (float) $value;
-    }
-
-    private function int(mixed $dbValue, mixed $fallback): int
-    {
-        $value = $dbValue ?? $fallback;
-
-        return (int) $value;
-    }
-
-    private function dataLancamentoPadrao(): Carbon
-    {
-        return Carbon::now()->addYears(2);
-    }
-
-    private function perfilStr(mixed $dbValue, mixed $fallback): string
-    {
-        if ($dbValue instanceof PerfilFinanciamento) {
-            return $dbValue->value;
+        if (! $premissa) {
+            $perfilLabel = $perfil ?? 'qualquer';
+            throw new RuntimeException(
+                "Nenhuma premissa de viabilidade ativa encontrada para o perfil '{$perfilLabel}'. ".
+                'Execute o PremissasViabilidadeSeeder ou cadastre as premissas manualmente.'
+            );
         }
 
-        return (string) ($dbValue ?? $fallback);
+        return [
+            'pis_cofins'                       => (float) $premissa->pis_cofins,
+            'iss'                              => (float) $premissa->iss,
+            'outros_impostos'                  => (float) $premissa->outros_impostos,
+            'comissao'                         => (float) $premissa->comissao,
+            'parceria_vgv'                     => (float) $premissa->parceria_vgv,
+            'infra_nao_incidente'              => (float) $premissa->infra_nao_incidente,
+            'incorporacao'                     => (float) $premissa->incorporacao,
+            'incorp_ri'                        => (float) $premissa->incorp_ri,
+            'incorp_entrega'                   => (float) $premissa->incorp_entrega,
+            'incorp_ate_lancamento'            => (float) $premissa->incorp_ate_lancamento,
+            'area_comum'                       => (float) $premissa->area_comum,
+            'contrapartidas'                   => (float) $premissa->contrapartidas,
+            'canteiro_mensal'                  => (float) $premissa->canteiro_mensal,
+            'mo_administrativa'                => (float) $premissa->mo_administrativa,
+            'seguros'                          => (float) $premissa->seguros,
+            'assistencia_tecnica'              => (float) $premissa->assistencia_tecnica,
+            'despesas_comerciais'              => (float) $premissa->despesas_comerciais,
+            'stand_vendas'                     => (float) $premissa->stand_vendas,
+            'mobilia_decoracao'                => (float) $premissa->mobilia_decoracao,
+            'ajuda_custo_gerente'              => (float) $premissa->ajuda_custo_gerente,
+            'ajuda_custo_gerente_regional'     => (float) $premissa->ajuda_custo_gerente_regional,
+            'reembolso_logistica'              => (float) $premissa->reembolso_logistica,
+            'bonus_cca'                        => (float) $premissa->bonus_cca,
+            'bonus_gerente'                    => (float) $premissa->bonus_gerente,
+            'bonus_gerente_regional'           => (float) $premissa->bonus_gerente_regional,
+            'bonus_credito'                    => (float) $premissa->bonus_credito,
+            'bonus_gestor_comercial'           => (float) $premissa->bonus_gestor_comercial,
+            'pagamento_comissao_desligamento'  => (float) $premissa->pagamento_comissao_desligamento,
+            'parcelamento_comissao_meses'      => (int) $premissa->parcelamento_comissao_meses,
+            'marketing'                        => (float) $premissa->marketing,
+            'marketing_inicio_antes_lancamento' => (int) $premissa->marketing_inicio_antes_lancamento,
+            'itbi_iptu'                        => (float) $premissa->itbi_iptu,
+            'registro'                         => (float) $premissa->registro,
+            'custo_contratacao_cef'            => (float) $premissa->custo_contratacao_cef,
+            'custo_medicao_cef'                => (float) $premissa->custo_medicao_cef,
+            'contratos_cef'                    => (float) $premissa->contratos_cef,
+            'produtos_cef'                     => (float) $premissa->produtos_cef,
+            'outras_despesas_financeiras'      => (float) $premissa->outras_despesas_financeiras,
+            'despesas_onerosas_bancos'         => (float) $premissa->despesas_onerosas_bancos,
+            'prazo_obra'                       => (int) $premissa->prazo_obra,
+            'compra_terreno'                   => (float) $premissa->compra_terreno,
+            'porcentagem_lote_proprietario'    => (float) $premissa->porcentagem_lote_proprietario,
+            'taxa_juros_pj'                    => (float) $premissa->taxa_juros_pj,
+            'carencia_pj_meses'                => (int) $premissa->carencia_pj_meses,
+            'amortizacao_pj_parcelas'          => (int) $premissa->amortizacao_pj_parcelas,
+            'percentual_antecipacao_pj'        => (float) $premissa->percentual_antecipacao_pj,
+            'aporte_adicional_mensal'          => (float) $premissa->aporte_adicional_mensal,
+            'devolucao_aporte_percentual'      => (float) $premissa->devolucao_aporte_percentual,
+            'distribuicao_lucros_percentual_obra' => (float) $premissa->distribuicao_lucros_percentual_obra,
+            'taxa_exposicao_aplicada'          => (float) $premissa->taxa_exposicao_aplicada,
+            'avaliacao_lotes_cef'              => $premissa->avaliacao_lotes_cef ?? [],
+            'perfil_financiamento'             => $premissa->perfil_financiamento instanceof PerfilFinanciamento
+                ? $premissa->perfil_financiamento->value
+                : 'cef',
+            'inadimplencia'                    => (float) $premissa->inadimplencia,
+            'atraso_meses'                     => (int) $premissa->atraso_meses,
+            'taxa_perda'                       => (float) $premissa->taxa_perda,
+            'meses_incorporacao'               => (int) $premissa->meses_incorporacao,
+            'meses_lancamento'                 => (int) $premissa->meses_lancamento,
+            'meses_entrega'                    => (int) $premissa->meses_entrega,
+            'meses_pos_obra'                   => (int) $premissa->meses_pos_obra,
+            'obra_ate_lancamento'              => (float) $premissa->obra_ate_lancamento,
+            'data_lancamento_padrao'           => Carbon::now()->addYears(2),
+        ];
     }
 }

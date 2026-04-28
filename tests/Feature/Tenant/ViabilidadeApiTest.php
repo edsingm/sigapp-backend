@@ -14,6 +14,7 @@ use App\Models\Tenant\TerrenoProduto;
 use App\Models\Tenant\User;
 use App\Models\Tenant\Viabilidade;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -37,6 +38,8 @@ class ViabilidadeApiTest extends TestCase
         ]);
 
         $this->artisan('migrate', ['--path' => 'database/migrations/tenant', '--realpath' => false]);
+
+        $this->popularPremissasPadrao();
 
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
         Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
@@ -249,5 +252,79 @@ class ViabilidadeApiTest extends TestCase
                 ],
             ],
         ];
+    }
+
+    private function popularPremissasPadrao(): void
+    {
+        $agora = now();
+
+        DB::table('premissas_viabilidade')->insert([
+            'nome' => 'Padrão CEF (teste)',
+            'perfil_financiamento' => 'cef',
+            'ativo' => true,
+            'vigente_em' => $agora->toDateString(),
+            'versao' => 1,
+            'pis_cofins' => 4.0,
+            'iss' => 0.0,
+            'outros_impostos' => 0.5,
+            'comissao' => 0.0,
+            'parceria_vgv' => 0.0,
+            'infra_nao_incidente' => 1.0,
+            'incorporacao' => 1.0,
+            'incorp_ri' => 30.0,
+            'incorp_entrega' => 15.0,
+            'incorp_ate_lancamento' => 80.0,
+            'obra_ate_lancamento' => 1.0,
+            'area_comum' => 0.0,
+            'contrapartidas' => 0.0,
+            'canteiro_mensal' => 85715.0,
+            'mo_administrativa' => 62502.0,
+            'seguros' => 0.5,
+            'assistencia_tecnica' => 1.0,
+            'despesas_comerciais' => 5.0,
+            'stand_vendas' => 0.0,
+            'mobilia_decoracao' => 90000.0,
+            'ajuda_custo_gerente' => 5000.0,
+            'ajuda_custo_gerente_regional' => 2733.0,
+            'reembolso_logistica' => 5000.0,
+            'bonus_cca' => 350.0,
+            'bonus_gerente' => 0.3,
+            'bonus_gerente_regional' => 0.12,
+            'bonus_credito' => 0.05,
+            'bonus_gestor_comercial' => 0.05,
+            'pagamento_comissao_desligamento' => 50.0,
+            'parcelamento_comissao_meses' => 18,
+            'marketing' => 1.0,
+            'marketing_inicio_antes_lancamento' => 3,
+            'itbi_iptu' => 1.1,
+            'registro' => 2500.0,
+            'custo_contratacao_cef' => 0.0,
+            'custo_medicao_cef' => 0.0,
+            'contratos_cef' => 300.0,
+            'produtos_cef' => 0.5,
+            'outras_despesas_financeiras' => 0.3,
+            'despesas_onerosas_bancos' => 10.0,
+            'prazo_obra' => 36,
+            'compra_terreno' => 0.0,
+            'porcentagem_lote_proprietario' => 10.0,
+            'taxa_juros_pj' => 10.5,
+            'carencia_pj_meses' => 6,
+            'amortizacao_pj_parcelas' => 18,
+            'percentual_antecipacao_pj' => 10.0,
+            'aporte_adicional_mensal' => 0.0,
+            'devolucao_aporte_percentual' => 20.0,
+            'distribuicao_lucros_percentual_obra' => 100.0,
+            'taxa_exposicao_aplicada' => 12.5,
+            'avaliacao_lotes_cef' => json_encode(['2_dorm' => 20.0, '3_dorm' => 15.0, 'lotes' => 0.0]),
+            'inadimplencia' => 0.10,
+            'atraso_meses' => 2,
+            'taxa_perda' => 0.02,
+            'meses_incorporacao' => 18,
+            'meses_lancamento' => 6,
+            'meses_entrega' => 1,
+            'meses_pos_obra' => 60,
+            'created_at' => $agora,
+            'updated_at' => $agora,
+        ]);
     }
 }

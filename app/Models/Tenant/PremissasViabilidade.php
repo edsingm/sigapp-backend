@@ -23,6 +23,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property float $parceria_vgv
  * @property float $infra_nao_incidente
  * @property float $incorporacao
+ * @property float $incorp_ri
+ * @property float $incorp_entrega
+ * @property float $incorp_ate_lancamento
+ * @property float $obra_ate_lancamento
  * @property float $area_comum
  * @property float $contrapartidas
  * @property float $canteiro_mensal
@@ -43,6 +47,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property float $pagamento_comissao_desligamento
  * @property int $parcelamento_comissao_meses
  * @property float $marketing
+ * @property int $marketing_inicio_antes_lancamento
  * @property float $itbi_iptu
  * @property float $registro
  * @property float $custo_contratacao_cef
@@ -55,6 +60,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property float $compra_terreno
  * @property float $porcentagem_lote_proprietario
  * @property float $taxa_juros_pj
+ * @property int $carencia_pj_meses
+ * @property int $amortizacao_pj_parcelas
  * @property float $percentual_antecipacao_pj
  * @property float $aporte_adicional_mensal
  * @property float $devolucao_aporte_percentual
@@ -90,6 +97,10 @@ class PremissasViabilidade extends Model
         'parceria_vgv',
         'infra_nao_incidente',
         'incorporacao',
+        'incorp_ri',
+        'incorp_entrega',
+        'incorp_ate_lancamento',
+        'obra_ate_lancamento',
         'area_comum',
         'contrapartidas',
         'canteiro_mensal',
@@ -110,6 +121,7 @@ class PremissasViabilidade extends Model
         'pagamento_comissao_desligamento',
         'parcelamento_comissao_meses',
         'marketing',
+        'marketing_inicio_antes_lancamento',
         'itbi_iptu',
         'registro',
         'custo_contratacao_cef',
@@ -122,6 +134,8 @@ class PremissasViabilidade extends Model
         'compra_terreno',
         'porcentagem_lote_proprietario',
         'taxa_juros_pj',
+        'carencia_pj_meses',
+        'amortizacao_pj_parcelas',
         'percentual_antecipacao_pj',
         'aporte_adicional_mensal',
         'devolucao_aporte_percentual',
@@ -151,6 +165,10 @@ class PremissasViabilidade extends Model
         'parceria_vgv' => 'decimal:4',
         'infra_nao_incidente' => 'decimal:4',
         'incorporacao' => 'decimal:4',
+        'incorp_ri' => 'decimal:4',
+        'incorp_entrega' => 'decimal:4',
+        'incorp_ate_lancamento' => 'decimal:4',
+        'obra_ate_lancamento' => 'decimal:4',
         'area_comum' => 'decimal:2',
         'contrapartidas' => 'decimal:4',
         'canteiro_mensal' => 'decimal:2',
@@ -171,6 +189,7 @@ class PremissasViabilidade extends Model
         'pagamento_comissao_desligamento' => 'decimal:4',
         'parcelamento_comissao_meses' => 'integer',
         'marketing' => 'decimal:4',
+        'marketing_inicio_antes_lancamento' => 'integer',
         'itbi_iptu' => 'decimal:4',
         'registro' => 'decimal:2',
         'custo_contratacao_cef' => 'decimal:2',
@@ -183,6 +202,8 @@ class PremissasViabilidade extends Model
         'compra_terreno' => 'decimal:2',
         'porcentagem_lote_proprietario' => 'decimal:4',
         'taxa_juros_pj' => 'decimal:4',
+        'carencia_pj_meses' => 'integer',
+        'amortizacao_pj_parcelas' => 'integer',
         'percentual_antecipacao_pj' => 'decimal:4',
         'aporte_adicional_mensal' => 'decimal:2',
         'devolucao_aporte_percentual' => 'decimal:4',

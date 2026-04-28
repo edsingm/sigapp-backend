@@ -102,10 +102,12 @@ class ImpostosService
             $pis += $valorImposto * 0.0925;
             $cofins += $valorImposto * 0.4275;
 
-            // ISS e Outras Deduções mantêm base VGV (pré-calculados)
             if (isset($produto['financeiro'])) {
-                $iss += $produto['financeiro']['imposto_iss'] ?? 0;
-                $outrasDeducoes += $produto['financeiro']['outras_deducoes'] ?? 0;
+                $issPct = (float) ($produto['imposto_iss'] ?? 0);
+                $outrasPct = (float) ($produto['imposto_outros'] ?? 0);
+                $iss += $receitaBrutaProduto * $issPct;
+                $outrasDeducoes += $vgvSemTerrenista * $proporcaoBruta * $outrasPct;
+
                 $irpj += $produto['financeiro']['irrpj'] ?? 0;
                 $csll += $produto['financeiro']['csll'] ?? 0;
             }
@@ -176,8 +178,13 @@ class ImpostosService
         int $carenciaMeses = 0,
         int $amortizacaoParcelas = 0
     ): array {
-        $percentualAntecipado = $percentualAntecipado ?? (config('viabilidade.defaults.percentual_antecipacao_pj', 10) / 100);
-        $taxaAnual = $taxaAnual ?? (config('viabilidade.defaults.taxa_juros_pj', 10.5) / 100);
+        if ($taxaAnual === null) {
+            throw new \InvalidArgumentException('taxaAnual é obrigatório para calcularJurosPJ (deve vir do $params)');
+        }
+        if ($percentualAntecipado === null) {
+            throw new \InvalidArgumentException('percentualAntecipado é obrigatório para calcularJurosPJ (deve vir do $params)');
+        }
+
         $taxaMensal = pow(1 + $taxaAnual, 1 / 12) - 1;
         $carenciaMeses = max(0, $carenciaMeses);
         $amortizacaoParcelas = max(0, $amortizacaoParcelas);

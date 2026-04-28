@@ -79,15 +79,15 @@ class ProdutosProcessor
 
             $imps = $this->impostosService->calcularImpostosProduto(
                 $vgvSemTerrenista,
-                $produto->imposto_tributos ?? 0,
-                $produto->imposto_iss ?? 0,
-                $produto->imposto_outros ?? 0
+                ($params['percentualPisCofins'] ?? 0) * 100,
+                ($params['percentualIss'] ?? 0) * 100,
+                ($params['percentualOutrosImpostos'] ?? 0) * 100
             );
             $dados['imposto_pis'] += $imps['imposto_pis'];
             $dados['imposto_cofins'] += $imps['imposto_cofins'];
             $dados['imposto_iss'] += $imps['imposto_iss'];
 
-            $impostoTributosRaw = $produto->imposto_tributos ?? 0;
+            $impostoTributosRaw = ($params['percentualPisCofins'] ?? 0) * 100;
             if ($impostoTributosRaw > 5) {
                 $irpjCorrigido = $vgvProduto * 0.012;
                 $csllCorrigido = $vgvProduto * 0.0108;
@@ -119,9 +119,9 @@ class ProdutosProcessor
                 'curva_vendas' => $produto->curva_vendas ?? [],
                 'baloes_anuais' => $produto->baloes_anuais ?? [],
                 'balao_entrega_modo' => $produto->balao_entrega_modo ?? 'saldo_restante',
-                'imposto_tributos' => ($produto->imposto_tributos ?? 0) / 100,
-                'imposto_iss' => ($produto->imposto_iss ?? 0) / 100,
-                'imposto_outros' => ($produto->imposto_outros ?? 0) / 100,
+                'imposto_tributos' => $params['percentualPisCofins'] ?? 0,
+                'imposto_iss' => $params['percentualIss'] ?? 0,
+                'imposto_outros' => $params['percentualOutrosImpostos'] ?? 0,
                 'gastos_mensais_stand' => (float) ($produto->gastos_mensaisStand ?? 0),
                 'comissao_house' => (float) ($produto->comissao_house ?? 0) / 100,
                 'porcentagem_comissao_house' => (float) ($produto->porcentagem_comissaoHouse ?? 0) / 100,
@@ -129,8 +129,8 @@ class ProdutosProcessor
                 'pagto_comissao_venda' => (float) ($produto->pagto_comissaoNaVenda ?? 0) / 100,
                 'marketing_lancamento' => (float) ($produto->marketing_lancamento ?? 0) / 100,
                 'marketing_antes_lancamento' => (int) ($produto->marketing_antesLancamento ?? 0),
-                'custo_contratacao_cef' => (float) ($produto->custo_contratacaoCef ?? 0),
-                'pj_taxa_juros' => (float) ($produto->pj_taxaJuros ?? 0) / 100,
+                'custo_contratacao_cef' => $params['custoMedicaoContratacao'] ?? $params['custoContratacaoCef'] ?? 0,
+                'pj_taxa_juros' => $params['taxaJurosPj'] ?? 0.105,
                 'pj_carencia_pos_obra' => (int) ($produto->pj_carenciaPosObra ?? 0),
                 'pj_qtde_parcelas' => (int) ($produto->pj_qtdeParcelasPosCarencia ?? 0),
                 'assist_tecnica_curva' => $this->extrairAssistenciaTecnicaProduto($produto),
@@ -161,8 +161,8 @@ class ProdutosProcessor
             $dados['custoInfraM2'] = $custoInfra;
         }
 
-        $dados['correcaoSobreVgv'] = $dados['vgvSemValorTerrenista'] * $params['variavelCorrecao'];
-        $dados['vgvComCorrecao'] = $dados['vgvSemValorTerrenista'] + $dados['correcaoSobreVgv'];
+        $dados['correcaoSobreVgv'] = 0;
+        $dados['vgvComCorrecao'] = $dados['vgvSemValorTerrenista'];
         $dados['custoNaoIncidente'] = $params['infraNaoIncidente'] * $dados['vgv'];
         $dados['dataInicio'] = $params['dataLancamento'] ?? Carbon::now()->addYears(2);
 
@@ -212,10 +212,6 @@ class ProdutosProcessor
         $params['pagamentoComissaoVenda'] = (float) $extrair('pagto_comissao_venda', $params['pagamentoComissaoVenda'] ?? 0.50);
         $params['marketingLancamento'] = (float) $extrair('marketing_lancamento', $params['marketingLancamento'] ?? 0.25);
         $params['marketingInicioAntesLancamento'] = (int) $extrair('marketing_antes_lancamento', $params['marketingInicioAntesLancamento'] ?? 3);
-        $params['custoMedicaoContratacao'] = (float) $extrair('custo_contratacao_cef', $params['custoMedicaoContratacao'] ?? 0);
-        $params['taxaJurosPj'] = (float) $extrair('pj_taxa_juros', $params['taxaJurosPj'] ?? 0.105);
-        $params['carenciaPjMeses'] = (int) $extrair('pj_carencia_pos_obra', $params['carenciaPjMeses'] ?? 6);
-        $params['amortizacaoPjParcelas'] = (int) $extrair('pj_qtde_parcelas', $params['amortizacaoPjParcelas'] ?? 18);
         $params['assistenciaTecnicaCurva'] = $extrair('assist_tecnica_curva', $params['assistenciaTecnicaCurva'] ?? [50, 20, 10, 10, 10]);
         $params['incorporacaoRi'] = (float) $extrair('incorp_ri', $params['incorporacaoRi'] ?? 0.30);
         $params['incorporacaoEntrega'] = (float) $extrair('incorp_entrega', $params['incorporacaoEntrega'] ?? 0.15);

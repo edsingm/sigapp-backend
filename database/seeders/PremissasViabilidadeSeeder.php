@@ -33,6 +33,9 @@ class PremissasViabilidadeSeeder extends Seeder
             'parceria_vgv'                   => $d['parceria_vgv'] ?? 0.0,
             'infra_nao_incidente'            => $d['infra_nao_incidente'] ?? 1.0,
             'incorporacao'                   => $d['incorporacao'] ?? 1.0,
+            'incorp_ri'                      => 30.0,
+            'incorp_entrega'                 => 15.0,
+            'incorp_ate_lancamento'          => 80.0,
             'area_comum'                     => $d['area_comum'] ?? 0.0,
             'contrapartidas'                 => $d['contrapartidas'] ?? 0.0,
             'canteiro_mensal'                => $d['canteiro_mensal'] ?? 85715.0,
@@ -53,6 +56,7 @@ class PremissasViabilidadeSeeder extends Seeder
             'pagamento_comissao_desligamento' => $d['pagamento_comissao_desligamento'] ?? 50.0,
             'parcelamento_comissao_meses'    => $d['parcelamento_comissao_meses'] ?? 18,
             'marketing'                      => $d['marketing'] ?? 1.0,
+            'marketing_inicio_antes_lancamento' => 3,
             'itbi_iptu'                      => $d['itbi_iptu'] ?? 1.1,
             'registro'                       => $d['registro'] ?? 2500.0,
             'custo_contratacao_cef'          => $d['custo_contratacao_cef'] ?? 0.0,
@@ -65,6 +69,8 @@ class PremissasViabilidadeSeeder extends Seeder
             'compra_terreno'                 => $d['compra_terreno'] ?? 0.0,
             'porcentagem_lote_proprietario'  => $d['porcentagem_lote_proprietario'] ?? 10.0,
             'taxa_juros_pj'                  => $d['taxa_juros_pj'] ?? 10.5,
+            'carencia_pj_meses'              => 6,
+            'amortizacao_pj_parcelas'        => 18,
             'percentual_antecipacao_pj'      => $d['percentual_antecipacao_pj'] ?? 10.0,
             'aporte_adicional_mensal'        => $d['aporte_adicional_mensal'] ?? 0.0,
             'devolucao_aporte_percentual'    => $d['devolucao_aporte_percentual'] ?? 20.0,
@@ -79,7 +85,7 @@ class PremissasViabilidadeSeeder extends Seeder
             'meses_lancamento'               => $p['meses_lancamento'] ?? 6,
             'meses_entrega'                  => $p['meses_entrega'] ?? 1,
             'meses_pos_obra'                 => $p['meses_pos_obra'] ?? 60,
-            'variavel_correcao'              => $p['variavel_correcao'] ?? 0.027545,
+            'obra_ate_lancamento'            => 1.0,
         ];
 
         if (! $jaExisteCef) {

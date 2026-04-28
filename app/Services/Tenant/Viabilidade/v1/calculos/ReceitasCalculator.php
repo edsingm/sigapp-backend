@@ -49,7 +49,7 @@ class ReceitasCalculator
 
         return [
             'total' => $total,
-            'juros_correcao' => ($rp['juros'] ?? 0.0) + ($rp['correcao'] ?? 0.0),
+            'juros_correcao' => ($rp['juros'] ?? 0.0) + ($rp['correcao'] ?? 0.0) + ($rp['correcao_obra'] ?? 0.0),
             'detalhes' => [
                 'Recursos Próprios' => round($totalRp, 2),
                 'Recursos Próprios (Atrasados)' => round($totalAtrasadas, 2),

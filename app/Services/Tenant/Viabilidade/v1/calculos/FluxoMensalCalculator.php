@@ -105,6 +105,7 @@ class FluxoMensalCalculator
         }
 
         $dadosProdutos['correcaoSobreVgv'] = $totalJurosCorrecoes;
+        $dadosProdutos['vgvComCorrecao'] = ($dadosProdutos['vgvSemValorTerrenista'] ?? 0) + $totalJurosCorrecoes;
 
         [$fluxoFinanceiro, $indicadoresFinanceiros] = $this->indicadoresCalculator->calcularIndicadoresFinanceiros($fluxo, $datas, $params, $dadosProdutos);
         $indicadoresVso = $this->indicadoresCalculator->calcularIndicadoresVso($fluxo, $dadosProdutos);
@@ -270,12 +271,15 @@ class FluxoMensalCalculator
                         $mesRecebimento = $inicioObraCoorte + $i;
                         $mesesPassados = $mesRecebimento - $s;
                         $parcelaAjustada = $parcelaObraNominal * pow(1 + $r_obra, $mesesPassados);
+                        $correcaoObra = $parcelaAjustada - $parcelaObraNominal;
 
                         $dataRecebimento = $dataLancamento->copy()->addMonths($mesRecebimento - 1);
                         $chaveMes = $dataRecebimento->format('Y-m');
 
                         $ctx->recursosProprios[$chaveMes]['parcelas_obra'] =
                             ($ctx->recursosProprios[$chaveMes]['parcelas_obra'] ?? 0) + ($parcelaAjustada * $unidadesVendidas);
+                        $ctx->recursosProprios[$chaveMes]['correcao_obra'] =
+                            ($ctx->recursosProprios[$chaveMes]['correcao_obra'] ?? 0) + ($correcaoObra * $unidadesVendidas);
                     }
                 }
             }

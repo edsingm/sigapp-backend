@@ -108,8 +108,15 @@ class ImpostosService
                 $iss += $receitaBrutaProduto * $issPct;
                 $outrasDeducoes += $vgvSemTerrenista * $proporcaoBruta * $outrasPct;
 
-                $irpj += $produto['financeiro']['irrpj'] ?? 0;
-                $csll += $produto['financeiro']['csll'] ?? 0;
+                $tributosPctRaw = (float) ($produto['imposto_tributos'] ?? 0) * 100;
+                if ($tributosPctRaw > 5) {
+                    $irpj += $receitaBrutaProduto * 0.012;
+                    $csll += $receitaBrutaProduto * 0.0108;
+                } else {
+                    $valorBaseIr = $receitaBrutaProduto * ((float) ($produto['imposto_tributos'] ?? 0));
+                    $irpj += $valorBaseIr * 0.315;
+                    $csll += $valorBaseIr * 0.165;
+                }
             }
         }
 

@@ -132,7 +132,7 @@ class ViabilidadeUnificadoServiceTest extends TestCase
             'marketingInicioAntesLancamento' => 3,
             'custoItbiIptu' => $d['itbi_iptu'] / 100,
             'custoRegistro' => $d['registro'],
-            'custoMedicaoContratacao' => 2000.00,
+            'custoMedicaoContratacao' => 24000.00,
             'custoContratosCef' => $d['contratos_cef'],
             'percentualProdutosCef' => $d['produtos_cef'] / 100,
             'percentualOutrasDespesasFinanceiras' => $d['outras_despesas_financeiras'] / 100,

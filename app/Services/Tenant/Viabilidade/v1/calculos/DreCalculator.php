@@ -178,7 +178,7 @@ class DreCalculator
             + $custoConstrucaoPermutas
             + $custoProprietario;
 
-        $comissao = 0.01 * abs($custoTerreno);
+        $comissao = ($params['percentualComissao'] ?? 0.01) * abs($custoTerreno);
         $incorporacao = $params['percentualIncorporacao'] * $vgv;
         $infraCasas = $dadosProdutos['custoObraHabitacao'];
         $infraLotes = $dadosProdutos['custoInfraestrutura'] + $dadosProdutos['custoNaoIncidente'];
@@ -266,20 +266,9 @@ class DreCalculator
 
     private function calcularCompraTerreno(array $dadosProdutos, array $params, int $totalUnidades): float
     {
-        $valorPagamentoTotal = $params['compraTerreno'] ?? 0;
-        if ($totalUnidades <= 0) {
-            return 0.0;
-        }
+        unset($dadosProdutos, $totalUnidades);
 
-        $total = 0.0;
-        $valorPorUnidade = $valorPagamentoTotal / $totalUnidades;
-
-        foreach ($dadosProdutos['produtos'] as $produto) {
-            $unidades = $produto['quantidade_unidades'] ?? 0;
-            $total += $valorPorUnidade * $unidades;
-        }
-
-        return $total;
+        return (float) ($params['compraTerreno'] ?? 0);
     }
 
     /**
@@ -371,16 +360,8 @@ class DreCalculator
             return 0.0;
         }
 
-        $unidades = 0;
-        foreach ($dadosProdutos['produtos'] as $produto) {
-            if ($this->ehProdutoLote($produto)) {
-                continue;
-            }
-
-            $unidades += max(0, ($produto['quantidade_unidades'] ?? 0) - ($produto['permutas'] ?? 0));
-        }
-
-        return $unidades * ($params['custoMedicaoContratacao'] ?? 0);
+        return ($params['custoMedicaoCef'] ?? 0) * ($params['mesesObra'] ?? 0)
+            + ($params['custoContratacaoCef'] ?? 0);
     }
 
     private function calcularContratosCef(array $dadosProdutos, array $params): float
@@ -407,16 +388,7 @@ class DreCalculator
             return 0.0;
         }
 
-        $total = 0.0;
-        foreach ($dadosProdutos['produtos'] as $produto) {
-            if ($this->ehProdutoLote($produto)) {
-                continue;
-            }
-
-            $total += $this->calcularBaseSemTerrenistaProduto($produto) * ($params['percentualProdutosCef'] ?? 0);
-        }
-
-        return $total;
+        return ($dadosProdutos['vgvSemUnidPermutas'] ?? 0) * ($params['percentualProdutosCef'] ?? 0);
     }
 
     private function ehProdutoLote(array $produto): bool

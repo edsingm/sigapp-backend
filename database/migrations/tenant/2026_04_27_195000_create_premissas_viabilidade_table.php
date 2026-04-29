@@ -23,7 +23,7 @@ return new class extends Migration
             $table->decimal('pis_cofins', 10, 4)->default(4.0);
             $table->decimal('iss', 10, 4)->default(0.0);
             $table->decimal('outros_impostos', 10, 4)->default(0.5);
-            $table->decimal('comissao', 10, 4)->default(0.0);
+            $table->decimal('comissao', 10, 4)->default(0.001);
             $table->decimal('parceria_vgv', 10, 4)->default(0.0);
             $table->decimal('infra_nao_incidente', 10, 4)->default(1.0);
             $table->decimal('incorporacao', 10, 4)->default(1.0);

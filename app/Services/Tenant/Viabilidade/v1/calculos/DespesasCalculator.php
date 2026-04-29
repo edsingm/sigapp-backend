@@ -181,7 +181,7 @@ class DespesasCalculator
 
     private function calcularCustoTerreno(float $receitaMes, array $dadosProdutos, array $params): float
     {
-        $totalCustoTerreno = ($dadosProdutos['permutas'] * ($dadosProdutos['produtos'][0]['preco'] ?? 0)) + $params['compraTerreno'];
+        $totalCustoTerreno = (float) ($params['compraTerreno'] ?? 0);
         $receitaTotal = $dadosProdutos['vgvComCorrecao'] ?? $dadosProdutos['vgv'];
 
         return $receitaTotal > 0 ? ($totalCustoTerreno * $receitaMes) / $receitaTotal : 0;

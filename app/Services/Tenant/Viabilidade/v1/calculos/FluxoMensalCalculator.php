@@ -204,8 +204,9 @@ class FluxoMensalCalculator
 
         $dataLancamento = $datas['dataLancamento'];
         $dataEntrega = $datas['dataEntrega'];
-        $prazoLancamento = $params['mesesLancamento'];
-        $prazoObra = $params['mesesObra'];
+        $prazoLancamento = max(1, (int) ($params['mesesLancamento'] ?? 1));
+        $prazoObra = max(1, (int) ($params['mesesObra'] ?? 1));
+        $prazoTotalObra = $prazoLancamento + $prazoObra;
         $prazoPosChave = 36;
 
         foreach ($produtos as $produto) {
@@ -223,13 +224,16 @@ class FluxoMensalCalculator
             $percentualPos = ($fin['parcela_posChave'] ?? 9) / 100;
             $qtdParcelasPos = max(1, (int) ($fin['qtde_parcelas_posChave'] ?? $prazoPosChave));
 
-            $taxaCorrecaoObraAnual = ((float) ($fin['correcao_anualObra'] ?? 5)) / 100;
+            $taxaCorrecaoObraAnual = ((float) ($fin['correcao_anualObra'] ?? 0)) / 100;
             $taxaCorrecaoPosAnual = ((float) ($fin['correcao_anualPosChave'] ?? 4.5)) / 100;
             $jurosMensalPos = ((float) ($fin['juros_mensalPosChave'] ?? 1)) / 100;
 
-            $r_obra = pow(1 + $taxaCorrecaoObraAnual, 1 / 12.0) - 1;
+            $r_obra = $taxaCorrecaoObraAnual > 0
+                ? pow(1 + $taxaCorrecaoObraAnual, 1 / 12.0) - 1
+                : 0.0;
             $r_pos = pow(1 + $taxaCorrecaoPosAnual, 1 / 12.0) - 1;
-            $endObra = $prazoObra;
+            $valorObraTotal = $precoProduto * $percentualObra * $unidadesConstrutora;
+            $obraVendidaAcumulada = 0.0;
 
             foreach ($curvaVendas as $mesVenda => $percentualVenda) {
                 if ($percentualVenda <= 0) {
@@ -240,46 +244,37 @@ class FluxoMensalCalculator
                 $unidadesVendidas = $unidadesConstrutora * $percentualVenda / 100;
                 $valorSinal = $precoProduto * $percentualSinal;
                 $valorObra = $precoProduto * $percentualObra;
+                $valorObraCoorte = $valorObra * $unidadesVendidas;
 
-                if ($s <= $prazoLancamento) {
-                    $numSinal = $prazoLancamento - $s + 1;
-                    $parcelaSinal = $valorSinal / $numSinal;
+                $dataRecebimento = $dataLancamento->copy()->addMonths($s - 1);
+                $chaveMes = $dataRecebimento->format('Y-m');
 
-                    for ($i = 0; $i < $numSinal; $i++) {
+                $ctx->recursosProprios[$chaveMes]['sinal'] =
+                    ($ctx->recursosProprios[$chaveMes]['sinal'] ?? 0) + ($valorSinal * $unidadesVendidas);
+
+                $obraVendidaAcumulada += $valorObraCoorte;
+                $saldoRemanescenteObra = max(0.0, $valorObraTotal - $obraVendidaAcumulada);
+
+                if ($saldoRemanescenteObra > 0.0 && $r_obra > 0.0) {
+                    $ctx->recursosProprios[$chaveMes]['correcao_obra'] =
+                        ($ctx->recursosProprios[$chaveMes]['correcao_obra'] ?? 0.0)
+                        + ($saldoRemanescenteObra * $r_obra);
+                }
+
+                $numObraParcelas = max(1, $prazoTotalObra - ($s - 1));
+
+                if ($valorObra > 0) {
+                    $parcelaObraNominal = $valorObra / $numObraParcelas;
+
+                    for ($i = 0; $i < $numObraParcelas; $i++) {
                         $mesRecebimento = $s + $i;
                         $dataRecebimento = $dataLancamento->copy()->addMonths($mesRecebimento - 1);
                         $chaveMes = $dataRecebimento->format('Y-m');
 
-                        $ctx->recursosProprios[$chaveMes]['sinal'] =
-                            ($ctx->recursosProprios[$chaveMes]['sinal'] ?? 0) + ($parcelaSinal * $unidadesVendidas);
-                    }
-                } else {
-                    $dataRecebimento = $dataLancamento->copy()->addMonths($s - 1);
-                    $chaveMes = $dataRecebimento->format('Y-m');
-
-                    $ctx->recursosProprios[$chaveMes]['sinal'] =
-                        ($ctx->recursosProprios[$chaveMes]['sinal'] ?? 0) + ($valorSinal * $unidadesVendidas);
-                }
-
-                $inicioObraCoorte = max($s, 1);
-                $numObraParcelas = $endObra - $inicioObraCoorte + 1;
-
-                if ($numObraParcelas > 0 && $valorObra > 0) {
-                    $parcelaObraNominal = $valorObra / $numObraParcelas;
-
-                    for ($i = 0; $i < $numObraParcelas; $i++) {
-                        $mesRecebimento = $inicioObraCoorte + $i;
-                        $mesesPassados = $mesRecebimento - $s;
-                        $parcelaAjustada = $parcelaObraNominal * pow(1 + $r_obra, $mesesPassados);
-                        $correcaoObra = $parcelaAjustada - $parcelaObraNominal;
-
-                        $dataRecebimento = $dataLancamento->copy()->addMonths($mesRecebimento - 1);
-                        $chaveMes = $dataRecebimento->format('Y-m');
+                        $valorParcelaMes = $parcelaObraNominal * $unidadesVendidas;
 
                         $ctx->recursosProprios[$chaveMes]['parcelas_obra'] =
-                            ($ctx->recursosProprios[$chaveMes]['parcelas_obra'] ?? 0) + ($parcelaAjustada * $unidadesVendidas);
-                        $ctx->recursosProprios[$chaveMes]['correcao_obra'] =
-                            ($ctx->recursosProprios[$chaveMes]['correcao_obra'] ?? 0) + ($correcaoObra * $unidadesVendidas);
+                            ($ctx->recursosProprios[$chaveMes]['parcelas_obra'] ?? 0) + $valorParcelaMes;
                     }
                 }
             }
@@ -288,16 +283,15 @@ class FluxoMensalCalculator
             $amortizacao = $valorPosTotal / $qtdParcelasPos;
 
             for ($k = 1; $k <= $qtdParcelasPos; $k++) {
-                $saldoDevedor = $valorPosTotal - ($amortizacao * ($k - 1));
+                $saldoDevedor = $valorPosTotal - ($amortizacao * $k);
                 $jurosMes = $saldoDevedor * $jurosMensalPos;
                 $correcaoMes = $saldoDevedor * $r_pos;
-                $pagamentoMes = $amortizacao + $jurosMes + $correcaoMes;
 
-                $dataRecebimento = $dataEntrega->copy()->addMonths($k - 1);
+                $dataRecebimento = $dataEntrega->copy()->addMonths($prazoLancamento + $k - 1);
                 $chaveMes = $dataRecebimento->format('Y-m');
 
                 $ctx->recursosProprios[$chaveMes]['parcelas_pos'] =
-                    ($ctx->recursosProprios[$chaveMes]['parcelas_pos'] ?? 0) + $pagamentoMes;
+                    ($ctx->recursosProprios[$chaveMes]['parcelas_pos'] ?? 0) + $amortizacao;
                 $ctx->recursosProprios[$chaveMes]['juros'] =
                     ($ctx->recursosProprios[$chaveMes]['juros'] ?? 0) + $jurosMes;
                 $ctx->recursosProprios[$chaveMes]['correcao'] =

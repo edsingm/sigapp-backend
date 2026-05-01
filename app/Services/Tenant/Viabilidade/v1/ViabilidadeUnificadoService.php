@@ -228,6 +228,7 @@ class ViabilidadeUnificadoService
             'bonusGestorComercial' => ($v->bonus_gestor_comercial ?? $defaults['bonus_gestor_comercial']) / 100,
             'pagamentoComissaoDesligamento' => ($v->pagamento_comissao_desligamento ?? $defaults['pagamento_comissao_desligamento']) / 100,
             'parcelamentoComissaoMeses' => (int) ($v->parcelamento_comissao_meses ?? $defaults['parcelamento_comissao_meses']),
+            'parcelamentoComissaoTerreno' => (int) ($defaults['parcelamento_comissao_terreno'] ?? 1),
             'percentualMarketing' => ($v->marketing ?? $defaults['marketing']) / 100,
             'custoItbiIptu' => ($v->itbi_iptu ?? $defaults['itbi_iptu']) / 100,
             'custoRegistro' => $v->registro ?? $defaults['registro'],

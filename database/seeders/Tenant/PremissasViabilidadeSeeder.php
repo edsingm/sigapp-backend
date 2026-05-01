@@ -54,6 +54,7 @@ class PremissasViabilidadeSeeder extends Seeder
             'bonus_credito'                  => $d['bonus_credito'] ?? 0.05,
             'bonus_gestor_comercial'         => $d['bonus_gestor_comercial'] ?? 0.05,
             'pagamento_comissao_desligamento' => $d['pagamento_comissao_desligamento'] ?? 50.0,
+            'parcelamento_comissao_terreno'  => $d['parcelamento_comissao_terreno'] ?? 18,
             'parcelamento_comissao_meses'    => $d['parcelamento_comissao_meses'] ?? 18,
             'marketing'                      => $d['marketing'] ?? 1.0,
             'marketing_inicio_antes_lancamento' => 3,

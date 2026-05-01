@@ -45,11 +45,12 @@ class ReceitasCalculator
             ? $this->calcularMedicaoObra($mes, $dadosProdutos, $datas, $params, $ctx)
             : ['valor' => 0.0];
 
-        $total = $totalRp + $totalAtrasadas + $rt['valor'] + $mo['valor'];
+        $jurosCorrecao = ($rp['juros'] ?? 0.0) + ($rp['correcao'] ?? 0.0) + ($rp['correcao_obra'] ?? 0.0);
+        $total = $totalRp + $totalAtrasadas + $jurosCorrecao + $rt['valor'] + $mo['valor'];
 
         return [
             'total' => $total,
-            'juros_correcao' => ($rp['juros'] ?? 0.0) + ($rp['correcao'] ?? 0.0) + ($rp['correcao_obra'] ?? 0.0),
+            'juros_correcao' => $jurosCorrecao,
             'detalhes' => [
                 'Recursos Próprios' => round($totalRp, 2),
                 'Recursos Próprios (Atrasados)' => round($totalAtrasadas, 2),

@@ -65,6 +65,7 @@ class PremissasViabilidadeService
             'bonus_gestor_comercial'           => (float) $premissa->bonus_gestor_comercial,
             'pagamento_comissao_desligamento'  => (float) $premissa->pagamento_comissao_desligamento,
             'parcelamento_comissao_meses'      => (int) $premissa->parcelamento_comissao_meses,
+            'parcelamento_comissao_terreno'    => (int) $premissa->parcelamento_comissao_terreno,
             'marketing'                        => (float) $premissa->marketing,
             'marketing_inicio_antes_lancamento' => (int) $premissa->marketing_inicio_antes_lancamento,
             'itbi_iptu'                        => (float) $premissa->itbi_iptu,

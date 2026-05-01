@@ -46,6 +46,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property float $bonus_gestor_comercial
  * @property float $pagamento_comissao_desligamento
  * @property int $parcelamento_comissao_meses
+ * @property int $parcelamento_comissao_terreno
  * @property float $marketing
  * @property int $marketing_inicio_antes_lancamento
  * @property float $itbi_iptu
@@ -120,6 +121,7 @@ class PremissasViabilidade extends Model
         'bonus_gestor_comercial',
         'pagamento_comissao_desligamento',
         'parcelamento_comissao_meses',
+        'parcelamento_comissao_terreno',
         'marketing',
         'marketing_inicio_antes_lancamento',
         'itbi_iptu',
@@ -188,6 +190,7 @@ class PremissasViabilidade extends Model
         'bonus_gestor_comercial' => 'decimal:4',
         'pagamento_comissao_desligamento' => 'decimal:4',
         'parcelamento_comissao_meses' => 'integer',
+        'parcelamento_comissao_terreno' => 'integer',
         'marketing' => 'decimal:4',
         'marketing_inicio_antes_lancamento' => 'integer',
         'itbi_iptu' => 'decimal:4',

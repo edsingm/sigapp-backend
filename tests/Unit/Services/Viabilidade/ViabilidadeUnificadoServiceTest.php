@@ -50,7 +50,7 @@ class ViabilidadeUnificadoServiceTest extends TestCase
         $impostosService = new ImpostosService;
         $dreCalculator = new DreCalculator($impostosService);
         $receitasCalculator = new ReceitasCalculator($curvaService);
-        $despesasCalculator = new DespesasCalculator($curvaService, $impostosService, $dreCalculator);
+        $despesasCalculator = new DespesasCalculator($curvaService, $dreCalculator);
         $indicadoresCalculator = new IndicadoresCalculator($impostosService);
         $pocCalculator = new PocCalculator;
         $produtosProcessor = new ProdutosProcessor($impostosService);
@@ -628,6 +628,28 @@ class ViabilidadeUnificadoServiceTest extends TestCase
             $despesasAltas['categorias']['impostos'],
             'Impostos devem ser maiores com receita maior'
         );
+    }
+
+    public function test_calcular_despesas_exclui_lotes_da_base_de_deducoes(): void
+    {
+        $datas = $this->makeDatas();
+        $mes = $datas['dataLancamento']->format('Y-m');
+        $receitas = ['total' => 100_000.0, 'juros_correcao' => 0.0, 'detalhes' => []];
+        $dadosProdutos = $this->makeDadosProdutos([
+            'vgv' => 1_000_000.0,
+            'vgvSemValorTerrenista' => 1_000_000.0,
+            'vgvSemUnidPermutas' => 1_000_000.0,
+            'produtos' => [
+                ['nome' => 'Apto 2 Dorm', 'vgv_produto' => 600_000.0],
+                ['nome' => 'Lote 250m2', 'vgv_produto' => 400_000.0],
+            ],
+        ]);
+        $params = $this->makeParams(['percentualPisCofins' => 0.04]);
+
+        $despesas = $this->service->calcularDespesas($mes, $receitas, $dadosProdutos, $datas, $params);
+
+        $this->assertSame(2400.0, $despesas['detalhes']['Deduções']);
+        $this->assertSame(2400.0, $despesas['categorias']['impostos']);
     }
 
     public function test_calcular_despesas_periodo_obra_inclui_custo_obra_positivo(): void

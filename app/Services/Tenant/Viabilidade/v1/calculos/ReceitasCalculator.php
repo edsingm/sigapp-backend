@@ -61,65 +61,78 @@ class ReceitasCalculator
 
     private function calcularRecursoTerrenos(string $mes, array $dadosProdutos, array $datas, ViabilidadeFluxoContext $ctx): array
     {
-        unset($ctx);
+        if (! $ctx->demandaAtingida || $ctx->mesDemandaAtingida === null) {
+            return ['valor' => 0.0];
+        }
 
-        $dataAtual = Carbon::parse($mes.'-01');
         $dataLancamento = $datas['dataLancamento']->copy()->startOfMonth();
+        $dataDemandaAtingida = Carbon::parse($ctx->mesDemandaAtingida.'-01')->startOfMonth();
+        $valorRtMes = 0.0;
 
-        $quartoMes = $dataLancamento->copy()->addMonths(3);
-        if ($dataAtual->startOfMonth() < $quartoMes) {
-            return ['valor' => 0];
+        foreach ($dadosProdutos['produtos'] as $produto) {
+            $valorRtMes += $this->calcularRtMesProduto(
+                $mes,
+                $produto,
+                $dataLancamento,
+                $dataDemandaAtingida,
+            );
         }
-
-        $mesNumero = (int) $dataLancamento->diffInMonths($dataAtual->copy()->startOfMonth()) + 1;
-
-        if ($mesNumero === 4) {
-            $valorAcumulado = 0.0;
-            for ($mesVenda = 1; $mesVenda <= 4; $mesVenda++) {
-                $valorAcumulado += $this->calcularRtMesVenda($mesVenda, $dadosProdutos);
-            }
-
-            return ['valor' => round($valorAcumulado, 2)];
-        }
-
-        $valorRtMes = $this->calcularRtMesVenda($mesNumero, $dadosProdutos);
 
         return ['valor' => round($valorRtMes, 2)];
     }
 
-    private function calcularRtMesVenda(int $mesVenda, array $dadosProdutos): float
-    {
+    private function calcularRtMesProduto(
+        string $mes,
+        array $produto,
+        Carbon $dataLancamento,
+        Carbon $dataDemandaAtingida
+    ): float {
+        $curvaVendas = $this->curvaService->extrairCurva($produto['curva_vendas'] ?? null);
+        $curvaVendas = $this->curvaService->normalizarCurva($curvaVendas);
+
+        if ($curvaVendas === []) {
+            return 0.0;
+        }
+
+        $defasagem = max(0, (int) round((float) ($produto['defasagem_pgtoTerreno'] ?? 0)));
         $valorRtMes = 0.0;
 
-        foreach ($dadosProdutos['produtos'] as $produto) {
-            $curvaVendas = $this->curvaService->extrairCurva($produto['curva_vendas'] ?? null);
-            $curvaVendas = $this->curvaService->normalizarCurva($curvaVendas);
-
-            if (empty($curvaVendas)) {
+        foreach ($curvaVendas as $mesIndex => $percVendasMes) {
+            if ($percVendasMes <= 0) {
                 continue;
             }
 
-            $indiceMes = $mesVenda - 1;
-            $percVendasMes = $curvaVendas[$indiceMes] ?? 0;
+            $dataVenda = $dataLancamento->copy()->addMonths($mesIndex)->startOfMonth();
+            $dataLiberacao = $dataVenda->lessThanOrEqualTo($dataDemandaAtingida)
+                ? $dataDemandaAtingida->copy()
+                : $dataVenda->copy();
+            $dataRecebimento = $dataLiberacao->copy()->addMonths($defasagem);
 
-            $unidadesProduto = $produto['quantidade_unidades'] ?? 0;
-            $permutasProduto = $produto['permutas'] ?? 0;
-            $unidadesEfetivas = max(1, $unidadesProduto - $permutasProduto);
-            $unidadesVendidasMes = $unidadesEfetivas * ($percVendasMes / 100);
-
-            $avaliacaoCef = $produto['avaliacao_lotesCef'] ?? 0;
-            $preco = $produto['preco'] ?? 0;
-
-            if ($avaliacaoCef > 0 && $avaliacaoCef <= 1) {
-                $valorPorUnidade = $avaliacaoCef * $preco;
-            } else {
-                $valorPorUnidade = $avaliacaoCef;
+            if ($dataRecebimento->format('Y-m') !== $mes) {
+                continue;
             }
 
-            $valorRtMes += $unidadesVendidasMes * $valorPorUnidade;
+            $valorRtMes += $this->calcularRtValorVendaProduto($produto, (float) $percVendasMes);
         }
 
         return $valorRtMes;
+    }
+
+    private function calcularRtValorVendaProduto(array $produto, float $percVendasMes): float
+    {
+        $unidadesProduto = $produto['quantidade_unidades'] ?? 0;
+        $permutasProduto = $produto['permutas'] ?? 0;
+        $unidadesEfetivas = max(1, $unidadesProduto - $permutasProduto);
+        $unidadesVendidasMes = $unidadesEfetivas * ($percVendasMes / 100);
+
+        $avaliacaoCef = $produto['avaliacao_lotesCef'] ?? 0;
+        $preco = $produto['preco'] ?? 0;
+
+        $valorPorUnidade = ($avaliacaoCef > 0 && $avaliacaoCef <= 1)
+            ? $avaliacaoCef * $preco
+            : $avaliacaoCef;
+
+        return $unidadesVendidasMes * $valorPorUnidade;
     }
 
     private function calcularMedicaoObra(
@@ -132,15 +145,17 @@ class ReceitasCalculator
         $dataAtual = Carbon::parse($mes.'-01');
         $inicioObra = $datas['inicioObra']->copy()->startOfMonth();
         $fimObra = $datas['fimObra']->copy()->startOfMonth();
+        $fimMedicao = $fimObra->copy()->addMonths(5);
 
-        $sextoMes = $inicioObra->copy()->addMonths(5);
-        if ($dataAtual->startOfMonth() < $sextoMes || $dataAtual->startOfMonth() > $fimObra) {
+        if ($dataAtual->startOfMonth() < $inicioObra || $dataAtual->startOfMonth() > $fimMedicao) {
             return ['valor' => 0];
         }
 
-        $mesObraAtual = (int) $sextoMes->diffInMonths($dataAtual->startOfMonth()) + 1;
+        $mesObraAtual = (int) $inicioObra->diffInMonths($dataAtual->startOfMonth()) + 1;
 
-        $curvaObra = $dadosProdutos['curvaObraAgregada'] ?? $this->agregarCurvaObra($params['mesesObra']);
+        $percentualAteLancamento = max(0.0, min(1.0, (float) ($params['obraAteLancamento'] ?? 0.0)));
+        $curvaObra = $dadosProdutos['curvaFinanceiraMedicaoAgregada']
+            ?? $this->agregarCurvaFinanceiraMedicao((int) ($params['mesesObra'] ?? 0), $percentualAteLancamento);
         $indice = $mesObraAtual - 1;
         $percObraMes = $curvaObra[$indice] ?? 0.0;
 
@@ -151,8 +166,8 @@ class ReceitasCalculator
 
         $medicaoTeoricaAcumulada = $ctx->valorMedicaoTotal * $ctx->curvaObraAcumulada;
 
-        $totalUnidades = $dadosProdutos['totalUnidades'];
-        $percVendasAcumulado = $totalUnidades > 0 ? $ctx->vendasAcumuladas / $totalUnidades : 0;
+        $totalUnidadesConstrutora = max(1, (int) ($dadosProdutos['totalUnidadesConstrutora'] ?? $dadosProdutos['totalUnidades'] ?? 1));
+        $percVendasAcumulado = min(1.0, $ctx->vendasAcumuladas / $totalUnidadesConstrutora);
 
         $medicaoVendidaAcumulada = $medicaoTeoricaAcumulada * $percVendasAcumulado;
         $valorReceberMes = max(0, $medicaoVendidaAcumulada - $ctx->medicaoObraAcumulada);
@@ -165,6 +180,7 @@ class ReceitasCalculator
     public function inicializarValorMedicaoTotal(array $dadosProdutos, array $datas, ViabilidadeFluxoContext $ctx): void
     {
         $vgvSemPermuta = $dadosProdutos['vgvSemUnidPermutas'] ?? 0.0;
+        $vgvSemTerrenista = $dadosProdutos['vgvSemValorTerrenista'] ?? $vgvSemPermuta;
         $totalRecursoTerrenos = 0.0;
 
         foreach ($dadosProdutos['produtos'] as $produto) {
@@ -195,14 +211,14 @@ class ReceitasCalculator
             }
         }
 
-        $ctx->valorMedicaoTotal = max(
-            0,
-            ($vgvSemPermuta * self::PERCENTUAL_FINANCIAMENTO_CEF) - $totalRecursoTerrenos
-        );
+        $valorRecursoProprio = $vgvSemPermuta * (1 - self::PERCENTUAL_FINANCIAMENTO_CEF);
+        $valorFinanciamento = max(0, $vgvSemTerrenista - $valorRecursoProprio);
+
+        $ctx->valorMedicaoTotal = max(0, $valorFinanciamento - $totalRecursoTerrenos);
     }
 
-    private function agregarCurvaObra(int $mesesObra): array
+    private function agregarCurvaFinanceiraMedicao(int $mesesObra, float $obraAteLancamento): array
     {
-        return $this->curvaService->getCurvaObraParaPrazo($mesesObra);
+        return $this->curvaService->getCurvaFinanceiraMedicaoParaPrazo($mesesObra, $obraAteLancamento);
     }
 }

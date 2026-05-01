@@ -68,6 +68,43 @@ class CurvaService
         return $this->normalizarCurva($curva);
     }
 
+    public function getCurvaFinanceiraMedicaoParaPrazo(int $mesesTotal, float $obraAteLancamento = 0.0): array
+    {
+        unset($obraAteLancamento);
+
+        $curvaObra = array_map(
+            static fn (float $percentual): float => round($percentual, 1),
+            $this->getCurvaObraParaPrazo($mesesTotal),
+        );
+        $curvaFinanceira = array_fill(0, $mesesTotal + 5, 0.0);
+        $acumulado = 0.0;
+
+        foreach ($curvaObra as $indice => $percentualFinanceiro) {
+            if ($percentualFinanceiro <= 0.0) {
+                continue;
+            }
+
+            $novoAcumulado = round($acumulado + $percentualFinanceiro, 1);
+            if ($novoAcumulado > 95.0) {
+                break;
+            }
+
+            $curvaFinanceira[$indice] = $percentualFinanceiro;
+            $acumulado = $novoAcumulado;
+        }
+
+        $saldoFinal = round(100.0 - $acumulado, 1);
+        if ($saldoFinal > 0.0) {
+            $primeiraParcela = round($saldoFinal * 0.55, 1);
+            $segundaParcela = round($saldoFinal - $primeiraParcela, 1);
+
+            $curvaFinanceira[$mesesTotal + 1] = $primeiraParcela;
+            $curvaFinanceira[$mesesTotal + 4] = $segundaParcela;
+        }
+
+        return $curvaFinanceira;
+    }
+
     /**
      * Encontra o prazo de curva mais próximo disponível
      */

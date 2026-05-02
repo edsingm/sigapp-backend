@@ -122,15 +122,26 @@ class DespesasCalculator
         $dataAtual = Carbon::parse($mes.'-01');
 
         $custoIncorp = $vgv * $params['percentualIncorporacao'];
-        $areaComumTotal = $params['custoAreaComum'] * ($dadosProdutos['totalUnidades'] ?? 0);
-        $mesesIncorporacao = max(1, (int) $params['mesesIncorporacao']);
-        $mesesPosLancamento = max(1, (int) $params['mesesObra']);
+        $ri = $custoIncorp * $params['incorporacaoRi'];
+        $entrega = $custoIncorp * $params['incorporacaoEntrega'];
+        $restante = max(0.0, $custoIncorp - $ri - $entrega);
+        $ateLancamento = $restante * $params['incorporacaoAteLancamento'];
+        $posLancamento = max(0.0, $restante - $ateLancamento);
+        $mesesIncorpMaisLanc = max(1, (int) $params['mesesIncorporacao'] + (int) $params['mesesLancamento']);
+        $mesesLancMaisObra = max(1, (int) $params['mesesLancamento'] + (int) $params['mesesObra']);
+        $ultimoMesIncorporacao = $datas['dataLancamento']->copy()->subMonth()->startOfMonth();
 
-        if ($dataAtual->between($datas['inicioIncorporacao'], $datas['dataLancamento'])) {
-            $custos['Incorporação Até Lançamento'] = round(($custoIncorp * $params['incorporacaoAteLancamento']) / $mesesIncorporacao, 2);
+        if ($periodo === 'Incorporação' || $periodo === 'Lançamento') {
+            $custos['Incorporação Até Lançamento'] = round($ateLancamento / $mesesIncorpMaisLanc, 2);
         }
-        if ($dataAtual->between($datas['dataLancamento'], $datas['fimObra'])) {
-            $custos['Incorporação Pós Lançamento'] = round(($custoIncorp * (1 - $params['incorporacaoAteLancamento'])) / $mesesPosLancamento, 2);
+        if ($periodo === 'Lançamento' || $periodo === 'Obra') {
+            $custos['Incorporação Pós Lançamento'] = round($posLancamento / $mesesLancMaisObra, 2);
+        }
+        if ($dataAtual->format('Y-m') === $ultimoMesIncorporacao->format('Y-m')) {
+            $custos['Incorporação RI'] = round($ri, 2);
+        }
+        if ($periodo === 'Entrega') {
+            $custos['Incorporação Entrega'] = round($entrega, 2);
         }
 
         if ($periodo === 'Lançamento') {

@@ -48,6 +48,12 @@ final class ViabilidadeFluxoContext
     /** Indica se a Taxa de Contratação já foi paga (1x no 1º mês de lançamento) */
     public bool $txContratacaoPaga = false;
 
+    public bool $bonusEquipeComercialPago = false;
+
+    public float $comissaoDesligamentoAcumulada = 0.0;
+
+    public bool $comissaoDesligamentoAcumuladaPaga = false;
+
     public float $parceriaVgvTotal = 0.0;
 
     public float $parceriaVgvPago = 0.0;

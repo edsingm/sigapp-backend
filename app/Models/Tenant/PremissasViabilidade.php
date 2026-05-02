@@ -36,6 +36,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property float $despesas_comerciais
  * @property float $stand_vendas
  * @property float $mobilia_decoracao
+ * @property int $construcao_stand_meses_antes_lancamento
  * @property float $ajuda_custo_gerente
  * @property float $ajuda_custo_gerente_regional
  * @property float $reembolso_logistica
@@ -44,6 +45,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property float $bonus_gerente_regional
  * @property float $bonus_credito
  * @property float $bonus_gestor_comercial
+ * @property float $bonus_equipe_comercial
  * @property float $pagamento_comissao_desligamento
  * @property int $parcelamento_comissao_meses
  * @property int $parcelamento_comissao_terreno
@@ -111,6 +113,7 @@ class PremissasViabilidade extends Model
         'despesas_comerciais',
         'stand_vendas',
         'mobilia_decoracao',
+        'construcao_stand_meses_antes_lancamento',
         'ajuda_custo_gerente',
         'ajuda_custo_gerente_regional',
         'reembolso_logistica',
@@ -119,6 +122,7 @@ class PremissasViabilidade extends Model
         'bonus_gerente_regional',
         'bonus_credito',
         'bonus_gestor_comercial',
+        'bonus_equipe_comercial',
         'pagamento_comissao_desligamento',
         'parcelamento_comissao_meses',
         'parcelamento_comissao_terreno',
@@ -180,6 +184,7 @@ class PremissasViabilidade extends Model
         'despesas_comerciais' => 'decimal:4',
         'stand_vendas' => 'decimal:2',
         'mobilia_decoracao' => 'decimal:2',
+        'construcao_stand_meses_antes_lancamento' => 'integer',
         'ajuda_custo_gerente' => 'decimal:2',
         'ajuda_custo_gerente_regional' => 'decimal:2',
         'reembolso_logistica' => 'decimal:2',
@@ -188,6 +193,7 @@ class PremissasViabilidade extends Model
         'bonus_gerente_regional' => 'decimal:4',
         'bonus_credito' => 'decimal:4',
         'bonus_gestor_comercial' => 'decimal:4',
+        'bonus_equipe_comercial' => 'decimal:2',
         'pagamento_comissao_desligamento' => 'decimal:4',
         'parcelamento_comissao_meses' => 'integer',
         'parcelamento_comissao_terreno' => 'integer',

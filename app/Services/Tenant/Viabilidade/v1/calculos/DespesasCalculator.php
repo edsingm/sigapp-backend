@@ -169,7 +169,7 @@ class DespesasCalculator
             $custos['Seguros'] = round($seguroMensal, 2);
         }
 
-        if ($periodo === 'Pós-Obra') {
+        if ($periodo === 'Entrega' || $periodo === 'Pós-Obra') {
             $baseAssistencia = $custoObraTotal + ($vgv * $params['percentualContrapartidas']) + $areaComumTotal;
             $custos['Assistência Técnica'] = round($this->calcularAssistenciaTecnicaMensal($mes, $datas, $params, $baseAssistencia), 2);
         }
@@ -493,12 +493,14 @@ class DespesasCalculator
 
     private function calcularAssistenciaTecnicaMensal(string $mes, array $datas, array $params, float $baseAssistencia): float
     {
-        $dataAtual = Carbon::parse($mes.'-01');
-        if (! $dataAtual->between($datas['inicioPos'], $datas['fimPos'])) {
+        $dataAtual = Carbon::parse($mes.'-01')->startOfMonth();
+        $inicioPos = $datas['inicioPos']->copy()->startOfMonth();
+        $fimPos = $datas['fimPos']->copy()->startOfMonth();
+        if ($dataAtual->lt($inicioPos) || $dataAtual->gt($fimPos)) {
             return 0.0;
         }
 
-        $mesPosObra = (int) $datas['inicioPos']->diffInMonths($dataAtual) + 1;
+        $mesPosObra = (int) $inicioPos->diffInMonths($dataAtual) + 1;
         $curva = array_values($params['assistenciaTecnicaCurva'] ?? [50, 20, 10, 10, 10]);
         $indiceAno = min(count($curva) - 1, (int) floor(($mesPosObra - 1) / 12));
         $percentualAno = ($curva[$indiceAno] ?? 0) / 100;

@@ -157,8 +157,8 @@ class FluxoMensalCalculator
         $dataLancamento = $dataInicio->copy();
         $inicioIncorporacao = $dataLancamento->copy()->subMonths($params['mesesIncorporacao']);
         $fimLancamento = $dataLancamento->copy()->addMonths($params['mesesLancamento'] - 1);
-        $inicioObra = $dataLancamento->copy();
-        $fimObra = $dataLancamento->copy()->addMonths($params['mesesObra'] - 1);
+        $inicioObra = $fimLancamento->copy()->addMonth();
+        $fimObra = $inicioObra->copy()->addMonths($params['mesesObra'] - 1);
         $dataEntrega = $fimObra->copy()->addMonth();
         $inicioPos = $dataEntrega->copy();
         $fimPos = $inicioPos->copy()->addMonths($params['mesesPosObra'] - 1);

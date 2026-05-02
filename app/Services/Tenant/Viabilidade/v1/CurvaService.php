@@ -68,6 +68,29 @@ class CurvaService
         return $this->normalizarCurva($curva);
     }
 
+    public function getCurvaObraBaseParaPrazo(int $mesesTotal): array
+    {
+        $prazoMaisProximo = $this->getPrazoMaisProximo($mesesTotal);
+        $curvaBase = $this->curvasObra[$prazoMaisProximo];
+
+        if ($mesesTotal === $prazoMaisProximo) {
+            return $curvaBase;
+        }
+
+        $somaBase = array_sum($curvaBase);
+        $curvaInterpoladaNormalizada = $this->interpolarCurva($curvaBase, $mesesTotal);
+        if ($somaBase <= 0.0) {
+            return $curvaInterpoladaNormalizada;
+        }
+
+        $fator = $somaBase / 100.0;
+
+        return array_map(
+            static fn (float $valor): float => $valor * $fator,
+            $curvaInterpoladaNormalizada,
+        );
+    }
+
     public function getCurvaFinanceiraMedicaoParaPrazo(int $mesesTotal, float $obraAteLancamento = 0.0): array
     {
         unset($obraAteLancamento);

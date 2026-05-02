@@ -120,6 +120,8 @@ class DespesasCalculator
     ): array {
         $custos = [];
         $dataAtual = Carbon::parse($mes.'-01');
+        $totalUnidades = (int) ($dadosProdutos['totalUnidadesConstrutora'] ?? $dadosProdutos['totalUnidades'] ?? 0);
+        $areaComumTotal = ((float) ($params['custoAreaComum'] ?? 0.0)) * max(0, $totalUnidades);
 
         $custoIncorp = $vgv * $params['percentualIncorporacao'];
         $ri = $custoIncorp * $params['incorporacaoRi'];
@@ -149,8 +151,12 @@ class DespesasCalculator
         }
 
         if ($periodo === 'Obra') {
-            $mesObraIndex = (int) $datas['inicioObra']->diffInMonths($dataAtual) + 1;
-            $curvaObra = $dadosProdutos['curvaObraAgregada'] ?? $this->agregarCurvaObra($params['mesesObra']);
+            $inicioObra = $datas['dataLancamento']
+                ->copy()
+                ->addMonths((int) ($params['mesesLancamento'] ?? 0))
+                ->startOfMonth();
+            $mesObraIndex = (int) $inicioObra->diffInMonths($dataAtual->copy()->startOfMonth()) + 1;
+            $curvaObra = $this->curvaService->getCurvaObraBaseParaPrazo((int) ($params['mesesObra'] ?? 0));
             $percentualMes = $curvaObra[$mesObraIndex - 1] ?? 0.0;
             $custos['Obra'] = round($custoObraTotal * ($percentualMes / 100), 2);
             $custos['Canteiro'] = round($params['canteiroMensal'], 2);

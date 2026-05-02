@@ -648,8 +648,10 @@ class ViabilidadeUnificadoServiceTest extends TestCase
 
         $despesas = $this->service->calcularDespesas($mes, $receitas, $dadosProdutos, $datas, $params);
 
-        $this->assertSame(2400.0, $despesas['detalhes']['Deduções']);
-        $this->assertSame(2400.0, $despesas['categorias']['impostos']);
+        $this->assertSame(4300.0, $despesas['detalhes']['Deduções']);
+        $this->assertSame(2400.0, $despesas['detalhes']['Deduções - RET/LP Imóveis']);
+        $this->assertSame(1600.0, $despesas['detalhes']['Deduções - RET/LP Lotes']);
+        $this->assertSame(4300.0, $despesas['categorias']['impostos']);
     }
 
     public function test_calcular_despesas_periodo_obra_inclui_custo_obra_positivo(): void

@@ -1,7 +1,7 @@
 # Catálogo de Variáveis dos Services de Viabilidade
 
-**Data:** 2026-04-27  
-**Escopo analisado:** `app/Services/Tenant/Viabilidade/v1` e `app/Services/Tenant/Viabilidade/v1/calculos`, com apoio de `config/viabilidade.php` e `app/Models/Tenant/Viabilidade.php`.
+**Data:** 2026-04-29 (atualizado após remoção do `config/viabilidade.php` e refatoração completa do fluxo mensal)  
+**Escopo analisado:** `app/Services/Tenant/Viabilidade/v1` e `app/Services/Tenant/Viabilidade/v1/calculos`, `app/Models/Tenant/PremissasViabilidade.php`, `database/migrations/tenant` e `database/seeders/Tenant`.
 
 ## Objetivo
 
@@ -19,14 +19,14 @@ Este documento cataloga as variáveis de negócio usadas pelos services de viabi
 - **Origem**
   - `usuário`: valor informado na `Viabilidade`.
   - `produto`: valor específico de cada produto do terreno.
-  - `config`: fallback global do arquivo `config/viabilidade.php`.
+  - `config`: **removido**. O arquivo `config/viabilidade.php` foi deletado. Todos os valores vêm da tabela `premissas_viabilidade` no banco (gerida por `PremissasViabilidadeService` e semeada por `PremissasViabilidadeSeeder`).
   - `calculada`: derivada em tempo de execução.
   - `constante`: valor codificado no service.
 - **Obrigatoriedade**
   - `obrigatória`: ausência impede execução ou invalida o cálculo.
   - `opcional`: existe fallback, default ou cálculo defensivo.
 - **Natureza**
-  - `entrada`: premissa recebida do usuário/produto/config.
+  - `entrada`: premissa recebida do usuário, do produto ou da tabela `premissas_viabilidade`.
   - `calculada`: produzida por fórmula.
   - `estado`: variável mutável do contexto durante o pipeline.
 
@@ -38,7 +38,7 @@ Este documento cataloga as variáveis de negócio usadas pelos services de viabi
   - `totalUnidades > 0`;
   - `vgv > 0`;
   - `curva_vendas` preenchida em todos os produtos.
-- Quase todas as premissas financeiras da `Viabilidade` são opcionais porque possuem fallback em `config('viabilidade.defaults')`.
+- Quase todas as premissas financeiras da `Viabilidade` são opcionais porque possuem fallback na tabela `premissas_viabilidade` via `PremissasViabilidadeService::resolverDefaults()`.
 - Os parâmetros por produto também são opcionais, pois `ProdutosProcessor::mesclarParametros()` aplica fallback para o valor global.
 - O perfil de financiamento altera profundamente o comportamento:
   - `cef`: habilita `Recurso Terrenos`, `Medição Obra`, taxas CEF e demanda mínima.
@@ -61,11 +61,12 @@ Este documento cataloga as variáveis de negócio usadas pelos services de viabi
 | Variável | Tipo | Origem | Default | Métodos principais | Classificação | Dependências / observações |
 |---|---|---|---|---|---|---|
 | `percentualImpostos` | `float` | usuário/config | `4.5%` agregado (`pis_cofins + iss + outros_impostos`) | `montarParametros()`, `ImpostosService::calcularTributosMensais()` | opcional; entrada | Soma dos três percentuais tributários. |
-| `percentualPisCofins` | `float` | usuário/config | `4.0%` | `montarParametros()` | opcional; entrada | Preparado para detalhamento; não é consumido diretamente nos services analisados. |
-| `percentualIss` | `float` | usuário/config | `0.0%` | `montarParametros()` | opcional; entrada | Preparado a partir da `Viabilidade`. |
-| `percentualOutrosImpostos` | `float` | usuário/config | `0.5%` | `montarParametros()` | opcional; entrada | Preparado a partir da `Viabilidade`. |
-| `percentualComissao` | `float` | usuário/config | `0.0%` | `montarParametros()` | opcional; entrada | Variável preparada, sem consumo direto identificado nos services v1. |
-| `parceriaVgv` | `float` | usuário/config | `0.0%` | `montarParametros()`, `FluxoMensalCalculator::calcular()`, `DespesasCalculator::calcularPagamentoParceriaTerreno()`, `DreCalculator::calcularCustosDiretosDre()` | opcional; entrada | Define pagamento variável ao terrenista/parceiro sobre receita/VGV. |
+| `percentualPisCofins` | `float` | usuário/config | `4.0%` | `montarParametros()`, `DespesasCalculator::calcularDeducoesMensais()` | opcional; entrada | RET/LP sobre receita bruta mensal no fluxo; também usado no DRE. |
+| `percentualIss` | `float` | usuário/config | `0.0%` | `montarParametros()`, `DespesasCalculator::calcularDeducoesMensais()` | opcional; entrada | ISS sobre receita bruta mensal no fluxo; usado na DRE. |
+| `percentualOutrosImpostos` | `float` | usuário/config | `0.5%` | `montarParametros()`, `DespesasCalculator::calcularDeducoesMensais()` | opcional; entrada | Outras deduções sobre base sem juros/correção no fluxo; usado na DRE. |
+| `percentualComissao` | `float` | usuário/config | `1.0%` | `montarParametros()`, `DespesasCalculator::calcularComissaoCorretorTerreno()`, `DreCalculator::calcularCustosDiretosDre()` | opcional; entrada | Comissão do corretor do terreno; no fluxo mensal é parcelada em `parcelamentoComissaoTerreno` meses. |
+| `parceriaVgv` | `float` | usuário/config | `0.0%` | `montarParametros()`, `DespesasCalculator::calcularPagamentoTerreno()`, `DreCalculator::calcularCustosDiretosDre()` | opcional; entrada | Define pagamento variável ao terrenista sobre entradas do mês. |
+| `parcelamentoComissaoTerreno` | `int` | config | `18` | `montarParametros()`, `DespesasCalculator::calcularComissaoCorretorTerreno()` | opcional; entrada | Parcelas da comissão do corretor do terreno a partir do lançamento. |
 | `infraNaoIncidente` | `float` | usuário/config | `1.0%` | `montarParametros()`, `ProdutosProcessor::processar()` | opcional; entrada | Gera `custoNaoIncidente` sobre o `vgv`. |
 | `percentualIncorporacao` | `float` | usuário/config | `1.0%` | `montarParametros()`, `DespesasCalculator::calcularCustosDiretos()`, `DreCalculator::calcularCustosDiretosDre()` | opcional; entrada | Base para custo de incorporação. |
 | `custoAreaComum` | `float` | usuário/config | `0.00` no `config`, `2000.00` no atributo default do model | `montarParametros()`, `DespesasCalculator::custoObraTotal()`, `DreCalculator::calcularCustosDiretosDre()` | opcional; entrada | Valor absoluto adicionado ao custo total da obra; há divergência entre default do config e default do model. |
@@ -89,7 +90,7 @@ Este documento cataloga as variáveis de negócio usadas pelos services de viabi
 | `aporteAdicionalMensal` | `float` | usuário/config | `0.0` | `montarParametros()`, `IndicadoresCalculator::calcularIndicadoresFinanceiros()` | opcional; entrada | Aporte durante obra. |
 | `devolucaoAportePercentual` | `float` | usuário/config | `20.0%` | `montarParametros()`, `IndicadoresCalculator::calcularIndicadoresFinanceiros()` | opcional; entrada | Devolução distribuída no pós-obra. |
 | `distribuicaoLucrosPercentualObra` | `float` | usuário/config | `100.0%` | `montarParametros()` | opcional; entrada | Preparada, sem consumo direto identificado nos services analisados. |
-| `compraTerreno` | `float` | usuário/config | `0.0` | `montarParametros()`, `DespesasCalculator::calcularCustoTerreno()`, `DreCalculator::calcularCompraTerreno()`, `IndicadoresCalculator::calcularIndicadoresFinanceiros()` | opcional; entrada | Parte fixa do custo do terreno. |
+| `compraTerreno` | `float` | usuário/config | `0.0` | `montarParametros()`, `DespesasCalculator::calcularCompraTerrenoMensal()`, `DespesasCalculator::calcularCustoTerreno()`, `DreCalculator::calcularCompraTerreno()`, `IndicadoresCalculator::calcularIndicadoresFinanceiros()` | opcional; entrada | No fluxo, rateada linearmente durante a obra no bloco de pagamento do terreno. |
 | `porcentagemLoteProprietario` | `float` | usuário/config | `10.0%` fallback interno | `montarParametros()`, `DreCalculator::calcularCustoProprietario()` | opcional; entrada | Estima lotes adicionais do proprietário. |
 
 ### 1.2 Operacionais e Comerciais
@@ -127,7 +128,6 @@ Este documento cataloga as variáveis de negócio usadas pelos services de viabi
 | `mesesLancamento` | `int` | usuário/config | `6` | `montarParametros()`, `FluxoMensalCalculator::calcularPeriodos()`, pré-cálculo de recebíveis, despesas comerciais, marketing | opcional; entrada | Também controla distribuição do sinal na venda durante lançamento. |
 | `mesesEntrega` | `int` | config | `1` | `montarParametros()` | opcional; constante/config | Atualmente usado apenas para composição sem lógica extensa própria. |
 | `mesesPosObra` | `int` | config | `60` | `montarParametros()`, `FluxoMensalCalculator::calcularPeriodos()`, `IndicadoresCalculator` | opcional; entrada/config | Intervalo pós-entrega. |
-| `variavelCorrecao` | `float` | config | `0.027545` | `montarParametros()`, `ProdutosProcessor::processar()` | opcional; entrada/config | Gera correção inicial sobre o VGV. |
 | `perfilFinanciamento` | `enum PerfilFinanciamento` | usuário/config | `cef` | `montarParametros()`, praticamente todo o pipeline | opcional; entrada | Chave de bifurcação do cálculo. |
 | `dataLancamento` | `Carbon` | usuário/config lógica | `now()+2 anos` | `montarParametros()`, `FluxoMensalCalculator::calcularPeriodos()` | opcional; entrada | Âncora temporal de todo o fluxo. |
 | `inadimplencia` | `float` | config | `0.10` | `montarParametros()`, `FluxoMensalCalculator::aplicarInadimplencia()` | opcional; entrada/config | Só afeta perfil próprio. |
@@ -139,10 +139,10 @@ Este documento cataloga as variáveis de negócio usadas pelos services de viabi
 | Variável | Tipo | Origem | Default | Métodos principais | Classificação | Dependências / observações |
 |---|---|---|---|---|---|---|
 | `assistenciaTecnicaCurva` | `array<float>` | produto/fallback global | `[50,20,10,10,10]` | `ProdutosProcessor::mesclarParametros()`, `DespesasCalculator::calcularAssistenciaTecnicaMensal()` | opcional; entrada | Curva anual de provisão no pós-obra. |
-| `incorporacaoRi` | `float` | produto/fallback global | `30.0%` | `ProdutosProcessor::mesclarParametros()`, `DreCalculator::calcular()` | opcional; entrada | Detalha composição da rubrica de incorporação. |
-| `incorporacaoEntrega` | `float` | produto/fallback global | `15.0%` | `ProdutosProcessor::mesclarParametros()`, `DreCalculator::calcular()` | opcional; entrada | Detalha rubrica de incorporação na DRE. |
-| `incorporacaoAteLancamento` | `float` | produto/fallback global | `80.0%` | `ProdutosProcessor::mesclarParametros()`, `DespesasCalculator::calcularCustosDiretos()` | opcional; entrada | Divide custo de incorporação entre pré e pós-lançamento. |
-| `obraAteLancamento` | `float` | produto/fallback global | `1.0%` | `ProdutosProcessor::mesclarParametros()`, `DespesasCalculator::calcularCustosDiretos()` | opcional; entrada | Reserva fatia da obra para o período de lançamento. |
+| `incorporacaoRi` | `float` | produto/fallback global | `30.0%` | `ProdutosProcessor::mesclarParametros()`, `DespesasCalculator::calcularCustosDiretos()`, `DreCalculator::calcular()` | opcional; entrada | Lançado uma única vez no último mês da incorporação. |
+| `incorporacaoEntrega` | `float` | produto/fallback global | `15.0%` | `ProdutosProcessor::mesclarParametros()`, `DespesasCalculator::calcularCustosDiretos()`, `DreCalculator::calcular()` | opcional; entrada | Lançado uma única vez no mês de entrega. |
+| `incorporacaoAteLancamento` | `float` | produto/fallback global | `80.0%` | `ProdutosProcessor::mesclarParametros()`, `DespesasCalculator::calcularCustosDiretos()` | opcional; entrada | Rateado em `incorporacao + lancamento` meses; entra nos períodos de incorporação e lançamento. |
+| `obraAteLancamento` | `float` | produto/fallback global | `1.0%` | `ProdutosProcessor::mesclarParametros()`, `DespesasCalculator::calcularCustosDiretos()`, `DespesasCalculator::calcularPagamentoPermutaFisicaTerreno()`, `CurvaService::getCurvaFinanceiraMedicaoParaPrazo()` | opcional; entrada | Reserva fatia da obra para o período de lançamento; usado também na permuta física do terreno e na curva financeira de medição. |
 | `custoMedicaoContratacao` | `float` | produto/fallback global | `0` | `ProdutosProcessor::mesclarParametros()`, `DreCalculator::calcularTxMedicao()` | opcional; entrada | Nome ambíguo: é preenchido com `custo_contratacao_cef` do produto, mas usado na DRE como taxa de medição/contratação agregada. |
 
 ## 2. Variáveis de Produto Processadas (`$dadosProdutos['produtos'][]`)
@@ -164,6 +164,7 @@ Este documento cataloga as variáveis de negócio usadas pelos services de viabi
 | `permutas` | `int` | custom produto / terreno produto | `0` | todo o pipeline | opcional; entrada | Reduz unidades da construtora e altera VGV líquido. |
 | `pgto_por_lote` | `float` | custom produto / terreno produto | `0` | `ProdutosProcessor`, `DreCalculator::calcularBaseSemTerrenistaProduto()` | opcional; entrada | Desconto do terrenista por unidade. |
 | `demanda_minCef` | `float` | produto | `0` | `FluxoMensalCalculator::inicializarCachesCef()`, `ReceitasCalculator` | opcional; entrada | Percentual usado para compor demanda mínima acumulada. |
+| `defasagem_pgtoTerreno` | `int` | produto | `1` | `ReceitasCalculator::calcularRtMesProduto()` | opcional; entrada | Meses de defasagem entre liberação e recebimento do recurso terrenos. |
 | `curva_vendas` | `array` ou JSON | produto | `[]` | `CurvaService::extrairCurva()`, recebíveis, RT, medição | obrigatória na prática; entrada | Se vazia, `validarCurvasObrigatorias()` bloqueia a execução. |
 | `baloes_anuais` | `array` | produto | `[]` | `FluxoMensalCalculator::preCalcularRecebiveisProprio()` | opcional; entrada | Só usado no perfil próprio. |
 | `balao_entrega_modo` | `string|float` | produto | `saldo_restante` | `FluxoMensalCalculator::preCalcularRecebiveisProprio()` | opcional; entrada | Pode usar saldo restante ou percentual explícito. |
@@ -225,8 +226,9 @@ Este documento cataloga as variáveis de negócio usadas pelos services de viabi
 | `dataInicio` | `Carbon` | calculada | `ProdutosProcessor`, `FluxoMensalCalculator::calcularPeriodos()` | calculada | Recebe `dataLancamento`. |
 | `vgvSemUnidPermutas` | `float` | calculada | `ProdutosProcessor`, despesas/marketing/DRE | calculada | Exclui permutas físicas. |
 | `vgvSemValorTerrenista` | `float` | calculada | `ProdutosProcessor`, `DreCalculator` | calculada | Exclui pagamento por lote/terrenista. |
-| `correcaoSobreVgv` | `float` | calculada | `ProdutosProcessor`, atualizado em `FluxoMensalCalculator` | calculada | Inicialmente usa `variavelCorrecao`; depois recebe juros/correções do fluxo. |
+| `correcaoSobreVgv` | `float` | calculada | `ProdutosProcessor`, atualizado em `FluxoMensalCalculator` | calculada | Inicialmente zerado; depois recebe juros/correções do fluxo (substituiu `variavelCorrecao`). |
 | `vgvComCorrecao` | `float` | calculada | `ProdutosProcessor`, `DespesasCalculator::calcularCustoTerreno()` | calculada | `vgvSemValorTerrenista + correcaoSobreVgv`. |
+| `receita_bruta_dre` | `float` | calculada | `DreCalculator`, `DespesasCalculator::calcularComissaoCorretorTerreno()` | calculada | Receita total de vendas + juros/correções, usada como base da comissão do corretor do terreno. |
 | `custoNaoIncidente` | `float` | calculada | `ProdutosProcessor`, `DespesasCalculator::custoObraTotal()` | calculada | `infraNaoIncidente * vgv`. |
 | `totalUnidadesConstrutora` | `int` | calculada | todo o pipeline | calculada | `totalUnidades - permutas`. |
 | `imposto_pis` | `float` | calculada | `ProdutosProcessor` | calculada | Agregado de produto. |
@@ -235,6 +237,7 @@ Este documento cataloga as variáveis de negócio usadas pelos services de viabi
 | `irrpj` | `float` | calculada | `ProdutosProcessor` | calculada | Agregado com a mesma grafia do código. |
 | `csll` | `float` | calculada | `ProdutosProcessor` | calculada | Agregado de produto. |
 | `curvaObraAgregada` | `array<float>` | calculada | `FluxoMensalCalculator`, `ReceitasCalculator`, `DespesasCalculator` | calculada | Curva S normalizada pelo prazo de obra. |
+| `curvaFinanceiraMedicaoAgregada` | `array<float>` | calculada | `CurvaService::getCurvaFinanceiraMedicaoParaPrazo()`, `ReceitasCalculator::calcularMedicaoObra()` | calculada | Curva financeira de medição CEF com trava em 95% e parcelas finais em +2 e +5 meses pós-obra. |
 | `custoCasaM2` | `float` | calculada | `ProdutosProcessor` | calculada | Observação: é sobrescrita a cada iteração e termina com o valor do último produto. |
 | `custoInfraM2` | `float` | calculada | `ProdutosProcessor` | calculada | Observação: idem; representa o último produto processado. |
 
@@ -256,10 +259,10 @@ Este documento cataloga as variáveis de negócio usadas pelos services de viabi
 | Variável | Tipo | Origem | Métodos principais | Classificação | Dependências / observações |
 |---|---|---|---|---|---|
 | `perfil` | `PerfilFinanciamento` | calculada a partir de `params` | `FluxoMensalCalculator`, `ReceitasCalculator`, `DespesasCalculator` | estado | Define bifurcação CEF/próprio. |
-| `recursosProprios` | `array<string, array<string, float>>` | calculada | pré-cálculo de recebíveis, `ReceitasCalculator` | estado | Armazena `sinal`, `parcelas_obra`, `parcelas_pos`, `juros`, `correcao`. |
+| `recursosProprios` | `array<string, array<string, float>>` | calculada | pré-cálculo de recebíveis, `ReceitasCalculator` | estado | Armazena `sinal`, `parcelas_obra`, `parcelas_pos`, `juros`, `correcao`, `correcao_obra`. |
 | `vendasPorMes` | `array<string, float>` | calculada | `ReceitasCalculator::inicializarValorMedicaoTotal()`, despesas, indicadores | estado | Unidades vendidas por mês. |
 | `vendasAcumuladas` | `float` | calculada | `ReceitasCalculator::calcular()` | estado | Base para demanda mínima e medição de obra. |
-| `valorMedicaoTotal` | `float` | calculada | `ReceitasCalculator::inicializarValorMedicaoTotal()` | estado | `80% do VGV sem permuta - recurso terrenos`. |
+| `valorMedicaoTotal` | `float` | calculada | `ReceitasCalculator::inicializarValorMedicaoTotal()` | estado | `financiamento (vgvSemTerrenista - RP) - recurso terrenos`. |
 | `medicaoObraAcumulada` | `float` | calculada | `ReceitasCalculator::calcularMedicaoObra()` | estado | Evita dupla apropriação. |
 | `curvaObraAcumulada` | `float` | calculada | `ReceitasCalculator::calcularMedicaoObra()` | estado | Percentual acumulado da curva S. |
 | `mesObraAtual` | `int` | calculada | `ReceitasCalculator::calcularMedicaoObra()` | estado | Controle técnico para atualizar acumulado uma vez por mês. |
@@ -267,8 +270,8 @@ Este documento cataloga as variáveis de negócio usadas pelos services de viabi
 | `demandaAtingida` | `bool` | calculada | `ReceitasCalculator::calcular()`, `DespesasCalculator::calcular()` | estado | Libera produtos/contratos CEF. |
 | `mesDemandaAtingida` | `?string` | calculada | `ReceitasCalculator::calcular()` | estado | Primeiro mês em que a demanda mínima é atingida. |
 | `txContratacaoPaga` | `bool` | calculada | `DespesasCalculator::calcular()` | estado | Garante cobrança única da taxa de contratação. |
-| `parceriaVgvTotal` | `float` | calculada | `FluxoMensalCalculator::calcular()`, `DespesasCalculator::calcularPagamentoParceriaTerreno()` | estado | Teto da parceria sobre VGV. |
-| `parceriaVgvPago` | `float` | calculada | `DespesasCalculator::calcularPagamentoParceriaTerreno()` | estado | Acumulador do já pago. |
+| `parceriaVgvTotal` | `float` | calculada | `FluxoMensalCalculator::calcular()`, `DespesasCalculator::calcularParceriaTerrenoTotal()` | estado | Teto da parceria sobre entradas totais. |
+| `parceriaVgvPago` | `float` | calculada | `DespesasCalculator::calcularComissaoCorretorTerreno()` | estado | Acumulador do já pago (usado indiretamente via `calcularParceriaTerrenoTotal`). |
 | `parcelasAtrasadas` | `array<string,float>` | calculada | `FluxoMensalCalculator::aplicarInadimplencia()`, `ReceitasCalculator::calcular()` | estado | Recuperação parcial de inadimplência no perfil próprio. |
 
 ## 6. Variáveis de Receita
@@ -277,9 +280,9 @@ Este documento cataloga as variáveis de negócio usadas pelos services de viabi
 |---|---|---|---|---|---|
 | `totalRp` | `float` | calculada | `ReceitasCalculator::calcular()` | calculada | Soma de sinal, obra e pós-chave/entrega. |
 | `totalAtrasadas` | `float` | calculada | `ReceitasCalculator::calcular()` | calculada | Recuperação de inadimplência. |
-| `rt['valor']` | `float` | calculada | `ReceitasCalculator::calcularRecursoTerrenos()` | calculada | Só no perfil CEF e a partir do 4º mês do lançamento. |
-| `mo['valor']` | `float` | calculada | `ReceitasCalculator::calcularMedicaoObra()` | calculada | Só no perfil CEF e a partir do 6º mês da obra. |
-| `juros_correcao` | `float` | calculada | `ReceitasCalculator::calcular()` | calculada | Soma das chaves `juros` e `correcao` de `recursosProprios`. |
+| `rt['valor']` | `float` | calculada | `ReceitasCalculator::calcularRecursoTerrenos()` | calculada | Só no perfil CEF e a partir da demanda mínima atingida, com defasagem `defasagem_pgtoTerreno`. |
+| `mo['valor']` | `float` | calculada | `ReceitasCalculator::calcularMedicaoObra()` | calculada | Só no perfil CEF e a partir do 1º mês da obra; usa curva financeira de medição. |
+| `juros_correcao` | `float` | calculada | `ReceitasCalculator::calcular()` | calculada | Soma das chaves `juros`, `correcao` e `correcao_obra` de `recursosProprios`; incluído em `receita_total`. |
 | `valorRtMes` | `float` | calculada | `ReceitasCalculator::calcularRtMesVenda()` | calculada | Usa unidades vendidas do mês e `avaliacao_lotesCef`. |
 | `valorReceberMes` | `float` | calculada | `ReceitasCalculator::calcularMedicaoObra()` | calculada | Diferença entre medição vendida acumulada e medição já apropriada. |
 
@@ -290,8 +293,9 @@ Este documento cataloga as variáveis de negócio usadas pelos services de viabi
 | `custoObraTotal` | `float` | calculada | `DespesasCalculator::custoObraTotal()`, `DreCalculator::calcularCustosDiretosDre()` | calculada | Habitacional + infraestrutura + não incidente. |
 | `tributos` | `float` | calculada | `ImpostosService::calcularTributosPorProduto()` | calculada | Proporcional por produto. |
 | `financeiros` | `float` | calculada | `DespesasCalculator::calcular()` | calculada | `receitas['total'] * (percentualProdutosCef + percentualOutrasDespesasFinanceiras)`. |
-| `custoTerreno` | `float` | calculada | `DespesasCalculator::calcularCustoTerreno()` | calculada | Proporcional à receita do mês. |
-| `pagamentoParceriaTerreno` | `float` | calculada | `DespesasCalculator::calcularPagamentoParceriaTerreno()` | calculada | Limitado a `parceriaVgvTotal - parceriaVgvPago`. |
+| `custoTerreno` | `float` | calculada | `DespesasCalculator::calcularCustoTerreno()` | calculada | Proporcional à receita do mês (legado; na prática substituído pelo bloco `pagamentoTerreno`). |
+| `pagamentoTerreno` | `array` | calculada | `DespesasCalculator::calcularPagamentoTerreno()` | calculada | Bloco com 3 subitens: `parceria` (VGV sobre entradas), `permuta_fisica` (custo de construção das permutas pela curva de obra), `comissao_corretor` (parcelada). Inclui `compraTerreno` rateada na obra. |
+| `pagamentoTerreno.parceria` | `float` | calculada | `DespesasCalculator::calcularPagamentoTerreno()` | calculada | `receita_total_mes * parceriaVgv + compraTerreno/mesesObra` (na obra). |
 | `itbiMensal` | `float` | calculada | `DespesasCalculator::calcular()` | calculada | Só CEF, por unidade vendida. |
 | `registroMensal` | `float` | calculada | `DespesasCalculator::calcular()` | calculada | Só CEF, por unidade vendida. |
 | `produtosCefMensal` | `float` | calculada | `DespesasCalculator::calcular()` | calculada | Só CEF, após demanda mínima. |
@@ -332,12 +336,9 @@ Este documento cataloga as variáveis de negócio usadas pelos services de viabi
 
 | Variável | Tipo | Origem | Onde aparece | Observações |
 |---|---|---|---|---|
-| `ReceitasCalculator::PERCENTUAL_FINANCIAMENTO_CEF` | `float` | constante | `ReceitasCalculator` | Valor fixo `0.80` para medição de obra. |
-| `CurvaService::TIPO_2_DORM` | `string` | constante | `CurvaService` | Tipologia padrão de curva de vendas. |
-| `CurvaService::TIPO_3_DORM` | `string` | constante | `CurvaService` | Tipologia alternativa. |
-| `CurvaService::TIPO_LOTES` | `string` | constante | `CurvaService` | Tipologia de lote/terreno. |
-| `curvas_vendas` | `array` | config | `config/viabilidade.php` | Defaults por tipologia. |
-| `curvasObra` | `array<int,array<float>>` | constante de classe | `CurvaService` | Curvas S para 18, 20, 24, 30 e 36 meses. |
+| `ReceitasCalculator::PERCENTUAL_FINANCIAMENTO_CEF` | `float` | constante | `ReceitasCalculator` | Valor fixo `0.80` para cálculo do financiamento CEF. |
+| `CurvaService` | `class` | service | `CurvaService` | Métodos: `getCurvaObraParaPrazo()`, `getCurvaObraBaseParaPrazo()`, `getCurvaFinanceiraMedicaoParaPrazo()`, `normalizarCurva()`, `extrairCurva()`, `ajustarCurva()`, `interpolarCurva()`, `distribuirPorCurva()`. |
+| `curvasObra` | `array<int,array<float>>` | constante de classe | `CurvaService` | Curvas S de desembolso para 18, 20, 24, 30 e 36 meses. |
 
 ## 10. Variáveis de Entrada do Usuário Validadas no Modelo/Service
 
@@ -431,20 +432,32 @@ Além deles, o pipeline usa fortemente:
 
 ## 12. Pontos de Atenção Encontrados
 
-- `percentualComissao` é montado em `$params`, mas não foi encontrado consumo direto nos services analisados.
-- `distribuicaoLucrosPercentualObra` também é preparada, mas não participa do cálculo atual.
+- `percentualComissao` agora é consumido no fluxo mensal via `DespesasCalculator::calcularComissaoCorretorTerreno()` para cálculo da comissão do corretor do terreno, parcelada em `parcelamentoComissaoTerreno` meses.
+- `distribuicaoLucrosPercentualObra` é preparada, mas não participa do cálculo atual.
 - `despesas_onerosas_bancos` existe no model/config, porém a DRE usa o valor calculado de `jurosPJ['juros_totais']`, não o campo bruto.
 - `custoMedicaoContratacao` tem nomenclatura ambígua:
   - recebe o valor do campo de produto `custo_contratacao_cef`;
   - é usado na DRE como base de `calcularTxMedicao()`.
 - `custoCasaM2` e `custoInfraM2` em `$dadosProdutos` são sobrescritos a cada produto e terminam refletindo apenas o último item processado.
 - `porcentagem_comissao_imobs` é carregada no produto, mas a mesclagem global usa fallback fixo `0.035` para `comissaoImobiliariasPercentual`.
+- A `variavelCorrecao` foi removida do sistema; `correcaoSobreVgv` agora é zerado inicialmente e preenchido com juros/correções reais do fluxo.
+- O `FluxoMensalCalculator` foi refatorado para calcular juros e correção diretamente do fluxo (sinal lump sum, obra sem INCC, pós-chave SAC com correção).
+- O `ReceitasCalculator` agora inclui `juros_correcao` dentro de `receita_total`, alinhado com a planilha (`Entradas = RP + J/C + RT + MO`).
+- O `Recurso Terrenos` não é mais fixo no 4º mês; usa `demandaMinima` + `defasagem_pgtoTerreno` por produto.
+- A `Medição Obra` começa no 1º mês da obra e usa `curvaFinanceiraMedicaoAgregada`.
+- O bloco de `Pagamento Terreno` foi desmembrado em 3 componentes: parceria VGV, permuta física (curva de obra) e comissão do corretor (parcelada).
+- A `Incorporação` foi redistribuída em 4 componentes: RI (último mês incorp), Entrega (mês entrega), Até Lançamento (incorp + lanç) e Após Lançamento (lanç + obra).
+- As `Deduções` mensais agora separam RET/LP Imóveis, RET/LP Lotes, ISS e Outras Deduções.
 
 ## 13. Resumo Executivo
 
 - O núcleo de entrada do cálculo está concentrado em `$params`, abastecido por `Viabilidade`, `config` e parcialmente sobrescrito por parâmetros de produto.
 - O núcleo de produto está em `$dadosProdutos['produtos']`, que combina dados cadastrais, customizações da requisição e pré-cálculos fiscais/financeiros.
 - O núcleo de estado em execução está em `ViabilidadeFluxoContext`, que controla vendas, demanda mínima, medição de obra, parceria e inadimplência.
+- A `variavelCorrecao` foi removida; `juros_correcao` agora é calculado a partir do fluxo real e incluído em `receita_total`.
+- O `ReceitasCalculator` unifica `Entradas = RP + RP atrasado + J/C + RT + MO`.
+- O bloco de `Pagamento Terreno` (`DespesasCalculator::calcularPagamentoTerreno()`) tem 3 componentes: parceria VGV, permuta física e comissão do corretor do terreno.
+- A `Incorporação` usa 4 componentes: RI, Entrega, Até Lançamento e Após Lançamento, com distribuição por período (`Incorporação`/`Lançamento`/`Obra`/`Entrega`).
 - As saídas se dividem em três visões:
   - `fluxo_mensal` e `fluxo_mensal_financeiro`;
   - `dre_itens` e `dre_caixa`;

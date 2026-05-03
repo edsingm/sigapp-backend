@@ -17,8 +17,8 @@ class PremissasViabilidadeSeeder extends Seeder
             return;
         }
 
-        $d = config('viabilidade.defaults', []);
-        $p = config('viabilidade.prazos', []);
+        $d = [];
+        $p = [];
         $hoje = now()->toDateString();
 
         $valoresBase = [

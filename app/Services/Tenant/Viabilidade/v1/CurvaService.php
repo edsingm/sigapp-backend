@@ -12,10 +12,6 @@ namespace App\Services\Tenant\Viabilidade\v1;
  */
 class CurvaService
 {
-    // Constantes para Tipos de Produto
-    public const TIPO_2_DORM = '2_dorm';
-    public const TIPO_3_DORM = '3_dorm';
-    public const TIPO_LOTES = 'lotes';
 
     /**
      * Curvas de desembolso de obra por período de construção (Curva S)
@@ -146,68 +142,6 @@ class CurvaService
         }
 
         return $prazoMaisProximo;
-    }
-
-    /**
-     * Retorna curva de vendas por tipo de produto
-     * 
-     * @param int $mesesVenda Duração em meses para as vendas
-     * @param string $tipoProduto Tipo do produto (2_dorm, 3_dorm, lotes)
-     * @return array Curva de vendas normalizada
-     */
-    public function getCurvaVendas(int $mesesVenda, string $tipoProduto = self::TIPO_2_DORM): array
-    {
-        $curvasBase = config('viabilidade.curvas_vendas');
-        $curva = $curvasBase[$tipoProduto] ?? $curvasBase[self::TIPO_2_DORM];
-
-        // Ajustar tamanho da curva
-        if (count($curva) < $mesesVenda) {
-            $curva = array_pad($curva, $mesesVenda, 0);
-        } elseif (count($curva) > $mesesVenda) {
-            $curva = array_slice($curva, 0, $mesesVenda);
-        }
-
-        return $this->normalizarCurva($curva);
-    }
-
-    /**
-     * Retorna os meses de curva padrão para um tipo de produto
-     */
-    public function getMesesCurvaPadrao(string $tipoProduto): int
-    {
-        return $tipoProduto === self::TIPO_LOTES ? 18 : 15;
-    }
-
-    /**
-     * Determina o tipo de produto predominante baseado nos produtos
-     * 
-     * @param array $areaProdutos Coleção de areaProdutos
-     * @return string Tipo de produto predominante
-     */
-    public function determinarTipoProduto($areaProdutos): string
-    {
-        $contagem = [
-            self::TIPO_2_DORM => 0,
-            self::TIPO_3_DORM => 0,
-            self::TIPO_LOTES => 0
-        ];
-
-        foreach ($areaProdutos as $areaProduto) {
-            if (!$areaProduto || !$areaProduto->produto)
-                continue;
-
-            $nomeProduto = strtolower($areaProduto->produto->name ?? '');
-
-            if (str_contains($nomeProduto, '3_dorm') || str_contains($nomeProduto, '3 dorm')) {
-                $contagem[self::TIPO_3_DORM]++;
-            } elseif (str_contains($nomeProduto, 'lote') || str_contains($nomeProduto, 'terreno')) {
-                $contagem[self::TIPO_LOTES]++;
-            } else {
-                $contagem[self::TIPO_2_DORM]++;
-            }
-        }
-
-        return array_search(max($contagem), $contagem);
     }
 
     /**

@@ -87,7 +87,7 @@ class ViabilidadeRequest extends FormRequest
             'registro' => 'nullable|numeric|min:0',
             'contratos_cef' => 'nullable|numeric|min:0',
             'produtos_cef' => 'nullable|numeric|min:0|max:100',
-            'outras_despesas_financeiras' => 'nullable|numeric|min:0|max:100',
+            'outras_despesas_financeiras' => 'nullable|numeric|min:0',
             'despesas_onerosas_bancos' => 'nullable|numeric|min:0|max:100',
             'percentual_antecipacao_pj' => 'nullable|numeric|min:0|max:100',
             'aporte_adicional_mensal' => 'nullable|numeric|min:0',

@@ -67,6 +67,22 @@ class FluxoMensalCalculator
 
         $periodo = CarbonPeriod::create($datas['inicioIncorporacao'], '1 month', $datas['fimPos']);
 
+        $outrasDespesasFinanceirasTotal = (float) ($params['outrasDespesasFinanceirasTotal'] ?? 0.0);
+        if ($outrasDespesasFinanceirasTotal > 0) {
+            $ctxReceitas = clone $ctx;
+            $periodoReceitas = CarbonPeriod::create($datas['inicioIncorporacao'], '1 month', $datas['fimPos']);
+            $mesesComReceitas = 0;
+            foreach ($periodoReceitas as $dataReceita) {
+                $mesReceita = $dataReceita->format('Y-m');
+                $receitasMes = $this->receitasCalculator->calcular($mesReceita, $dadosProdutos, $datas, $params, $ctxReceitas);
+                if (($receitasMes['total'] ?? 0.0) > 0.01) {
+                    $mesesComReceitas++;
+                }
+            }
+            $params['mesesComReceitas'] = $mesesComReceitas;
+            $params['outrasDespesasFinanceirasMensal'] = $mesesComReceitas > 0 ? ($outrasDespesasFinanceirasTotal / $mesesComReceitas) : 0.0;
+        }
+
         foreach ($periodo as $data) {
             $mes = $data->format('Y-m');
 

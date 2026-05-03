@@ -37,8 +37,10 @@ class DespesasCalculator
 
         $operacionais = $this->calcularCustosOperacionais($mes, $dadosProdutos, $datas, $params, $ctx);
 
-        $percProdutosCef = $ctx->perfil->isCef() ? $params['percentualProdutosCef'] : 0.0;
-        $financeiros = $receitas['total'] * ($percProdutosCef + $params['percentualOutrasDespesasFinanceiras']);
+        $financeiros = 0.0;
+        if (($receitas['total'] ?? 0.0) > 0.01) {
+            $financeiros = (float) ($params['outrasDespesasFinanceirasMensal'] ?? 0.0);
+        }
 
         $custoTerreno = $this->calcularCustoTerreno($receitas['total'], $dadosProdutos, $params);
         $pagamentoTerreno = $this->calcularPagamentoTerreno($mes, $periodo, $receitas, $dadosProdutos, $datas, $params, $ctx);
@@ -63,19 +65,36 @@ class DespesasCalculator
             $detalhesOperacionais['Registro'] = round($registroMensal, 2);
         }
 
-        if ($ctx->perfil->isCef() && $ctx->demandaAtingida && $unidadesVendidasMes > 0) {
-            $produtosCefMensal = $unidadesVendidasMes * $valorPorUnidade * ($params['percentualProdutosCef'] ?? 0);
-            $detalhesOperacionais['Produtos Caixa'] = round($produtosCefMensal, 2);
-        }
-
         if ($ctx->perfil->isCef() && $periodo === 'Lançamento' && ! $ctx->txContratacaoPaga) {
             $detalhesOperacionais['Taxa Contratação'] = round($params['custoContratacaoCef'] ?? 0, 2);
             $ctx->txContratacaoPaga = true;
         }
 
-        if ($ctx->perfil->isCef() && $ctx->demandaAtingida && $unidadesVendidasMes > 0) {
+        if ($ctx->perfil->isCef() && $unidadesVendidasMes > 0) {
+            $produtosCefMensal = $unidadesVendidasMes * $valorPorUnidade * ($params['percentualProdutosCef'] ?? 0);
             $contratosCefMensal = $unidadesVendidasMes * ($params['custoContratosCef'] ?? 0);
-            $detalhesOperacionais['Contratos Caixa'] = round($contratosCefMensal, 2);
+
+            if (! $ctx->demandaAtingida || $ctx->mesDemandaAtingida === null) {
+                $ctx->produtosCefAcumulados += $produtosCefMensal;
+                $ctx->contratosCefAcumulados += $contratosCefMensal;
+            } else {
+                $dataAtual = $dataAtual->copy()->startOfMonth();
+                $dataDemandaAtingida = Carbon::parse($ctx->mesDemandaAtingida.'-01')->startOfMonth();
+
+                if ($dataAtual->lt($dataDemandaAtingida)) {
+                    $ctx->produtosCefAcumulados += $produtosCefMensal;
+                    $ctx->contratosCefAcumulados += $contratosCefMensal;
+                } elseif ($dataAtual->equalTo($dataDemandaAtingida) && ! $ctx->custosCefAcumuladosPagos) {
+                    $detalhesOperacionais['Produtos Caixa'] = round($ctx->produtosCefAcumulados + $produtosCefMensal, 2);
+                    $detalhesOperacionais['Contratos Caixa'] = round($ctx->contratosCefAcumulados + $contratosCefMensal, 2);
+                    $ctx->produtosCefAcumulados = 0.0;
+                    $ctx->contratosCefAcumulados = 0.0;
+                    $ctx->custosCefAcumuladosPagos = true;
+                } else {
+                    $detalhesOperacionais['Produtos Caixa'] = round($produtosCefMensal, 2);
+                    $detalhesOperacionais['Contratos Caixa'] = round($contratosCefMensal, 2);
+                }
+            }
         }
 
         if ($ctx->perfil->isCef() && $periodo === 'Obra') {
@@ -93,7 +112,7 @@ class DespesasCalculator
                 'Deduções - ISS' => round($deducoes['iss'], 2),
                 'Deduções - Outras' => round($deducoes['outras'], 2),
                 'Operacional' => round($operacionais['total'], 2),
-                'Financeiro' => round($financeiros, 2),
+                'Outras Despesas Financeiras' => round($financeiros, 2),
                 'Custo Terreno' => round($custoTerreno, 2),
                 'Pagamento Terreno' => round($pagamentoTerreno['total'], 2),
                 'Pagamento Terreno - Parceria VGV' => round($pagamentoTerreno['parceria'], 2),
@@ -477,11 +496,22 @@ class DespesasCalculator
         array $params,
         ViabilidadeFluxoContext $ctx
     ): array {
-        $dataAtual = Carbon::parse($mes.'-01');
+        $dataAtual = Carbon::parse($mes.'-01')->startOfMonth();
         $baseMarketing = ($dadosProdutos['vgvSemUnidPermutas'] ?? 0) * ($params['percentualMarketing'] ?? 0);
         $totalLancamento = $baseMarketing * ($params['marketingLancamento'] ?? 0);
         $totalVariavel = $baseMarketing - $totalLancamento;
-        $marketingLancamentoMensal = $dataAtual->between($datas['dataLancamento'], $datas['fimLancamento']) ? ($totalLancamento / max(1, $params['mesesLancamento'])) : 0;
+        $marketingInicioAntesLancamento = max(0, (int) ($params['marketingInicioAntesLancamento'] ?? 0));
+        $inicioMarketingLancamento = $datas['dataLancamento']
+            ->copy()
+            ->subMonths($marketingInicioAntesLancamento)
+            ->startOfMonth();
+        $fimMarketingLancamento = $inicioMarketingLancamento
+            ->copy()
+            ->addMonths(max(1, (int) ($params['mesesLancamento'] ?? 1)) - 1)
+            ->startOfMonth();
+        $marketingLancamentoMensal = $dataAtual->between($inicioMarketingLancamento, $fimMarketingLancamento)
+            ? ($totalLancamento / max(1, (int) ($params['mesesLancamento'] ?? 1)))
+            : 0;
         $unidadesVendidasMes = $ctx->vendasPorMes[$mes] ?? 0;
         $totalUnidadesConstrutora = max(1, $dadosProdutos['totalUnidadesConstrutora'] ?? $dadosProdutos['totalUnidades'] ?? 1);
         $marketingVariavelMensal = $totalVariavel * ($unidadesVendidasMes / $totalUnidadesConstrutora);

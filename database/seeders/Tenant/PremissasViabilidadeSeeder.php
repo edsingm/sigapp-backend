@@ -66,7 +66,7 @@ class PremissasViabilidadeSeeder extends Seeder
             'custo_medicao_cef'              => $d['custo_medicao_cef'] ?? 2000.0,
             'contratos_cef'                  => $d['contratos_cef'] ?? 300.0,
             'produtos_cef'                   => $d['produtos_cef'] ?? 0.5,
-            'outras_despesas_financeiras'    => $d['outras_despesas_financeiras'] ?? 0.3,
+            'outras_despesas_financeiras'    => $d['outras_despesas_financeiras'] ?? 0.0,
             'despesas_onerosas_bancos'       => $d['despesas_onerosas_bancos'] ?? 10.0,
             'prazo_obra'                     => $d['prazo_obra'] ?? 36,
             'compra_terreno'                 => $d['compra_terreno'] ?? 0.0,

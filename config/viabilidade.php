@@ -52,7 +52,7 @@ return [
         'registro' => 2500.00,
         'contratos_cef' => 300.00,
         'produtos_cef' => 0.5,
-        'outras_despesas_financeiras' => 0.3,
+        'outras_despesas_financeiras' => 0.0,
         'despesas_onerosas_bancos' => 10.0,
         'prazo_obra' => 36,
         'taxa_juros_pj' => 10.5,

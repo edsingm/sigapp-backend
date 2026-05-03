@@ -205,7 +205,7 @@ class PremissasViabilidade extends Model
         'custo_medicao_cef' => 'decimal:2',
         'contratos_cef' => 'decimal:2',
         'produtos_cef' => 'decimal:4',
-        'outras_despesas_financeiras' => 'decimal:4',
+        'outras_despesas_financeiras' => 'decimal:2',
         'despesas_onerosas_bancos' => 'decimal:4',
         'prazo_obra' => 'integer',
         'compra_terreno' => 'decimal:2',

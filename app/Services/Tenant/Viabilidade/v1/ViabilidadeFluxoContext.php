@@ -54,6 +54,12 @@ final class ViabilidadeFluxoContext
 
     public bool $comissaoDesligamentoAcumuladaPaga = false;
 
+    public float $contratosCefAcumulados = 0.0;
+
+    public float $produtosCefAcumulados = 0.0;
+
+    public bool $custosCefAcumuladosPagos = false;
+
     public float $parceriaVgvTotal = 0.0;
 
     public float $parceriaVgvPago = 0.0;

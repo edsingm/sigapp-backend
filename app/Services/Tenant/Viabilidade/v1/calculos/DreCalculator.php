@@ -68,7 +68,7 @@ class DreCalculator
         $ebitda = $lucroBruto - $despesasOperacionaisTotal;
 
         // Despesas financeiras
-        $outrasDespFinanceiras = $params['percentualOutrasDespesasFinanceiras'] * $receitaTotalVendas;
+        $outrasDespFinanceiras = (float) ($params['outrasDespesasFinanceirasTotal'] ?? 0.0);
         $despesasOnerosas = $jurosPJ['juros_totais'];
         $ebit = $ebitda - $outrasDespFinanceiras - $despesasOnerosas;
 

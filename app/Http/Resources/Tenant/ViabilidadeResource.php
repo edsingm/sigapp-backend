@@ -85,7 +85,6 @@ class ViabilidadeResource extends JsonResource
             'approval_notes' => $this->approval_notes,
             'submitted_at' => $this->submitted_at?->toIso8601String(),
             'locked_at' => $this->locked_at?->toIso8601String(),
-            'resultados_dre' => $this->resultados_dre,
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
             'deleted_at' => $this->deleted_at?->format('Y-m-d H:i:s'),

@@ -29,6 +29,7 @@ use App\Http\Controllers\Api\V1\Tenant\PlanSwapController;
 use App\Http\Controllers\Api\V1\Tenant\ProdutosController;
 use App\Http\Controllers\Api\V1\Tenant\ProjetoController;
 use App\Http\Controllers\Api\V1\Tenant\ProprietariosController;
+use App\Http\Controllers\Api\V1\Tenant\PremissasViabilidadeController;
 use App\Http\Controllers\Api\V1\Tenant\RegionaisController;
 use App\Http\Controllers\Api\V1\Tenant\TenantController;
 use App\Http\Controllers\Api\V1\Tenant\TerrenoController;
@@ -236,6 +237,11 @@ Route::middleware([
                     Route::post('/viabilidades/{id}/recalcular', [ViabilidadeController::class, 'recalcular']);
                     Route::post('/viabilidades/{id}/restore', [ViabilidadeController::class, 'restore']);
                     Route::apiResource('viabilidades', ViabilidadeController::class);
+                });
+
+                // Premissas de Viabilidade
+                Route::middleware('check.feature:viabilities.enabled')->group(function () {
+                    Route::apiResource('premissas-viabilidade', PremissasViabilidadeController::class);
                 });
 
                 // AI

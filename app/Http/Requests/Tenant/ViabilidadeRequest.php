@@ -85,6 +85,9 @@ class ViabilidadeRequest extends FormRequest
             'marketing' => 'nullable|numeric|min:0|max:100',
             'itbi_iptu' => 'nullable|numeric|min:0|max:100',
             'registro' => 'nullable|numeric|min:0',
+            'medicao_contratacao' => 'nullable|numeric|min:0',
+            'custo_contratacao_cef' => 'nullable|numeric|min:0',
+            'custo_medicao_cef' => 'nullable|numeric|min:0',
             'contratos_cef' => 'nullable|numeric|min:0',
             'produtos_cef' => 'nullable|numeric|min:0|max:100',
             'outras_despesas_financeiras' => 'nullable|numeric|min:0',
@@ -208,6 +211,15 @@ class ViabilidadeRequest extends FormRequest
             if ($value === '' || $value === 'null') {
                 $input[$key] = null;
             }
+        }
+
+        // Compatibilidade com o alias legado de contratação CEF.
+        if (($input['custo_contratacao_cef'] ?? null) === null && ($input['medicao_contratacao'] ?? null) !== null) {
+            $input['custo_contratacao_cef'] = $input['medicao_contratacao'];
+        }
+
+        if (($input['medicao_contratacao'] ?? null) === null && ($input['custo_contratacao_cef'] ?? null) !== null) {
+            $input['medicao_contratacao'] = $input['custo_contratacao_cef'];
         }
 
         $this->replace($input);

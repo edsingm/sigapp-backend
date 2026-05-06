@@ -61,7 +61,16 @@ class ViabilidadeApiTest extends TestCase
 
         $createResponse->assertCreated()
             ->assertJsonPath('data.viabilidade.terreno_id', $terrenoProduto->terreno_id)
-            ->assertJsonStructure(['data' => ['viabilidade' => ['id'], 'dre_resultados']]);
+            ->assertJsonStructure([
+                'data' => [
+                    'viabilidade' => ['id'],
+                    'resumo',
+                    'indicadores',
+                    'produtos_resumo',
+                ],
+            ])
+            ->assertJsonMissingPath('data.dre')
+            ->assertJsonMissingPath('data.fluxo_mensal');
 
         $viabilidadeId = $createResponse->json('data.viabilidade.id');
 
@@ -73,7 +82,21 @@ class ViabilidadeApiTest extends TestCase
         $this->actingAs($this->admin)
             ->getJson("/api/v1/viabilidades/{$viabilidadeId}")
             ->assertOk()
-            ->assertJsonPath('data.viabilidade.id', $viabilidadeId);
+            ->assertJsonPath('data.viabilidade.id', $viabilidadeId)
+            ->assertJsonMissingPath('data.dre')
+            ->assertJsonMissingPath('data.fluxo_mensal');
+
+        $this->actingAs($this->admin)
+            ->getJson("/api/v1/viabilidades/{$viabilidadeId}?include=dre,fluxo_mensal,parametros_utilizados")
+            ->assertOk()
+            ->assertJsonPath('data.viabilidade.id', $viabilidadeId)
+            ->assertJsonStructure([
+                'data' => [
+                    'dre',
+                    'fluxo_mensal',
+                    'parametros_utilizados',
+                ],
+            ]);
 
         $this->actingAs($this->admin)
             ->putJson("/api/v1/viabilidades/{$viabilidadeId}", [
@@ -152,7 +175,8 @@ class ViabilidadeApiTest extends TestCase
             ->postJson("/api/v1/viabilidades/{$viabilidade->id}/recalcular")
             ->assertOk()
             ->assertJsonPath('data.viabilidade.id', $viabilidade->id)
-            ->assertJsonStructure(['data' => ['dre_resultados']]);
+            ->assertJsonStructure(['data' => ['resumo', 'indicadores', 'produtos_resumo']])
+            ->assertJsonMissingPath('data.dre');
 
         $this->assertDatabaseHas('viabilidade_aprovacoes', [
             'viabilidade_id' => $viabilidade->id,
@@ -184,6 +208,34 @@ class ViabilidadeApiTest extends TestCase
             ->postJson('/api/v1/viabilidades/compare', [])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['viabilidade_1_id', 'viabilidade_2_id']);
+    }
+
+    public function test_viabilidade_response_supports_auditoria_and_cef_contract_aliases(): void
+    {
+        $terrenoProduto = $this->createViabilityFixture();
+
+        $response = $this->actingAs($this->admin)
+            ->postJson('/api/v1/viabilidades?include=auditoria', [
+                'terreno_id' => $terrenoProduto->terreno_id,
+                'medicao_contratacao' => 48000,
+                'custo_medicao_cef' => 1250,
+                'produtos' => [
+                    [
+                        'id' => $terrenoProduto->id,
+                        'unidades' => 12,
+                        'valor' => 250000,
+                        'permuta' => 0,
+                        'pgto_por_lote' => 0,
+                        'custo_m2' => 1800,
+                        'custo_infra' => 300,
+                    ],
+                ],
+            ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.viabilidade.custo_contratacao_cef', 48000)
+            ->assertJsonPath('data.viabilidade.custo_medicao_cef', 1250)
+            ->assertJsonStructure(['data' => ['viabilidade' => ['auditoria']]]);
     }
 
     private function createViabilityFixture(): TerrenoProduto

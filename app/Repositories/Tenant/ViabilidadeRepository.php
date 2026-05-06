@@ -18,15 +18,13 @@ class ViabilidadeRepository
         'createdBy',
         'updatedBy',
         'approvalDecidedBy',
-        'secoes',
-        'aprovacoes.user',
     ];
 
     /**
      * @var list<string>
      */
     private const DRE_RELATIONS = [
-        'terreno.cidade',
+        'terreno',
         'createdBy',
         'updatedBy',
         'approvalDecidedBy',

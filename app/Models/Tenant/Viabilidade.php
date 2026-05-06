@@ -132,6 +132,8 @@ class Viabilidade extends Model
         'marketing',
         'itbi_iptu',
         'registro',
+        'custo_contratacao_cef',
+        'custo_medicao_cef',
         'contratos_cef',
         'produtos_cef',
         'outras_despesas_financeiras',
@@ -403,42 +405,5 @@ class Viabilidade extends Model
     public function getTemDreCalculadoAttribute(): bool
     {
         return ! empty($this->resultados_dre);
-    }
-
-    /**
-     * Mutator para garantir que resultados_dre seja sempre um array
-     */
-    public function setResultadosDreAttribute($value)
-    {
-        if (is_string($value)) {
-            $this->attributes['resultados_dre'] = $value;
-        } else {
-            $this->attributes['resultados_dre'] = json_encode($value);
-        }
-    }
-
-    /**
-     * Accessor para resultados DRE - trata double encoding
-     */
-    public function getResultadosDreAttribute($value)
-    {
-        if (is_null($value)) {
-            return [];
-        }
-
-        // Se já é um array, retorna como está
-        if (is_array($value)) {
-            return $value;
-        }
-
-        // Primeiro decode
-        $decoded = json_decode($value, true);
-
-        // Se o resultado ainda é uma string, faz o segundo decode
-        if (is_string($decoded)) {
-            $decoded = json_decode($decoded, true);
-        }
-
-        return $decoded ?? [];
     }
 }

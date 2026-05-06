@@ -328,9 +328,9 @@ class PlanilhaConformidadeTest extends TestCase
         
         foreach ($fluxo as $mes => $linha) {
             $periodo = $linha['periodo'] ?? '?';
-            $receita = $linha['receita_total'] ?? 0;
-            $custos = $linha['custos_totais'] ?? 0;
-            $acum = $linha['saldo_acumulado'] ?? 0;
+            $receita = $linha['receitas']['total'] ?? 0;
+            $custos = $linha['despesas']['total'] ?? 0;
+            $acum = $linha['saldo_acumulado_mes'] ?? 0;
             $lucro = $receita - $custos;
 
             $totalReceitas += $receita;

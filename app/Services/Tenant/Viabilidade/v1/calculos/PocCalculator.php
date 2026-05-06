@@ -11,8 +11,8 @@ class PocCalculator
         $custoIncorridoTotal = 0.0;
         foreach ($fluxo as $linha) {
             $despesas = $linha['despesas'] ?? [];
-            $custoIncorridoObra += (float) ($despesas['Obra'] ?? 0);
-            $custoIncorridoTotal += (float) ($linha['custos_totais'] ?? 0);
+            $custoIncorridoObra += (float) ($despesas['obra']['obra_periodo_obra'] ?? 0);
+            $custoIncorridoTotal += (float) ($linha['despesas']['total'] ?? 0);
         }
 
         $percentualExecucaoObra = $custoOrcadoObra > 0 ? min(1, $custoIncorridoObra / $custoOrcadoObra) : 0;
@@ -107,13 +107,13 @@ class PocCalculator
 
         foreach ($fluxo as $mes => $linha) {
             $despesas = $linha['despesas'] ?? [];
-            $custoObraMes = max(0.0, (float) ($despesas['Obra'] ?? 0));
+            $custoObraMes = max(0.0, (float) ($despesas['obra']['obra_periodo_obra'] ?? 0));
             $custoObraAcumulado += $custoObraMes;
             $execucaoAcumulada = $custoOrcadoObra > 0 ? min(1, $custoObraAcumulado / $custoOrcadoObra) : 0.0;
             $receitaReconhecidaAlvo = $receitaTotalVendas * $execucaoAcumulada;
             $receitaReconhecidaMes = max(0.0, $receitaReconhecidaAlvo - $receitaReconhecidaAcumulada);
             $receitaReconhecidaAcumulada += $receitaReconhecidaMes;
-            $custoTotalMes = (float) ($linha['custos_totais'] ?? 0);
+            $custoTotalMes = (float) ($linha['despesas']['total'] ?? 0);
             $resultadoContabilMes = $receitaReconhecidaMes - $custoTotalMes;
 
             $quadro[$mes] = [
@@ -154,17 +154,22 @@ class PocCalculator
 
         foreach ($fluxo as $mes => $linha) {
             $despesas = $linha['despesas'] ?? [];
-            $custoObraMes = max(0.0, (float) ($despesas['Obra'] ?? 0));
+            $custoObraMes = max(0.0, (float) ($despesas['obra']['obra_periodo_obra'] ?? 0));
             $custoObraAcumulado += $custoObraMes;
             $execucaoAcumulada = $custoOrcadoObra > 0 ? min(1, $custoObraAcumulado / $custoOrcadoObra) : 0.0;
             $receitaPocAlvo = $receitaTotalVendas * $execucaoAcumulada;
             $receitaPocMes = max(0.0, $receitaPocAlvo - $receitaPocAcumulada);
             $receitaPocAcumulada += $receitaPocMes;
 
-            $impostosMes = max(0.0, (float) ($despesas['Tributos'] ?? 0));
-            $operacionalMes = max(0.0, (float) ($despesas['Operacional'] ?? 0));
-            $financeiroMes = max(0.0, (float) ($despesas['Financeiro'] ?? 0));
-            $custosTotaisMes = max(0.0, (float) ($linha['custos_totais'] ?? 0));
+            $impostosMes = max(0.0, (float) ($despesas['deducoes']['total_impostos'] ?? 0));
+            $operacionalMes = max(0.0,
+                (float) ($despesas['despesas_comerciais']['total_despesas_comerciais'] ?? 0)
+                + (float) ($despesas['marketing']['total_marketing'] ?? 0)
+                + (float) ($despesas['itbi_registro']['total_itbi_registro'] ?? 0)
+                + (float) ($despesas['taxa_caixa']['total_caixa'] ?? 0)
+            );
+            $financeiroMes = max(0.0, (float) ($despesas['outras_despesas_financeiras'] ?? 0));
+            $custosTotaisMes = max(0.0, (float) ($linha['despesas']['total'] ?? 0));
             $custoDiretoMes = max(0.0, $custosTotaisMes - $impostosMes - $operacionalMes - $financeiroMes);
             $resultadoContabilMes = $receitaPocMes - ($custoDiretoMes + $impostosMes + $operacionalMes + $financeiroMes);
 
@@ -188,7 +193,7 @@ class PocCalculator
                 'despesas_financeiras_acumulado' => round($acumulados['financeiro'], 2),
                 'resultado_contabil_mes' => round($resultadoContabilMes, 2),
                 'resultado_contabil_acumulado' => round($acumulados['resultado'], 2),
-                'receita_caixa_mes' => round((float) ($linha['receita_total'] ?? 0), 2),
+                'receita_caixa_mes' => round((float) ($linha['receitas']['total'] ?? 0), 2),
                 'percentual_execucao_obra_acumulado' => round($execucaoAcumulada * 100, 2),
             ];
         }

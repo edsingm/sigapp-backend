@@ -49,7 +49,7 @@ class IndicadoresCalculator
 
         foreach ($fluxo as $mes => $linha) {
             $dataAtual = Carbon::parse($mes.'-01');
-            $valorOperacional = (float) ($linha['lucro'] ?? 0);
+            $valorOperacional = (float) ($linha['saldo_mes'] ?? 0);
             $fluxoOperacionalTir[] = ['data' => $dataAtual->copy(), 'valor' => $valorOperacional];
             $saldoOperacional += $valorOperacional;
             if ($saldoOperacional < 0) {
@@ -106,7 +106,7 @@ class IndicadoresCalculator
             [
                 'tir_financeira' => $this->calcularTir($fluxoFinanceiroTir),
                 'exposicao_maxima_financeira' => collect($fluxoFinanceiro)->min('saldo_acumulado'),
-                'exposicao_maxima_operacional' => collect($fluxo)->min('saldo_acumulado'),
+                'exposicao_maxima_operacional' => collect($fluxo)->min('saldo_acumulado_mes'),
                 'payback_operacional_meses' => $paybackOperacionalMes,
                 'payback_financeiro_meses' => $paybackFinanceiroMes,
                 'exposicao_aplicada_total' => round($exposicaoAplicadaTotal, 2),

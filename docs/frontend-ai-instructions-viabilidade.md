@@ -128,6 +128,7 @@ Rate limit: **10 requisições por minuto por usuário** nos endpoints de aprova
 | `mo_administrativa` | float | ≥ 0 | — |
 | `seguros` | float | 0 | 100 |
 | `assistencia_tecnica` | float | 0 | 100 |
+| `assistencia_tecnica_curva` | array | Curva de distribuição anual (ex: `[50, 20, 10, 10, 10]`). Default: `[50, 20, 10, 10, 10]` |
 
 ### 3.6 Campos Opcionais — Despesas Comerciais
 
@@ -136,6 +137,7 @@ Rate limit: **10 requisições por minuto por usuário** nos endpoints de aprova
 | `despesas_comerciais` | float | 0 | 100 |
 | `stand_vendas` | float | ≥ 0 | — |
 | `mobilia_decoracao` | float | ≥ 0 | — |
+| `gastos_mensais_stand` | float | 0 | 100 |
 | `construcao_stand_meses_antes_lancamento` | integer | 0 | 60 |
 | `ajuda_custo_gerente` | float | ≥ 0 | — |
 | `ajuda_custo_gerente_regional` | float | ≥ 0 | — |
@@ -146,14 +148,20 @@ Rate limit: **10 requisições por minuto por usuário** nos endpoints de aprova
 | `bonus_credito` | float | 0 | 100 |
 | `bonus_gestor_comercial` | float | 0 | 100 |
 | `bonus_equipe_comercial` | float | ≥ 0 | — |
+| `pagamento_comissao_venda` | float | 0 | 100 |
 | `pagamento_comissao_desligamento` | float | 0 | 100 |
 | `parcelamento_comissao_meses` | integer | 1 | 120 |
+| `comissao_house_percentual` | float | 0 | 100 |
+| `comissao_imobiliarias_percentual` | float | 0 | 100 |
+| `percentual_vendas_house` | float | 0 | 100 |
 
 ### 3.7 Campos Opcionais — Marketing e Registro
 
 | Campo | Tipo | Mínimo | Máximo |
 |-------|------|--------|--------|
 | `marketing` | float | 0 | 100 |
+| `marketing_lancamento` | float | 0 | 100 |
+| `marketing_inicio_antes_lancamento` | integer | 0 | 60 |
 | `itbi_iptu` | float | 0 | 100 |
 | `registro` | float | ≥ 0 | — |
 
@@ -460,79 +468,254 @@ O backend cria a viabilidade, roda o cálculo completo do DRE e retorna tudo em 
         "fluxo_mensal": {
           "2026-07": {
             "periodo": "Incorporação",
-            "receita_total": 0,
             "receitas": {
-              "Recursos Próprios": 0,
-              "Recursos Próprios (Atrasados)": 0,
-              "Recurso Terrenos": 0,
-              "Medição Obra": 0
+              "recursos_proprios": {
+                "recurso_proprio": 0,
+                "recursos_atrasados": 0,
+                "juros": 0,
+                "correcoes": 0,
+                "total_recursos_proprios": 0
+              },
+              "recebimento_terreno": {
+                "recebimento_total_terreno": 0
+              },
+              "medicao_obra": {
+                "recebimento_total_medicao": 0
+              },
+              "total": 0
             },
             "despesas": {
-              "Incorporação Até Lançamento": 12500
+              "deducoes": {
+                "impostos": {
+                  "ret_lp_imoveis": 0,
+                  "ret_lp_lotes": 0,
+                  "iss": 0,
+                  "outras_deducoes": 0
+                },
+                "total_impostos": 0
+              },
+              "terreno": {
+                "valor_permuta_financeira": 0,
+                "valor_permuta_fisica": 0,
+                "valor_comissao": 0,
+                "total_terreno": 0
+              },
+              "incorporacao": {
+                "incorporacao_ri": 0,
+                "incorporacao_entrega": 0,
+                "incorporacao_ate_lancamento": 12500,
+                "incorporacao_apos_lancamento": 0,
+                "total_incorporacao": 12500
+              },
+              "obra": {
+                "obra_ate_lancamento": 0,
+                "obra_periodo_obra": 0,
+                "total_obra": 0
+              },
+              "mao_de_obra_adm": 0,
+              "seguros": 0,
+              "assis_tecnica": 0,
+              "despesas_comerciais": {
+                "despesas_construcao_stand": 0,
+                "despesas_mensal_stand": 0,
+                "comissao_na_venda": 0,
+                "comissao_no_desligamento": 0,
+                "ajuda_custo_gerente_ou_salario": 0,
+                "bonus_cca": 0,
+                "outras_despesas_comerciais": 0,
+                "bonus_comercial": 0,
+                "total_despesas_comerciais": 0
+              },
+              "marketing": {
+                "marketing_ate_lancamento": 0,
+                "marketing_mensal": 0,
+                "total_marketing": 0
+              },
+              "itbi_registro": {
+                "itbi_iptu": 0,
+                "registro": 0,
+                "total_itbi_registro": 0
+              },
+              "taxa_caixa": {
+                "medicao_mensal": 0,
+                "contratacao": 0,
+                "contratos_caixa": 0,
+                "produtos_caixa": 0,
+                "total_caixa": 0
+              },
+              "outras_despesas_financeiras": 0,
+              "total": 12500
             },
-            "custos_totais": 12500,
-            "lucro": -12500,
-            "saldo_acumulado": -12500,
+            "saldo_mes": -12500,
+            "saldo_acumulado_mes": -12500,
             "unidades_vendidas": 0
           },
           "2027-01": {
             "periodo": "Lançamento",
-            "receita_total": 250000,
             "receitas": {
-              "Recursos Próprios": 250000,
-              "Recursos Próprios (Atrasados)": 0,
-              "Recurso Terrenos": 0,
-              "Medição Obra": 0
+              "recursos_proprios": {
+                "recurso_proprio": 250000,
+                "recursos_atrasados": 0,
+                "juros": 0,
+                "correcoes": 0,
+                "total_recursos_proprios": 250000
+              },
+              "recebimento_terreno": {
+                "recebimento_total_terreno": 0
+              },
+              "medicao_obra": {
+                "recebimento_total_medicao": 0
+              },
+              "total": 250000
             },
             "despesas": {
-              "Incorporação Até Lançamento": 12500,
-              "Obra (Lançamento)": 62500,
-              "Deduções": 14125,
-              "Deduções - RET/LP Imóveis": 9125,
-              "Deduções - ISS": 5000,
-              "Operacional": 27500,
-              "Operacional - Comissão": 15000,
-              "Operacional - Marketing": 12500,
-              "ITBI/IPTU": 2750,
-              "Registro": 2500,
-              "Taxa Contratação": 50000,
-              "Produtos Caixa": 1250,
-              "Contratos Caixa": 300
+              "deducoes": {
+                "impostos": {
+                  "ret_lp_imoveis": 9125,
+                  "ret_lp_lotes": 0,
+                  "iss": 5000,
+                  "outras_deducoes": 0
+                },
+                "total_impostos": 14125
+              },
+              "terreno": {
+                "valor_permuta_financeira": 0,
+                "valor_permuta_fisica": 0,
+                "valor_comissao": 0,
+                "total_terreno": 0
+              },
+              "incorporacao": {
+                "incorporacao_ri": 0,
+                "incorporacao_entrega": 0,
+                "incorporacao_ate_lancamento": 12500,
+                "incorporacao_apos_lancamento": 0,
+                "total_incorporacao": 12500
+              },
+              "obra": {
+                "obra_ate_lancamento": 62500,
+                "obra_periodo_obra": 0,
+                "total_obra": 62500
+              },
+              "mao_de_obra_adm": 0,
+              "seguros": 0,
+              "assis_tecnica": 0,
+              "despesas_comerciais": {
+                "despesas_construcao_stand": 0,
+                "despesas_mensal_stand": 0,
+                "comissao_na_venda": 15000,
+                "comissao_no_desligamento": 0,
+                "ajuda_custo_gerente_ou_salario": 0,
+                "bonus_cca": 0,
+                "outras_despesas_comerciais": 0,
+                "bonus_comercial": 0,
+                "total_despesas_comerciais": 15000
+              },
+              "marketing": {
+                "marketing_ate_lancamento": 12500,
+                "marketing_mensal": 0,
+                "total_marketing": 12500
+              },
+              "itbi_registro": {
+                "itbi_iptu": 2750,
+                "registro": 2500,
+                "total_itbi_registro": 5250
+              },
+              "taxa_caixa": {
+                "medicao_mensal": 0,
+                "contratacao": 50000,
+                "contratos_caixa": 300,
+                "produtos_caixa": 1250,
+                "total_caixa": 51550
+              },
+              "outras_despesas_financeiras": 0,
+              "total": 170675
             },
-            "custos_totais": 170675,
-            "lucro": 79325,
-            "saldo_acumulado": 66825,
+            "saldo_mes": 79325,
+            "saldo_acumulado_mes": 66825,
             "unidades_vendidas": 10
           },
           "2028-01": {
             "periodo": "Obra",
-            "receita_total": 140000,
             "receitas": {
-              "Recursos Próprios": 75000,
-              "Recursos Próprios (Atrasados)": 0,
-              "Recurso Terrenos": 15000,
-              "Medição Obra": 50000
+              "recursos_proprios": {
+                "recurso_proprio": 75000,
+                "recursos_atrasados": 0,
+                "juros": 0,
+                "correcoes": 0,
+                "total_recursos_proprios": 75000
+              },
+              "recebimento_terreno": {
+                "recebimento_total_terreno": 15000
+              },
+              "medicao_obra": {
+                "recebimento_total_medicao": 50000
+              },
+              "total": 140000
             },
             "despesas": {
-              "Incorporação Pós Lançamento": 8333.33,
-              "Obra": 625000,
-              "Canteiro": 5000,
-              "Área Comum": 2500,
-              "M.O. Administrativa": 8000,
-              "Seguros": 2000,
-              "Deduções": 7910,
-              "Deduções - RET/LP Imóveis": 5110,
-              "Deduções - ISS": 2800,
-              "Operacional": 40000,
-              "Operacional - Comissão": 15000,
-              "Operacional - Marketing": 25000,
-              "ITBI/IPTU": 2750,
-              "Registro": 2500,
-              "Taxa Medição": 15000
+              "deducoes": {
+                "impostos": {
+                  "ret_lp_imoveis": 5110,
+                  "ret_lp_lotes": 0,
+                  "iss": 2800,
+                  "outras_deducoes": 0
+                },
+                "total_impostos": 7910
+              },
+              "terreno": {
+                "valor_permuta_financeira": 0,
+                "valor_permuta_fisica": 0,
+                "valor_comissao": 0,
+                "total_terreno": 0
+              },
+              "incorporacao": {
+                "incorporacao_ri": 0,
+                "incorporacao_entrega": 0,
+                "incorporacao_ate_lancamento": 0,
+                "incorporacao_apos_lancamento": 8333.33,
+                "total_incorporacao": 8333.33
+              },
+              "obra": {
+                "obra_ate_lancamento": 0,
+                "obra_periodo_obra": 641500,
+                "total_obra": 641500
+              },
+              "mao_de_obra_adm": 8000,
+              "seguros": 2000,
+              "assis_tecnica": 0,
+              "despesas_comerciais": {
+                "despesas_construcao_stand": 0,
+                "despesas_mensal_stand": 0,
+                "comissao_na_venda": 15000,
+                "comissao_no_desligamento": 0,
+                "ajuda_custo_gerente_ou_salario": 0,
+                "bonus_cca": 0,
+                "outras_despesas_comerciais": 0,
+                "bonus_comercial": 0,
+                "total_despesas_comerciais": 15000
+              },
+              "marketing": {
+                "marketing_ate_lancamento": 12500,
+                "marketing_mensal": 12500,
+                "total_marketing": 25000
+              },
+              "itbi_registro": {
+                "itbi_iptu": 2750,
+                "registro": 2500,
+                "total_itbi_registro": 5250
+              },
+              "taxa_caixa": {
+                "medicao_mensal": 15000,
+                "contratacao": 0,
+                "contratos_caixa": 0,
+                "produtos_caixa": 0,
+                "total_caixa": 15000
+              },
+              "outras_despesas_financeiras": 0,
+              "total": 718993.33
             },
-            "custos_totais": 718993.33,
-            "lucro": -578993.33,
-            "saldo_acumulado": -4520000,
+            "saldo_mes": -578993.33,
+            "saldo_acumulado_mes": -4520000,
             "unidades_vendidas": 5
           }
         },
@@ -622,10 +805,16 @@ data.dre_resultados           → DRE + fluxo + indicadores (NÃO está dentro d
 data.dre_resultados.terreno   → terreno com seus produtos
 data.dre_resultados.produtos  → produtos processados com curvas de venda
 data.dre_resultados.dre_itens → DRE Gerencial completo
+data.dre_resultados.dre_caixa → DRE Caixa (visão de caixa)
+data.dre_resultados.dre_contabil_poc → DRE Contábil POC
+data.dre_resultados.dre_contabil_poc_mensal → POC mensal
+data.dre_resultados.dre_contabil_poc_mensal_blocos → POC por blocos
+data.dre_resultados.ponte_reconciliacao → Ponte de reconciliação Caixa x DRE x POC
 data.dre_resultados.indicadores → TIR, payback, exposição, VSO, VSO janelas
 data.dre_resultados.fluxo_mensal → fluxo operacional mês a mês (chave YYYY-MM)
 data.dre_resultados.fluxo_mensal_financeiro → fluxo financeiro mês a mês
-data.dre_resultados.totais    → totais agregados (receita, custos, impostos, lucro)
+data.dre_resultados.totais    → totais agregados (receita, custo_direto, impostos, custos_operacionais, custos_financeiros, lucro)
+data.dre_resultados.dados_produtos → resumo de unidades e área
 data.dre_resultados.parametros_utilizados → premissas usadas no cálculo (camelCase)
 ```
 
@@ -766,57 +955,190 @@ Exemplo: `incorporacao=6, lancamento=12, obra=24, pos_obra=36` → **78 meses** 
 ```json
 "2027-01": {
   "periodo": "Lançamento",
-  "receita_total": 250000.00,
   "receitas": {
-    "Recursos Próprios": 250000.00,
-    "Recursos Próprios (Atrasados)": 0.00,
-    "Recurso Terrenos": 0.00,
-    "Medição Obra": 0.00
+    "recursos_proprios": {
+      "recurso_proprio": 250000.00,
+      "recursos_atrasados": 0.00,
+      "juros": 0.00,
+      "correcoes": 0.00,
+      "total_recursos_proprios": 250000.00
+    },
+    "recebimento_terreno": {
+      "recebimento_total_terreno": 0.00
+    },
+    "medicao_obra": {
+      "recebimento_total_medicao": 0.00
+    },
+    "total": 250000.00
   },
   "despesas": {
-    "Incorporação Até Lançamento": 12500.00,
-    "Obra (Lançamento)": 62500.00,
-    "Deduções": 14125.00,
-    "Deduções - RET/LP Imóveis": 9125.00,
-    "Deduções - ISS": 5000.00,
-    "Operacional": 27500.00,
-    "Operacional - Comissão": 15000.00,
-    "Operacional - Marketing": 12500.00,
-    "ITBI/IPTU": 2750.00,
-    "Registro": 2500.00,
-    "Taxa Contratação": 50000.00,
-    "Produtos Caixa": 1250.00,
-    "Contratos Caixa": 300.00
+    "deducoes": {
+      "impostos": {
+        "ret_lp_imoveis": 9125.00,
+        "ret_lp_lotes": 0.00,
+        "iss": 5000.00,
+        "outras_deducoes": 0.00
+      },
+      "total_impostos": 14125.00
+    },
+    "terreno": {
+      "valor_permuta_financeira": 0.00,
+      "valor_permuta_fisica": 0.00,
+      "valor_comissao": 0.00,
+      "total_terreno": 0.00
+    },
+    "incorporacao": {
+      "incorporacao_ri": 0.00,
+      "incorporacao_entrega": 0.00,
+      "incorporacao_ate_lancamento": 12500.00,
+      "incorporacao_apos_lancamento": 0.00,
+      "total_incorporacao": 12500.00
+    },
+    "obra": {
+      "obra_ate_lancamento": 62500.00,
+      "obra_periodo_obra": 0.00,
+      "total_obra": 62500.00
+    },
+    "mao_de_obra_adm": 0.00,
+    "seguros": 0.00,
+    "assis_tecnica": 0.00,
+    "despesas_comerciais": {
+      "despesas_construcao_stand": 0.00,
+      "despesas_mensal_stand": 0.00,
+      "comissao_na_venda": 15000.00,
+      "comissao_no_desligamento": 0.00,
+      "ajuda_custo_gerente_ou_salario": 0.00,
+      "bonus_cca": 0.00,
+      "outras_despesas_comerciais": 0.00,
+      "bonus_comercial": 0.00,
+      "total_despesas_comerciais": 15000.00
+    },
+    "marketing": {
+      "marketing_ate_lancamento": 12500.00,
+      "marketing_mensal": 0.00,
+      "total_marketing": 12500.00
+    },
+    "itbi_registro": {
+      "itbi_iptu": 2750.00,
+      "registro": 2500.00,
+      "total_itbi_registro": 5250.00
+    },
+    "taxa_caixa": {
+      "medicao_mensal": 0.00,
+      "contratacao": 50000.00,
+      "contratos_caixa": 300.00,
+      "produtos_caixa": 1250.00,
+      "total_caixa": 51550.00
+    },
+    "outras_despesas_financeiras": 0.00,
+    "total": 170675.00
   },
-  "custos_totais": 170675.00,
-  "lucro": 79325.00,
-  "saldo_acumulado": 66825.00,
+  "saldo_mes": 79325.00,
+  "saldo_acumulado_mes": 66825.00,
   "unidades_vendidas": 10
 }
 ```
 
-#### Chaves possíveis de `receitas`:
+#### 10.3.1 Estrutura de `receitas` (hierárquica)
 
-| Chave | Significado |
-|-------|------------|
-| `Recursos Próprios` | Sinal + parcelas obra + parcelas pós-chave (perfil CEF) ou parcelas próprias (perfil próprio) |
-| `Recursos Próprios (Atrasados)` | Parcelas em atraso recuperadas (perfil próprio com inadimplência) |
-| `Recurso Terrenos` | Repasses da CEF para o terreno (perfil CEF, após demanda mínima atingida) |
-| `Medição Obra` | Repasses da CEF para a obra (perfil CEF, conforme curva de medição) |
+| Caminho | Tipo | Significado |
+|---------|------|------------|
+| `receitas.recursos_proprios.recurso_proprio` | float | Sinal + parcelas obra + parcelas pós-chave do mês |
+| `receitas.recursos_proprios.recursos_atrasados` | float | Parcelas atrasadas recuperadas (perfil próprio com inadimplência) |
+| `receitas.recursos_proprios.juros` | float | Juros sobre saldo devedor pós-chave (perfil CEF) |
+| `receitas.recursos_proprios.correcoes` | float | Correção monetária da obra + pós-chave (perfil CEF) |
+| `receitas.recursos_proprios.total_recursos_proprios` | float | Soma dos 4 itens acima |
+| `receitas.recebimento_terreno.recebimento_total_terreno` | float | Repasses da CEF para o terreno (perfil CEF, após demanda mínima) |
+| `receitas.medicao_obra.recebimento_total_medicao` | float | Repasses da CEF para obra conforme curva de medição (perfil CEF) |
+| `receitas.total` | float | Soma total de receitas do mês |
 
-> Perfil `proprio` só terá `Recursos Próprios` com valor > 0. As demais chaves (`Recurso Terrenos`, `Medição Obra`) só aparecem no perfil `cef`.
+> Perfil `proprio`: apenas `recursos_proprios` tem valores. `recebimento_terreno` e `medicao_obra` sempre vêm zerados.
 
-#### Chaves possíveis de `despesas` (o backend filtra valores ≤ 0.01):
+#### 10.3.2 Estrutura de `despesas` (hierárquica)
 
-| Categoria | Chaves |
-|-----------|--------|
-| **Incorporação** | `Incorporação Até Lançamento`, `Incorporação Pós Lançamento`, `Incorporação RI`, `Incorporação Entrega` |
-| **Obra** | `Obra`, `Obra (Lançamento)`, `Canteiro`, `Área Comum`, `M.O. Administrativa`, `Seguros` |
-| **Deduções (impostos)** | `Deduções`, `Deduções - RET/LP Imóveis`, `Deduções - RET/LP Lotes`, `Deduções - ISS`, `Deduções - Outras` |
-| **Operacional** | `Operacional`, `Operacional - Comissão`, `Operacional - Stand`, `Operacional - Mobília`, `Operacional - Marketing` |
-| **CEF** | `ITBI/IPTU`, `Registro`, `Taxa Contratação`, `Taxa Medição`, `Produtos Caixa`, `Contratos Caixa` |
-| **Terreno** | `Custo Terreno`, `Pagamento Terreno`, `Pagamento Terreno - Parceria VGV`, `Pagamento Terreno - Permuta Física`, `Pagamento Terreno - Comissão Corretor` |
-| **Financeiro** | `Outras Despesas Financeiras` |
+Os 12 grupos de despesas são:
+
+**`deducoes`** — Impostos sobre receita
+| Caminho | Significado |
+|---------|------------|
+| `deducoes.impostos.ret_lp_imoveis` | RET/LP sobre imóveis |
+| `deducoes.impostos.ret_lp_lotes` | RET/LP sobre lotes |
+| `deducoes.impostos.iss` | ISS |
+| `deducoes.impostos.outras_deducoes` | Outras deduções |
+| `deducoes.total_impostos` | Soma dos impostos |
+
+**`terreno`** — Pagamentos ao proprietário do terreno
+| Caminho | Significado |
+|---------|------------|
+| `terreno.valor_permuta_financeira` | Rateio da compra do terreno + parceria VGV |
+| `terreno.valor_permuta_fisica` | Custo de permuta física (unidades dadas ao proprietário) |
+| `terreno.valor_comissao` | Comissão do corretor do terreno |
+| `terreno.total_terreno` | Soma dos 3 itens acima |
+
+**`incorporacao`** — Despesas de incorporação
+| Caminho | Período |
+|---------|---------|
+| `incorporacao.incorporacao_ri` | Mês do RI (último mês de Incorporação) |
+| `incorporacao.incorporacao_entrega` | Mês da Entrega |
+| `incorporacao.incorporacao_ate_lancamento` | Incorporação e Lançamento |
+| `incorporacao.incorporacao_apos_lancamento` | Lançamento e Obra |
+| `incorporacao.total_incorporacao` | Soma das 4 acima |
+
+**`obra`** — Custos de construção
+| Caminho | Significado |
+|---------|------------|
+| `obra.obra_ate_lancamento` | Obra rateada durante o Lançamento |
+| `obra.obra_periodo_obra` | Obra (curva S) + canteiro + área comum + contrapartidas |
+| `obra.total_obra` | Soma dos 2 acima |
+
+**Chaves escalares (fora de grupos):**
+
+| Caminho | Significado |
+|---------|------------|
+| `mao_de_obra_adm` | Mão de obra administrativa (período Obra) |
+| `seguros` | Seguros (Lançamento até fim da Obra) |
+| `assis_tecnica` | Assistência técnica (Entrega e Pós-Obra) |
+| `outras_despesas_financeiras` | Rateio mensal de outras despesas financeiras |
+
+**`despesas_comerciais`** — Despesas comerciais
+| Caminho | Significado |
+|---------|------------|
+| `despesas_comerciais.despesas_construcao_stand` | Stand de vendas rateado |
+| `despesas_comerciais.despesas_mensal_stand` | Gastos mensais do stand |
+| `despesas_comerciais.comissao_na_venda` | Comissão paga na venda |
+| `despesas_comerciais.comissao_no_desligamento` | Comissão no desligamento |
+| `despesas_comerciais.ajuda_custo_gerente_ou_salario` | Ajuda de custo (gerente + gerente regional) |
+| `despesas_comerciais.bonus_cca` | Bônus CCA |
+| `despesas_comerciais.outras_despesas_comerciais` | Reembolso logística, etc. |
+| `despesas_comerciais.bonus_comercial` | Bônus equipe comercial (pago 1x quando todas unidades vendidas) |
+| `despesas_comerciais.total_despesas_comerciais` | Soma das 8 acima |
+
+**`marketing`** — Marketing (split em dois componentes)
+| Caminho | Significado |
+|---------|------------|
+| `marketing.marketing_ate_lancamento` | Marketing fixo rateado no período de lançamento |
+| `marketing.marketing_mensal` | Marketing variável proporcional às unidades vendidas |
+| `marketing.total_marketing` | Soma dos 2 acima |
+
+**`itbi_registro`** — ITBI e Registro (apenas perfil CEF)
+| Caminho | Significado |
+|---------|------------|
+| `itbi_registro.itbi_iptu` | ITBI/IPTU proporcional às unidades vendidas |
+| `itbi_registro.registro` | Registro por unidade vendida |
+| `itbi_registro.total_itbi_registro` | Soma dos 2 acima |
+
+**`taxa_caixa`** — Taxas Caixa (apenas perfil CEF)
+| Caminho | Significado |
+|---------|------------|
+| `taxa_caixa.medicao_mensal` | Taxa de medição mensal (período Obra) |
+| `taxa_caixa.contratacao` | Taxa de contratação (paga 1x no 1º mês de Lançamento) |
+| `taxa_caixa.contratos_caixa` | Contratos Caixa por unidade vendida |
+| `taxa_caixa.produtos_caixa` | Produtos Caixa (% sobre valor da unidade vendida) |
+| `taxa_caixa.total_caixa` | Soma dos 4 acima |
+
+**`total`** — Total de despesas do mês (soma de todos os grupos acima)
+
+> **Nota**: O backend só inclui chaves com `|valor| > 0.01`. Grupos inteiramente zerados podem ter todas as sub-chaves zeradas, mas a estrutura de chaves é sempre a mesma em todos os meses.
 
 ### 10.4 Estrutura do `fluxo_mensal_financeiro`
 
@@ -846,11 +1168,13 @@ Objeto complementar com as mesmas chaves `YYYY-MM`, focado no fluxo de caixa fin
 
 ### 10.5 Derivando dados do fluxo para gráficos
 
-- **Receita vs Despesa (barras empilhadas)**: `receita_total` (barra positiva) e `custos_totais` (barra negativa) por mês
-- **Saldo acumulado (linha)**: `saldo_acumulado` ao longo dos meses — mostra a curva de necessidade de capital. O valor mais negativo é a `exposicao_maxima_operacional`
-- **VSO — Velocity of Sales (linha)**: acumular `unidades_vendidas` mês a mês e dividir pelo total de unidades
-- **Lucro mensal (barras)**: `lucro` (pode ser positivo ou negativo)
-- **Payback**: mês em que `saldo_acumulado` se torna positivo
+- **Receita vs Despesa (barras empilhadas)**: `fluxo[mes].receitas.total` (barra positiva) e `fluxo[mes].despesas.total` (barra negativa) por mês
+- **Breakdown de receitas (barras empilhadas)**: `fluxo[mes].receitas.recursos_proprios.total_recursos_proprios`, `fluxo[mes].receitas.recebimento_terreno.recebimento_total_terreno`, `fluxo[mes].receitas.medicao_obra.recebimento_total_medicao`
+- **Breakdown de despesas (barras empilhadas)**: usar os `total_*` de cada grupo: `despesas.deducoes.total_impostos`, `despesas.terreno.total_terreno`, `despesas.incorporacao.total_incorporacao`, `despesas.obra.total_obra`, `despesas.despesas_comerciais.total_despesas_comerciais`, `despesas.marketing.total_marketing`, `despesas.itbi_registro.total_itbi_registro`, `despesas.taxa_caixa.total_caixa`, somados com `mao_de_obra_adm`, `seguros`, `assis_tecnica`, `outras_despesas_financeiras`
+- **Saldo acumulado (linha)**: `fluxo[mes].saldo_acumulado_mes` — curva de necessidade de capital. O valor mais negativo é a `exposicao_maxima_operacional`
+- **Lucro mensal (barras)**: `fluxo[mes].saldo_mes` (positivo ou negativo)
+- **VSO — Velocity of Sales (linha)**: acumular `fluxo[mes].unidades_vendidas` mês a mês e dividir pelo total de unidades
+- **Payback**: mês em que `fluxo[mes].saldo_acumulado_mes` se torna positivo
 
 ### 10.6 O objeto `totais`
 
@@ -867,7 +1191,14 @@ Agregação de todos os meses do fluxo:
 }
 ```
 
-> `lucro` = `receita` - `custo_direto` - `impostos` - `custos_operacionais` - `custos_financeiros`
+| Campo | Significado |
+|-------|------------|
+| `receita` | Receita total acumulada |
+| `custo_direto` | Custos diretos (obra + terreno + incorporação) |
+| `impostos` | Impostos (PIS/COFINS + ISS + outros) |
+| `custos_operacionais` | Despesas comerciais + marketing + ITBI/registro + taxas CEF |
+| `custos_financeiros` | Outras despesas financeiras |
+| `lucro` | `receita` - `custo_direto` - `impostos` - `custos_operacionais` - `custos_financeiros` |
 
 ---
 
@@ -899,10 +1230,12 @@ Agregação de todos os meses do fluxo:
    - Cards de KPI: VGV, Lucro Líquido, Margem Líquida (%), ROI (%)
    - Tabela do DRE Gerencial completo
    - Gráficos (ver seção 10 para detalhes da estrutura dos dados):
-     - **Receita vs Custos** (barras empilhadas): `fluxo_mensal[mes].receita_total` vs `fluxo_mensal[mes].custos_totais`
-     - **Saldo Acumulado** (linha): `fluxo_mensal[mes].saldo_acumulado` — curva de necessidade de capital
+     - **Receitas vs Despesas** (barras empilhadas): `fluxo_mensal[mes].receitas.total` vs `fluxo_mensal[mes].despesas.total`
+     - **Breakdown de receitas** (barras empilhadas): grupos dentro de `fluxo_mensal[mes].receitas` (recursos_proprios, recebimento_terreno, medicao_obra)
+     - **Breakdown de despesas** (barras empilhadas): `total_*` de cada grupo dentro de `fluxo_mensal[mes].despesas`
+     - **Saldo Acumulado** (linha): `fluxo_mensal[mes].saldo_acumulado_mes` — curva de necessidade de capital
      - **VSO — Velocity of Sales** (linha): acumular `fluxo_mensal[mes].unidades_vendidas` mês a mês
-     - **Lucro Mensal** (barras): `fluxo_mensal[mes].lucro` (positivo/negativo)
+     - **Lucro Mensal** (barras): `fluxo_mensal[mes].saldo_mes` (positivo/negativo)
      - **DRE Gerencial**: usar `dre_itens` para tabela de DRE padrão (receita bruta → lucro líquido)
    - Botões de ação: Editar, Solicitar Aprovação, Duplicar, Exportar PDF, Excluir
    - Timeline de aprovações (se houver)

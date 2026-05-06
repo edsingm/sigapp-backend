@@ -98,12 +98,10 @@ class FluxoMensalCalculator
 
             $fluxo[$mes] = [
                 'periodo' => $this->identificarPeriodo($data, $datas),
-                'receita_total' => round($receitas['total'], 2),
                 'receitas' => $receitas['detalhes'],
-                'despesas' => array_filter($despesas['detalhes'], fn ($valor) => abs($valor) > 0.01),
-                'custos_totais' => round($despesas['total'], 2),
-                'lucro' => round($lucroMes, 2),
-                'saldo_acumulado' => round($saldoAcumulado, 2),
+                'despesas' => $despesas['detalhes'],
+                'saldo_mes' => round($lucroMes, 2),
+                'saldo_acumulado_mes' => round($saldoAcumulado, 2),
                 'unidades_vendidas' => round($unidadesVendidasMes, 2),
             ];
 
@@ -130,7 +128,7 @@ class FluxoMensalCalculator
         $indicadores = [
             'tir_operacional' => $this->indicadoresCalculator->calcularTir($fluxoTir),
             'tir_sem_cef' => $this->indicadoresCalculator->calcularTir($fluxoTirSemCef),
-            'exposicao_maxima_operacional' => collect($fluxo)->min('saldo_acumulado'),
+            'exposicao_maxima_operacional' => collect($fluxo)->min('saldo_acumulado_mes'),
             'margem_liquida' => $totais['receita'] > 0 ? ($totais['lucro'] / $totais['receita']) : 0.0,
         ];
 

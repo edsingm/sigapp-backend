@@ -6,7 +6,7 @@ RECEITA BRUTA                                   197.338.443
 = RECEITA LÍQUIDA (ROL)                         192.271.803
 
 (−) Custo Terreno                             (32.833.475)
-(−) Comissão (1%)                               (328.335)
+(−) Comissão Terreno                             (328.335)
 (−) Incorporação                               (2.200.000)
 (−) Infra Casas                               (60.793.600)
 (−) Infra Lotes                               (22.440.000)
@@ -33,4 +33,6 @@ RECEITA BRUTA                                   197.338.443
 
 (−) IRPJ (Receita Bruta × 4% × 0,315)          (2.486.464)   
 (−) CSLL (Receita Bruta × 4% × 0,165)          (1.302.434)   
-= LUCRO LÍQUIDO                                  36.174.497   
+= LUCRO LÍQUIDO                                  36.174.497 
+= Margem Líquida (LUCRO LÍQUIDO / RECEITA LÍQUIDA)  18,5%
+ 

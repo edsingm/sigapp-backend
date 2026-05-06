@@ -171,7 +171,6 @@ class ViabilidadeService
             return true;
         }
 
-        // Verifica se chaves principais da nova estrutura existem
         if (! isset($dreResultados['indicadores']) || ! isset($dreResultados['totais'])) {
             return true;
         }
@@ -179,8 +178,15 @@ class ViabilidadeService
         $fluxo = $dreResultados['fluxo_mensal'] ?? [];
         $primeiroMes = ! empty($fluxo) ? reset($fluxo) : null;
 
-        // Verifica se a estrutura mudou (ex: se não tem chave 'receitas' detalhada)
-        return $primeiroMes && ! isset($primeiroMes['receitas']);
+        if (! $primeiroMes) {
+            return true;
+        }
+
+        if (! isset($primeiroMes['receitas']['recursos_proprios'])) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -501,7 +507,22 @@ class ViabilidadeService
         $user = Auth::user();
         $reasonNotes = "Viabilidade versão {$version} criada.";
 
-        if (($terreno->workflow_status_code ?? null) === WorkflowStatus::AGUARDANDO_VIABILIDADE->value) {
+        $currentStatus = $terreno->workflow_status_code ?? null;
+
+        if ($currentStatus === WorkflowStatus::AGUARDANDO_VIABILIDADE->value) {
+            return;
+        }
+
+        $statusesAposViabilidade = [
+            WorkflowStatus::VIABILIDADE_APROVADA->value,
+            WorkflowStatus::AGUARDANDO_COMITE->value,
+            WorkflowStatus::NEGOCIACAO_MINUTA->value,
+            WorkflowStatus::CONTRATO_ASSINADO->value,
+            WorkflowStatus::LEGALIZANDO->value,
+            WorkflowStatus::LEGALIZADO_FINALIZADO->value,
+        ];
+
+        if (in_array($currentStatus, $statusesAposViabilidade, true)) {
             return;
         }
 

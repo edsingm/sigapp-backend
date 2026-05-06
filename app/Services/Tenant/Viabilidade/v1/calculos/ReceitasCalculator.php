@@ -45,17 +45,30 @@ class ReceitasCalculator
             ? $this->calcularMedicaoObra($mes, $dadosProdutos, $datas, $params, $ctx)
             : ['valor' => 0.0];
 
-        $jurosCorrecao = ($rp['juros'] ?? 0.0) + ($rp['correcao'] ?? 0.0) + ($rp['correcao_obra'] ?? 0.0);
-        $total = $totalRp + $totalAtrasadas + $jurosCorrecao + $rt['valor'] + $mo['valor'];
+        $jurosValor = $rp['juros'] ?? 0.0;
+        $correcoesValor = ($rp['correcao'] ?? 0.0) + ($rp['correcao_obra'] ?? 0.0);
+        $jurosCorrecao = $jurosValor + $correcoesValor;
+        $totalRecursosProprios = $totalRp + $totalAtrasadas + $jurosValor + $correcoesValor;
+        $total = $totalRecursosProprios + $rt['valor'] + $mo['valor'];
 
         return [
             'total' => $total,
             'juros_correcao' => $jurosCorrecao,
             'detalhes' => [
-                'Recursos Próprios' => round($totalRp, 2),
-                'Recursos Próprios (Atrasados)' => round($totalAtrasadas, 2),
-                'Recurso Terrenos' => round($rt['valor'], 2),
-                'Medição Obra' => round($mo['valor'], 2),
+                'recursos_proprios' => [
+                    'recurso_proprio' => round($totalRp, 2),
+                    'recursos_atrasados' => round($totalAtrasadas, 2),
+                    'juros' => round($jurosValor, 2),
+                    'correcoes' => round($correcoesValor, 2),
+                    'total_recursos_proprios' => round($totalRecursosProprios, 2),
+                ],
+                'recebimento_terreno' => [
+                    'recebimento_total_terreno' => round($rt['valor'], 2),
+                ],
+                'medicao_obra' => [
+                    'recebimento_total_medicao' => round($mo['valor'], 2),
+                ],
+                'total' => round($total, 2),
             ],
         ];
     }

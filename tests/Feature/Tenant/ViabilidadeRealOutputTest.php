@@ -368,10 +368,10 @@ class ViabilidadeRealOutputTest extends TestCase
         $totalDespesa = 0;
 
         foreach ($fluxo as $mes => $linha) {
-            $receita = $linha['receita_total'];
-            $despesa = $linha['custos_totais'];
-            $resultado_mes = $linha['lucro'];
-            $saldo = $linha['saldo_acumulado'];
+            $receita = $linha['receitas']['total'];
+            $despesa = $linha['despesas']['total'];
+            $resultado_mes = $linha['saldo_mes'];
+            $saldo = $linha['saldo_acumulado_mes'];
             $unidades = $linha['unidades_vendidas'];
             $periodo = $linha['periodo'];
 
@@ -391,16 +391,8 @@ class ViabilidadeRealOutputTest extends TestCase
 
             // Detalhes de receitas e despesas se houver valores
             if ($receita > 0 || $despesa > 0) {
-                foreach ($linha['receitas'] as $tipo => $val) {
-                    if (abs($val) > 0.01) {
-                        fwrite(STDOUT, str_pad('', 26)."  REC: {$tipo}: ".number_format($val, 0, ',', '.').PHP_EOL);
-                    }
-                }
-                foreach ($linha['despesas'] as $tipo => $val) {
-                    if (abs($val) > 0.01) {
-                        fwrite(STDOUT, str_pad('', 26)."  DES: {$tipo}: ".number_format($val, 0, ',', '.').PHP_EOL);
-                    }
-                }
+                $this->logDetalhesNested($linha['receitas'], 'REC');
+                $this->logDetalhesNested($linha['despesas'], 'DES');
             }
         }
 
@@ -690,8 +682,8 @@ class ViabilidadeRealOutputTest extends TestCase
         $totalReceita = 0;
         $totalDespesa = 0;
         foreach ($fluxo as $linha) {
-            $totalReceita += $linha['receita_total'];
-            $totalDespesa += $linha['custos_totais'];
+            $totalReceita += $linha['receitas']['total'];
+            $totalDespesa += $linha['despesas']['total'];
         }
 
         fwrite(STDOUT, PHP_EOL);
@@ -911,6 +903,18 @@ class ViabilidadeRealOutputTest extends TestCase
         }
 
         return $valor;
+    }
+
+    private function logDetalhesNested(array $detalhes, string $prefixo, string $ident = ''): void
+    {
+        foreach ($detalhes as $chave => $valor) {
+            if (is_array($valor)) {
+                $this->logDetalhesNested($valor, $prefixo, $ident.$chave.'.');
+            } elseif (is_numeric($valor) && abs($valor) > 0.01) {
+                $caminho = $ident.$chave;
+                fwrite(STDOUT, str_pad('', 26)."  {$prefixo}: {$caminho}: ".number_format($valor, 0, ',', '.').PHP_EOL);
+            }
+        }
     }
 
     private function ajustarLarguraColunas($sheet, int $totalColunas): void

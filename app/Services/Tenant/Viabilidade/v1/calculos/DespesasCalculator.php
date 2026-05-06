@@ -45,28 +45,54 @@ class DespesasCalculator
         $custoTerreno = $this->calcularCustoTerreno($receitas['total'], $dadosProdutos, $params);
         $pagamentoTerreno = $this->calcularPagamentoTerreno($mes, $periodo, $receitas, $dadosProdutos, $datas, $params, $ctx);
 
-        $detalhesOperacionais = [];
-        foreach ($operacionais['detalhes'] as $nome => $valor) {
-            $detalhesOperacionais['Operacional - '.$nome] = round($valor, 2);
-        }
+        $despesasComerciaisTotal = $operacionais['detalhes']['Stand de Vendas'] ?? 0;
+        $despesasComerciaisTotal += $operacionais['detalhes']['Gastos Mensais Stand'] ?? 0;
+        $despesasComerciaisTotal += $operacionais['detalhes']['Comissão Venda'] ?? 0;
+        $despesasComerciaisTotal += $operacionais['detalhes']['Comissão Desligamento'] ?? 0;
+        $despesasComerciaisTotal += $operacionais['detalhes']['Ajuda de Custo Gerentes'] ?? 0;
+        $despesasComerciaisTotal += $operacionais['detalhes']['Bônus CCA'] ?? 0;
+        $despesasComerciaisTotal += $operacionais['detalhes']['Outras Despesas Comerciais'] ?? 0;
+        $despesasComerciaisTotal += $operacionais['detalhes']['Bônus Equipe Comercial'] ?? 0;
 
         $unidadesVendidasMes = $ctx->vendasPorMes[$mes] ?? 0;
         $totalUnidadesComercializaveis = max(1, $dadosProdutos['totalUnidadesConstrutora'] ?? $dadosProdutos['totalUnidades'] ?? 1);
         $vgvSemPermutas = $dadosProdutos['vgvSemUnidPermutas'] ?? $vgv;
         $valorPorUnidade = $vgvSemPermutas / $totalUnidadesComercializaveis;
 
+        $contrapartidasMensal = $periodo === 'Obra'
+            ? ($vgvSemPermutas * ($params['percentualContrapartidas'] ?? 0)) / max(1, $params['mesesObra'])
+            : 0.0;
+
+        $obraAteLanc = $diretos['detalhes']['Obra (Lançamento)'] ?? 0;
+        $obraPeriodo = ($diretos['detalhes']['Obra'] ?? 0)
+            + ($diretos['detalhes']['Canteiro'] ?? 0)
+            + ($diretos['detalhes']['Área Comum'] ?? 0)
+            + $contrapartidasMensal;
+
+        $incorpRi = $diretos['detalhes']['Incorporação RI'] ?? 0;
+        $incorpEntrega = $diretos['detalhes']['Incorporação Entrega'] ?? 0;
+        $incorpAteLanc = $diretos['detalhes']['Incorporação Até Lançamento'] ?? 0;
+        $incorpAposLanc = $diretos['detalhes']['Incorporação Pós Lançamento'] ?? 0;
+
+        $valorPermutaFinanceira = $custoTerreno + $pagamentoTerreno['parceria'];
+
+        $itbiMensal = 0.0;
+        $registroMensal = 0.0;
+        $taxaContratacao = 0.0;
+        $taxaMedicao = 0.0;
+        $contratosCefMensal = 0.0;
+        $produtosCefMensal = 0.0;
+
         if ($ctx->perfil->isCef() && $unidadesVendidasMes > 0) {
             $itbiMensal = $unidadesVendidasMes * $valorPorUnidade * ($params['custoItbiIptu'] ?? 0);
-            $detalhesOperacionais['ITBI/IPTU'] = round($itbiMensal, 2);
         }
 
         if ($ctx->perfil->isCef() && $unidadesVendidasMes > 0) {
             $registroMensal = $unidadesVendidasMes * ($params['custoRegistro'] ?? 0);
-            $detalhesOperacionais['Registro'] = round($registroMensal, 2);
         }
 
         if ($ctx->perfil->isCef() && $periodo === 'Lançamento' && ! $ctx->txContratacaoPaga) {
-            $detalhesOperacionais['Taxa Contratação'] = round($params['custoContratacaoCef'] ?? 0, 2);
+            $taxaContratacao = $params['custoContratacaoCef'] ?? 0;
             $ctx->txContratacaoPaga = true;
         }
 
@@ -85,40 +111,87 @@ class DespesasCalculator
                     $ctx->produtosCefAcumulados += $produtosCefMensal;
                     $ctx->contratosCefAcumulados += $contratosCefMensal;
                 } elseif ($dataAtual->equalTo($dataDemandaAtingida) && ! $ctx->custosCefAcumuladosPagos) {
-                    $detalhesOperacionais['Produtos Caixa'] = round($ctx->produtosCefAcumulados + $produtosCefMensal, 2);
-                    $detalhesOperacionais['Contratos Caixa'] = round($ctx->contratosCefAcumulados + $contratosCefMensal, 2);
+                    $produtosCefMensal = $ctx->produtosCefAcumulados + $produtosCefMensal;
+                    $contratosCefMensal = $ctx->contratosCefAcumulados + $contratosCefMensal;
                     $ctx->produtosCefAcumulados = 0.0;
                     $ctx->contratosCefAcumulados = 0.0;
                     $ctx->custosCefAcumuladosPagos = true;
-                } else {
-                    $detalhesOperacionais['Produtos Caixa'] = round($produtosCefMensal, 2);
-                    $detalhesOperacionais['Contratos Caixa'] = round($contratosCefMensal, 2);
                 }
             }
         }
 
         if ($ctx->perfil->isCef() && $periodo === 'Obra') {
-            $detalhesOperacionais['Taxa Medição'] = round($params['custoMedicaoCef'] ?? 0, 2);
+            $taxaMedicao = $params['custoMedicaoCef'] ?? 0;
         }
 
         $total = $diretos['total'] + $deducoes['total'] + $operacionais['total'] + $financeiros + $custoTerreno + $pagamentoTerreno['total'];
 
+        $detalhes = [
+            'deducoes' => [
+                'impostos' => [
+                    'ret_lp_imoveis' => round($deducoes['ret_imoveis'], 2),
+                    'ret_lp_lotes' => round($deducoes['ret_lotes'], 2),
+                    'iss' => round($deducoes['iss'], 2),
+                    'outras_deducoes' => round($deducoes['outras'], 2),
+                ],
+                'total_impostos' => round($deducoes['total'], 2),
+            ],
+            'terreno' => [
+                'valor_permuta_financeira' => round($valorPermutaFinanceira, 2),
+                'valor_permuta_fisica' => round($pagamentoTerreno['permuta_fisica'], 2),
+                'valor_comissao' => round($pagamentoTerreno['comissao_corretor'], 2),
+                'total_terreno' => round($custoTerreno + $pagamentoTerreno['total'], 2),
+            ],
+            'incorporacao' => [
+                'incorporacao_ri' => round($incorpRi, 2),
+                'incorporacao_entrega' => round($incorpEntrega, 2),
+                'incorporacao_ate_lancamento' => round($incorpAteLanc, 2),
+                'incorporacao_apos_lancamento' => round($incorpAposLanc, 2),
+                'total_incorporacao' => round($incorpRi + $incorpEntrega + $incorpAteLanc + $incorpAposLanc, 2),
+            ],
+            'obra' => [
+                'obra_ate_lancamento' => round($obraAteLanc, 2),
+                'obra_periodo_obra' => round($obraPeriodo, 2),
+                'total_obra' => round($obraAteLanc + $obraPeriodo, 2),
+            ],
+            'mao_de_obra_adm' => round($diretos['detalhes']['M.O. Administrativa'] ?? 0, 2),
+            'seguros' => round($diretos['detalhes']['Seguros'] ?? 0, 2),
+            'assis_tecnica' => round($diretos['detalhes']['Assistência Técnica'] ?? 0, 2),
+            'despesas_comerciais' => [
+                'despesas_construcao_stand' => round($operacionais['detalhes']['Stand de Vendas'] ?? 0, 2),
+                'despesas_mensal_stand' => round($operacionais['detalhes']['Gastos Mensais Stand'] ?? 0, 2),
+                'comissao_na_venda' => round($operacionais['detalhes']['Comissão Venda'] ?? 0, 2),
+                'comissao_no_desligamento' => round($operacionais['detalhes']['Comissão Desligamento'] ?? 0, 2),
+                'ajuda_custo_gerente_ou_salario' => round($operacionais['detalhes']['Ajuda de Custo Gerentes'] ?? 0, 2),
+                'bonus_cca' => round($operacionais['detalhes']['Bônus CCA'] ?? 0, 2),
+                'outras_despesas_comerciais' => round($operacionais['detalhes']['Outras Despesas Comerciais'] ?? 0, 2),
+                'bonus_comercial' => round($operacionais['detalhes']['Bônus Equipe Comercial'] ?? 0, 2),
+                'total_despesas_comerciais' => round($despesasComerciaisTotal, 2),
+            ],
+            'marketing' => [
+                'marketing_ate_lancamento' => round($operacionais['marketing_lancamento'], 2),
+                'marketing_mensal' => round($operacionais['marketing_variavel'], 2),
+                'total_marketing' => round($operacionais['marketing_lancamento'] + $operacionais['marketing_variavel'], 2),
+            ],
+            'itbi_registro' => [
+                'itbi_iptu' => round($itbiMensal, 2),
+                'registro' => round($registroMensal, 2),
+                'total_itbi_registro' => round($itbiMensal + $registroMensal, 2),
+            ],
+            'taxa_caixa' => [
+                'medicao_mensal' => round($taxaMedicao, 2),
+                'contratacao' => round($taxaContratacao, 2),
+                'contratos_caixa' => round($contratosCefMensal, 2),
+                'produtos_caixa' => round($produtosCefMensal, 2),
+                'total_caixa' => round($taxaMedicao + $taxaContratacao + $contratosCefMensal + $produtosCefMensal, 2),
+            ],
+            'outras_despesas_financeiras' => round($financeiros, 2),
+            'total' => round($total, 2),
+        ];
+
         return [
             'total' => $total,
-            'detalhes' => array_merge($diretos['detalhes'], [
-                'Deduções' => round($deducoes['total'], 2),
-                'Deduções - RET/LP Imóveis' => round($deducoes['ret_imoveis'], 2),
-                'Deduções - RET/LP Lotes' => round($deducoes['ret_lotes'], 2),
-                'Deduções - ISS' => round($deducoes['iss'], 2),
-                'Deduções - Outras' => round($deducoes['outras'], 2),
-                'Operacional' => round($operacionais['total'], 2),
-                'Outras Despesas Financeiras' => round($financeiros, 2),
-                'Custo Terreno' => round($custoTerreno, 2),
-                'Pagamento Terreno' => round($pagamentoTerreno['total'], 2),
-                'Pagamento Terreno - Parceria VGV' => round($pagamentoTerreno['parceria'], 2),
-                'Pagamento Terreno - Permuta Física' => round($pagamentoTerreno['permuta_fisica'], 2),
-                'Pagamento Terreno - Comissão Corretor' => round($pagamentoTerreno['comissao_corretor'], 2),
-            ], $detalhesOperacionais),
+            'detalhes' => $detalhes,
             'categorias' => [
                 'custo_direto' => $diretos['total'] + $custoTerreno + $pagamentoTerreno['total'],
                 'impostos' => $deducoes['total'],
@@ -215,6 +288,8 @@ class DespesasCalculator
         return [
             'total' => $despesasComerciais['total'] + $marketing['total'],
             'detalhes' => array_merge($despesasComerciais['detalhes'], ['Marketing' => $marketing['total']]),
+            'marketing_lancamento' => $marketing['lancamento'],
+            'marketing_variavel' => $marketing['variavel'],
         ];
     }
 
@@ -518,6 +593,8 @@ class DespesasCalculator
 
         return [
             'total' => $marketingLancamentoMensal + $marketingVariavelMensal,
+            'lancamento' => $marketingLancamentoMensal,
+            'variavel' => $marketingVariavelMensal,
         ];
     }
 

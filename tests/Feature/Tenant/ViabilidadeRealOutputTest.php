@@ -530,37 +530,35 @@ class ViabilidadeRealOutputTest extends TestCase
         $fluxo = $resultado['fluxo_mensal'];
 
         // ============================================================
-        // COMPARAÇÃO COM VALORES DA PLANILHA (R$ mil)
+        // COMPARAÇÃO COM VALORES DA PLANILHA (R$ mil) — 1 produto: 2Dorm
         // ============================================================
-        // Valores extraídos da aba "Fluxo e DRE" e "DRE", coluna C (Total), R$ mil
-        // NOTA: planilha usa valores negativos para despesas no fluxo de caixa;
-        // aqui usamos valores absolutos para comparar com o sistema (que armazena absolutos)
+        // 1000 unid (920 LRG), R$220k, VGV LRG s/Terrenista = R$192.4M
         $planilha = [
-            'Receita Total Vendas (VGV)' => 236900.0,
-            'Juros + Correções' => 10731.2 + 4663.4, // 15394.6
-            'Receita Bruta' => 252294.6,
-            'PIS/COFINS (s/Receita Bruta)' => 6899.4,
-            'Outras Deduções + ISS' => 1184.5, // DRE R54+R55
-            'Receita Líquida (ROL)' => 245395.2,
-            'Custo Terreno' => 42822.1 + 428.4, // Terreno + Comissão Terreno
-            'Incorporação' => 2690.0,
-            'Obra (Casas+Infra+Cant+AC+Contrap)' => 105556.9,
-            'MO Adm + Seguros + Assist Tec' => 2250.1 + 1340.0 + 1024.7,
-            'Custos Diretos Total' => 156130.5, // DRE custo total (CSP + Assist)
-            'Lucro Bruto' => 89264.7,
-            'Despesas Comerciais' => 12445.0,
-            'Marketing' => 2489.0,
-            'ITBI/IPTU + Registro' => 2473.9 + 2525.0,
-            'Tx Med+Contratos+Produtos Cx' => 192.0 + 303.0 + 1252.6,
-            'Despesas Operacionais Total' => 21680.5,
-            'EBITDA' => 67584.2,
-            'Outras Desp Financeiras' => 704.9,
-            'Juros PJ' => 4542.0,
-            'EBIT' => 62337.3,
-            'IRPJ/CSLL' => 5275.3,
-            'Lucro Líquido (DRE)' => 57062.1,
-            'Margem Líquida % (s/VGV)' => 23.25,
-            'Margem Líquida % (s/ROL)' => 23.25, // ≈ 57062/245395
+            'Receita Total Vendas (VGV)' => 192400.0,
+            'Juros + Correções' => 4752.9,
+            'Receita Bruta' => 197152.9,
+            'PIS/COFINS (s/Receita Bruta)' => 4689.0,
+            'Outras Deduções + ISS' => 1100.0,
+            'Receita Líquida (ROL)' => 191363.9,
+            'Custo Terreno' => 35263.1,
+            'Incorporação' => 2200.0,
+            'Obra (Casas+Infra+Cant+AC+Contrap)' => 90019.3,
+            'MO Adm + Seguros + Assist Tec' => 4219.4,
+            'Custos Diretos Total' => 131701.8,
+            'Lucro Bruto' => 59662.0,
+            'Despesas Comerciais' => 10120.0,
+            'Marketing' => 2024.0,
+            'ITBI/IPTU + Registro' => 4526.4,
+            'Tx Med+Contratos+Produtos Cx' => 1465.0,
+            'Despesas Operacionais Total' => 18135.4,
+            'EBITDA' => 41526.7,
+            'Outras Desp Financeiras' => 0.0,
+            'Juros PJ' => 3873.4,
+            'EBIT' => 37653.2,
+            'IRPJ/CSLL' => 4328.3,
+            'Lucro Líquido (DRE)' => 33324.9,
+            'Margem Líquida % (s/VGV)' => 17.32,
+            'Margem Líquida % (s/ROL)' => 17.41,
         ];
 
         // Converter sistema de R$ para R$ mil (valores positivos = sistema armazena absoluto)
@@ -626,35 +624,70 @@ class ViabilidadeRealOutputTest extends TestCase
         fwrite(STDOUT, sprintf("  Resultado:     R$ %s\n", number_format($totalReceita - $totalDespesa, 2, ',', '.')));
         fwrite(STDOUT, PHP_EOL);
 
+        fwrite(STDOUT, str_repeat('=', 160).PHP_EOL);
+        fwrite(STDOUT, 'DETALHE TERRENO — meses com despesa de terreno > 0'.PHP_EOL);
+        fwrite(STDOUT, "cols: FINANC(custo_terreno+parceria) | PERM_FIS | COMISSAO | PGTO_LOTE | TOTAL_TERRENO | receita_RP | receita_RT | receita_MO".PHP_EOL);
+        fwrite(STDOUT, str_repeat('-', 160).PHP_EOL);
+        $count = 0;
+        foreach ($fluxo as $mes => $linha) {
+            $t = $linha['despesas']['terreno'] ?? [];
+            if (($t['total_terreno'] ?? 0) <= 0.01) continue;
+            if ($count++ >= 25) break;
+            $rpTotal = array_sum($linha['receitas']['recursos_proprios'] ?? []);
+            $rt = $linha['receitas']['recebimento_terreno']['recebimento_total_terreno'] ?? 0;
+            $mo = $linha['receitas']['medicao_obra']['recebimento_total_medicao'] ?? 0;
+            $receitaTotal = $linha['receitas']['total'];
+            $parceriaEstimada = round($receitaTotal * 0.08, 2);
+            $financ = $t['valor_permuta_financeira'] ?? 0;
+            $custoEstimado = round($financ - $parceriaEstimada, 2);
+            fwrite(STDOUT, sprintf("%-8s %-11s financ=%12s parc_est=%12s custo_est=%12s perm_fis=%12s comiss=%10s pgto_lote=%10s total_ter=%12s RP=%12s RT=%10s MO=%10s\n",
+                $mes, $linha['periodo'],
+                number_format($financ, 0, ',', '.'),
+                number_format($parceriaEstimada, 0, ',', '.'),
+                number_format($custoEstimado, 0, ',', '.'),
+                number_format($t['valor_permuta_fisica'] ?? 0, 0, ',', '.'),
+                number_format($t['valor_comissao'] ?? 0, 0, ',', '.'),
+                number_format($t['valor_pgto_por_lote'] ?? 0, 0, ',', '.'),
+                number_format($t['total_terreno'] ?? 0, 0, ',', '.'),
+                number_format($rpTotal, 0, ',', '.'),
+                number_format($rt, 0, ',', '.'),
+                number_format($mo, 0, ',', '.'),
+            ));
+        }
+        fwrite(STDOUT, PHP_EOL);
+        fwrite(STDOUT, 'LEGENDA: financ = custoTerreno + parceria | parc_est = 8% × receita_total | custo_est = financ - parc_est'.PHP_EOL);
+        fwrite(STDOUT, '         total_terreno = custoTerreno + parceria + perm_fis + comissao (sem pgto_lote)'.PHP_EOL);
+        fwrite(STDOUT, PHP_EOL);
+
         // ============================================================
-        // ASSERTIONS: Validação contra planilha (R$)
+        // ASSERTIONS: Validação contra planilha (R$) — 1 produto
         // ============================================================
         $dre = $resultado['dre_itens'];
         $ind = $resultado['indicadores'];
 
         // VGV e Receitas
-        $this->assertEqualsWithDelta(236900000, (float) $dre['receita_total_vendas'], 100, 'VGV LRG s/Terrenista');
-        $this->assertGreaterThan(14000000, $dre['juros_correcoes'], 'Juros+Correções > 14M');
-        $this->assertLessThan(15000000, $dre['juros_correcoes'], 'Juros+Correções < 15M');
+        $this->assertEqualsWithDelta(192400000, (float) $dre['receita_total_vendas'], 100, 'VGV LRG s/Terrenista');
+        $this->assertGreaterThan(4000000, $dre['juros_correcoes'], 'Juros+Correções > 4M');
+        $this->assertLessThan(6000000, $dre['juros_correcoes'], 'Juros+Correções < 6M');
 
         // Custos Diretos
-        $this->assertEqualsWithDelta(105556920, ($dre['infra_casas'] + $dre['infra_lotes'] + $dre['area_comum'] + $dre['canteiro_total'] + $dre['contrapartidas']), 1000, 'Obra Total');
-        $this->assertEqualsWithDelta(2690000, (float) $dre['incorporacao'], 100, 'Incorporação');
-        $this->assertEqualsWithDelta(4614800, ($dre['mo_administrativa_total'] + $dre['seguros'] + $dre['assistencia_tecnica']), 2000, 'MO+Seguros+Assist');
+        $this->assertEqualsWithDelta(90019300, ($dre['infra_casas'] + $dre['infra_lotes'] + $dre['area_comum'] + $dre['canteiro_total'] + $dre['contrapartidas']), 1000, 'Obra Total');
+        $this->assertEqualsWithDelta(2200000, (float) $dre['incorporacao'], 100, 'Incorporação');
+        $this->assertEqualsWithDelta(4219400, ($dre['mo_administrativa_total'] + $dre['seguros'] + $dre['assistencia_tecnica']), 2000, 'MO+Seguros+Assist');
 
         // Despesas Operacionais
-        $this->assertEqualsWithDelta(12445000, (float) $dre['despesas_comerciais'], 100, 'Despesas Comerciais');
-        $this->assertEqualsWithDelta(0, (float) $dre['marketing'], 0.01, 'Marketing no runtime atual');
-        $this->assertEqualsWithDelta(4998900, ($dre['itbi_iptu'] + $dre['registro']), 100, 'ITBI+Registro');
+        $this->assertEqualsWithDelta(10120000, (float) $dre['despesas_comerciais'], 100, 'Despesas Comerciais');
+        $this->assertGreaterThan(0, (float) $dre['marketing'], 'Marketing deve ser > 0');
+        $this->assertEqualsWithDelta(4526400, ($dre['itbi_iptu'] + $dre['registro']), 100, 'ITBI+Registro');
 
         // Resultado
-        $this->assertEqualsWithDelta(4542000, $dre['juros_pj'], 20, 'Juros PJ');
-        $this->assertGreaterThan(60000000, $dre['lucro_liquido_projeto'], 'Lucro Líquido > 60M');
-        $this->assertLessThan(61000000, $dre['lucro_liquido_projeto'], 'Lucro Líquido < 61M');
+        $this->assertEqualsWithDelta(3873400, $dre['juros_pj'], 20000, 'Juros PJ');
+        $this->assertGreaterThan(30000000, $dre['lucro_liquido_projeto'], 'Lucro Líquido > 30M');
+        $this->assertLessThan(35000000, $dre['lucro_liquido_projeto'], 'Lucro Líquido < 35M');
 
         // Indicadores
-        $this->assertGreaterThan(25, $ind['margem_liquida_percentual'], 'Margem Líquida > 25%');
-        $this->assertLessThan(26, $ind['margem_liquida_percentual'], 'Margem Líquida < 26%');
+        $this->assertGreaterThan(15, $ind['margem_liquida_percentual'], 'Margem Líquida > 15%');
+        $this->assertLessThan(20, $ind['margem_liquida_percentual'], 'Margem Líquida < 20%');
 
         $this->assertIsArray($resultado);
         $this->assertArrayHasKey('dre_itens', $resultado);

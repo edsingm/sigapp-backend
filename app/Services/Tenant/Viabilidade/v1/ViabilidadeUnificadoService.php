@@ -226,6 +226,7 @@ class ViabilidadeUnificadoService
             'pagamentoComissaoVenda' => ($v->pagamento_comissao_venda ?? $defaults['pagamento_comissao_venda']) / 100,
             'parcelamentoComissaoMeses' => (int) ($v->parcelamento_comissao_meses ?? $defaults['parcelamento_comissao_meses']),
             'parcelamentoComissaoTerreno' => (int) ($defaults['parcelamento_comissao_terreno'] ?? 1),
+            'percentualMarketing' => ($v->marketing ?? $defaults['marketing']) / 100,
             'marketingLancamento' => ($v->marketing_lancamento ?? $defaults['marketing_lancamento']) / 100,
             'custoItbiIptu' => ($v->itbi_iptu ?? $defaults['itbi_iptu']) / 100,
             'custoRegistro' => (float) ($v->registro ?? $defaults['registro']),

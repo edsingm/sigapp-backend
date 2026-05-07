@@ -1,7 +1,7 @@
 # Documentação Técnica — Motor de Cálculo de Viabilidade
 
 **Arquivo:** `app/Services/Tenant/Viabilidade/v1/ViabilidadeUnificadoService.php`  
-**Última revisão:** Abril 2026
+**Última revisão:** Maio 2026
 
 ---
 
@@ -24,13 +24,13 @@
 
 ## 1. Visão Geral
 
-O `ViabilidadeUnificadoService` é o motor de cálculo financeiro do módulo de viabilidade. Dado um terreno e seus produtos imobiliários, ele produz:
+O `ViabilidadeUnificadoService` é a porta de entrada pública do motor de cálculo financeiro do módulo de viabilidade. Dado um terreno e seus produtos imobiliários, ele produz:
 
 - **Fluxo de caixa mensal**: receitas, despesas e saldo acumulado mês a mês, desde a incorporação até o pós-obra
 - **DRE consolidada**: resultado acumulado do projeto nos formatos gerencial e contábil (POC)
-- **Indicadores financeiros**: TIR operacional, TIR sem CEF, exposição máxima, payback, VPL e VSO por janela
+- **Indicadores financeiros**: TIR operacional, TIR sem CEF, TIR financeira, exposição máxima, payback e VSO por janela
 
-A arquitetura segue o padrão **Controller → Service → Repository**. Este service é um service puro: não acessa o banco diretamente (usa `Terreno::findOrFail` apenas para carregar dados) e todo o estado mutável do cálculo é isolado em `ViabilidadeFluxoContext`, tornando as chamadas consecutivas na mesma instância completamente independentes.
+A arquitetura segue o padrão **Controller → Service → Repository**, mas o motor foi refatorado em calculadoras especializadas. Hoje o `ViabilidadeUnificadoService` atua como orquestrador: ele carrega `Terreno` e `Viabilidade`, resolve premissas ativas via `PremissasViabilidadeService`, delega o cálculo para classes da pasta `Calculos/`, salva `premissas_snapshot` ao final e mantém o estado mutável do fluxo isolado em `ViabilidadeFluxoContext`.
 
 ---
 
@@ -38,13 +38,21 @@ A arquitetura segue o padrão **Controller → Service → Repository**. Este se
 
 | Arquivo | Responsabilidade |
 |---------|-----------------|
-| `ViabilidadeUnificadoService.php` | Motor principal de cálculo |
+| `ViabilidadeUnificadoService.php` | Orquestra o cálculo, busca dados e salva snapshot |
+| `Calculos/FluxoMensalCalculator.php` | Pipeline principal do fluxo mensal |
+| `Calculos/ProdutosProcessor.php` | Consolida produtos, VGV, custos e parâmetros derivados |
+| `Calculos/ReceitasCalculator.php` | Regras de recebimento por perfil (`cef` ou `proprio`) |
+| `Calculos/DespesasCalculator.php` | Custos diretos, deduções, operacionais e terreno |
+| `Calculos/DreCalculator.php` | DRE gerencial consolidada |
+| `Calculos/IndicadoresCalculator.php` | TIR, payback, exposição e VSO |
+| `Calculos/PocCalculator.php` | DRE caixa, DRE contábil POC e reconciliação |
 | `ViabilidadeFluxoContext.php` | Estado mutável isolado por chamada |
-| `CurvaService.php` | Utilitários de curva (validação, extração, interpolação) |
-| `ImpostosService.php` | PIS/COFINS, ISS, IRPJ, CSLL e juros PJ |
-| `config/viabilidade.php` | Defaults de todos os parâmetros |
-| `app/Models/Tenant/Viabilidade.php` | Overrides de parâmetros por projeto |
-| `app/Models/Tenant/Terreno.php` + `TerrenoProduto.php` | Unidades, preços, tipologias |
+| `CurvaService.php` | Curvas de venda, curva S de obra e curva financeira de medição |
+| `ImpostosService.php` | Impostos consolidados da DRE e juros PJ |
+| `PremissasViabilidadeService.php` | Resolve premissas ativas diretamente do banco |
+| `app/Models/Tenant/PremissasViabilidade.php` | Premissas default por perfil de financiamento |
+| `app/Models/Tenant/Viabilidade.php` | Overrides por estudo/projeto |
+| `app/Models/Tenant/Terreno.php` + `TerrenoProduto.php` | Unidades, preços, permutas e tipologias |
 
 ---
 
@@ -60,11 +68,11 @@ Incorporação → Lançamento → Obra → Entrega → Pós-Obra
 |------|-----------|----------------|
 | **Incorporação** | Período anterior ao lançamento. Custos de aprovação e RI | `mesesIncorporacao` (padrão: 6 meses) |
 | **Lançamento** | Abertura de vendas. Estande, mobília, comissões iniciais | `mesesLancamento` (padrão: 6 meses) |
-| **Obra** | Construção. Repasses do CEF via medição | `mesesObra` (18, 24, 36, 48 ou 60) |
+| **Obra** | Construção. Repasses do CEF via medição | `mesesObra` (configurável; curvas-base em 18, 20, 24, 30 e 36 meses) |
 | **Entrega** | Mês de entrega das chaves. Registro, contratos | 1 mês |
 | **Pós-Obra** | Parcelas pós-chave, assistência técnica | `mesesPosObra` (padrão: 60 meses) |
 
-As datas são calculadas em `calcularPeriodos()` a partir de `dataInicio` (fixada como `now() + 2 anos`):
+As datas são calculadas em `calcularPeriodos()` a partir de `dataInicio`. Em runtime, esse valor vem de `viabilidades.data_lancamento`; se não existir, usa o fallback de `PremissasViabilidadeService` (`now() + 2 anos`):
 
 ```
 inicioIncorporacao = dataLancamento - mesesIncorporacao
@@ -73,7 +81,7 @@ fimLancamento      = dataLancamento + mesesLancamento - 1
 inicioObra         = fimLancamento + 1 mês
 fimObra            = inicioObra + mesesObra - 1
 dataEntrega        = fimObra + 1 mês
-inicioPos          = dataEntrega + 1 mês
+inicioPos          = dataEntrega
 fimPos             = inicioPos + mesesPosObra - 1
 ```
 
@@ -84,21 +92,28 @@ fimPos             = inicioPos + mesesPosObra - 1
 ```
 gerarFluxoMensal(terrenoId, viabilidadeRef?, customProdutos?)
 │
-├── 1. montarParametros()         — carrega defaults + overrides da Viabilidade
-├── 2. processarProdutos()        — agrega unidades, VGV, custos de todos os produtos
-├── 3. calcularPeriodos()         — define datas de cada fase
+├── 1. buscarTerreno()            — carrega terreno + produtos + campos financeiros
+├── 2. buscarViabilidade()        — resolve a viabilidade de referência
+├── 3. montarParametros()         — premissas ativas do banco + overrides da Viabilidade
+├── 4. ProdutosProcessor.processar() — agrega unidades, VGV, custos e tributos por produto
+├── 5. ProdutosProcessor.mesclarParametros() — aplica defaults derivados do mix de produtos
+├── 6. validarCurvasObrigatorias() — exige `curva_vendas` em todos os produtos
+├── 7. calcularPeriodos()         — define datas de cada fase
 │
-├── 4. ViabilidadeFluxoContext    — cria contexto de estado zerado
-├── 5. preCalcularRecursosProprios() — pré-distribui sinal/obra/pós-chave por mês
-├── 6. inicializarCachesCef()     — pré-distribui vendas CEF e valorMedicaoTotal
+├── 8. ViabilidadeFluxoContext    — cria contexto de estado zerado
+├── 9. preCalcularRecebiveis()    — escolhe lógica `cef` ou `proprio`
+├── 10. aplicarInadimplencia()    — apenas no perfil próprio
+├── 11. inicializarCachesCef()    — vendas por mês, demanda mínima e valor de medição
 │
-├── 7. Loop mês a mês (inicioIncorporacao → fimPos)
+├── 12. Loop mês a mês (inicioIncorporacao → fimPos)
 │     ├── calcularReceitas()
 │     └── calcularDespesas()
 │
-├── 8. calcularIndicadoresFinanceiros()  — TIR, payback, VPL, fluxo financeiro
-├── 9. calcularIndicadoresVso()          — VSO acumulado e por janelas
-└── 10. calcularDre()                    — DRE consolidada + DRE contábil POC
+├── 13. calcularIndicadoresFinanceiros() — TIR, payback, exposição e fluxo financeiro
+├── 14. calcularIndicadoresVso()         — VSO acumulado e por janelas
+├── 15. calcularDre()                    — DRE consolidada
+├── 16. calcularDreCaixa()/POC()         — visões caixa, POC e ponte de reconciliação
+└── 17. salvarSnapshot()                 — persiste premissas e indicadores usados
 ```
 
 **Retorno de `gerarFluxoMensal()`:**
@@ -108,9 +123,11 @@ gerarFluxoMensal(terrenoId, viabilidadeRef?, customProdutos?)
   terreno, vgv, totalUnidades, unidadesPermuta, areaConstruida, custoTotal,
   produtos,
   dre_itens,               // DRE gerencial consolidada
+  dre_caixa,               // visão caixa consolidada
   dre_contabil_poc,        // DRE contábil pelo POC
   dre_contabil_poc_mensal, // mesma DRE por mês
   dre_contabil_poc_mensal_blocos,
+  ponte_reconciliacao,     // reconciliação caixa x DRE x POC
   indicadores,             // todos os indicadores financeiros e de VSO
   dados_produtos,
   fluxo_mensal,            // array[mes] com receita, despesas, saldo_acumulado, unidades_vendidas
@@ -124,14 +141,14 @@ gerarFluxoMensal(terrenoId, viabilidadeRef?, customProdutos?)
 
 ## 5. Receitas Mensais
 
-Calculadas em `calcularReceitas()`. Três fontes distintas:
+Calculadas em `ReceitasCalculator.calcular()`. A composição mensal depende do `perfil_financiamento`.
 
-### 5.1 Recursos Próprios
+### 5.1 Perfil Próprio (`proprio`)
 
-Pré-calculados em `preCalcularRecursosProprios()` antes do loop. Para cada produto e cada mês de venda (coorte) da curva de vendas, distribui os recebimentos em três sub-fluxos:
+Pré-calculados em `preCalcularRecebiveisProprio()` antes do loop. Para cada produto e cada mês de venda (coorte) da curva de vendas, o motor distribui recebimentos em `sinal`, `parcelas_obra` e `parcelas_pos`.
 
 #### Sinal
-- Se a venda ocorre **dentro do lançamento** (mês de venda `s ≤ mesesLancamento`): o valor do sinal é fracionado em parcelas iguais pelos meses restantes do lançamento
+- Se a venda ocorre **dentro do lançamento** (`s ≤ mesesLancamento`): o valor do sinal é fracionado até o fim do lançamento
 - Se a venda ocorre **após o lançamento**: o sinal é recebido integralmente no mês da venda
 
 ```
@@ -140,50 +157,40 @@ parcelaSinal = (preco × %sinal) / numParcelas
 ```
 
 #### Parcelas de Obra
-- Distribuídas pelos meses da obra, a partir do mês em que a unidade foi vendida
-- Cada parcela recebe **correção monetária composta** por `r_obra` pelo tempo decorrido desde a venda:
-
-```
-r_obra = (1 + 0.05)^(1/12) - 1   ← 5% a.a. convertido para mensal
-parcelaAjustada = parcelaNominal × (1 + r_obra)^mesesDecorridos
-```
+- Mensalidades lineares até o fim da obra, descontando balões anuais quando existirem
+- `baloes_anuais` entram como parcelas específicas no mês configurado
+- O saldo restante pode ser lançado integralmente na entrega via `balao_entrega_modo`
 
 #### Pós-Chave
-- Calculado de forma **agregada** (não por coorte): `qtdParcelasPos` parcelas após a entrega
-- Cada parcela = amortização + juros sobre saldo devedor + correção:
+- Após aplicar sinal, mensalidades e balões, o saldo restante pode virar recebimento único na entrega
+
+### 5.2 Perfil CEF (`cef`)
+
+Pré-calculado em `preCalcularRecebiveisCef()`. A lógica atual difere do fluxo próprio:
+
+- **Sinal**: entra integralmente no mês da venda
+- **Parcelas de obra**: são distribuídas linearmente do mês da venda até o fim do prazo total de comercialização + obra
+- **Correção de obra**: não corrige cada parcela individualmente; o motor lança `correcao_obra` mensal sobre o saldo remanescente de obra vendido
+- **Pós-chave**: usa amortização + juros + correção sobre saldo devedor
+- **Inadimplência**: não é aplicada no perfil CEF
+
+### 5.3 Recurso Terrenos (CEF)
+
+O recebimento do terreno não segue mais uma defasagem fixa "mês 2/mês 3+". A regra atual é:
+
+- só libera após a **demanda mínima CEF** ser atingida (`demanda_minCef`)
+- para cada venda, o pagamento ocorre em `max(data_da_venda, mes_demanda_atingida) + defasagem_pgtoTerreno`
+- `avaliacao_lotesCef` pode ser percentual do preço (`0 < valor <= 1`) ou valor absoluto por unidade
+
+### 5.4 Medição de Obra (CEF)
+
+Financiamento recebido por medição, limitado ao avanço físico e às unidades efetivamente vendidas:
 
 ```
-amortizacao = valorPosTotal / qtdParcelasPos
-jurosMes    = saldoDevedor × 0.01        ← 1% a.m.
-correcaoMes = saldoDevedor × r_pos       ← (1 + 0.045)^(1/12) - 1
-pagamentoMes = amortizacao + jurosMes + correcaoMes
-```
+1. valorMedicaoTotal = max(0, financiamentoCEF - totalRecursoTerrenos)
 
-### 5.2 Recurso Terrenos (CEF)
-
-Recebido **durante a obra** com a seguinte lógica de defasagem:
-
-- **Mês 1 de obra**: nada (aguarda acumulação)
-- **Mês 2 de obra**: libera o acumulado das vendas dos meses 1 a 4 do lançamento
-- **Mês 3+**: libera o valor do mês de venda correspondente (defasagem de 2 meses):
-
-```
-mesObraNumero = 3 → mesVenda = 5
-mesObraNumero = 4 → mesVenda = 6
-...
-```
-
-O valor de cada unidade vendida é: `avaliacaoCef × preco` (onde `avaliacaoCef` é um percentual ou valor absoluto configurado por produto).
-
-### 5.3 Medição de Obra (CEF)
-
-Financiamento recebido **durante a obra** através de medições:
-
-```
-1. valorMedicaoTotal = max(0, VGV × 80% - totalRecursoTerrenos)
-
-2. (a cada mês de obra)
-   curvaObraAcumulada += getPercentualCustoObra(mesesObra, mesObraAtual) / 100
+2. (a cada mês elegível)
+   curvaObraAcumulada += curvaFinanceiraMedicao[mes] / 100
    medicaoTeoricaAcumulada = valorMedicaoTotal × curvaObraAcumulada
 
 3. percVendasAcumulado = vendasAcumuladas / totalUnidades
@@ -193,7 +200,11 @@ Financiamento recebido **durante a obra** através de medições:
    medicaoObraAcumulada += valorReceberMes
 ```
 
-O passo 3 garante que a construtora só recebe financiamento sobre as unidades efetivamente vendidas.
+Observações importantes:
+
+- o financiamento CEF parte de `80%` do VGV financiável
+- a curva financeira de medição pode se estender por até **5 meses após o fim da obra**
+- o retorno de receitas passou a usar estrutura aninhada em `snake_case`, por exemplo `detalhes.recursos_proprios.total_recursos_proprios`
 
 ---
 
@@ -207,25 +218,27 @@ Calculados por fase:
 
 | Item | Fórmula | Fase |
 |------|---------|------|
-| Incorporação Até Lançamento | `(VGV × %incorp × %ateLanc) / mesesIncorporacao` | Incorporação |
-| Incorporação Pós Lançamento | `(VGV × %incorp × (1-%ateLanc)) / (mesesLanc + mesesObra)` | Lançamento + Obra |
+| Incorporação Até Lançamento | rateio do bloco de incorporação até o lançamento | Incorporação + Lançamento |
+| Incorporação Pós Lançamento | rateio do saldo de incorporação | Lançamento + Obra |
+| Incorporação RI | valor único no último mês antes do lançamento | fim da Incorporação |
+| Incorporação Entrega | valor único no mês de entrega | Entrega |
+| Obra (Lançamento) | `custoObraTotal × obraAteLancamento / mesesLancamento` | Lançamento |
 | Obra | `custoObraTotal × percentualCurvaS[mês]` | Obra |
 | Canteiro | `canteiroMensal` (fixo) | Obra |
 | Área Comum | `(custoAreaComum × unidades) / mesesObra` | Obra |
 | M.O. Administrativa | `moAdministrativa` (fixo) | Obra |
-| Seguros | `(VGV × %seguros) / (mesesLanc + mesesObra)` | Lançamento + Obra |
-| Assistência Técnica | `baseAssistencia × %AT × curvaAnual[ano] / 12` | Pós-Obra |
-| Medição/Contratação | `unidadesConstrutora × custoMedicaoContratacao` | 1º mês de Obra |
-| Contratos CEF | `unidadesConstrutora × custoContratosCef` | 1º mês de Obra |
+| Seguros | total por tipologia rateado por `mesesObra` | Lançamento + Obra |
+| Assistência Técnica | `baseAssistencia × %AT × curvaAnual[ano] / 12` | Entrega + Pós-Obra |
 
 `custoObraTotal = custoObraHabitacao + custoInfraestrutura + custoNaoIncidente`
 
-### 6.2 Tributos
+### 6.2 Deduções e Impostos Mensais
 
-Delegados ao `ImpostosService.calcularTributosPorProduto()`:
-- PIS/COFINS calculados sobre a receita do mês por produto
-- ISS sobre a receita do mês por produto
-- Juros e correção monetária deduzidos da base tributável
+No fluxo mensal, as deduções são calculadas em `DespesasCalculator.calcularDeducoesMensais()`:
+- `RET/LP imóveis` e `RET/LP lotes` são separados pela tipologia do produto
+- `ISS` e `outras deduções` são rateados proporcionalmente ao VGV por produto
+- `outras deduções` usam base sem juros/correção (`receita - juros_correcao`)
+- o `ImpostosService` fica concentrado na visão consolidada da DRE e nos juros PJ
 
 ### 6.3 Custos Operacionais
 
@@ -235,27 +248,22 @@ Dois sub-blocos:
 
 | Item | Fórmula |
 |------|---------|
-| Stand de Vendas | `standVendas / mesesLancamento` (durante Lançamento) |
-| Mobiliário | `mobiliaDecoracao / mesesAntesLancamento` (antes do Lançamento) |
+| Stand de Vendas | `standVendas / mesesLancamento` durante a janela de construção do stand |
 | Gastos Stand | `VGVsemTerrenista × %gastosMensaisStand` (Lançamento + Obra) |
 | Comissão de Venda | `unidVendidasMes × ticketMedio × taxaComissaoMedia × %pagtoVenda` |
-| Comissão Desligamento | Parcelada sobre vendas anteriores (ver abaixo) |
+| Comissão Desligamento | acumulada até a demanda mínima CEF e liberada no mês em que ela é atingida |
 | Bônus CCA | `bonusCca × unidVendidasMes` |
-| Bônus Gerente | `comissaoBaseMes × %bonusGerente` |
-| Bônus Gerente Regional | `comissaoBaseMes × %bonusGerenteRegional` |
-| Bônus Crédito | `comissaoBaseMes × %bonusCredito` |
-| Bônus Gestor Comercial | `comissaoBaseMes × %bonusGestorComercial` |
 | Ajuda de Custo Gerente | fixo mensal (durante Lançamento + Obra) |
 | Ajuda de Custo Gerente Regional | fixo mensal (durante Lançamento + Obra) |
 | Reembolso Logística | fixo mensal (durante Lançamento + Obra) |
+| Bônus Equipe Comercial | pagamento único quando o estoque comercializável zera |
 
 **Comissão de Desligamento** (`calcularComissaoDesligamentoMensal`):  
-Para cada mês de venda anterior, distribui o valor de desligamento em `parcelamentoComissaoMeses` parcelas:
+O comportamento atual não parcela por `parcelamentoComissaoMeses`. O valor do mês é acumulado até a demanda mínima CEF ser atingida; no mês do atingimento, o acumulado é liberado de uma vez e, dali em diante, passa a ser mensal:
 
 ```
 taxaComissaoMedia = %vendasHouse × taxaHouse + (1 - %vendasHouse) × taxaImob
 desligamentoMesVenda = unidVendidas × ticketMedio × taxaComissaoMedia × %desligamento
-parcelaMes = desligamentoMesVenda / parcelamentoComissaoMeses
 ```
 
 **Marketing Mensal** (`calcularMarketingMensal`):
@@ -265,35 +273,43 @@ parcelaMes = desligamentoMesVenda / parcelamentoComissaoMeses
 ### 6.4 Custos Financeiros
 
 ```
-financeiros = receita['total'] × (%produtosCef + %outrasDespFinanceiras)
+financeiros = outrasDespesasFinanceirasMensal
 ```
 
-Nota: esta linha captura custos como tarifas bancárias mensais proporcionais à receita.
+Observações:
 
-### 6.5 Custo Terreno (proporcional)
+- `outrasDespesasFinanceirasTotal` é rateado igualmente apenas entre os meses que efetivamente têm receita
+- custos de `produtos_caixa`, `contratos_caixa`, `medicao_mensal` e `contratacao` ficam no bloco operacional `taxa_caixa`, não neste bloco
 
-O custo total do terreno (compra + permutas + parceria) é rateado mensalmente proporcional à receita do mês:
+### 6.5 Terreno e Pagamentos ao Terrenista
+
+O fluxo mensal separa duas lógicas:
+
+- `calcularCustoTerreno()` rateia apenas `compraTerreno` proporcionalmente à receita do mês
+- `calcularPagamentoTerreno()` trata parceria, compra parcelada na obra, permuta física e comissão do corretor do terreno
 
 ```
-totalCustoTerreno = permutas × preco + compraTerreno
-custoParceria     = parceriaVgv × VGVcomCorrecao
-custoTerrenoMes   = (totalCustoTerreno + custoParceria) × receitaMes / VGVcomCorrecao
+custoTerrenoMes = compraTerreno × receitaMes / receitaTotalProjeto
+parceriaMes     = receitaMes × parceriaVgv
+compraMensal    = compraTerreno / mesesObra          // apenas na obra
+permutaFisica   = custoPermutaFisicaTotal × curvaMes
+comissaoTerreno = totalTerrenista × %comissao / parcelamento
 ```
 
 ---
 
 ## 7. DRE Consolidada
 
-Calculada em `calcularDre()`, que delega para `calcularCustosDiretosDre()` e `calcularDespesasOperacionaisDre()`.
+Calculada em `DreCalculator.calcular()`, que recalcula a visão consolidada por produto/tipologia. Ela não é uma simples soma literal dos blocos do fluxo mensal.
 
 ### Estrutura de resultado
 
 ```
-Receita Total de Vendas     = VGVsemTerrenista
-+ Juros e Correções         = VGVsemTerrenista × variavelCorrecao
+Receita Total de Vendas     = VGV sem valor terrenista
++ Juros e Correções         = correcaoSobreVgv acumulada no fluxo
 = Receita Bruta
 
-- PIS/COFINS/Outros
+- PIS/COFINS
 - ISS
 - Outras Deduções
 = Receita Líquida (ROL)
@@ -311,16 +327,16 @@ Receita Total de Vendas     = VGVsemTerrenista
 - Assistência Técnica       (%AT × base × curvaAnual)
 = Lucro Bruto
 
-- Despesas Comerciais       (stand, mobília, comissões, bônus, ajudas)
+- Despesas Comerciais       (%despesas_comerciais sobre VGV sem permuta)
 - Marketing
 - ITBI/IPTU
 - Registro
 - Taxa de Medição/Contratação
-- Contratos CEF
-- Produtos CEF
+- Contratos Caixa
+- Produtos Caixa
 = EBITDA
 
-- Outras Despesas Financeiras (%outrasDespFinanceiras × receita)
+- Outras Despesas Financeiras (valor total configurado)
 - Despesas Onerosas Bancos   (juros PJ)
 = EBIT
 
@@ -333,8 +349,8 @@ Receita Total de Vendas     = VGVsemTerrenista
 Financia um percentual do custo de obra com capital de terceiros (Pessoa Jurídica):
 
 ```
-valorAntecipado = custoTotalObra × %antecipacaoPj + custoTerreno × %antecipacaoPj
-jurosTotais     = SAC com taxa composta por mesesObra meses, após carência
+valorAntecipado = custoTotalObra × %antecipacaoPj
+jurosTotais     = formula planilha com taxa mensal equivalente, meses de obra, carência e amortização
 ```
 
 ---
@@ -352,11 +368,15 @@ jurosTotais     = SAC com taxa composta por mesesObra meses, após carência
 | `margem_bruta_percentual` | `lucroBruto / receitaLiquida × 100` |
 | `margem_ebitda_percentual` | `EBITDA / receitaLiquida × 100` |
 | `margem_ebit_percentual` | `EBIT / receitaLiquida × 100` |
+| `tir_financeira` | TIR do fluxo financeiro ajustado com aporte, devolução e PJ |
 | `roi_percentual` | `lucroLiquido / custosDiretosTotal × 100` |
 | `payback_operacional_meses` | Mês em que o saldo operacional acumulado ≥ 0 |
 | `payback_financeiro_meses` | Mês em que o saldo financeiro acumulado ≥ 0 |
-| `vpl_operacional` | VPL do fluxo operacional à taxa de exposição aplicada |
-| `vpl_financeiro` | VPL do fluxo financeiro à taxa de exposição aplicada |
+| `exposicao_maxima_financeira` | Menor saldo acumulado do fluxo financeiro |
+| `exposicao_aplicada_total` | Custo financeiro da exposição negativa até a entrega |
+| `vso_total_percentual` | VSO acumulado do projeto |
+| `vso_medio_mensal_percentual` | VSO médio considerando meses com venda |
+| `vso_mensal_maximo_percentual` | Pico mensal de VSO |
 | `vso_*` | Velocidade de Vendas em períodos (3, 6, 12 meses) |
 
 **Fluxo Financeiro** (`calcularIndicadoresFinanceiros`):  
@@ -365,6 +385,7 @@ Ajusta o fluxo operacional com:
 - Devolução de aportes durante o pós-obra
 - Entrada de antecipação PJ no início da obra
 - Pagamento mensal de amortização + juros PJ após carência
+- Aplicação de custo de exposição quando o saldo financeiro fica negativo até a entrega
 
 ---
 
@@ -384,12 +405,21 @@ Todas as variáveis acumuladas entre meses vivem no contexto, não no service. I
 | `demandaMinima` | `float` | Demanda mínima CEF somada de todos os produtos |
 | `demandaAtingida` | `bool` | Se a demanda mínima CEF foi atingida |
 | `mesDemandaAtingida` | `?string` | Mês (Y-m) em que a demanda foi atingida |
+| `txContratacaoPaga` | `bool` | Garante cobrança única da taxa de contratação |
+| `bonusEquipeComercialPago` | `bool` | Garante pagamento único do bônus comercial |
+| `comissaoDesligamentoAcumulada` | `float` | Acúmulo até atingir demanda mínima CEF |
+| `contratosCefAcumulados` | `float` | Acúmulo de contratos CEF antes da liberação |
+| `produtosCefAcumulados` | `float` | Acúmulo de produtos CEF antes da liberação |
+| `parceriaVgvTotal` | `float` | Total projetado de parceria sobre entradas |
+| `parcelasAtrasadas` | `array<string, float>` | Recuperação parcial de inadimplência no perfil próprio |
 
 ---
 
 ## 10. Parâmetros de Entrada
 
-Montados em `montarParametros()` a partir de `config/viabilidade.php` (defaults) e sobrepostos pelos campos do model `Viabilidade`.
+Montados em `montarParametros()` a partir de `PremissasViabilidadeService` (defaults ativos no banco) e sobrepostos pelos campos do model `Viabilidade`.
+
+Importante: `config/viabilidade.php` não é consultado em runtime; ele serve apenas como apoio de seed/bootstrap inicial.
 
 ### Impostos
 
@@ -449,7 +479,8 @@ Montados em `montarParametros()` a partir de `config/viabilidade.php` (defaults)
 |-----------|---------------|--------|
 | `custoItbiIptu` | `itbi_iptu` | 1.1% |
 | `custoRegistro` | `registro` | R$2.500 |
-| `custoMedicaoContratacao` | `medicao_contratacao` | R$2.000 |
+| `custoContratacaoCef` | `custo_contratacao_cef` ou `medicao_contratacao` | R$2.000 |
+| `custoMedicaoCef` | `custo_medicao_cef` | R$0 |
 | `custoContratosCef` | `contratos_cef` | R$300 |
 
 ### CEF e Financeiro
@@ -457,7 +488,7 @@ Montados em `montarParametros()` a partir de `config/viabilidade.php` (defaults)
 | Parâmetro | Campo no Model | Padrão |
 |-----------|---------------|--------|
 | `percentualProdutosCef` | `produtos_cef` | 0.5% |
-| `percentualOutrasDespesasFinanceiras` | `outras_despesas_financeiras` | 0.3% |
+| `outrasDespesasFinanceirasTotal` | `outras_despesas_financeiras` | 0.3% |
 | `taxaJurosPj` | `taxa_juros_pj` | — |
 | `percentualAntecipacaoPj` | `percentual_antecipacao_pj` | — |
 | `carenciaPjMeses` | `carencia_pj_meses` | — |
@@ -468,11 +499,11 @@ Montados em `montarParametros()` a partir de `config/viabilidade.php` (defaults)
 | Parâmetro | Origem | Padrão |
 |-----------|--------|--------|
 | `mesesObra` | `viabilidade.prazo_obra` | 36 |
-| `mesesIncorporacao` | `config.prazos.meses_incorporacao` | — |
-| `mesesLancamento` | `config.prazos.meses_lancamento` | — |
-| `mesesEntrega` | `config.prazos.meses_entrega` | 1 |
-| `mesesPosObra` | `config.prazos.meses_pos_obra` | — |
-| `variavelCorrecao` | `config.prazos.variavel_correcao` | — |
+| `mesesIncorporacao` | `premissas_viabilidade.meses_incorporacao` | — |
+| `mesesLancamento` | `premissas_viabilidade.meses_lancamento` | — |
+| `mesesEntrega` | `premissas_viabilidade.meses_entrega` | 1 |
+| `mesesPosObra` | `premissas_viabilidade.meses_pos_obra` | — |
+| `dataLancamento` | `viabilidade.data_lancamento` ou fallback das premissas | `now() + 2 anos` |
 
 ### Outros
 
@@ -482,7 +513,7 @@ Montados em `montarParametros()` a partir de `config/viabilidade.php` (defaults)
 | `aporteAdicionalMensal` | `aporte_adicional_mensal` | Aporte financeiro mensal durante a obra |
 | `devolucaoAportePercentual` | `devolucao_aporte_percentual` | % do aporte devolvido no pós-obra |
 | `distribuicaoLucrosPercentualObra` | `distribuicao_lucros_percentual_obra` | — |
-| `taxaExposicaoAplicada` | `taxa_exposicao_aplicada` | Taxa de custo do capital (para VPL e exposição financeira) |
+| `taxaExposicaoAplicada` | `taxa_exposicao_aplicada` | Taxa de custo do capital aplicada sobre exposição financeira negativa |
 
 ---
 
@@ -500,12 +531,13 @@ Montados em `montarParametros()` a partir de `config/viabilidade.php` (defaults)
 
 ## 12. Curvas S (CurvaService)
 
-As curvas de venda vêm da tabela `produtos` do tenant, enquanto a curva de obra é centralizada no `CurvaService`:
+As curvas de venda vêm da tabela `produtos` do tenant, enquanto a curva de obra e a curva financeira de medição são centralizadas no `CurvaService`:
 
 | Fonte | Tipo | Descrição |
 |-------|------|-----------|
 | `produtos.curva_vendas` | JSON array | Percentuais de vendas mês a mês (soma ~100%). Tamanho do array = duração da comercialização |
-| `CurvaService.getPercentualCustoObra()` | Método | Curva S de obra — avanço físico mês a mês baseado no prazo total da obra (18, 20, 24, 30, 36 meses) |
+| `CurvaService.getPercentualCustoObra()` | Método | Curva S de obra baseada no prazo mais próximo disponível |
+| `CurvaService.getCurvaFinanceiraMedicaoParaPrazo()` | Método | Curva financeira da medição CEF, com retenção final e liberações pós-obra |
 
 A `curva_vendas` é obrigatória por produto. A curva de obra não está mais na tabela `produtos` — o `ViabilidadeUnificadoService` obtém a curva S diretamente do `CurvaService` com base no `prazo_obra` informado na viabilidade.
 
@@ -516,7 +548,9 @@ O `CurvaService` centraliza as curvas de desembolso de obra (Curva S) e funçõe
 | Método | Descrição |
 |--------|-----------|
 | `getPercentualCustoObra(int $mesesTotal, int $mesAtual): float` | Retorna o % do custo de obra para um mês específico usando Curva S padrão |
-| `getCurvaObraParaPrazo(int $meses): array` | Retorna a Curva S completa para um prazo de obra |
+| `getCurvaObraParaPrazo(int $meses): array` | Retorna a Curva S normalizada para o prazo mais próximo |
+| `getCurvaObraBaseParaPrazo(int $meses): array` | Retorna a curva base/interpolada sem perder a escala original |
+| `getCurvaFinanceiraMedicaoParaPrazo(int $meses, float $obraAteLancamento): array` | Gera a curva financeira de medição com retenção de saldo final |
 | `extrairCurva(array\|string\|null $valor): array` | Extrai curva de um JSON ou array do produto, filtra negativos |
 | `normalizarCurva(array $curva): array` | Ajusta curva para soma = 100% |
 | `ajustarCurva(array $curva, int $meses): array` | Corta ou preenche com zeros para atingir exatamente `$meses` elementos |
@@ -525,12 +559,12 @@ O `CurvaService` centraliza as curvas de desembolso de obra (Curva S) e funçõe
 
 ### Agregação de Curva de Obra
 
-A curva de obra é calculada via `CurvaService.agregarCurvaObra(mesesObra)` — sem dependência de `curva_obra` por produto:
+A curva de obra é obtida por `getCurvaObraParaPrazo()` e a curva financeira de medição por `getCurvaFinanceiraMedicaoParaPrazo()`:
 
-1. O `CurvaService` seleciona a Curva S padrão correspondente ao prazo de obra (18, 20, 24, 30 ou 36 meses)
-2. Para prazos intermediários, utiliza interpolação linear entre as curvas vizinhas
+1. O `CurvaService` seleciona a Curva S padrão correspondente ao prazo mais próximo disponível (18, 20, 24, 30 ou 36 meses)
+2. Para algumas visões, a curva pode ser interpolada e depois reescalada
 3. A curva resultante é normalizada para soma = 100%
 
 Essa curva é usada em:
 - **Custos Diretos**: distribuir o custo total de obra mês a mês (`calcularCustosDiretos`)
-- **Medição de Obra CEF**: calcular o percentual físico acumulado (`calcularMedicaoObra`)
+- **Medição de Obra CEF**: calcular o percentual financeiro acumulado e as liberações pós-obra (`calcularMedicaoObra`)

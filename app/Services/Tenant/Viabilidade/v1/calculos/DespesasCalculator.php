@@ -27,23 +27,28 @@ class DespesasCalculator
         $vgv = $dadosProdutos['vgv'];
         $custoObra = $this->custoObraTotal($dadosProdutos);
 
+        $receitaTotal = $receitas['total'] ?? 0.0;
+        $rtValor = $receitas['detalhes']['recebimento_terreno']['recebimento_total_terreno'] ?? 0.0;
+        $receitaSemRt = max(0.0, $receitaTotal - $rtValor);
+
         $diretos = $this->calcularCustosDiretos($mes, $periodo, $datas, $params, $vgv, $custoObra, $dadosProdutos);
 
         $deducoes = $this->calcularDeducoesMensais(
             $receitas,
             $dadosProdutos,
-            $params
+            $params,
+            $receitaSemRt
         );
 
         $operacionais = $this->calcularCustosOperacionais($mes, $dadosProdutos, $datas, $params, $ctx);
 
         $financeiros = 0.0;
-        if (($receitas['total'] ?? 0.0) > 0.01) {
+        if ($receitaSemRt > 0.01) {
             $financeiros = (float) ($params['outrasDespesasFinanceirasMensal'] ?? 0.0);
         }
 
-        $custoTerreno = $this->calcularCustoTerreno($receitas['total'], $dadosProdutos, $params);
-        $pagamentoTerreno = $this->calcularPagamentoTerreno($mes, $periodo, $receitas, $dadosProdutos, $datas, $params, $ctx);
+        $custoTerreno = $this->calcularCustoTerreno($receitaTotal, $dadosProdutos, $params);
+        $pagamentoTerreno = $this->calcularPagamentoTerreno($mes, $periodo, $receitas, $dadosProdutos, $datas, $params, $ctx, $receitaSemRt);
 
         $despesasComerciaisTotal = $operacionais['detalhes']['Stand de Vendas'] ?? 0;
         $despesasComerciaisTotal += $operacionais['detalhes']['Gastos Mensais Stand'] ?? 0;
@@ -140,6 +145,7 @@ class DespesasCalculator
                 'valor_permuta_financeira' => round($valorPermutaFinanceira, 2),
                 'valor_permuta_fisica' => round($pagamentoTerreno['permuta_fisica'], 2),
                 'valor_comissao' => round($pagamentoTerreno['comissao_corretor'], 2),
+                'valor_pgto_por_lote' => round($pagamentoTerreno['pgto_por_lote'], 2),
                 'total_terreno' => round($custoTerreno + $pagamentoTerreno['total'], 2),
             ],
             'incorporacao' => [
@@ -293,9 +299,9 @@ class DespesasCalculator
         ];
     }
 
-    private function calcularDeducoesMensais(array $receitas, array $dadosProdutos, array $params): array
+    private function calcularDeducoesMensais(array $receitas, array $dadosProdutos, array $params, float $receitaBase): array
     {
-        $receitaMes = (float) ($receitas['total'] ?? 0.0);
+        $receitaMes = $receitaBase;
         $jurosCorrecaoMes = (float) ($receitas['juros_correcao'] ?? 0.0);
         if ($receitaMes <= 0) {
             return ['ret_imoveis' => 0.0, 'ret_lotes' => 0.0, 'iss' => 0.0, 'outras' => 0.0, 'total' => 0.0];
@@ -371,30 +377,42 @@ class DespesasCalculator
         return $receitaTotal > 0 ? ($totalCustoTerreno * $receitaMes) / $receitaTotal : 0;
     }
 
-    private function calcularPagamentoTerreno(string $mes, string $periodo, array $receitas, array $dadosProdutos, array $datas, array $params, ViabilidadeFluxoContext $ctx): array
+    private function calcularPagamentoTerreno(string $mes, string $periodo, array $receitas, array $dadosProdutos, array $datas, array $params, ViabilidadeFluxoContext $ctx, float $receitaBase): array
     {
-        $parceria = max(0.0, ((float) ($receitas['total'] ?? 0.0)) * ((float) ($params['parceriaVgv'] ?? 0.0)));
-        $compraTerrenoMensal = $this->calcularCompraTerrenoMensal($periodo, $params);
-        $parceria += $compraTerrenoMensal;
+        $parceria = max(0.0, $receitaBase * ((float) ($params['parceriaVgv'] ?? 0.0)));
         $permutaFisica = $this->calcularPagamentoPermutaFisicaTerreno($mes, $periodo, $dadosProdutos, $datas, $params);
         $comissaoCorretor = $this->calcularComissaoCorretorTerreno($mes, $dadosProdutos, $datas, $params, $ctx);
-        $total = $parceria + $permutaFisica + $comissaoCorretor;
+        $pgtoPorLote = $this->calcularPgtoPorLoteMensal($periodo, $dadosProdutos, $params);
+        $total = $parceria + $permutaFisica + $comissaoCorretor + $pgtoPorLote;
 
         return [
             'parceria' => $parceria,
             'permuta_fisica' => $permutaFisica,
             'comissao_corretor' => $comissaoCorretor,
+            'pgto_por_lote' => $pgtoPorLote,
             'total' => $total,
         ];
     }
 
-    private function calcularCompraTerrenoMensal(string $periodo, array $params): float
+    private function calcularPgtoPorLoteMensal(string $periodo, array $dadosProdutos, array $params): float
     {
-        if ($periodo !== 'Obra') {
+        $produtos = $dadosProdutos['produtos'] ?? [];
+        $totalPgtoPorLote = 0.0;
+        foreach ($produtos as $produto) {
+            $permutas = (int) ($produto['permutas'] ?? 0);
+            $pgtoPorLoteUnitario = (float) ($produto['pgto_por_lote'] ?? 0);
+            $totalPgtoPorLote += $permutas * $pgtoPorLoteUnitario;
+        }
+
+        if ($totalPgtoPorLote <= 0) {
             return 0.0;
         }
 
-        return max(0.0, (float) ($params['compraTerreno'] ?? 0.0)) / max(1, (int) ($params['mesesObra'] ?? 1));
+        if ($periodo === 'Obra') {
+            return $totalPgtoPorLote / max(1, (int) ($params['mesesObra'] ?? 1));
+        }
+
+        return 0.0;
     }
 
     private function calcularPagamentoPermutaFisicaTerreno(string $mes, string $periodo, array $dadosProdutos, array $datas, array $params): float
@@ -445,7 +463,7 @@ class DespesasCalculator
             $unidades = max(0, ((int) ($produto['quantidade_unidades'] ?? 0)) - ((int) ($produto['permutas'] ?? 0)));
             $avaliacao = (float) ($produto['avaliacao_lotesCef'] ?? 0.0);
             $preco = (float) ($produto['preco'] ?? 0.0);
-            $totalRecursoTerrenos += $unidades * (($avaliacao > 0 && $avaliacao <= 1) ? ($avaliacao * $preco) : $avaliacao);
+            $totalRecursoTerrenos += $unidades * $this->resolverAvaliacaoCefUnitario($avaliacao, $preco);
         }
 
         $totalEntradas = $totalRecursosProprios + $totalJurosCorrecao + $totalRecursoTerrenos + (float) $ctx->valorMedicaoTotal;
@@ -657,5 +675,22 @@ class DespesasCalculator
     private function agregarCurvaObra(int $mesesObra): array
     {
         return $this->curvaService->getCurvaObraParaPrazo($mesesObra);
+    }
+
+    private function resolverAvaliacaoCefUnitario(float $avaliacaoCef, float $preco): float
+    {
+        if ($avaliacaoCef <= 0) {
+            return 0.0;
+        }
+
+        if ($avaliacaoCef <= 1) {
+            return $avaliacaoCef * $preco;
+        }
+
+        if ($avaliacaoCef <= 100) {
+            return ($avaliacaoCef / 100) * $preco;
+        }
+
+        return $avaliacaoCef;
     }
 }

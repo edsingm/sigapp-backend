@@ -142,11 +142,26 @@ class ReceitasCalculator
         $avaliacaoCef = $produto['avaliacao_lotesCef'] ?? 0;
         $preco = $produto['preco'] ?? 0;
 
-        $valorPorUnidade = ($avaliacaoCef > 0 && $avaliacaoCef <= 1)
-            ? $avaliacaoCef * $preco
-            : $avaliacaoCef;
+        $valorPorUnidade = $this->resolverAvaliacaoCefUnitario($avaliacaoCef, $preco);
 
         return $unidadesVendidasMes * $valorPorUnidade;
+    }
+
+    private function resolverAvaliacaoCefUnitario(float $avaliacaoCef, float $preco): float
+    {
+        if ($avaliacaoCef <= 0) {
+            return 0.0;
+        }
+
+        if ($avaliacaoCef <= 1) {
+            return $avaliacaoCef * $preco;
+        }
+
+        if ($avaliacaoCef <= 100) {
+            return ($avaliacaoCef / 100) * $preco;
+        }
+
+        return $avaliacaoCef;
     }
 
     private function calcularMedicaoObra(
@@ -205,12 +220,8 @@ class ReceitasCalculator
             $unidades = max(0, $unidades);
             $preco = $produto['preco'] ?? 0;
             $avaliacaoCef = $produto['avaliacao_lotesCef'] ?? 0;
-
-            if ($avaliacaoCef > 0 && $avaliacaoCef <= 1) {
-                $totalRecursoTerrenos += $avaliacaoCef * $preco * $unidades;
-            } else {
-                $totalRecursoTerrenos += $avaliacaoCef * $unidades;
-            }
+            $valorPorUnidade = $this->resolverAvaliacaoCefUnitario($avaliacaoCef, $preco);
+            $totalRecursoTerrenos += $valorPorUnidade * $unidades;
 
             $dataLancamento = $datas['dataLancamento'];
             foreach ($curvaVendas as $mesIndex => $percentualVenda) {

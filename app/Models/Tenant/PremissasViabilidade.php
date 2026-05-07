@@ -36,6 +36,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property float $despesas_comerciais
  * @property float $stand_vendas
  * @property float $mobilia_decoracao
+ * @property float $gastos_mensais_stand
+ * @property float $comissao_house_percentual
+ * @property float $comissao_imobiliarias_percentual
+ * @property float $percentual_vendas_house
  * @property int $construcao_stand_meses_antes_lancamento
  * @property float $ajuda_custo_gerente
  * @property float $ajuda_custo_gerente_regional
@@ -46,10 +50,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property float $bonus_credito
  * @property float $bonus_gestor_comercial
  * @property float $bonus_equipe_comercial
+ * @property float $pagamento_comissao_venda
  * @property float $pagamento_comissao_desligamento
  * @property int $parcelamento_comissao_meses
  * @property int $parcelamento_comissao_terreno
  * @property float $marketing
+ * @property float $marketing_lancamento
  * @property int $marketing_inicio_antes_lancamento
  * @property float $itbi_iptu
  * @property float $registro
@@ -70,7 +76,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property float $devolucao_aporte_percentual
  * @property float $distribuicao_lucros_percentual_obra
  * @property float $taxa_exposicao_aplicada
- * @property array|null $avaliacao_lotes_cef
  * @property float $inadimplencia
  * @property int $atraso_meses
  * @property float $taxa_perda
@@ -113,6 +118,10 @@ class PremissasViabilidade extends Model
         'despesas_comerciais',
         'stand_vendas',
         'mobilia_decoracao',
+        'gastos_mensais_stand',
+        'comissao_house_percentual',
+        'comissao_imobiliarias_percentual',
+        'percentual_vendas_house',
         'construcao_stand_meses_antes_lancamento',
         'ajuda_custo_gerente',
         'ajuda_custo_gerente_regional',
@@ -123,10 +132,12 @@ class PremissasViabilidade extends Model
         'bonus_credito',
         'bonus_gestor_comercial',
         'bonus_equipe_comercial',
+        'pagamento_comissao_venda',
         'pagamento_comissao_desligamento',
         'parcelamento_comissao_meses',
         'parcelamento_comissao_terreno',
         'marketing',
+        'marketing_lancamento',
         'marketing_inicio_antes_lancamento',
         'itbi_iptu',
         'registro',
@@ -147,7 +158,6 @@ class PremissasViabilidade extends Model
         'devolucao_aporte_percentual',
         'distribuicao_lucros_percentual_obra',
         'taxa_exposicao_aplicada',
-        'avaliacao_lotes_cef',
         'inadimplencia',
         'atraso_meses',
         'taxa_perda',
@@ -184,6 +194,10 @@ class PremissasViabilidade extends Model
         'despesas_comerciais' => 'decimal:4',
         'stand_vendas' => 'decimal:2',
         'mobilia_decoracao' => 'decimal:2',
+        'gastos_mensais_stand' => 'decimal:4',
+        'comissao_house_percentual' => 'decimal:2',
+        'comissao_imobiliarias_percentual' => 'decimal:2',
+        'percentual_vendas_house' => 'decimal:2',
         'construcao_stand_meses_antes_lancamento' => 'integer',
         'ajuda_custo_gerente' => 'decimal:2',
         'ajuda_custo_gerente_regional' => 'decimal:2',
@@ -194,10 +208,12 @@ class PremissasViabilidade extends Model
         'bonus_credito' => 'decimal:4',
         'bonus_gestor_comercial' => 'decimal:4',
         'bonus_equipe_comercial' => 'decimal:2',
+        'pagamento_comissao_venda' => 'decimal:2',
         'pagamento_comissao_desligamento' => 'decimal:4',
         'parcelamento_comissao_meses' => 'integer',
         'parcelamento_comissao_terreno' => 'integer',
         'marketing' => 'decimal:4',
+        'marketing_lancamento' => 'decimal:2',
         'marketing_inicio_antes_lancamento' => 'integer',
         'itbi_iptu' => 'decimal:4',
         'registro' => 'decimal:2',
@@ -218,7 +234,6 @@ class PremissasViabilidade extends Model
         'devolucao_aporte_percentual' => 'decimal:4',
         'distribuicao_lucros_percentual_obra' => 'decimal:4',
         'taxa_exposicao_aplicada' => 'decimal:4',
-        'avaliacao_lotes_cef' => 'array',
         'inadimplencia' => 'decimal:4',
         'atraso_meses' => 'integer',
         'taxa_perda' => 'decimal:4',

@@ -113,6 +113,7 @@ class ProdutosProcessor
                 'custo_infraestrutura' => $custoInfra,
                 'vgv_produto' => $vgvProduto,
                 'avaliacao_lotesCef' => $avaliacaoLotesCef,
+                'defasagem_pgtoTerreno' => $produto->defasagem_pgtoTerreno ?? 0,
                 'permutas' => $permutas,
                 'pgto_por_lote' => $pgtoPorLote,
                 'demanda_minCef' => $demandaMinCef,
@@ -122,21 +123,9 @@ class ProdutosProcessor
                 'imposto_tributos' => $params['percentualPisCofins'] ?? 0,
                 'imposto_iss' => $params['percentualIss'] ?? 0,
                 'imposto_outros' => $params['percentualOutrosImpostos'] ?? 0,
-                'gastos_mensais_stand' => (float) ($produto->gastos_mensaisStand ?? 0),
-                'comissao_house' => (float) ($produto->comissao_house ?? 0) / 100,
-                'porcentagem_comissao_house' => (float) ($produto->porcentagem_comissaoHouse ?? 0) / 100,
-                'porcentagem_comissao_imobs' => (float) ($produto->porcentagem_comissaoImobs ?? 0) / 100,
-                'pagto_comissao_venda' => (float) ($produto->pagto_comissaoNaVenda ?? 0) / 100,
-                'marketing_lancamento' => (float) ($produto->marketing_lancamento ?? 0) / 100,
-                'marketing_antes_lancamento' => (int) ($produto->marketing_antesLancamento ?? 0),
                 'custo_contratacao_cef' => $params['custoMedicaoContratacao'] ?? $params['custoContratacaoCef'] ?? 0,
                 'pj_taxa_juros' => $params['taxaJurosPj'] ?? 0.105,
-                'pj_carencia_pos_obra' => (int) ($produto->pj_carenciaPosObra ?? 0),
-                'pj_qtde_parcelas' => (int) ($produto->pj_qtdeParcelasPosCarencia ?? 0),
                 'assist_tecnica_curva' => $this->extrairAssistenciaTecnicaProduto($produto),
-                'incorp_ri' => (float) ($produto->incorp_ri ?? 0) / 100,
-                'incorp_entrega' => (float) ($produto->incorp_entrega ?? 0) / 100,
-                'incorp_ate_lancamento' => (float) ($produto->incorp_ateLancamento ?? 0) / 100,
                 'financeiro' => [
                     'sinal' => $produto->sinal ?? 0,
                     'parcela_obra' => $produto->parcela_obra ?? 0,
@@ -205,18 +194,10 @@ class ProdutosProcessor
             return $fallback;
         };
 
-        $params['gastosMensaisStand'] = (float) $extrair('gastos_mensais_stand', $params['gastosMensaisStand'] ?? 0.0001);
-        $params['comissaoHousePercentual'] = (float) $extrair('comissao_house', $params['comissaoHousePercentual'] ?? 0.03);
-        $params['percentualVendasHouse'] = (float) $extrair('porcentagem_comissao_house', $params['percentualVendasHouse'] ?? 0.50);
-        $params['comissaoImobiliariasPercentual'] = $params['comissaoImobiliariasPercentual'] ?? 0.035;
-        $params['pagamentoComissaoVenda'] = (float) $extrair('pagto_comissao_venda', $params['pagamentoComissaoVenda'] ?? 0.50);
-        $params['marketingLancamento'] = (float) $extrair('marketing_lancamento', $params['marketingLancamento'] ?? 0.25);
-        $params['marketingInicioAntesLancamento'] = (int) $extrair('marketing_antes_lancamento', $params['marketingInicioAntesLancamento'] ?? 3);
+        // Produto continua podendo definir apenas a curva de assistencia tecnica,
+        // que ainda e tratada por tipologia. Parametros globais ficam em
+        // viabilidades/premissas_viabilidade.
         $params['assistenciaTecnicaCurva'] = $extrair('assist_tecnica_curva', $params['assistenciaTecnicaCurva'] ?? [50, 20, 10, 10, 10]);
-        $params['incorporacaoRi'] = (float) $extrair('incorp_ri', $params['incorporacaoRi'] ?? 0.30);
-        $params['incorporacaoEntrega'] = (float) $extrair('incorp_entrega', $params['incorporacaoEntrega'] ?? 0.15);
-        $params['incorporacaoAteLancamento'] = (float) $extrair('incorp_ate_lancamento', $params['incorporacaoAteLancamento'] ?? 0.80);
-        $params['obraAteLancamento'] = (float) $extrair('obra_ateLancamento', $params['obraAteLancamento'] ?? 0.01);
 
         return $params;
     }

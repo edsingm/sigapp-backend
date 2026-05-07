@@ -238,6 +238,53 @@ class ViabilidadeApiTest extends TestCase
             ->assertJsonStructure(['data' => ['viabilidade' => ['auditoria']]]);
     }
 
+    public function test_viabilidade_persiste_overrides_comerciais_detalhados(): void
+    {
+        $terrenoProduto = $this->createViabilityFixture();
+
+        $response = $this->actingAs($this->admin)
+            ->postJson('/api/v1/viabilidades', [
+                'terreno_id' => $terrenoProduto->terreno_id,
+                'gastos_mensais_stand' => 0.1234,
+                'comissao_house_percentual' => 4.5,
+                'comissao_imobiliarias_percentual' => 5.5,
+                'percentual_vendas_house' => 60.0,
+                'pagamento_comissao_venda' => 65.0,
+                'marketing_lancamento' => 30.0,
+                'marketing_inicio_antes_lancamento' => 5,
+                'produtos' => [
+                    [
+                        'id' => $terrenoProduto->id,
+                        'unidades' => 12,
+                        'valor' => 250000,
+                        'permuta' => 0,
+                        'pgto_por_lote' => 0,
+                        'custo_m2' => 1800,
+                        'custo_infra' => 300,
+                    ],
+                ],
+            ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.viabilidade.gastos_mensais_stand', 0.1234)
+            ->assertJsonPath('data.viabilidade.comissao_house_percentual', 4.5)
+            ->assertJsonPath('data.viabilidade.comissao_imobiliarias_percentual', 5.5)
+            ->assertJsonPath('data.viabilidade.percentual_vendas_house', 60)
+            ->assertJsonPath('data.viabilidade.pagamento_comissao_venda', 65)
+            ->assertJsonPath('data.viabilidade.marketing_lancamento', 30)
+            ->assertJsonPath('data.viabilidade.marketing_inicio_antes_lancamento', 5);
+
+        $viabilidade = Viabilidade::findOrFail($response->json('data.viabilidade.id'));
+
+        $this->assertSame(0.1234, (float) $viabilidade->gastos_mensais_stand);
+        $this->assertSame(4.5, (float) $viabilidade->comissao_house_percentual);
+        $this->assertSame(5.5, (float) $viabilidade->comissao_imobiliarias_percentual);
+        $this->assertSame(60.0, (float) $viabilidade->percentual_vendas_house);
+        $this->assertSame(65.0, (float) $viabilidade->pagamento_comissao_venda);
+        $this->assertSame(30.0, (float) $viabilidade->marketing_lancamento);
+        $this->assertSame(5, (int) $viabilidade->marketing_inicio_antes_lancamento);
+    }
+
     private function createViabilityFixture(): TerrenoProduto
     {
         $corretor = CorretorExterno::create([
@@ -336,6 +383,10 @@ class ViabilidadeApiTest extends TestCase
             'despesas_comerciais' => 5.0,
             'stand_vendas' => 0.0,
             'mobilia_decoracao' => 90000.0,
+            'gastos_mensais_stand' => 0.0001,
+            'comissao_house_percentual' => 3.0,
+            'comissao_imobiliarias_percentual' => 3.5,
+            'percentual_vendas_house' => 50.0,
             'ajuda_custo_gerente' => 5000.0,
             'ajuda_custo_gerente_regional' => 2733.0,
             'reembolso_logistica' => 5000.0,
@@ -344,9 +395,11 @@ class ViabilidadeApiTest extends TestCase
             'bonus_gerente_regional' => 0.12,
             'bonus_credito' => 0.05,
             'bonus_gestor_comercial' => 0.05,
+            'pagamento_comissao_venda' => 50.0,
             'pagamento_comissao_desligamento' => 50.0,
             'parcelamento_comissao_meses' => 18,
             'marketing' => 1.0,
+            'marketing_lancamento' => 25.0,
             'marketing_inicio_antes_lancamento' => 3,
             'itbi_iptu' => 1.1,
             'registro' => 2500.0,
@@ -367,7 +420,6 @@ class ViabilidadeApiTest extends TestCase
             'devolucao_aporte_percentual' => 20.0,
             'distribuicao_lucros_percentual_obra' => 100.0,
             'taxa_exposicao_aplicada' => 12.5,
-            'avaliacao_lotes_cef' => json_encode(['2_dorm' => 20.0, '3_dorm' => 15.0, 'lotes' => 0.0]),
             'inadimplencia' => 0.10,
             'atraso_meses' => 2,
             'taxa_perda' => 0.02,

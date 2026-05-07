@@ -43,10 +43,6 @@ class UpdateProdutoRequest extends FormRequest
             'correcao_anualObra' => 'nullable|numeric',
             'correcao_anualPosChave' => 'nullable|numeric',
             'curva_vendas' => 'nullable|array',
-            'incorp_ri' => 'nullable|numeric|min:0',
-            'incorp_entrega' => 'nullable|numeric|min:0',
-            'incorp_ateLancamento' => 'nullable|numeric|min:0',
-            'obra_ateLancamento' => 'nullable|numeric|min:0',
             'assist_tecnica1' => 'nullable|numeric|min:0',
             'assist_tecnica2' => 'nullable|numeric|min:0',
             'assist_tecnica3' => 'nullable|numeric|min:0',
@@ -54,15 +50,6 @@ class UpdateProdutoRequest extends FormRequest
             'assist_tecnica5' => 'nullable|numeric|min:0',
             'meses_inicioConstrucao' => 'nullable|string|max:255',
             'porcentagem_ConstrucaoStand' => 'nullable|numeric|min:0',
-            'gastos_mensaisStand' => 'nullable|numeric|min:0',
-            'comissao_house' => 'nullable|numeric|min:0',
-            'porcentagem_comissaoHouse' => 'nullable|numeric|min:0',
-            'porcentagem_comissaoImobs' => 'nullable|numeric|min:0',
-            'pagto_comissaoNaVenda' => 'nullable|numeric|min:0',
-            'marketing_antesLancamento' => 'nullable|numeric|min:0',
-            'marketing_lancamento' => 'nullable|numeric|min:0',
-            'pj_carenciaPosObra' => 'nullable|string|max:255',
-            'pj_qtdeParcelasPosCarencia' => 'nullable|string|max:255',
         ];
     }
 

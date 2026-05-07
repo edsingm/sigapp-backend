@@ -301,7 +301,7 @@ class FluxoMensalCalculator
                 $jurosMes = $saldoDevedor * $jurosMensalPos;
                 $correcaoMes = $saldoDevedor * $r_pos;
 
-                $dataRecebimento = $dataEntrega->copy()->addMonths($prazoLancamento + $k - 1);
+                $dataRecebimento = $dataEntrega->copy()->addMonths($k - 1);
                 $chaveMes = $dataRecebimento->format('Y-m');
 
                 $ctx->recursosProprios[$chaveMes]['parcelas_pos'] =

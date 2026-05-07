@@ -498,6 +498,7 @@ O backend cria a viabilidade, roda o cálculo completo do DRE e retorna tudo em 
                 "valor_permuta_financeira": 0,
                 "valor_permuta_fisica": 0,
                 "valor_comissao": 0,
+                "valor_pgto_por_lote": 0,
                 "total_terreno": 0
               },
               "incorporacao": {
@@ -582,6 +583,7 @@ O backend cria a viabilidade, roda o cálculo completo do DRE e retorna tudo em 
                 "valor_permuta_financeira": 0,
                 "valor_permuta_fisica": 0,
                 "valor_comissao": 0,
+                "valor_pgto_por_lote": 0,
                 "total_terreno": 0
               },
               "incorporacao": {
@@ -666,6 +668,7 @@ O backend cria a viabilidade, roda o cálculo completo do DRE e retorna tudo em 
                 "valor_permuta_financeira": 0,
                 "valor_permuta_fisica": 0,
                 "valor_comissao": 0,
+                "valor_pgto_por_lote": 0,
                 "total_terreno": 0
               },
               "incorporacao": {
@@ -1070,10 +1073,11 @@ Os 12 grupos de despesas são:
 **`terreno`** — Pagamentos ao proprietário do terreno
 | Caminho | Significado |
 |---------|------------|
-| `terreno.valor_permuta_financeira` | Rateio da compra do terreno + parceria VGV |
-| `terreno.valor_permuta_fisica` | Custo de permuta física (unidades dadas ao proprietário) |
+| `terreno.valor_permuta_financeira` | Rateio da compra do terreno + parceria VGV (% sobre receita) |
+| `terreno.valor_permuta_fisica` | Custo de construção das unidades de permuta (rateado pela curva S da obra) |
 | `terreno.valor_comissao` | Comissão do corretor do terreno |
-| `terreno.total_terreno` | Soma dos 3 itens acima |
+| `terreno.valor_pgto_por_lote` | Pagamento por lote (`pgto_por_lote × unidades permutadas`, rateado nos meses de obra) |
+| `terreno.total_terreno` | Soma dos 4 itens acima |
 
 **`incorporacao`** — Despesas de incorporação
 | Caminho | Período |

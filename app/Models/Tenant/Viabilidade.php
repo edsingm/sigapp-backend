@@ -14,6 +14,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property int $id
  * @property int $terreno_id
  * @property \App\Enums\PerfilFinanciamento|null $perfil_financiamento
+ * @property string|null $data_lancamento
+ * @property array<string, mixed>|null $premissas_snapshot
+ * @property array<string, mixed>|null $resultados_dre
  * @property string|null $status
  * @property string|null $approval_status
  */
@@ -63,6 +66,10 @@ class Viabilidade extends Model
         'despesas_comerciais',
         'stand_vendas',
         'mobilia_decoracao',
+        'gastos_mensais_stand',
+        'comissao_house_percentual',
+        'comissao_imobiliarias_percentual',
+        'percentual_vendas_house',
         'construcao_stand_meses_antes_lancamento',
         'ajuda_custo_gerente',
         'ajuda_custo_gerente_regional',
@@ -73,9 +80,12 @@ class Viabilidade extends Model
         'bonus_credito',
         'bonus_gestor_comercial',
         'bonus_equipe_comercial',
+        'pagamento_comissao_venda',
         'pagamento_comissao_desligamento',
         'parcelamento_comissao_meses',
         'marketing',
+        'marketing_lancamento',
+        'marketing_inicio_antes_lancamento',
         'itbi_iptu',
         'registro',
         'custo_contratacao_cef',
@@ -117,6 +127,10 @@ class Viabilidade extends Model
         'despesas_comerciais',
         'stand_vendas',
         'mobilia_decoracao',
+        'gastos_mensais_stand',
+        'comissao_house_percentual',
+        'comissao_imobiliarias_percentual',
+        'percentual_vendas_house',
         'construcao_stand_meses_antes_lancamento',
         'ajuda_custo_gerente',
         'ajuda_custo_gerente_regional',
@@ -127,9 +141,12 @@ class Viabilidade extends Model
         'bonus_credito',
         'bonus_gestor_comercial',
         'bonus_equipe_comercial',
+        'pagamento_comissao_venda',
         'pagamento_comissao_desligamento',
         'parcelamento_comissao_meses',
         'marketing',
+        'marketing_lancamento',
+        'marketing_inicio_antes_lancamento',
         'itbi_iptu',
         'registro',
         'custo_contratacao_cef',
@@ -177,6 +194,10 @@ class Viabilidade extends Model
         'despesas_comerciais' => 'decimal:2',
         'stand_vendas' => 'decimal:2',
         'mobilia_decoracao' => 'decimal:2',
+        'gastos_mensais_stand' => 'decimal:4',
+        'comissao_house_percentual' => 'decimal:2',
+        'comissao_imobiliarias_percentual' => 'decimal:2',
+        'percentual_vendas_house' => 'decimal:2',
         'construcao_stand_meses_antes_lancamento' => 'integer',
         'ajuda_custo_gerente' => 'decimal:2',
         'ajuda_custo_gerente_regional' => 'decimal:2',
@@ -187,9 +208,12 @@ class Viabilidade extends Model
         'bonus_credito' => 'decimal:4',
         'bonus_gestor_comercial' => 'decimal:4',
         'bonus_equipe_comercial' => 'decimal:2',
+        'pagamento_comissao_venda' => 'decimal:2',
         'pagamento_comissao_desligamento' => 'decimal:2',
         'parcelamento_comissao_meses' => 'integer',
         'marketing' => 'decimal:2',
+        'marketing_lancamento' => 'decimal:2',
+        'marketing_inicio_antes_lancamento' => 'integer',
         'itbi_iptu' => 'decimal:2',
         'registro' => 'decimal:2',
         'custo_contratacao_cef' => 'decimal:2',

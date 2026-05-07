@@ -2,7 +2,6 @@
 
 namespace App\Services\Tenant\Viabilidade\v1;
 
-use App\Enums\PerfilFinanciamento;
 use App\Models\Tenant\PremissasViabilidade;
 use Carbon\Carbon;
 use RuntimeException;
@@ -55,6 +54,10 @@ class PremissasViabilidadeService
             'despesas_comerciais'              => (float) $premissa->despesas_comerciais,
             'stand_vendas'                     => (float) $premissa->stand_vendas,
             'mobilia_decoracao'                => (float) $premissa->mobilia_decoracao,
+            'gastos_mensais_stand'             => (float) $premissa->gastos_mensais_stand,
+            'comissao_house_percentual'        => (float) $premissa->comissao_house_percentual,
+            'comissao_imobiliarias_percentual' => (float) $premissa->comissao_imobiliarias_percentual,
+            'percentual_vendas_house'          => (float) $premissa->percentual_vendas_house,
             'construcao_stand_meses_antes_lancamento' => (int) $premissa->construcao_stand_meses_antes_lancamento,
             'ajuda_custo_gerente'              => (float) $premissa->ajuda_custo_gerente,
             'ajuda_custo_gerente_regional'     => (float) $premissa->ajuda_custo_gerente_regional,
@@ -65,10 +68,12 @@ class PremissasViabilidadeService
             'bonus_credito'                    => (float) $premissa->bonus_credito,
             'bonus_gestor_comercial'           => (float) $premissa->bonus_gestor_comercial,
             'bonus_equipe_comercial'           => (float) $premissa->bonus_equipe_comercial,
+            'pagamento_comissao_venda'         => (float) $premissa->pagamento_comissao_venda,
             'pagamento_comissao_desligamento'  => (float) $premissa->pagamento_comissao_desligamento,
             'parcelamento_comissao_meses'      => (int) $premissa->parcelamento_comissao_meses,
             'parcelamento_comissao_terreno'    => (int) $premissa->parcelamento_comissao_terreno,
             'marketing'                        => (float) $premissa->marketing,
+            'marketing_lancamento'             => (float) $premissa->marketing_lancamento,
             'marketing_inicio_antes_lancamento' => (int) $premissa->marketing_inicio_antes_lancamento,
             'itbi_iptu'                        => (float) $premissa->itbi_iptu,
             'registro'                         => (float) $premissa->registro,
@@ -89,10 +94,7 @@ class PremissasViabilidadeService
             'devolucao_aporte_percentual'      => (float) $premissa->devolucao_aporte_percentual,
             'distribuicao_lucros_percentual_obra' => (float) $premissa->distribuicao_lucros_percentual_obra,
             'taxa_exposicao_aplicada'          => (float) $premissa->taxa_exposicao_aplicada,
-            'avaliacao_lotes_cef'              => $premissa->avaliacao_lotes_cef ?? [],
-            'perfil_financiamento'             => $premissa->perfil_financiamento instanceof PerfilFinanciamento
-                ? $premissa->perfil_financiamento->value
-                : 'cef',
+            'perfil_financiamento'             => $premissa->perfil_financiamento?->value ?? 'cef',
             'inadimplencia'                    => (float) $premissa->inadimplencia,
             'atraso_meses'                     => (int) $premissa->atraso_meses,
             'taxa_perda'                       => (float) $premissa->taxa_perda,

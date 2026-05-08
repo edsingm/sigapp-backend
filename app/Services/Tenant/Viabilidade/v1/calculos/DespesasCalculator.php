@@ -101,6 +101,13 @@ class DespesasCalculator
             $detalhesOperacionais['Taxa Medição'] = round($params['custoMedicaoCef'] ?? 0, 2);
         }
 
+        // Seguros segue embutido na base de "Obra", mas mantemos a linha
+        // no fluxo mensal para conferência com a planilha.
+        $seguroMensalInformativo = $this->calcularSegurosMensal($mes, $dadosProdutos, $datas, $params);
+        if ($seguroMensalInformativo > 0.0) {
+            $diretos['detalhes']['Seguros'] = round($seguroMensalInformativo, 2);
+        }
+
         $total = $diretos['total'] + $deducoes['total'] + $operacionais['total'] + $financeiros + $custoTerreno + $pagamentoTerreno['total'];
 
         return [
@@ -143,6 +150,9 @@ class DespesasCalculator
         $areaComumTotal = ((float) ($params['custoAreaComum'] ?? 0.0)) * max(0, $totalUnidades);
 
         $custoIncorp = $vgv * $params['percentualIncorporacao'];
+        $seguroTotal = $this->dreCalculator->calcularSegurosPorTipologia($dadosProdutos, $params);
+        $canteiroTotal = ((float) ($params['canteiroMensal'] ?? 0.0)) * max(1, (int) ($params['mesesObra'] ?? 1));
+        $baseDesembolsoObra = $custoObraTotal + $canteiroTotal + $seguroTotal;
         $ri = $custoIncorp * $params['incorporacaoRi'];
         $entrega = $custoIncorp * $params['incorporacaoEntrega'];
         $restante = max(0.0, $custoIncorp - $ri - $entrega);
@@ -166,7 +176,7 @@ class DespesasCalculator
         }
 
         if ($periodo === 'Lançamento') {
-            $custos['Obra (Lançamento)'] = round(($custoObraTotal * ($params['obraAteLancamento'] ?? 0.01)) / max(1, $params['mesesLancamento']), 2);
+            $custos['Obra (Lançamento)'] = round(($baseDesembolsoObra * ($params['obraAteLancamento'] ?? 0.01)) / max(1, $params['mesesLancamento']), 2);
         }
 
         if ($periodo === 'Obra') {
@@ -177,15 +187,9 @@ class DespesasCalculator
             $mesObraIndex = (int) $inicioObra->diffInMonths($dataAtual->copy()->startOfMonth()) + 1;
             $curvaObra = $this->curvaService->getCurvaObraBaseParaPrazo((int) ($params['mesesObra'] ?? 0));
             $percentualMes = $curvaObra[$mesObraIndex - 1] ?? 0.0;
-            $custos['Obra'] = round($custoObraTotal * ($percentualMes / 100), 2);
-            $custos['Canteiro'] = round($params['canteiroMensal'], 2);
+            $custos['Obra'] = round($baseDesembolsoObra * ($percentualMes / 100), 2);
             $custos['Área Comum'] = round($areaComumTotal / max(1, $params['mesesObra']), 2);
             $custos['M.O. Administrativa'] = round($params['moAdministrativa'], 2);
-        }
-
-        $seguroMensal = $this->calcularSegurosMensal($mes, $dadosProdutos, $datas, $params);
-        if ($seguroMensal > 0) {
-            $custos['Seguros'] = round($seguroMensal, 2);
         }
 
         if ($periodo === 'Entrega' || $periodo === 'Pós-Obra') {

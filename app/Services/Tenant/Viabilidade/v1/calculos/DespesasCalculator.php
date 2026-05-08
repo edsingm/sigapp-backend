@@ -22,7 +22,7 @@ class DespesasCalculator
         ?ViabilidadeFluxoContext $ctx = null
     ): array {
         $ctx ??= new ViabilidadeFluxoContext;
-        $dataAtual = Carbon::parse($mes.'-01');
+        $dataAtual = Carbon::parse($mes.'-01')->startOfMonth();
         $periodo = $this->identificarPeriodo($dataAtual, $datas);
         $vgv = $dadosProdutos['vgv'];
         $custoObra = $this->custoObraTotal($dadosProdutos);
@@ -78,13 +78,13 @@ class DespesasCalculator
                 $ctx->produtosCefAcumulados += $produtosCefMensal;
                 $ctx->contratosCefAcumulados += $contratosCefMensal;
             } else {
-                $dataAtual = $dataAtual->copy()->startOfMonth();
-                $dataDemandaAtingida = Carbon::parse($ctx->mesDemandaAtingida.'-01')->startOfMonth();
+                $mesAtual = $this->mesAno($dataAtual);
+                $mesDemandaAtingida = $ctx->mesDemandaAtingida;
 
-                if ($dataAtual->lt($dataDemandaAtingida)) {
+                if ($mesAtual < $mesDemandaAtingida) {
                     $ctx->produtosCefAcumulados += $produtosCefMensal;
                     $ctx->contratosCefAcumulados += $contratosCefMensal;
-                } elseif ($dataAtual->equalTo($dataDemandaAtingida) && ! $ctx->custosCefAcumuladosPagos) {
+                } elseif ($mesAtual === $mesDemandaAtingida && ! $ctx->custosCefAcumuladosPagos) {
                     $detalhesOperacionais['Produtos Caixa'] = round($ctx->produtosCefAcumulados + $produtosCefMensal, 2);
                     $detalhesOperacionais['Contratos Caixa'] = round($ctx->contratosCefAcumulados + $contratosCefMensal, 2);
                     $ctx->produtosCefAcumulados = 0.0;
@@ -145,7 +145,7 @@ class DespesasCalculator
         array $dadosProdutos
     ): array {
         $custos = [];
-        $dataAtual = Carbon::parse($mes.'-01');
+        $dataAtual = Carbon::parse($mes.'-01')->startOfMonth();
         $totalUnidades = (int) ($dadosProdutos['totalUnidadesConstrutora'] ?? $dadosProdutos['totalUnidades'] ?? 0);
         $areaComumTotal = ((float) ($params['custoAreaComum'] ?? 0.0)) * max(0, $totalUnidades);
 
@@ -168,7 +168,7 @@ class DespesasCalculator
         if ($periodo === 'Lançamento' || $periodo === 'Obra') {
             $custos['Incorporação Pós Lançamento'] = round($posLancamento / $mesesLancMaisObra, 2);
         }
-        if ($dataAtual->format('Y-m') === $ultimoMesIncorporacao->format('Y-m')) {
+        if ($this->mesAno($dataAtual) === $this->mesAno($ultimoMesIncorporacao)) {
             $custos['Incorporação RI'] = round($ri, 2);
         }
         if ($periodo === 'Entrega') {
@@ -193,7 +193,9 @@ class DespesasCalculator
         }
 
         if ($periodo === 'Entrega' || $periodo === 'Pós-Obra') {
-            $baseAssistencia = $custoObraTotal + ($vgv * $params['percentualContrapartidas']) + $areaComumTotal;
+            $custoHabitacao = (float) ($dadosProdutos['custoObraHabitacao'] ?? 0.0);
+            $custoInfraestrutura = (float) ($dadosProdutos['custoInfraestrutura'] ?? 0.0);
+            $baseAssistencia = $custoHabitacao + $custoInfraestrutura + $areaComumTotal + ($vgv * $params['percentualContrapartidas']);
             $custos['Assistência Técnica'] = round($this->calcularAssistenciaTecnicaMensal($mes, $datas, $params, $baseAssistencia), 2);
         }
 
@@ -371,7 +373,7 @@ class DespesasCalculator
         $dataAtual = Carbon::parse($mes.'-01')->startOfMonth();
         $inicio = $datas['dataLancamento']->copy()->startOfMonth();
         $fim = $inicio->copy()->addMonths($parcelamento - 1);
-        if (! $dataAtual->between($inicio, $fim)) {
+        if (! $this->mesEstaEntre($dataAtual, $inicio, $fim)) {
             return 0.0;
         }
 
@@ -425,36 +427,53 @@ class DespesasCalculator
         array $params,
         ViabilidadeFluxoContext $ctx
     ): array {
-        $dataAtual = Carbon::parse($mes.'-01');
-        $vgvSemPermuta = $dadosProdutos['vgvSemUnidPermutas'] ?? 0;
+        $dataAtual = Carbon::parse($mes.'-01')->startOfMonth();
+        $vgvTotal = $dadosProdutos['vgv'] ?? 0;
         $unidadesConstrutora = max(1, $dadosProdutos['totalUnidadesConstrutora'] ?? $dadosProdutos['totalUnidades'] ?? 1);
-        $ticketMedio = $vgvSemPermuta / $unidadesConstrutora;
+        $ticketMedio = $vgvTotal / $unidadesConstrutora;
         $unidadesVendidasMes = $ctx->vendasPorMes[$mes] ?? 0;
         $valorVendidoMes = $unidadesVendidasMes * $ticketMedio;
+        $unidadesDesligadasMes = $this->calcularUnidadesDesligadasMes($mes, (float) $unidadesVendidasMes, $ctx);
+        $valorDesligadoMes = $unidadesDesligadasMes * $ticketMedio;
         $taxaComissaoMedia = (($params['percentualVendasHouse'] ?? 0) * ($params['comissaoHousePercentual'] ?? 0)) +
             ((1 - ($params['percentualVendasHouse'] ?? 0)) * ($params['comissaoImobiliariasPercentual'] ?? 0));
         $comissaoBaseMes = $valorVendidoMes * $taxaComissaoMedia;
+        $comissaoDesligamentoBaseMes = $valorDesligadoMes * $taxaComissaoMedia;
         $comissaoVenda = $comissaoBaseMes * ($params['pagamentoComissaoVenda'] ?? 0);
-        $comissaoDesligamento = $this->calcularComissaoDesligamentoMensal($mes, $ticketMedio, $params, $ctx);
-        $bonusCca = ($params['bonusCca'] ?? 0) * $unidadesVendidasMes;
+        $comissaoDesligamento = $comissaoDesligamentoBaseMes * ($params['pagamentoComissaoDesligamento'] ?? 0);
+        $bonusCca = $unidadesDesligadasMes * (float) ($params['bonusCca'] ?? 0.0);
 
         $construcaoStandMesesAntesLancamento = max(0, (int) ($params['construcaoStandMesesAntesLancamento'] ?? 0));
         $inicioConstrucaoStand = $datas['dataLancamento']->copy()->subMonths($construcaoStandMesesAntesLancamento)->startOfMonth();
         $fimConstrucaoStand = $inicioConstrucaoStand->copy()->addMonths(max(1, (int) ($params['mesesLancamento'] ?? 1)) - 1)->startOfMonth();
-        $standParcelado = $dataAtual->startOfMonth()->between($inicioConstrucaoStand, $fimConstrucaoStand)
-            ? (($params['standVendas'] ?? 0) / max(1, (int) ($params['mesesLancamento'] ?? 1)))
+        $custoTotalStand = (float) ($params['standVendas'] ?? 0.0) + (float) ($params['mobiliaDecoracao'] ?? 0.0);
+        $standParcelado = $this->mesEstaEntre($dataAtual, $inicioConstrucaoStand, $fimConstrucaoStand)
+            ? ($custoTotalStand / max(1, (int) ($params['mesesLancamento'] ?? 1)))
             : 0;
-        $gastosMensaisStand = $dataAtual->between($datas['dataLancamento'], $datas['fimObra']) ? ($vgvSemPermuta * ($params['gastosMensaisStand'] ?? 0)) : 0;
-        $ajudaCustoGerentes = $dataAtual->between($datas['dataLancamento'], $datas['fimObra'])
-            ? (($params['ajudaCustoGerente'] ?? 0) + ($params['ajudaCustoGerenteRegional'] ?? 0))
-            : 0;
-        $outrasDespesasComerciais = $dataAtual->between($datas['dataLancamento'], $datas['fimObra']) ? ($params['reembolsoLogistica'] ?? 0) : 0;
+        $gastosMensaisStand = $this->mesEstaEntre($dataAtual, $datas['dataLancamento'], $datas['fimObra'])
+            ? (float) (($params['gastosMensaisStand'] * $dadosProdutos['vgv']) / 100 ?? 0.0)
+            : 0.0;
+        $ajudaCustoGerentes = $this->mesEstaEntre($dataAtual, $datas['dataLancamento'], $datas['fimObra'])
+            ? (float) (($params['ajudaCustoGerente'] ?? 0) + ($params['ajudaCustoGerenteRegional']))
+            : 0.0;
+        $outrasDespesasComerciais = $this->mesEstaEntre($dataAtual, $datas['dataLancamento'], $datas['fimObra'])
+            ? (float) (($params['reembolsoLogistica'] ?? 0.0))
+            : 0.0;
 
+        $bonusEquipeComercialCalculado = $this->calcularBonusEquipeComercialResidual(
+            $dadosProdutos,
+            $params,
+            $taxaComissaoMedia
+        );
         $bonusEquipeComercial = 0.0;
         if (! $ctx->bonusEquipeComercialPago) {
             $totalUnidades = (float) ($dadosProdutos['totalUnidadesConstrutora'] ?? $dadosProdutos['totalUnidades'] ?? 0.0);
-            if ($totalUnidades > 0 && $ctx->vendasAcumuladas >= $totalUnidades) {
-                $bonusEquipeComercial = (float) ($params['bonusEquipeComercial'] ?? 0.0);
+            $vendasAntesMes = max(0.0, $ctx->vendasAcumuladas - (float) $unidadesVendidasMes);
+            $eps = 0.0001;
+            $acumuladoAnterior = min($totalUnidades, $vendasAntesMes);
+            $acumuladoAtual = min($totalUnidades, max(0.0, (float) $ctx->vendasAcumuladas));
+            if ($totalUnidades > 0 && ($acumuladoAnterior + $eps) < $totalUnidades && ($acumuladoAtual + $eps) >= $totalUnidades) {
+                $bonusEquipeComercial = $bonusEquipeComercialCalculado;
                 $ctx->bonusEquipeComercialPago = true;
             }
         }
@@ -477,44 +496,6 @@ class DespesasCalculator
         ];
     }
 
-    private function calcularComissaoDesligamentoMensal(
-        string $mes,
-        float $ticketMedio,
-        array $params,
-        ViabilidadeFluxoContext $ctx
-    ): float {
-        $dataAtual = Carbon::parse($mes.'-01')->startOfMonth();
-        $taxaComissaoMedia = (($params['percentualVendasHouse'] ?? 0) * ($params['comissaoHousePercentual'] ?? 0)) +
-            ((1 - ($params['percentualVendasHouse'] ?? 0)) * ($params['comissaoImobiliariasPercentual'] ?? 0));
-        $percentualDesligamento = (float) ($params['pagamentoComissaoDesligamento'] ?? 0.0);
-        $unidadesVendidasMes = (float) ($ctx->vendasPorMes[$mes] ?? 0.0);
-        $valorVendaMes = $unidadesVendidasMes * $ticketMedio;
-        $comissaoDesligamentoMes = $valorVendaMes * $taxaComissaoMedia * $percentualDesligamento;
-
-        if (! $ctx->demandaAtingida || $ctx->mesDemandaAtingida === null) {
-            $ctx->comissaoDesligamentoAcumulada += $comissaoDesligamentoMes;
-
-            return 0.0;
-        }
-
-        $dataDemandaAtingida = Carbon::parse($ctx->mesDemandaAtingida.'-01')->startOfMonth();
-        if ($dataAtual->lt($dataDemandaAtingida)) {
-            $ctx->comissaoDesligamentoAcumulada += $comissaoDesligamentoMes;
-
-            return 0.0;
-        }
-
-        if ($dataAtual->equalTo($dataDemandaAtingida) && ! $ctx->comissaoDesligamentoAcumuladaPaga) {
-            $total = $ctx->comissaoDesligamentoAcumulada + $comissaoDesligamentoMes;
-            $ctx->comissaoDesligamentoAcumulada = 0.0;
-            $ctx->comissaoDesligamentoAcumuladaPaga = true;
-
-            return $total;
-        }
-
-        return $comissaoDesligamentoMes;
-    }
-
     private function calcularMarketingMensal(
         string $mes,
         array $dadosProdutos,
@@ -535,7 +516,7 @@ class DespesasCalculator
             ->copy()
             ->addMonths(max(1, (int) ($params['mesesLancamento'] ?? 1)) - 1)
             ->startOfMonth();
-        $marketingLancamentoMensal = $dataAtual->between($inicioMarketingLancamento, $fimMarketingLancamento)
+        $marketingLancamentoMensal = $this->mesEstaEntre($dataAtual, $inicioMarketingLancamento, $fimMarketingLancamento)
             ? ($totalLancamento / max(1, (int) ($params['mesesLancamento'] ?? 1)))
             : 0;
         $unidadesVendidasMes = $ctx->vendasPorMes[$mes] ?? 0;
@@ -547,14 +528,67 @@ class DespesasCalculator
         ];
     }
 
+    private function calcularUnidadesDesligadasMes(
+        string $mes,
+        float $unidadesVendidasMes,
+        ViabilidadeFluxoContext $ctx
+    ): float {
+        if (! $ctx->demandaAtingida || $ctx->mesDemandaAtingida === null) {
+            return 0.0;
+        }
+
+        if ($mes < $ctx->mesDemandaAtingida) {
+            return 0.0;
+        }
+
+        if ($mes === $ctx->mesDemandaAtingida) {
+            // Mês de virada da demanda: paga acumulado até o mês atual.
+            return max(0.0, (float) $ctx->vendasAcumuladas);
+        }
+
+        // Após a virada: desligamentos mensais seguem as vendas do mês.
+        return max(0.0, $unidadesVendidasMes);
+    }
+
+    private function calcularBonusEquipeComercialResidual(
+        array $dadosProdutos,
+        array $params,
+        float $taxaComissaoMedia
+    ): float {
+        $vgvSemPermuta = max(0.0, (float) ($dadosProdutos['vgvSemUnidPermutas'] ?? $dadosProdutos['vgv'] ?? 0.0));
+        $vgvTotal = max(0.0, (float) ($dadosProdutos['vgv'] ?? 0.0));
+        $totalUnidadesConstrutora = max(0.0, (float) ($dadosProdutos['totalUnidadesConstrutora'] ?? $dadosProdutos['totalUnidades'] ?? 0.0));
+        $mesesComercial = max(1, (int) ($params['mesesLancamento'] ?? 0) + (int) ($params['mesesObra'] ?? 0));
+
+        $totalDespesasComerciais = $vgvSemPermuta * (float) ($params['percentualDespesasComerciais'] ?? 0.0);
+        $totalConstrucaoStand = max(0.0, (float) ($params['standVendas'] ?? 0.0) + (float) ($params['mobiliaDecoracao'] ?? 0.0));
+        $gastoStandMensalEfetivo = max(0.0, (($params['gastosMensaisStand'] * $vgvTotal) / 100) ?? 0.0);
+        $totalGastoStandMensal = $gastoStandMensalEfetivo * $mesesComercial;
+        // No residual comercial, a planilha considera comissão total sobre o VGV total.
+        $totalComissao = max(0.0, $vgvTotal * $taxaComissaoMedia);
+        $totalAjudaCusto = max(0.0, ((float) ($params['ajudaCustoGerente'] ?? 0.0) + (float) ($params['ajudaCustoGerenteRegional'] ?? 0.0)) * $mesesComercial);
+        $totalBonusCca = max(0.0, $totalUnidadesConstrutora * (float) ($params['bonusCca'] ?? 0.0));
+        $totalOutrasDespesas = max(0.0, (float) ($params['reembolsoLogistica'] ?? 0.0) * $mesesComercial);
+
+        $bonusResidual = $totalDespesasComerciais
+            - $totalConstrucaoStand
+            - $totalGastoStandMensal
+            - $totalComissao
+            - $totalAjudaCusto
+            - $totalBonusCca
+            - $totalOutrasDespesas;
+
+        return max(0.0, $bonusResidual);
+    }
+
     private function calcularSegurosMensal(string $mes, array $dadosProdutos, array $datas, array $params): float
     {
-        $dataAtual = Carbon::parse($mes.'-01');
-        if (! $dataAtual->between($datas['dataLancamento'], $datas['fimObra'])) {
+        $dataAtual = Carbon::parse($mes.'-01')->startOfMonth();
+        if (! $this->mesEstaEntre($dataAtual, $datas['dataLancamento'], $datas['fimObra'])) {
             return 0.0;
         }
         $totalSeguros = $this->dreCalculator->calcularSegurosPorTipologia($dadosProdutos, $params);
-        $mesesRateio = max(1, $params['mesesObra']);
+        $mesesRateio = max(1, (int) ($params['mesesLancamento'] ?? 0) + (int) ($params['mesesObra'] ?? 0));
 
         return $totalSeguros / $mesesRateio;
     }
@@ -580,6 +614,18 @@ class DespesasCalculator
     private function custoObraTotal(array $d): float
     {
         return ($d['custoObraHabitacao'] ?? 0.0) + ($d['custoInfraestrutura'] ?? 0.0) + ($d['custoNaoIncidente'] ?? 0.0);
+    }
+
+    private function mesAno(Carbon $data): string
+    {
+        return $data->copy()->startOfMonth()->format('Y-m');
+    }
+
+    private function mesEstaEntre(Carbon $dataAtual, Carbon $inicio, Carbon $fim): bool
+    {
+        $mesAtual = $this->mesAno($dataAtual);
+
+        return $mesAtual >= $this->mesAno($inicio) && $mesAtual <= $this->mesAno($fim);
     }
 
     private function identificarPeriodo(Carbon $data, array $datas): string

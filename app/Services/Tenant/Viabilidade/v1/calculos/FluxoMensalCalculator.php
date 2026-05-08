@@ -191,23 +191,36 @@ class FluxoMensalCalculator
 
     private function identificarPeriodo(Carbon $data, array $datas): string
     {
-        if ($data < $datas['dataLancamento']) {
+        $mesAtual = $this->mesAno($data);
+        $mesLancamento = $this->mesAno($datas['dataLancamento']);
+        $mesFimLancamento = $this->mesAno($datas['fimLancamento']);
+        $mesInicioObra = $this->mesAno($datas['inicioObra']);
+        $mesFimObra = $this->mesAno($datas['fimObra']);
+        $mesEntrega = $this->mesAno($datas['dataEntrega']);
+        $mesInicioPos = $this->mesAno($datas['inicioPos']);
+
+        if ($mesAtual < $mesLancamento) {
             return 'Incorporação';
         }
-        if ($data->between($datas['dataLancamento'], $datas['fimLancamento'])) {
+        if ($mesAtual >= $mesLancamento && $mesAtual <= $mesFimLancamento) {
             return 'Lançamento';
         }
-        if ($data->between($datas['inicioObra'], $datas['fimObra'])) {
+        if ($mesAtual >= $mesInicioObra && $mesAtual <= $mesFimObra) {
             return 'Obra';
         }
-        if ($data->format('Y-m') === $datas['dataEntrega']->format('Y-m')) {
+        if ($mesAtual === $mesEntrega) {
             return 'Entrega';
         }
-        if ($data >= $datas['inicioPos']) {
+        if ($mesAtual >= $mesInicioPos) {
             return 'Pós-Obra';
         }
 
         return 'Transição';
+    }
+
+    private function mesAno(Carbon $data): string
+    {
+        return $data->copy()->startOfMonth()->format('Y-m');
     }
 
     private function preCalcularRecebiveis(array $produtos, array $datas, array $params, ViabilidadeFluxoContext $ctx): void

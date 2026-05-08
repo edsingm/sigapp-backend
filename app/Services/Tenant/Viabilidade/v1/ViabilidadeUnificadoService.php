@@ -216,6 +216,7 @@ class ViabilidadeUnificadoService
             'ajudaCustoGerente' => (float) ($v->ajuda_custo_gerente ?? $defaults['ajuda_custo_gerente']),
             'ajudaCustoGerenteRegional' => (float) ($v->ajuda_custo_gerente_regional ?? $defaults['ajuda_custo_gerente_regional']),
             'reembolsoLogistica' => (float) ($v->reembolso_logistica ?? $defaults['reembolso_logistica']),
+            // Valor unitário por unidade vendida no mês.
             'bonusCca' => (float) ($v->bonus_cca ?? $defaults['bonus_cca']),
             'bonusGerente' => ($v->bonus_gerente ?? $defaults['bonus_gerente']) / 100,
             'bonusGerenteRegional' => ($v->bonus_gerente_regional ?? $defaults['bonus_gerente_regional']) / 100,

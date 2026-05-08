@@ -4,6 +4,7 @@ namespace App\Http\Resources\Tenant;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Str;
 
 class ViabilidadeCalculationResource extends JsonResource
 {
@@ -78,7 +79,7 @@ class ViabilidadeCalculationResource extends JsonResource
             $response['parametros_utilizados'] = $dreResultados['parametros_utilizados'] ?? [];
         }
 
-        return $response;
+        return $this->normalizePayloadKeys($response);
     }
 
     /**
@@ -166,5 +167,37 @@ class ViabilidadeCalculationResource extends JsonResource
     private function shouldInclude(array $include, string $key): bool
     {
         return in_array('*', $include, true) || in_array($key, $include, true);
+    }
+
+    private function normalizePayloadKeys(mixed $payload): mixed
+    {
+        if (! is_array($payload)) {
+            return $payload;
+        }
+
+        $normalized = [];
+        foreach ($payload as $key => $value) {
+            $normalizedKey = is_string($key)
+                ? $this->normalizeKey($key)
+                : $key;
+
+            $normalized[$normalizedKey] = $this->normalizePayloadKeys($value);
+        }
+
+        return $normalized;
+    }
+
+    private function normalizeKey(string $key): string
+    {
+        $key = trim($key);
+
+        if (preg_match('/^\d{4}-\d{2}$/', $key) === 1) {
+            return $key;
+        }
+
+        $ascii = Str::ascii($key);
+        $ascii = preg_replace('/[^A-Za-z0-9]+/', ' ', $ascii) ?? $ascii;
+
+        return Str::snake(trim($ascii));
     }
 }

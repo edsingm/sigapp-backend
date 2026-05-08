@@ -48,7 +48,7 @@ class FluxoMensalCalculator
             $this->inicializarCachesCef($dadosProdutos, $datas, $ctx);
         }
 
-        $ctx->parceriaVgvTotal = max(0.0, ($params['parceriaVgv'] ?? 0.0) * ($dadosProdutos['vgv'] ?? 0.0));
+        $ctx->parceriaVgvTotal = 0.0;
         $ctx->parceriaVgvPago = 0.0;
 
         $fluxo = [];
@@ -67,18 +67,27 @@ class FluxoMensalCalculator
 
         $periodo = CarbonPeriod::create($datas['inicioIncorporacao'], '1 month', $datas['fimPos']);
 
+        $ctxReceitas = clone $ctx;
+        $periodoReceitas = CarbonPeriod::create($datas['inicioIncorporacao'], '1 month', $datas['fimPos']);
+        $mesesComReceitas = 0;
+        $totalJurosCorrecoesPrevistos = 0.0;
+
+        foreach ($periodoReceitas as $dataReceita) {
+            $mesReceita = $dataReceita->format('Y-m');
+            $receitasMes = $this->receitasCalculator->calcular($mesReceita, $dadosProdutos, $datas, $params, $ctxReceitas);
+            $totalJurosCorrecoesPrevistos += (float) ($receitasMes['juros_correcao'] ?? 0.0);
+
+            if (($receitasMes['total'] ?? 0.0) > 0.01) {
+                $mesesComReceitas++;
+            }
+        }
+
+        $dadosProdutos['correcaoSobreVgv'] = $totalJurosCorrecoesPrevistos;
+        $dadosProdutos['vgvComCorrecao'] = ($dadosProdutos['vgvSemValorTerrenista'] ?? 0) + $totalJurosCorrecoesPrevistos;
+        $ctx->parceriaVgvTotal = max(0.0, ($params['parceriaVgv'] ?? 0.0) * ($dadosProdutos['vgvComCorrecao'] ?? 0.0));
+
         $outrasDespesasFinanceirasTotal = (float) ($params['outrasDespesasFinanceirasTotal'] ?? 0.0);
         if ($outrasDespesasFinanceirasTotal > 0) {
-            $ctxReceitas = clone $ctx;
-            $periodoReceitas = CarbonPeriod::create($datas['inicioIncorporacao'], '1 month', $datas['fimPos']);
-            $mesesComReceitas = 0;
-            foreach ($periodoReceitas as $dataReceita) {
-                $mesReceita = $dataReceita->format('Y-m');
-                $receitasMes = $this->receitasCalculator->calcular($mesReceita, $dadosProdutos, $datas, $params, $ctxReceitas);
-                if (($receitasMes['total'] ?? 0.0) > 0.01) {
-                    $mesesComReceitas++;
-                }
-            }
             $params['mesesComReceitas'] = $mesesComReceitas;
             $params['outrasDespesasFinanceirasMensal'] = $mesesComReceitas > 0 ? ($outrasDespesasFinanceirasTotal / $mesesComReceitas) : 0.0;
         }

@@ -42,6 +42,7 @@ class DespesasCalculator
             $financeiros = (float) ($params['outrasDespesasFinanceirasMensal'] ?? 0.0);
         }
 
+        $custoTerreno = $this->calcularCustoTerreno($receitas['total'], $dadosProdutos, $params);
         $pagamentoTerreno = $this->calcularPagamentoTerreno($mes, $periodo, $receitas, $dadosProdutos, $datas, $params, $ctx);
 
         $detalhesOperacionais = [];
@@ -100,7 +101,7 @@ class DespesasCalculator
             $detalhesOperacionais['Taxa Medição'] = round($params['custoMedicaoCef'] ?? 0, 2);
         }
 
-        $total = $diretos['total'] + $deducoes['total'] + $operacionais['total'] + $financeiros + $pagamentoTerreno['total'];
+        $total = $diretos['total'] + $deducoes['total'] + $operacionais['total'] + $financeiros + $custoTerreno + $pagamentoTerreno['total'];
 
         return [
             'total' => $total,
@@ -112,13 +113,14 @@ class DespesasCalculator
                 'Deduções - Outras' => round($deducoes['outras'], 2),
                 'Operacional' => round($operacionais['total'], 2),
                 'Outras Despesas Financeiras' => round($financeiros, 2),
+                'Custo Terreno' => round($custoTerreno, 2),
                 'Pagamento Terreno' => round($pagamentoTerreno['total'], 2),
                 'Pagamento Terreno - Parceria VGV' => round($pagamentoTerreno['parceria'], 2),
                 'Pagamento Terreno - Permuta Física' => round($pagamentoTerreno['permuta_fisica'], 2),
                 'Pagamento Terreno - Comissão Corretor' => round($pagamentoTerreno['comissao_corretor'], 2),
             ], $detalhesOperacionais),
             'categorias' => [
-                'custo_direto' => $diretos['total'] + $pagamentoTerreno['total'],
+                'custo_direto' => $diretos['total'] + $custoTerreno + $pagamentoTerreno['total'],
                 'impostos' => $deducoes['total'],
                 'custos_operacionais' => $operacionais['total'],
                 'custos_financeiros' => $financeiros,
@@ -286,11 +288,40 @@ class DespesasCalculator
         return str_contains($nome, 'lote') || str_contains($nome, 'terreno');
     }
 
+    private function calcularCustoTerreno(float $receitaMes, array $dadosProdutos, array $params): float
+    {
+        $totalCustoTerreno = (float) ($params['compraTerreno'] ?? 0);
+        $receitaTotal = $dadosProdutos['vgvComCorrecao'] ?? $dadosProdutos['vgv'];
+
+        return $receitaTotal > 0 ? ($totalCustoTerreno * $receitaMes) / $receitaTotal : 0;
+    }
+
     private function calcularPagamentoTerreno(string $mes, string $periodo, array $receitas, array $dadosProdutos, array $datas, array $params, ViabilidadeFluxoContext $ctx): array
     {
-        $parceria = max(0.0, ((float) ($receitas['total'] ?? 0.0)) * ((float) ($params['parceriaVgv'] ?? 0.0)));
+        $receitaMes = max(0.0, (float) ($receitas['total'] ?? 0.0));
+        $detalhesReceita = $receitas['detalhes'] ?? [];
+        $baseRecebimentosMes = max(
+            0.0,
+            (float) ($detalhesReceita['recursos_proprios']['total_recursos_proprios'] ?? 0.0)
+            + (float) ($detalhesReceita['recebimento_terreno']['recebimento_total_terreno'] ?? 0.0)
+            + (float) ($detalhesReceita['medicao_obra']['recebimento_total_medicao'] ?? 0.0)
+        );
+        if ($baseRecebimentosMes <= 0.0) {
+            $baseRecebimentosMes = $receitaMes;
+        }
+        $vgvComCorrecao = max(0.0, (float) ($dadosProdutos['vgvComCorrecao'] ?? $dadosProdutos['vgv'] ?? 0.0));
+        $parceriaTotal = max(0.0, $ctx->parceriaVgvTotal);
+        if ($parceriaTotal <= 0.0) {
+            $parceriaTotal = max(0.0, (float) ($params['parceriaVgv'] ?? 0.0)) * $vgvComCorrecao;
+        }
+        $parceriaRateadaMes = $vgvComCorrecao > 0.0
+            ? $parceriaTotal * ($baseRecebimentosMes / $vgvComCorrecao)
+            : 0.0;
+        $saldoParceria = max(0.0, $parceriaTotal - $ctx->parceriaVgvPago);
+        $parceriaRateadaMes = min($parceriaRateadaMes, $saldoParceria);
+        $ctx->parceriaVgvPago += $parceriaRateadaMes;
         $compraTerrenoMensal = $this->calcularCompraTerrenoMensal($periodo, $params);
-        $parceria += $compraTerrenoMensal;
+        $parceria = $parceriaRateadaMes + $compraTerrenoMensal;
         $permutaFisica = $this->calcularPagamentoPermutaFisicaTerreno($mes, $periodo, $dadosProdutos, $datas, $params);
         $comissaoCorretor = $this->calcularComissaoCorretorTerreno($mes, $dadosProdutos, $datas, $params, $ctx);
         $total = $parceria + $permutaFisica + $comissaoCorretor;
@@ -320,8 +351,9 @@ class DespesasCalculator
             $percentualMes = $obraAteLancamento / max(1, (int) ($params['mesesLancamento'] ?? 1));
         }
         if ($periodo === 'Obra') {
-            $dataAtual = Carbon::parse($mes.'-01');
-            $mesObraIndex = (int) $datas['inicioObra']->diffInMonths($dataAtual) + 1;
+            $dataAtual = Carbon::parse($mes.'-01')->startOfMonth();
+            $inicioObra = $datas['inicioObra']->copy()->startOfMonth();
+            $mesObraIndex = (int) $inicioObra->diffInMonths($dataAtual) + 1;
             $curvaObra = $dadosProdutos['curvaObraAgregada'] ?? $this->agregarCurvaObra((int) ($params['mesesObra'] ?? 0));
             $percentualMes = (((float) ($curvaObra[$mesObraIndex - 1] ?? 0.0)) / 100) * max(0.0, 1 - $obraAteLancamento);
         }
@@ -548,19 +580,27 @@ class DespesasCalculator
 
     private function identificarPeriodo(Carbon $data, array $datas): string
     {
-        if ($data < $datas['dataLancamento']) {
+        $mesAtual = $data->format('Y-m');
+        $mesLancamento = $datas['dataLancamento']->format('Y-m');
+        $mesFimLancamento = $datas['fimLancamento']->format('Y-m');
+        $mesInicioObra = $datas['inicioObra']->format('Y-m');
+        $mesFimObra = $datas['fimObra']->format('Y-m');
+        $mesEntrega = $datas['dataEntrega']->format('Y-m');
+        $mesInicioPos = $datas['inicioPos']->format('Y-m');
+
+        if ($mesAtual < $mesLancamento) {
             return 'Incorporação';
         }
-        if ($data->between($datas['dataLancamento'], $datas['fimLancamento'])) {
+        if ($mesAtual >= $mesLancamento && $mesAtual <= $mesFimLancamento) {
             return 'Lançamento';
         }
-        if ($data->between($datas['inicioObra'], $datas['fimObra'])) {
+        if ($mesAtual >= $mesInicioObra && $mesAtual <= $mesFimObra) {
             return 'Obra';
         }
-        if ($data->format('Y-m') === $datas['dataEntrega']->format('Y-m')) {
+        if ($mesAtual === $mesEntrega) {
             return 'Entrega';
         }
-        if ($data >= $datas['inicioPos']) {
+        if ($mesAtual >= $mesInicioPos) {
             return 'Pós-Obra';
         }
 

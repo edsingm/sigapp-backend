@@ -42,7 +42,6 @@ class DespesasCalculator
             $financeiros = (float) ($params['outrasDespesasFinanceirasMensal'] ?? 0.0);
         }
 
-        $custoTerreno = $this->calcularCustoTerreno($receitas['total'], $dadosProdutos, $params);
         $pagamentoTerreno = $this->calcularPagamentoTerreno($mes, $periodo, $receitas, $dadosProdutos, $datas, $params, $ctx);
 
         $detalhesOperacionais = [];
@@ -101,7 +100,7 @@ class DespesasCalculator
             $detalhesOperacionais['Taxa Medição'] = round($params['custoMedicaoCef'] ?? 0, 2);
         }
 
-        $total = $diretos['total'] + $deducoes['total'] + $operacionais['total'] + $financeiros + $custoTerreno + $pagamentoTerreno['total'];
+        $total = $diretos['total'] + $deducoes['total'] + $operacionais['total'] + $financeiros + $pagamentoTerreno['total'];
 
         return [
             'total' => $total,
@@ -113,14 +112,13 @@ class DespesasCalculator
                 'Deduções - Outras' => round($deducoes['outras'], 2),
                 'Operacional' => round($operacionais['total'], 2),
                 'Outras Despesas Financeiras' => round($financeiros, 2),
-                'Custo Terreno' => round($custoTerreno, 2),
                 'Pagamento Terreno' => round($pagamentoTerreno['total'], 2),
                 'Pagamento Terreno - Parceria VGV' => round($pagamentoTerreno['parceria'], 2),
                 'Pagamento Terreno - Permuta Física' => round($pagamentoTerreno['permuta_fisica'], 2),
                 'Pagamento Terreno - Comissão Corretor' => round($pagamentoTerreno['comissao_corretor'], 2),
             ], $detalhesOperacionais),
             'categorias' => [
-                'custo_direto' => $diretos['total'] + $custoTerreno + $pagamentoTerreno['total'],
+                'custo_direto' => $diretos['total'] + $pagamentoTerreno['total'],
                 'impostos' => $deducoes['total'],
                 'custos_operacionais' => $operacionais['total'],
                 'custos_financeiros' => $financeiros,
@@ -286,14 +284,6 @@ class DespesasCalculator
         $nome = strtolower((string) ($produto['nome'] ?? ''));
 
         return str_contains($nome, 'lote') || str_contains($nome, 'terreno');
-    }
-
-    private function calcularCustoTerreno(float $receitaMes, array $dadosProdutos, array $params): float
-    {
-        $totalCustoTerreno = (float) ($params['compraTerreno'] ?? 0);
-        $receitaTotal = $dadosProdutos['vgvComCorrecao'] ?? $dadosProdutos['vgv'];
-
-        return $receitaTotal > 0 ? ($totalCustoTerreno * $receitaMes) / $receitaTotal : 0;
     }
 
     private function calcularPagamentoTerreno(string $mes, string $periodo, array $receitas, array $dadosProdutos, array $datas, array $params, ViabilidadeFluxoContext $ctx): array

@@ -8,7 +8,7 @@
             "is_current": true,
             "parceria_vgv": 8,
             "compra_terreno": 10000000,
-            "infra_nao_incidente": 1.5,
+            "infra_nao_incidente": 1,
             "porcentagem_lote_proprietario": 0,
             "prazo_obra": 36,
             "prazo_lancamento": 6,
@@ -69,7 +69,7 @@
             "submitted_at": null,
             "locked_at": null,
             "created_at": "2026-05-08 15:14:15",
-            "updated_at": "2026-05-08 18:29:22",
+            "updated_at": "2026-05-09 12:37:21",
             "deleted_at": null,
             "terreno": {
                 "id": 2,
@@ -79,54 +79,54 @@
         "resumo": {
             "vgv": 192400000,
             "receita_liquida": 192645693.75,
-            "custos_diretos": 128868281.26,
+            "custos_diretos": 127757281.26,
             "despesas_operacionais": 18054400,
-            "lucro_liquido": 37534341.23,
-            "custo_total_projeto": 159804824.57
+            "lucro_liquido": 38115473.49,
+            "custo_total_projeto": 159223692.31
         },
         "indicadores": {
             "vgv_total": 192400000,
-            "lucro_liquido": 37534341.23,
-            "margem_liquida_percentual": 19.51,
-            "margem_liquida_sobre_rol": 19.48,
-            "margem_liquida_sobre_vgv_sem_permuta": 18.54,
-            "margem_bruta_percentual": 33.11,
-            "margem_ebitda_percentual": 23.73,
-            "margem_ebit_percentual": 21.73,
-            "roi_percentual": 29.13,
-            "total_custos_diretos": 128868281.26,
-            "custo_total_projeto": 159804824.57,
-            "tir_operacional": 6.220934866227864,
+            "lucro_liquido": 38115473.49,
+            "margem_liquida_percentual": 19.81,
+            "margem_liquida_sobre_rol": 19.79,
+            "margem_liquida_sobre_vgv_sem_permuta": 18.83,
+            "margem_bruta_percentual": 33.68,
+            "margem_ebitda_percentual": 24.31,
+            "margem_ebit_percentual": 22.03,
+            "roi_percentual": 29.83,
+            "total_custos_diretos": 127757281.26,
+            "custo_total_projeto": 159223692.31,
+            "tir_operacional": 6.247876290811182,
             "tir_sem_cef": 0,
-            "exposicao_maxima_operacional": -4360051.38,
-            "margem_liquida": 0.2089717857625905,
-            "tir_financeira": 8.399153312644096,
-            "exposicao_maxima_financeira": -4360051.4,
+            "exposicao_maxima_operacional": -4571301.74,
+            "margem_liquida": 0.2089890990229052,
+            "tir_financeira": 8.448310806684477,
+            "exposicao_maxima_financeira": -4571301.75,
             "payback_operacional_meses": 23,
             "payback_financeiro_meses": 23,
             "exposicao_aplicada_total": 0,
             "vso_total_percentual": 100,
             "vso_medio_mensal_percentual": 4.76,
-            "vso_mensal_maximo_percentual": 161.9,
+            "vso_mensal_maximo_percentual": 100,
             "vso_mes_maximo": "2030-01",
             "vso_mes_zeragem_estoque": "2030-01",
-            "unidades_vendidas_acumuladas": 933,
+            "unidades_vendidas_acumuladas": 920,
             "unidades_estoque_final": 0,
             "vso_janelas": {
                 "3m": {
                     "ultimo_percentual": 0,
-                    "maximo_percentual": 27.17,
-                    "media_percentual": 2.54
+                    "maximo_percentual": 27.07,
+                    "media_percentual": 2.5
                 },
                 "6m": {
                     "ultimo_percentual": 0,
-                    "maximo_percentual": 47.17,
-                    "media_percentual": 5.07
+                    "maximo_percentual": 46.85,
+                    "media_percentual": 5
                 },
                 "12m": {
                     "ultimo_percentual": 0,
-                    "maximo_percentual": 69.89,
-                    "media_percentual": 10.14
+                    "maximo_percentual": 69.13,
+                    "media_percentual": 10
                 }
             }
         },
@@ -137,7 +137,7 @@
                 "nome": "Casa 2 Dorm Faixa 2",
                 "quantidade_unidades": 1000,
                 "permutas": 80,
-                "preco": 220000,
+                "preco": "220000.00",
                 "vgv_produto": 220000000,
                 "metragem": "47.20"
             }
@@ -159,16 +159,16 @@
                 "projetos": 1210000
             },
             "infra_casas": 60793600,
-            "infra_lotes": 23540000,
+            "infra_lotes": 22440000,
             "area_comum": 0,
             "contrapartidas": 2200000,
             "canteiro_total": 3085740,
             "mo_administrativa_total": 2250072,
             "seguros": 1100000,
-            "assistencia_tecnica": 865336,
-            "custo_total_obra": 89619340,
-            "custos_diretos_total": 128868281.26,
-            "lucro_bruto": 63777412.49,
+            "assistencia_tecnica": 854336,
+            "custo_total_obra": 88519340,
+            "custos_diretos_total": 127757281.26,
+            "lucro_bruto": 64888412.49,
             "despesas_comerciais": 10120000,
             "despesas_comerciais_detalhes": {
                 "despesas_comerciais": 10120000
@@ -180,42 +180,42 @@
             "contratos_caixa": 276000,
             "produtos_caixa": 1012000,
             "despesas_operacionais_total": 18054400,
-            "ebitda": 45723012.49,
-            "outras_despesas_financeiras": 0.3,
-            "despesas_onerosas_bancos": 3856235.22,
-            "juros_pj": 3856235.22,
+            "ebitda": 46834012.49,
+            "outras_despesas_financeiras": 577200,
+            "despesas_onerosas_bancos": 3808903.26,
+            "juros_pj": 3808903.26,
             "juros_pj_detalhes": {
-                "valor_antecipado": 8961934,
+                "valor_antecipado": 8851934,
                 "taxa_mensal": 0.008355155683635207,
                 "carencia_meses": 6,
                 "amortizacao_parcelas": 18
             },
-            "ebit": 41866776.97,
+            "ebit": 42447909.23,
             "irpj_csll": 4332435.74,
-            "lucro_liquido_projeto": 37534341.23,
-            "custo_total_projeto": 159804824.57,
+            "lucro_liquido_projeto": 38115473.49,
+            "custo_total_projeto": 159223692.31,
             "indicadores": {
                 "vgv_total": 192400000,
-                "lucro_liquido": 37534341.23,
-                "margem_liquida_percentual": 19.51,
-                "margem_liquida_sobre_rol": 19.48,
-                "margem_liquida_sobre_vgv_sem_permuta": 18.54,
-                "margem_bruta_percentual": 33.11,
-                "margem_ebitda_percentual": 23.73,
-                "margem_ebit_percentual": 21.73,
-                "roi_percentual": 29.13,
-                "total_custos_diretos": 128868281.26,
-                "custo_total_projeto": 159804824.57
+                "lucro_liquido": 38115473.49,
+                "margem_liquida_percentual": 19.81,
+                "margem_liquida_sobre_rol": 19.79,
+                "margem_liquida_sobre_vgv_sem_permuta": 18.83,
+                "margem_bruta_percentual": 33.68,
+                "margem_ebitda_percentual": 24.31,
+                "margem_ebit_percentual": 22.03,
+                "roi_percentual": 29.83,
+                "total_custos_diretos": 127757281.26,
+                "custo_total_projeto": 159223692.31
             }
         },
         "dre_caixa": {
             "receita_total": 197339165.8,
-            "custo_direto_total": 136635280.9,
+            "custo_direto_total": 135535280.92,
             "impostos_total": 7893566.72,
-            "despesas_operacionais_total": 11572000,
-            "despesas_financeiras_total": 0.3,
-            "despesas_total": 156100847.92,
-            "resultado_total": 41238317.88,
+            "despesas_operacionais_total": 12091383.7,
+            "despesas_financeiras_total": 577200,
+            "despesas_total": 156097431.34,
+            "resultado_total": 41241734.46,
             "margem_liquida_percentual": 20.9
         },
         "dre_contabil_poc": {
@@ -3132,13 +3132,13 @@
         "ponte_reconciliacao": {
             "caixa": {
                 "receita_total": 197339165.8,
-                "resultado_total": 41238317.88
+                "resultado_total": 41241734.46
             },
             "dre_gerencial": {
                 "receita_bruta": 197339165.8,
-                "lucro_liquido": 37534341.23,
+                "lucro_liquido": 38115473.49,
                 "irpj_csll": 4332435.74,
-                "juros_pj": 3856235.22
+                "juros_pj": 3808903.26
             },
             "dre_contabil_poc": {
                 "receita_reconhecida_poc_total": 0,
@@ -3146,8 +3146,8 @@
             },
             "deltas": {
                 "receita_caixa_menos_receita_bruta": 0,
-                "resultado_caixa_menos_lucro_dre_gerencial": 3703976.65,
-                "lucro_dre_gerencial_menos_resultado_poc": 37534341.23
+                "resultado_caixa_menos_lucro_dre_gerencial": 3126260.97,
+                "lucro_dre_gerencial_menos_resultado_poc": 38115473.49
             },
             "principais_motivos": [
                 "Caixa considera entradas/saidas; DRE gerencial usa VGV e premissas de correcao/juros para formar receita e apropria custos por regra.",
@@ -4006,15 +4006,15 @@
                 "despesas": {
                     "incorporacao_ate_lancamento": 40333.33,
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra_lancamento": 147532.23,
+                    "obra_lancamento": 145698.9,
                     "seguros": 26190.48,
                     "deducoes": 20598.57,
                     "deducoes_r_e_t_l_p_imoveis": 20598.57,
                     "deducoes_r_e_t_l_p_lotes": 0,
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
-                    "operacional": 976999.67,
-                    "outras_despesas_financeiras": 0,
+                    "operacional": 676699.67,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 26095.39,
                     "pagamento_terreno": 52941.14,
                     "pagamento_terreno_parceria_v_g_v": 41197.14,
@@ -4022,8 +4022,8 @@
                     "pagamento_terreno_comissao_corretor": 0,
                     "operacional_stand_de_vendas": 48333.33,
                     "operacional_gastos_mensais_stand": 22000,
-                    "operacional_comissao_venda": 328900,
-                    "operacional_comissao_desligamento": 328900,
+                    "operacional_comissao_venda": 357500,
+                    "operacional_comissao_desligamento": 0,
                     "operacional_ajuda_de_custo_gerentes": 7733,
                     "operacional_bonus_c_c_a": 0,
                     "operacional_outras_despesas_comerciais": 5000,
@@ -4033,8 +4033,8 @@
                     "registro": 230000,
                     "taxa_contratacao": 24000
                 },
-                "saldo_mes": -755297.99,
-                "saldo_acumulado_mes": -2587631.26,
+                "saldo_mes": -460564.65,
+                "saldo_acumulado_mes": -2292897.93,
                 "unidades_vendidas": 92
             },
             "2028-06": {
@@ -4058,15 +4058,15 @@
                 "despesas": {
                     "incorporacao_ate_lancamento": 40333.33,
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra_lancamento": 147532.23,
+                    "obra_lancamento": 145698.9,
                     "seguros": 26190.48,
                     "deducoes": 20311.65,
                     "deducoes_r_e_t_l_p_imoveis": 20311.65,
                     "deducoes_r_e_t_l_p_lotes": 0,
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
-                    "operacional": 896039.67,
-                    "outras_despesas_financeiras": 0,
+                    "operacional": 622660.97,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 25731.91,
                     "pagamento_terreno": 52367.3,
                     "pagamento_terreno_parceria_v_g_v": 40623.3,
@@ -4074,19 +4074,19 @@
                     "pagamento_terreno_comissao_corretor": 0,
                     "operacional_stand_de_vendas": 48333.33,
                     "operacional_gastos_mensais_stand": 22000,
-                    "operacional_comissao_venda": 296010,
-                    "operacional_comissao_desligamento": 296010,
+                    "operacional_comissao_venda": 318641.3,
+                    "operacional_comissao_desligamento": 0,
                     "operacional_ajuda_de_custo_gerentes": 7733,
                     "operacional_bonus_c_c_a": 0,
                     "operacional_outras_despesas_comerciais": 5000,
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 220953.33,
-                    "i_t_b_i_i_p_t_u": 200376,
-                    "registro": 207000
+                    "i_t_b_i_i_p_t_u": 198440,
+                    "registro": 205000
                 },
-                "saldo_mes": -680286.69,
-                "saldo_acumulado_mes": -3267917.95,
-                "unidades_vendidas": 83
+                "saldo_mes": -412474.66,
+                "saldo_acumulado_mes": -2705372.58,
+                "unidades_vendidas": 82
             },
             "2028-07": {
                 "periodo": "Lançamento",
@@ -4109,15 +4109,15 @@
                 "despesas": {
                     "incorporacao_ate_lancamento": 40333.33,
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra_lancamento": 147532.23,
+                    "obra_lancamento": 145698.9,
                     "seguros": 26190.48,
                     "deducoes": 20089.41,
                     "deducoes_r_e_t_l_p_imoveis": 20089.41,
                     "deducoes_r_e_t_l_p_lotes": 0,
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
-                    "operacional": 774842.33,
-                    "outras_despesas_financeiras": 0,
+                    "operacional": 529578.68,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 25450.36,
                     "pagamento_terreno": 51922.83,
                     "pagamento_terreno_parceria_v_g_v": 40178.83,
@@ -4125,18 +4125,18 @@
                     "pagamento_terreno_comissao_corretor": 0,
                     "operacional_stand_de_vendas": 0,
                     "operacional_gastos_mensais_stand": 22000,
-                    "operacional_comissao_venda": 266409,
-                    "operacional_comissao_desligamento": 266409,
+                    "operacional_comissao_venda": 287554.35,
+                    "operacional_comissao_desligamento": 0,
                     "operacional_ajuda_de_custo_gerentes": 7733,
                     "operacional_bonus_c_c_a": 0,
                     "operacional_outras_despesas_comerciais": 5000,
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 207291.33,
-                    "i_t_b_i_i_p_t_u": 180338.4,
-                    "registro": 186300
+                    "i_t_b_i_i_p_t_u": 179080,
+                    "registro": 185000
                 },
-                "saldo_mes": -563697.05,
-                "saldo_acumulado_mes": -3831615,
+                "saldo_mes": -324000.06,
+                "saldo_acumulado_mes": -3029372.65,
                 "unidades_vendidas": 75
             },
             "2028-08": {
@@ -4160,15 +4160,15 @@
                 "despesas": {
                     "incorporacao_ate_lancamento": 40333.33,
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra_lancamento": 147532.23,
+                    "obra_lancamento": 145698.9,
                     "seguros": 26190.48,
                     "deducoes": 19941.21,
                     "deducoes_r_e_t_l_p_imoveis": 19941.21,
                     "deducoes_r_e_t_l_p_lotes": 0,
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
-                    "operacional": 736509,
-                    "outras_despesas_financeiras": 0,
+                    "operacional": 1744435.04,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 25262.61,
                     "pagamento_terreno": 51626.43,
                     "pagamento_terreno_parceria_v_g_v": 39882.43,
@@ -4176,21 +4176,21 @@
                     "pagamento_terreno_comissao_corretor": 0,
                     "operacional_stand_de_vendas": 0,
                     "operacional_gastos_mensais_stand": 22000,
-                    "operacional_comissao_venda": 240097,
-                    "operacional_comissao_desligamento": 240097,
+                    "operacional_comissao_venda": 260353.26,
+                    "operacional_comissao_desligamento": 1227934.78,
                     "operacional_ajuda_de_custo_gerentes": 7733,
-                    "operacional_bonus_c_c_a": 110768,
+                    "operacional_bonus_c_c_a": 110600,
                     "operacional_outras_despesas_comerciais": 5000,
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 110814,
-                    "i_t_b_i_i_p_t_u": 162527.2,
-                    "registro": 167900,
-                    "produtos_caixa": 348128,
-                    "contratos_caixa": 94944
+                    "i_t_b_i_i_p_t_u": 162140,
+                    "registro": 167500,
+                    "produtos_caixa": 346500,
+                    "contratos_caixa": 94500
                 },
-                "saldo_mes": -528436.39,
-                "saldo_acumulado_mes": -4360051.38,
-                "unidades_vendidas": 68
+                "saldo_mes": -1541929.1,
+                "saldo_acumulado_mes": -4571301.74,
+                "unidades_vendidas": 67
             },
             "2028-09": {
                 "periodo": "Lançamento",
@@ -4213,15 +4213,15 @@
                 "despesas": {
                     "incorporacao_ate_lancamento": 40333.33,
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra_lancamento": 147532.23,
+                    "obra_lancamento": 145698.9,
                     "seguros": 26190.48,
                     "deducoes": 576882.18,
                     "deducoes_r_e_t_l_p_imoveis": 576882.18,
                     "deducoes_r_e_t_l_p_lotes": 0,
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
-                    "operacional": 590321,
-                    "outras_despesas_financeiras": 0,
+                    "operacional": 622225.35,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 730825.76,
                     "pagamento_terreno": 1165508.36,
                     "pagamento_terreno_parceria_v_g_v": 1153764.36,
@@ -4229,20 +4229,20 @@
                     "pagamento_terreno_comissao_corretor": 0,
                     "operacional_stand_de_vendas": 0,
                     "operacional_gastos_mensais_stand": 22000,
-                    "operacional_comissao_venda": 217074,
-                    "operacional_comissao_desligamento": 217074,
+                    "operacional_comissao_venda": 233152.17,
+                    "operacional_comissao_desligamento": 233152.17,
                     "operacional_ajuda_de_custo_gerentes": 7733,
-                    "operacional_bonus_c_c_a": 21252,
+                    "operacional_bonus_c_c_a": 21000,
                     "operacional_outras_despesas_comerciais": 5000,
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 100188,
-                    "i_t_b_i_i_p_t_u": 146942.4,
-                    "registro": 151800,
-                    "produtos_caixa": 66792,
-                    "contratos_caixa": 18216
+                    "i_t_b_i_i_p_t_u": 145200,
+                    "registro": 150000,
+                    "produtos_caixa": 66000,
+                    "contratos_caixa": 18000
                 },
-                "saldo_mes": 11164889.74,
-                "saldo_acumulado_mes": 6804838.36,
+                "saldo_mes": 11127418.73,
+                "saldo_acumulado_mes": 6556116.98,
                 "unidades_vendidas": 61
             },
             "2028-10": {
@@ -4266,15 +4266,15 @@
                 "despesas": {
                     "incorporacao_ate_lancamento": 40333.33,
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra_lancamento": 147532.23,
+                    "obra_lancamento": 145698.9,
                     "seguros": 26190.48,
                     "deducoes": 126597.88,
                     "deducoes_r_e_t_l_p_imoveis": 126597.88,
                     "deducoes_r_e_t_l_p_lotes": 0,
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
-                    "operacional": 531395,
-                    "outras_despesas_financeiras": 0,
+                    "operacional": 562868.91,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 160381.09,
                     "pagamento_terreno": 264939.76,
                     "pagamento_terreno_parceria_v_g_v": 253195.76,
@@ -4282,21 +4282,21 @@
                     "pagamento_terreno_comissao_corretor": 0,
                     "operacional_stand_de_vendas": 0,
                     "operacional_gastos_mensais_stand": 22000,
-                    "operacional_comissao_venda": 194051,
-                    "operacional_comissao_desligamento": 194051,
+                    "operacional_comissao_venda": 209836.96,
+                    "operacional_comissao_desligamento": 209836.96,
                     "operacional_ajuda_de_custo_gerentes": 7733,
-                    "operacional_bonus_c_c_a": 18998,
+                    "operacional_bonus_c_c_a": 18900,
                     "operacional_outras_despesas_comerciais": 5000,
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 89562,
-                    "i_t_b_i_i_p_t_u": 131357.6,
-                    "registro": 135700,
-                    "produtos_caixa": 59708,
-                    "contratos_caixa": 16284
+                    "i_t_b_i_i_p_t_u": 130680,
+                    "registro": 135000,
+                    "produtos_caixa": 59400,
+                    "contratos_caixa": 16200
                 },
-                "saldo_mes": 1888005.81,
-                "saldo_acumulado_mes": 8692844.16,
-                "unidades_vendidas": 55
+                "saldo_mes": 1850965.23,
+                "saldo_acumulado_mes": 8407082.21,
+                "unidades_vendidas": 54
             },
             "2028-11": {
                 "periodo": "Obra",
@@ -4318,7 +4318,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 876341.47,
+                    "obra": 865451.47,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -4327,8 +4327,8 @@
                     "deducoes_r_e_t_l_p_lotes": 0,
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
-                    "operacional": 480887,
-                    "outras_despesas_financeiras": 0,
+                    "operacional": 505030.48,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 175428.96,
                     "pagamento_terreno": 624489.17,
                     "pagamento_terreno_parceria_v_g_v": 554729.81,
@@ -4336,21 +4336,21 @@
                     "pagamento_terreno_comissao_corretor": 0,
                     "operacional_stand_de_vendas": 0,
                     "operacional_gastos_mensais_stand": 22000,
-                    "operacional_comissao_venda": 174317,
-                    "operacional_comissao_desligamento": 174317,
+                    "operacional_comissao_venda": 186521.74,
+                    "operacional_comissao_desligamento": 186521.74,
                     "operacional_ajuda_de_custo_gerentes": 7733,
-                    "operacional_bonus_c_c_a": 17066,
+                    "operacional_bonus_c_c_a": 16800,
                     "operacional_outras_despesas_comerciais": 5000,
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 80454,
-                    "i_t_b_i_i_p_t_u": 117999.2,
-                    "registro": 121900,
-                    "produtos_caixa": 53636,
-                    "contratos_caixa": 14628,
+                    "i_t_b_i_i_p_t_u": 116160,
+                    "registro": 120000,
+                    "produtos_caixa": 52800,
+                    "contratos_caixa": 14400,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": 1098013.92,
-                "saldo_acumulado_mes": 9790858.08,
+                "saldo_mes": 1077360.44,
+                "saldo_acumulado_mes": 9484442.65,
                 "unidades_vendidas": 49
             },
             "2028-12": {
@@ -4373,7 +4373,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 1051609.76,
+                    "obra": 1038541.76,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -4382,8 +4382,8 @@
                     "deducoes_r_e_t_l_p_lotes": 0,
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
-                    "operacional": 320945,
-                    "outras_despesas_financeiras": 0,
+                    "operacional": 338118.91,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 170112.26,
                     "pagamento_terreno": 630047.5,
                     "pagamento_terreno_parceria_v_g_v": 546336.27,
@@ -4391,22 +4391,22 @@
                     "pagamento_terreno_comissao_corretor": 0,
                     "operacional_stand_de_vendas": 0,
                     "operacional_gastos_mensais_stand": 22000,
-                    "operacional_comissao_venda": 111826,
-                    "operacional_comissao_desligamento": 111826,
+                    "operacional_comissao_venda": 120461.96,
+                    "operacional_comissao_desligamento": 120461.96,
                     "operacional_ajuda_de_custo_gerentes": 7733,
-                    "operacional_bonus_c_c_a": 10948,
+                    "operacional_bonus_c_c_a": 10850,
                     "operacional_outras_despesas_comerciais": 5000,
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 51612,
-                    "i_t_b_i_i_p_t_u": 75697.6,
-                    "registro": 78200,
-                    "produtos_caixa": 34408,
-                    "contratos_caixa": 9384,
+                    "i_t_b_i_i_p_t_u": 75020,
+                    "registro": 77500,
+                    "produtos_caixa": 34100,
+                    "contratos_caixa": 9300,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": 981723.5,
-                "saldo_acumulado_mes": 10772581.58,
-                "unidades_vendidas": 32
+                "saldo_mes": 970217.59,
+                "saldo_acumulado_mes": 10454660.25,
+                "unidades_vendidas": 31
             },
             "2029-01": {
                 "periodo": "Obra",
@@ -4428,7 +4428,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 1226878.05,
+                    "obra": 1211632.05,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -4437,8 +4437,8 @@
                     "deducoes_r_e_t_l_p_lotes": 0,
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
-                    "operacional": 320945,
-                    "outras_despesas_financeiras": 0,
+                    "operacional": 338118.91,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 143204.63,
                     "pagamento_terreno": 601519.93,
                     "pagamento_terreno_parceria_v_g_v": 503856.83,
@@ -4446,22 +4446,22 @@
                     "pagamento_terreno_comissao_corretor": 0,
                     "operacional_stand_de_vendas": 0,
                     "operacional_gastos_mensais_stand": 22000,
-                    "operacional_comissao_venda": 111826,
-                    "operacional_comissao_desligamento": 111826,
+                    "operacional_comissao_venda": 120461.96,
+                    "operacional_comissao_desligamento": 120461.96,
                     "operacional_ajuda_de_custo_gerentes": 7733,
-                    "operacional_bonus_c_c_a": 10948,
+                    "operacional_bonus_c_c_a": 10850,
                     "operacional_outras_despesas_comerciais": 5000,
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 51612,
-                    "i_t_b_i_i_p_t_u": 75697.6,
-                    "registro": 78200,
-                    "produtos_caixa": 34408,
-                    "contratos_caixa": 9384,
+                    "i_t_b_i_i_p_t_u": 75020,
+                    "registro": 77500,
+                    "produtos_caixa": 34100,
+                    "contratos_caixa": 9300,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": 352137.09,
-                "saldo_acumulado_mes": 11124718.68,
-                "unidades_vendidas": 32
+                "saldo_mes": 342809.19,
+                "saldo_acumulado_mes": 10797469.43,
+                "unidades_vendidas": 31
             },
             "2029-02": {
                 "periodo": "Obra",
@@ -4483,7 +4483,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 1402146.35,
+                    "obra": 1384722.35,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -4492,8 +4492,8 @@
                     "deducoes_r_e_t_l_p_lotes": 0,
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
-                    "operacional": 320945,
-                    "outras_despesas_financeiras": 0,
+                    "operacional": 338118.91,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 156451.5,
                     "pagamento_terreno": 636384.82,
                     "pagamento_terreno_parceria_v_g_v": 524769.85,
@@ -4501,21 +4501,21 @@
                     "pagamento_terreno_comissao_corretor": 0,
                     "operacional_stand_de_vendas": 0,
                     "operacional_gastos_mensais_stand": 22000,
-                    "operacional_comissao_venda": 111826,
-                    "operacional_comissao_desligamento": 111826,
+                    "operacional_comissao_venda": 120461.96,
+                    "operacional_comissao_desligamento": 120461.96,
                     "operacional_ajuda_de_custo_gerentes": 7733,
-                    "operacional_bonus_c_c_a": 10948,
+                    "operacional_bonus_c_c_a": 10850,
                     "operacional_outras_despesas_comerciais": 5000,
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 51612,
-                    "i_t_b_i_i_p_t_u": 75697.6,
-                    "registro": 78200,
-                    "produtos_caixa": 34408,
-                    "contratos_caixa": 9384,
+                    "i_t_b_i_i_p_t_u": 75020,
+                    "registro": 77500,
+                    "produtos_caixa": 34100,
+                    "contratos_caixa": 9300,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": 379713.25,
-                "saldo_acumulado_mes": 11504431.92,
+                "saldo_mes": 372563.34,
+                "saldo_acumulado_mes": 11170032.77,
                 "unidades_vendidas": 32
             },
             "2029-03": {
@@ -4538,7 +4538,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 1577414.64,
+                    "obra": 1557812.64,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -4547,8 +4547,8 @@
                     "deducoes_r_e_t_l_p_lotes": 0,
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
-                    "operacional": 320945,
-                    "outras_despesas_financeiras": 0,
+                    "operacional": 338118.91,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 170880.11,
                     "pagamento_terreno": 673115.33,
                     "pagamento_terreno_parceria_v_g_v": 547548.48,
@@ -4556,22 +4556,22 @@
                     "pagamento_terreno_comissao_corretor": 0,
                     "operacional_stand_de_vendas": 0,
                     "operacional_gastos_mensais_stand": 22000,
-                    "operacional_comissao_venda": 111826,
-                    "operacional_comissao_desligamento": 111826,
+                    "operacional_comissao_venda": 120461.96,
+                    "operacional_comissao_desligamento": 120461.96,
                     "operacional_ajuda_de_custo_gerentes": 7733,
-                    "operacional_bonus_c_c_a": 10948,
+                    "operacional_bonus_c_c_a": 10850,
                     "operacional_outras_despesas_comerciais": 5000,
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 51612,
-                    "i_t_b_i_i_p_t_u": 75697.6,
-                    "registro": 78200,
-                    "produtos_caixa": 34408,
-                    "contratos_caixa": 9384,
+                    "i_t_b_i_i_p_t_u": 75020,
+                    "registro": 77500,
+                    "produtos_caixa": 34100,
+                    "contratos_caixa": 9300,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": 426629.49,
-                "saldo_acumulado_mes": 11931061.42,
-                "unidades_vendidas": 32
+                "saldo_mes": 421657.58,
+                "saldo_acumulado_mes": 11591690.35,
+                "unidades_vendidas": 31
             },
             "2029-04": {
                 "periodo": "Obra",
@@ -4593,7 +4593,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 1752682.93,
+                    "obra": 1730902.93,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -4602,8 +4602,8 @@
                     "deducoes_r_e_t_l_p_lotes": 0,
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
-                    "operacional": 320945,
-                    "outras_despesas_financeiras": 0,
+                    "operacional": 338118.91,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 186492.37,
                     "pagamento_terreno": 711714.49,
                     "pagamento_terreno_parceria_v_g_v": 572195.77,
@@ -4611,22 +4611,22 @@
                     "pagamento_terreno_comissao_corretor": 0,
                     "operacional_stand_de_vendas": 0,
                     "operacional_gastos_mensais_stand": 22000,
-                    "operacional_comissao_venda": 111826,
-                    "operacional_comissao_desligamento": 111826,
+                    "operacional_comissao_venda": 120461.96,
+                    "operacional_comissao_desligamento": 120461.96,
                     "operacional_ajuda_de_custo_gerentes": 7733,
-                    "operacional_bonus_c_c_a": 10948,
+                    "operacional_bonus_c_c_a": 10850,
                     "operacional_outras_despesas_comerciais": 5000,
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 51612,
-                    "i_t_b_i_i_p_t_u": 75697.6,
-                    "registro": 78200,
-                    "produtos_caixa": 34408,
-                    "contratos_caixa": 9384,
+                    "i_t_b_i_i_p_t_u": 75020,
+                    "registro": 77500,
+                    "produtos_caixa": 34100,
+                    "contratos_caixa": 9300,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": 492917.21,
-                "saldo_acumulado_mes": 12423978.63,
-                "unidades_vendidas": 32
+                "saldo_mes": 490123.3,
+                "saldo_acumulado_mes": 12081813.65,
+                "unidades_vendidas": 31
             },
             "2029-05": {
                 "periodo": "Obra",
@@ -4648,7 +4648,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 1927951.23,
+                    "obra": 1903993.23,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -4657,8 +4657,8 @@
                     "deducoes_r_e_t_l_p_lotes": 0,
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
-                    "operacional": 320945,
-                    "outras_despesas_financeiras": 0,
+                    "operacional": 338118.91,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 203290.4,
                     "pagamento_terreno": 752185.63,
                     "pagamento_terreno_parceria_v_g_v": 598715.03,
@@ -4666,22 +4666,22 @@
                     "pagamento_terreno_comissao_corretor": 0,
                     "operacional_stand_de_vendas": 0,
                     "operacional_gastos_mensais_stand": 22000,
-                    "operacional_comissao_venda": 111826,
-                    "operacional_comissao_desligamento": 111826,
+                    "operacional_comissao_venda": 120461.96,
+                    "operacional_comissao_desligamento": 120461.96,
                     "operacional_ajuda_de_custo_gerentes": 7733,
-                    "operacional_bonus_c_c_a": 10948,
+                    "operacional_bonus_c_c_a": 10850,
                     "operacional_outras_despesas_comerciais": 5000,
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 51612,
-                    "i_t_b_i_i_p_t_u": 75697.6,
-                    "registro": 78200,
-                    "produtos_caixa": 34408,
-                    "contratos_caixa": 9384,
+                    "i_t_b_i_i_p_t_u": 75020,
+                    "registro": 77500,
+                    "produtos_caixa": 34100,
+                    "contratos_caixa": 9300,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": 578610.91,
-                "saldo_acumulado_mes": 13002589.54,
-                "unidades_vendidas": 32
+                "saldo_mes": 577995.01,
+                "saldo_acumulado_mes": 12659808.66,
+                "unidades_vendidas": 31
             },
             "2029-06": {
                 "periodo": "Obra",
@@ -4703,7 +4703,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 2103219.52,
+                    "obra": 2077083.52,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -4712,8 +4712,8 @@
                     "deducoes_r_e_t_l_p_lotes": 0,
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
-                    "operacional": 320945,
-                    "outras_despesas_financeiras": 0,
+                    "operacional": 338118.91,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 221276.51,
                     "pagamento_terreno": 794532.41,
                     "pagamento_terreno_parceria_v_g_v": 627109.95,
@@ -4721,21 +4721,21 @@
                     "pagamento_terreno_comissao_corretor": 0,
                     "operacional_stand_de_vendas": 0,
                     "operacional_gastos_mensais_stand": 22000,
-                    "operacional_comissao_venda": 111826,
-                    "operacional_comissao_desligamento": 111826,
+                    "operacional_comissao_venda": 120461.96,
+                    "operacional_comissao_desligamento": 120461.96,
                     "operacional_ajuda_de_custo_gerentes": 7733,
-                    "operacional_bonus_c_c_a": 10948,
+                    "operacional_bonus_c_c_a": 10850,
                     "operacional_outras_despesas_comerciais": 5000,
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 51612,
-                    "i_t_b_i_i_p_t_u": 75697.6,
-                    "registro": 78200,
-                    "produtos_caixa": 34408,
-                    "contratos_caixa": 9384,
+                    "i_t_b_i_i_p_t_u": 75020,
+                    "registro": 77500,
+                    "produtos_caixa": 34100,
+                    "contratos_caixa": 9300,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": 683748.71,
-                "saldo_acumulado_mes": 13686338.25,
+                "saldo_mes": 685310.8,
+                "saldo_acumulado_mes": 13345119.46,
                 "unidades_vendidas": 32
             },
             "2029-07": {
@@ -4758,7 +4758,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 2278487.81,
+                    "obra": 2250173.81,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -4767,8 +4767,8 @@
                     "deducoes_r_e_t_l_p_lotes": 0,
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
-                    "operacional": 320945,
-                    "outras_despesas_financeiras": 0,
+                    "operacional": 338118.91,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 240453.29,
                     "pagamento_terreno": 838758.92,
                     "pagamento_terreno_parceria_v_g_v": 657384.58,
@@ -4776,22 +4776,22 @@
                     "pagamento_terreno_comissao_corretor": 0,
                     "operacional_stand_de_vendas": 0,
                     "operacional_gastos_mensais_stand": 22000,
-                    "operacional_comissao_venda": 111826,
-                    "operacional_comissao_desligamento": 111826,
+                    "operacional_comissao_venda": 120461.96,
+                    "operacional_comissao_desligamento": 120461.96,
                     "operacional_ajuda_de_custo_gerentes": 7733,
-                    "operacional_bonus_c_c_a": 10948,
+                    "operacional_bonus_c_c_a": 10850,
                     "operacional_outras_despesas_comerciais": 5000,
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 51612,
-                    "i_t_b_i_i_p_t_u": 75697.6,
-                    "registro": 78200,
-                    "produtos_caixa": 34408,
-                    "contratos_caixa": 9384,
+                    "i_t_b_i_i_p_t_u": 75020,
+                    "registro": 77500,
+                    "produtos_caixa": 34100,
+                    "contratos_caixa": 9300,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": 808372.77,
-                "saldo_acumulado_mes": 14494711.02,
-                "unidades_vendidas": 32
+                "saldo_mes": 812112.86,
+                "saldo_acumulado_mes": 14157232.32,
+                "unidades_vendidas": 31
             },
             "2029-08": {
                 "periodo": "Obra",
@@ -4813,7 +4813,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 2453756.1,
+                    "obra": 2423264.1,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -4822,8 +4822,8 @@
                     "deducoes_r_e_t_l_p_lotes": 0,
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
-                    "operacional": 320945,
-                    "outras_despesas_financeiras": 0,
+                    "operacional": 338118.91,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 260823.59,
                     "pagamento_terreno": 884869.67,
                     "pagamento_terreno_parceria_v_g_v": 689543.46,
@@ -4831,22 +4831,22 @@
                     "pagamento_terreno_comissao_corretor": 0,
                     "operacional_stand_de_vendas": 0,
                     "operacional_gastos_mensais_stand": 22000,
-                    "operacional_comissao_venda": 111826,
-                    "operacional_comissao_desligamento": 111826,
+                    "operacional_comissao_venda": 120461.96,
+                    "operacional_comissao_desligamento": 120461.96,
                     "operacional_ajuda_de_custo_gerentes": 7733,
-                    "operacional_bonus_c_c_a": 10948,
+                    "operacional_bonus_c_c_a": 10850,
                     "operacional_outras_despesas_comerciais": 5000,
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 51612,
-                    "i_t_b_i_i_p_t_u": 75697.6,
-                    "registro": 78200,
-                    "produtos_caixa": 34408,
-                    "contratos_caixa": 9384,
+                    "i_t_b_i_i_p_t_u": 75020,
+                    "registro": 77500,
+                    "produtos_caixa": 34100,
+                    "contratos_caixa": 9300,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": 952529.93,
-                "saldo_acumulado_mes": 15447240.95,
-                "unidades_vendidas": 32
+                "saldo_mes": 958448.02,
+                "saldo_acumulado_mes": 15115680.34,
+                "unidades_vendidas": 31
             },
             "2029-09": {
                 "periodo": "Obra",
@@ -4868,7 +4868,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 2629024.4,
+                    "obra": 2596354.4,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -4877,8 +4877,8 @@
                     "deducoes_r_e_t_l_p_lotes": 0,
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
-                    "operacional": 320945,
-                    "outras_despesas_financeiras": 0,
+                    "operacional": 338118.91,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 282390.62,
                     "pagamento_terreno": 932869.7,
                     "pagamento_terreno_parceria_v_g_v": 723591.62,
@@ -4886,21 +4886,21 @@
                     "pagamento_terreno_comissao_corretor": 0,
                     "operacional_stand_de_vendas": 0,
                     "operacional_gastos_mensais_stand": 22000,
-                    "operacional_comissao_venda": 111826,
-                    "operacional_comissao_desligamento": 111826,
+                    "operacional_comissao_venda": 120461.96,
+                    "operacional_comissao_desligamento": 120461.96,
                     "operacional_ajuda_de_custo_gerentes": 7733,
-                    "operacional_bonus_c_c_a": 10948,
+                    "operacional_bonus_c_c_a": 10850,
                     "operacional_outras_despesas_comerciais": 5000,
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 51612,
-                    "i_t_b_i_i_p_t_u": 75697.6,
-                    "registro": 78200,
-                    "produtos_caixa": 34408,
-                    "contratos_caixa": 9384,
+                    "i_t_b_i_i_p_t_u": 75020,
+                    "registro": 77500,
+                    "produtos_caixa": 34100,
+                    "contratos_caixa": 9300,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": 1116272.45,
-                "saldo_acumulado_mes": 16563513.39,
+                "saldo_mes": 1124368.54,
+                "saldo_acumulado_mes": 16240048.87,
                 "unidades_vendidas": 32
             },
             "2029-10": {
@@ -4923,7 +4923,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 2804292.69,
+                    "obra": 2769444.69,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -4932,8 +4932,8 @@
                     "deducoes_r_e_t_l_p_lotes": 0,
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
-                    "operacional": 320945,
-                    "outras_despesas_financeiras": 0,
+                    "operacional": 338118.91,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 305157.95,
                     "pagamento_terreno": 982764.65,
                     "pagamento_terreno_parceria_v_g_v": 759534.7,
@@ -4941,22 +4941,22 @@
                     "pagamento_terreno_comissao_corretor": 0,
                     "operacional_stand_de_vendas": 0,
                     "operacional_gastos_mensais_stand": 22000,
-                    "operacional_comissao_venda": 111826,
-                    "operacional_comissao_desligamento": 111826,
+                    "operacional_comissao_venda": 120461.96,
+                    "operacional_comissao_desligamento": 120461.96,
                     "operacional_ajuda_de_custo_gerentes": 7733,
-                    "operacional_bonus_c_c_a": 10948,
+                    "operacional_bonus_c_c_a": 10850,
                     "operacional_outras_despesas_comerciais": 5000,
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 51612,
-                    "i_t_b_i_i_p_t_u": 75697.6,
-                    "registro": 78200,
-                    "produtos_caixa": 34408,
-                    "contratos_caixa": 9384,
+                    "i_t_b_i_i_p_t_u": 75020,
+                    "registro": 77500,
+                    "produtos_caixa": 34100,
+                    "contratos_caixa": 9300,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": 1299658.89,
-                "saldo_acumulado_mes": 17863172.28,
-                "unidades_vendidas": 32
+                "saldo_mes": 1309932.98,
+                "saldo_acumulado_mes": 17549981.85,
+                "unidades_vendidas": 31
             },
             "2029-11": {
                 "periodo": "Obra",
@@ -4978,7 +4978,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 2979560.98,
+                    "obra": 2942534.98,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -4987,8 +4987,8 @@
                     "deducoes_r_e_t_l_p_lotes": 0,
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
-                    "operacional": 320945,
-                    "outras_despesas_financeiras": 0,
+                    "operacional": 338118.91,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 329129.6,
                     "pagamento_terreno": 1034560.89,
                     "pagamento_terreno_parceria_v_g_v": 797379.07,
@@ -4996,22 +4996,22 @@
                     "pagamento_terreno_comissao_corretor": 0,
                     "operacional_stand_de_vendas": 0,
                     "operacional_gastos_mensais_stand": 22000,
-                    "operacional_comissao_venda": 111826,
-                    "operacional_comissao_desligamento": 111826,
+                    "operacional_comissao_venda": 120461.96,
+                    "operacional_comissao_desligamento": 120461.96,
                     "operacional_ajuda_de_custo_gerentes": 7733,
-                    "operacional_bonus_c_c_a": 10948,
+                    "operacional_bonus_c_c_a": 10850,
                     "operacional_outras_despesas_comerciais": 5000,
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 51612,
-                    "i_t_b_i_i_p_t_u": 75697.6,
-                    "registro": 78200,
-                    "produtos_caixa": 34408,
-                    "contratos_caixa": 9384,
+                    "i_t_b_i_i_p_t_u": 75020,
+                    "registro": 77500,
+                    "produtos_caixa": 34100,
+                    "contratos_caixa": 9300,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": 1502755.09,
-                "saldo_acumulado_mes": 19365927.37,
-                "unidades_vendidas": 32
+                "saldo_mes": 1515207.18,
+                "saldo_acumulado_mes": 19065189.03,
+                "unidades_vendidas": 31
             },
             "2029-12": {
                 "periodo": "Obra",
@@ -5033,7 +5033,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 3154829.28,
+                    "obra": 3115625.28,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -5042,8 +5042,8 @@
                     "deducoes_r_e_t_l_p_lotes": 0,
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
-                    "operacional": 320945,
-                    "outras_despesas_financeiras": 0,
+                    "operacional": 338118.91,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 354310.12,
                     "pagamento_terreno": 1088265.59,
                     "pagamento_terreno_parceria_v_g_v": 837131.89,
@@ -5051,22 +5051,22 @@
                     "pagamento_terreno_comissao_corretor": 0,
                     "operacional_stand_de_vendas": 0,
                     "operacional_gastos_mensais_stand": 22000,
-                    "operacional_comissao_venda": 111826,
-                    "operacional_comissao_desligamento": 111826,
+                    "operacional_comissao_venda": 120461.96,
+                    "operacional_comissao_desligamento": 120461.96,
                     "operacional_ajuda_de_custo_gerentes": 7733,
-                    "operacional_bonus_c_c_a": 10948,
+                    "operacional_bonus_c_c_a": 10850,
                     "operacional_outras_despesas_comerciais": 5000,
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 51612,
-                    "i_t_b_i_i_p_t_u": 75697.6,
-                    "registro": 78200,
-                    "produtos_caixa": 34408,
-                    "contratos_caixa": 9384,
+                    "i_t_b_i_i_p_t_u": 75020,
+                    "registro": 77500,
+                    "produtos_caixa": 34100,
+                    "contratos_caixa": 9300,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": 1725635.46,
-                "saldo_acumulado_mes": 21091562.83,
-                "unidades_vendidas": 32
+                "saldo_mes": 1740265.55,
+                "saldo_acumulado_mes": 20805454.59,
+                "unidades_vendidas": 31
             },
             "2030-01": {
                 "periodo": "Obra",
@@ -5088,7 +5088,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 3330097.57,
+                    "obra": 3288715.57,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -5097,8 +5097,8 @@
                     "deducoes_r_e_t_l_p_lotes": 0,
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
-                    "operacional": 1236995,
-                    "outras_despesas_financeiras": 0,
+                    "operacional": 1256612.39,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 385257.27,
                     "pagamento_terreno": 1151074.14,
                     "pagamento_terreno_parceria_v_g_v": 885988.57,
@@ -5106,21 +5106,21 @@
                     "pagamento_terreno_comissao_corretor": 0,
                     "operacional_stand_de_vendas": 0,
                     "operacional_gastos_mensais_stand": 22000,
-                    "operacional_comissao_venda": 118404,
-                    "operacional_comissao_desligamento": 118404,
+                    "operacional_comissao_venda": 128233.7,
+                    "operacional_comissao_desligamento": 128233.7,
                     "operacional_ajuda_de_custo_gerentes": 7733,
-                    "operacional_bonus_c_c_a": 11592,
+                    "operacional_bonus_c_c_a": 11550,
                     "operacional_outras_despesas_comerciais": 5000,
                     "operacional_bonus_equipe_comercial": 899214,
                     "operacional_marketing": 54648,
-                    "i_t_b_i_i_p_t_u": 80150.4,
-                    "registro": 82800,
-                    "produtos_caixa": 36432,
-                    "contratos_caixa": 9936,
+                    "i_t_b_i_i_p_t_u": 79860,
+                    "registro": 82500,
+                    "produtos_caixa": 36300,
+                    "contratos_caixa": 9900,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": 1126841.59,
-                "saldo_acumulado_mes": 22218404.43,
+                "saldo_mes": 1141206.21,
+                "saldo_acumulado_mes": 21946660.79,
                 "unidades_vendidas": 34
             },
             "2030-02": {
@@ -5143,7 +5143,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 3505365.86,
+                    "obra": 3461805.86,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -5153,7 +5153,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 34733,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 327807.93,
                     "pagamento_terreno": 1074329.97,
                     "pagamento_terreno_parceria_v_g_v": 795292.53,
@@ -5170,8 +5170,8 @@
                     "operacional_marketing": 0,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": 1199676.34,
-                "saldo_acumulado_mes": 23418080.77,
+                "saldo_mes": 1235836.34,
+                "saldo_acumulado_mes": 23182497.14,
                 "unidades_vendidas": 0
             },
             "2030-03": {
@@ -5194,7 +5194,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 3680634.16,
+                    "obra": 3634896.16,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -5204,7 +5204,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 34733,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 265255.73,
                     "pagamento_terreno": 989529.84,
                     "pagamento_terreno_parceria_v_g_v": 696540.53,
@@ -5221,8 +5221,8 @@
                     "operacional_marketing": 0,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": -13263.63,
-                "saldo_acumulado_mes": 23404817.14,
+                "saldo_mes": 25074.38,
+                "saldo_acumulado_mes": 23207571.52,
                 "unidades_vendidas": 0
             },
             "2030-04": {
@@ -5245,7 +5245,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 3768268.3,
+                    "obra": 3721441.3,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -5255,7 +5255,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 34733,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 270902.86,
                     "pagamento_terreno": 1005420.98,
                     "pagamento_terreno_parceria_v_g_v": 705455.73,
@@ -5272,8 +5272,8 @@
                     "operacional_marketing": 0,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": -15453.63,
-                "saldo_acumulado_mes": 23389363.51,
+                "saldo_mes": 23973.37,
+                "saldo_acumulado_mes": 23231544.89,
                 "unidades_vendidas": 0
             },
             "2030-05": {
@@ -5296,7 +5296,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 3768268.3,
+                    "obra": 3721441.3,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -5306,7 +5306,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 34733,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 270902.86,
                     "pagamento_terreno": 1005420.98,
                     "pagamento_terreno_parceria_v_g_v": 705455.73,
@@ -5323,8 +5323,8 @@
                     "operacional_marketing": 0,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": -15453.63,
-                "saldo_acumulado_mes": 23373909.88,
+                "saldo_mes": 23973.37,
+                "saldo_acumulado_mes": 23255518.26,
                 "unidades_vendidas": 0
             },
             "2030-06": {
@@ -5347,7 +5347,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 3768268.3,
+                    "obra": 3721441.3,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -5357,7 +5357,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 34733,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 270902.86,
                     "pagamento_terreno": 1005420.98,
                     "pagamento_terreno_parceria_v_g_v": 705455.73,
@@ -5374,8 +5374,8 @@
                     "operacional_marketing": 0,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": -15453.63,
-                "saldo_acumulado_mes": 23358456.25,
+                "saldo_mes": 23973.37,
+                "saldo_acumulado_mes": 23279491.63,
                 "unidades_vendidas": 0
             },
             "2030-07": {
@@ -5398,7 +5398,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 3768268.3,
+                    "obra": 3721441.3,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -5408,7 +5408,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 34733,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 270902.86,
                     "pagamento_terreno": 1005420.98,
                     "pagamento_terreno_parceria_v_g_v": 705455.73,
@@ -5425,8 +5425,8 @@
                     "operacional_marketing": 0,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": -15453.63,
-                "saldo_acumulado_mes": 23343002.61,
+                "saldo_mes": 23973.37,
+                "saldo_acumulado_mes": 23303465,
                 "unidades_vendidas": 0
             },
             "2030-08": {
@@ -5449,7 +5449,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 3505365.86,
+                    "obra": 3461805.86,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -5459,7 +5459,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 34733,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 253961.47,
                     "pagamento_terreno": 957747.57,
                     "pagamento_terreno_parceria_v_g_v": 678710.13,
@@ -5476,8 +5476,8 @@
                     "operacional_marketing": 0,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": -8883.59,
-                "saldo_acumulado_mes": 23334119.02,
+                "saldo_mes": 27276.41,
+                "saldo_acumulado_mes": 23330741.41,
                 "unidades_vendidas": 0
             },
             "2030-09": {
@@ -5500,7 +5500,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 3330097.57,
+                    "obra": 3288715.57,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -5510,7 +5510,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 34733,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 242667.21,
                     "pagamento_terreno": 925965.3,
                     "pagamento_terreno_parceria_v_g_v": 660879.73,
@@ -5527,8 +5527,8 @@
                     "operacional_marketing": 0,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": -4503.57,
-                "saldo_acumulado_mes": 23329615.45,
+                "saldo_mes": 29478.43,
+                "saldo_acumulado_mes": 23360219.85,
                 "unidades_vendidas": 0
             },
             "2030-10": {
@@ -5551,7 +5551,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 3154829.28,
+                    "obra": 3115625.28,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -5561,7 +5561,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 34733,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 231372.94,
                     "pagamento_terreno": 894183.02,
                     "pagamento_terreno_parceria_v_g_v": 643049.33,
@@ -5578,8 +5578,8 @@
                     "operacional_marketing": 0,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": -123.55,
-                "saldo_acumulado_mes": 23329491.9,
+                "saldo_mes": 31680.46,
+                "saldo_acumulado_mes": 23391900.3,
                 "unidades_vendidas": 0
             },
             "2030-11": {
@@ -5602,7 +5602,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 2979560.98,
+                    "obra": 2942534.98,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -5612,7 +5612,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 34733,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 220078.68,
                     "pagamento_terreno": 862400.75,
                     "pagamento_terreno_parceria_v_g_v": 625218.93,
@@ -5629,8 +5629,8 @@
                     "operacional_marketing": 0,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": 4256.49,
-                "saldo_acumulado_mes": 23333748.39,
+                "saldo_mes": 33882.49,
+                "saldo_acumulado_mes": 23425782.79,
                 "unidades_vendidas": 0
             },
             "2030-12": {
@@ -5653,7 +5653,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 2804292.69,
+                    "obra": 2769444.69,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -5663,7 +5663,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 34733,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 208784.42,
                     "pagamento_terreno": 830618.48,
                     "pagamento_terreno_parceria_v_g_v": 607388.53,
@@ -5680,8 +5680,8 @@
                     "operacional_marketing": 0,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": 8636.51,
-                "saldo_acumulado_mes": 23342384.9,
+                "saldo_mes": 36084.51,
+                "saldo_acumulado_mes": 23461867.3,
                 "unidades_vendidas": 0
             },
             "2031-01": {
@@ -5704,7 +5704,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 2629024.4,
+                    "obra": 2596354.4,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -5714,7 +5714,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 34733,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 197490.16,
                     "pagamento_terreno": 798836.21,
                     "pagamento_terreno_parceria_v_g_v": 589558.13,
@@ -5731,8 +5731,8 @@
                     "operacional_marketing": 0,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": 13016.53,
-                "saldo_acumulado_mes": 23355401.43,
+                "saldo_mes": 38286.53,
+                "saldo_acumulado_mes": 23500153.84,
                 "unidades_vendidas": 0
             },
             "2031-02": {
@@ -5755,7 +5755,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 2453756.1,
+                    "obra": 2423264.1,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -5765,7 +5765,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 34733,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 186195.9,
                     "pagamento_terreno": 767053.94,
                     "pagamento_terreno_parceria_v_g_v": 571727.73,
@@ -5782,8 +5782,8 @@
                     "operacional_marketing": 0,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": 17396.56,
-                "saldo_acumulado_mes": 23372797.99,
+                "saldo_mes": 40488.57,
+                "saldo_acumulado_mes": 23540642.41,
                 "unidades_vendidas": 0
             },
             "2031-03": {
@@ -5806,7 +5806,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 2278487.81,
+                    "obra": 2250173.81,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -5816,7 +5816,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 34733,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 174901.64,
                     "pagamento_terreno": 735271.66,
                     "pagamento_terreno_parceria_v_g_v": 553897.33,
@@ -5833,8 +5833,8 @@
                     "operacional_marketing": 0,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": 21776.59,
-                "saldo_acumulado_mes": 23394574.58,
+                "saldo_mes": 42690.59,
+                "saldo_acumulado_mes": 23583333,
                 "unidades_vendidas": 0
             },
             "2031-04": {
@@ -5857,7 +5857,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 2103219.52,
+                    "obra": 2077083.52,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -5867,7 +5867,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 34733,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 163607.38,
                     "pagamento_terreno": 703489.39,
                     "pagamento_terreno_parceria_v_g_v": 536066.93,
@@ -5884,8 +5884,8 @@
                     "operacional_marketing": 0,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": 26156.61,
-                "saldo_acumulado_mes": 23420731.19,
+                "saldo_mes": 44892.61,
+                "saldo_acumulado_mes": 23628225.61,
                 "unidades_vendidas": 0
             },
             "2031-05": {
@@ -5908,7 +5908,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 1927951.23,
+                    "obra": 1903993.23,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -5918,7 +5918,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 34733,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 152313.12,
                     "pagamento_terreno": 671707.12,
                     "pagamento_terreno_parceria_v_g_v": 518236.53,
@@ -5935,8 +5935,8 @@
                     "operacional_marketing": 0,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": 30536.63,
-                "saldo_acumulado_mes": 23451267.82,
+                "saldo_mes": 47094.64,
+                "saldo_acumulado_mes": 23675320.25,
                 "unidades_vendidas": 0
             },
             "2031-06": {
@@ -5959,7 +5959,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 1752682.93,
+                    "obra": 1730902.93,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -5969,7 +5969,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 34733,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 141018.86,
                     "pagamento_terreno": 639924.85,
                     "pagamento_terreno_parceria_v_g_v": 500406.13,
@@ -5986,8 +5986,8 @@
                     "operacional_marketing": 0,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": 34916.66,
-                "saldo_acumulado_mes": 23486184.48,
+                "saldo_mes": 49296.67,
+                "saldo_acumulado_mes": 23724616.91,
                 "unidades_vendidas": 0
             },
             "2031-07": {
@@ -6010,7 +6010,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 1577414.64,
+                    "obra": 1557812.64,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -6020,7 +6020,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 34733,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 28076.25,
                     "pagamento_terreno": 447668.98,
                     "pagamento_terreno_parceria_v_g_v": 322102.13,
@@ -6037,8 +6037,8 @@
                     "operacional_marketing": 0,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": -1624264.57,
-                "saldo_acumulado_mes": 21861919.92,
+                "saldo_mes": -1612062.56,
+                "saldo_acumulado_mes": 22112554.35,
                 "unidades_vendidas": 0
             },
             "2031-08": {
@@ -6061,7 +6061,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 1402146.35,
+                    "obra": 1384722.35,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -6071,7 +6071,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 34733,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 28076.25,
                     "pagamento_terreno": 433717.1,
                     "pagamento_terreno_parceria_v_g_v": 322102.13,
@@ -6088,8 +6088,8 @@
                     "operacional_marketing": 0,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": -1435044.4,
-                "saldo_acumulado_mes": 20426875.51,
+                "saldo_mes": -1425020.4,
+                "saldo_acumulado_mes": 20687533.95,
                 "unidades_vendidas": 0
             },
             "2031-09": {
@@ -6112,7 +6112,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 1226878.05,
+                    "obra": 1211632.05,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -6122,7 +6122,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 34733,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 28076.25,
                     "pagamento_terreno": 419765.23,
                     "pagamento_terreno_parceria_v_g_v": 322102.13,
@@ -6139,8 +6139,8 @@
                     "operacional_marketing": 0,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": -1245824.23,
-                "saldo_acumulado_mes": 19181051.28,
+                "saldo_mes": -1237978.23,
+                "saldo_acumulado_mes": 19449555.73,
                 "unidades_vendidas": 0
             },
             "2031-10": {
@@ -6163,7 +6163,7 @@
                 },
                 "despesas": {
                     "incorporacao_pos_lancamento": 5761.9,
-                    "obra": 701073.17,
+                    "obra": 692361.17,
                     "area_comum": 0,
                     "m_o_administrativa": 62502,
                     "seguros": 26190.48,
@@ -6173,7 +6173,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 34733,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 28076.25,
                     "pagamento_terreno": 377909.62,
                     "pagamento_terreno_parceria_v_g_v": 322102.13,
@@ -6190,8 +6190,8 @@
                     "operacional_marketing": 0,
                     "taxa_medicao": 2000
                 },
-                "saldo_mes": -678163.74,
-                "saldo_acumulado_mes": 18502887.55,
+                "saldo_mes": -676851.73,
+                "saldo_acumulado_mes": 18772703.99,
                 "unidades_vendidas": 0
             },
             "2031-11": {
@@ -6221,7 +6221,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 37913.45,
                     "pagamento_terreno": 59854.47,
                     "pagamento_terreno_parceria_v_g_v": 59854.47,
@@ -6237,8 +6237,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 255805.05,
-                "saldo_acumulado_mes": 18758692.6,
+                "saldo_mes": 248405.05,
+                "saldo_acumulado_mes": 19021109.05,
                 "unidades_vendidas": 0
             },
             "2031-12": {
@@ -6267,7 +6267,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 212623.86,
                     "pagamento_terreno": 335672.11,
                     "pagamento_terreno_parceria_v_g_v": 335672.11,
@@ -6283,8 +6283,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 3445088.72,
-                "saldo_acumulado_mes": 22203781.32,
+                "saldo_mes": 3437688.72,
+                "saldo_acumulado_mes": 22458797.77,
                 "unidades_vendidas": 0
             },
             "2032-01": {
@@ -6313,7 +6313,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 37212.18,
                     "pagamento_terreno": 58747.36,
                     "pagamento_terreno_parceria_v_g_v": 58747.36,
@@ -6329,8 +6329,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 574328.08,
-                "saldo_acumulado_mes": 22778109.4,
+                "saldo_mes": 566928.08,
+                "saldo_acumulado_mes": 23025725.85,
                 "unidades_vendidas": 0
             },
             "2032-02": {
@@ -6359,7 +6359,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 36861.54,
                     "pagamento_terreno": 58193.8,
                     "pagamento_terreno_parceria_v_g_v": 58193.8,
@@ -6375,8 +6375,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 568589.6,
-                "saldo_acumulado_mes": 23346699,
+                "saldo_mes": 561189.61,
+                "saldo_acumulado_mes": 23586915.46,
                 "unidades_vendidas": 0
             },
             "2032-03": {
@@ -6405,7 +6405,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 177689.16,
                     "pagamento_terreno": 280520.24,
                     "pagamento_terreno_parceria_v_g_v": 280520.24,
@@ -6421,8 +6421,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 2873352.86,
-                "saldo_acumulado_mes": 26220051.86,
+                "saldo_mes": 2865952.87,
+                "saldo_acumulado_mes": 26452868.32,
                 "unidades_vendidas": 0
             },
             "2032-04": {
@@ -6451,7 +6451,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 36160.26,
                     "pagamento_terreno": 57086.69,
                     "pagamento_terreno_parceria_v_g_v": 57086.69,
@@ -6467,8 +6467,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 557112.64,
-                "saldo_acumulado_mes": 26777164.5,
+                "saldo_mes": 549712.65,
+                "saldo_acumulado_mes": 27002580.97,
                 "unidades_vendidas": 0
             },
             "2032-05": {
@@ -6497,7 +6497,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 35809.63,
                     "pagamento_terreno": 56533.13,
                     "pagamento_terreno_parceria_v_g_v": 56533.13,
@@ -6513,8 +6513,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 551374.15,
-                "saldo_acumulado_mes": 27328538.65,
+                "saldo_mes": 543974.16,
+                "saldo_acumulado_mes": 27546555.13,
                 "unidades_vendidas": 0
             },
             "2032-06": {
@@ -6543,7 +6543,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 35458.99,
                     "pagamento_terreno": 55979.58,
                     "pagamento_terreno_parceria_v_g_v": 55979.58,
@@ -6559,8 +6559,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 545635.67,
-                "saldo_acumulado_mes": 27874174.33,
+                "saldo_mes": 538235.68,
+                "saldo_acumulado_mes": 28084790.8,
                 "unidades_vendidas": 0
             },
             "2032-07": {
@@ -6589,7 +6589,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 35108.35,
                     "pagamento_terreno": 55426.02,
                     "pagamento_terreno_parceria_v_g_v": 55426.02,
@@ -6605,8 +6605,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 539897.19,
-                "saldo_acumulado_mes": 28414071.52,
+                "saldo_mes": 532497.2,
+                "saldo_acumulado_mes": 28617288,
                 "unidades_vendidas": 0
             },
             "2032-08": {
@@ -6635,7 +6635,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 34757.71,
                     "pagamento_terreno": 54872.46,
                     "pagamento_terreno_parceria_v_g_v": 54872.46,
@@ -6651,8 +6651,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 534158.71,
-                "saldo_acumulado_mes": 28948230.23,
+                "saldo_mes": 526758.72,
+                "saldo_acumulado_mes": 29144046.72,
                 "unidades_vendidas": 0
             },
             "2032-09": {
@@ -6681,7 +6681,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 34407.07,
                     "pagamento_terreno": 54318.91,
                     "pagamento_terreno_parceria_v_g_v": 54318.91,
@@ -6697,8 +6697,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 528420.23,
-                "saldo_acumulado_mes": 29476650.46,
+                "saldo_mes": 521020.24,
+                "saldo_acumulado_mes": 29665066.95,
                 "unidades_vendidas": 0
             },
             "2032-10": {
@@ -6727,7 +6727,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 34056.44,
                     "pagamento_terreno": 53765.35,
                     "pagamento_terreno_parceria_v_g_v": 53765.35,
@@ -6743,8 +6743,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 522681.74,
-                "saldo_acumulado_mes": 29999332.21,
+                "saldo_mes": 515281.75,
+                "saldo_acumulado_mes": 30180348.7,
                 "unidades_vendidas": 0
             },
             "2032-11": {
@@ -6773,7 +6773,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 33705.8,
                     "pagamento_terreno": 53211.79,
                     "pagamento_terreno_parceria_v_g_v": 53211.79,
@@ -6789,8 +6789,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 537751.66,
-                "saldo_acumulado_mes": 30537083.87,
+                "saldo_mes": 530351.67,
+                "saldo_acumulado_mes": 30710700.37,
                 "unidades_vendidas": 0
             },
             "2032-12": {
@@ -6819,7 +6819,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 33355.16,
                     "pagamento_terreno": 52658.24,
                     "pagamento_terreno_parceria_v_g_v": 52658.24,
@@ -6835,8 +6835,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 532013.18,
-                "saldo_acumulado_mes": 31069097.06,
+                "saldo_mes": 524613.19,
+                "saldo_acumulado_mes": 31235313.56,
                 "unidades_vendidas": 0
             },
             "2033-01": {
@@ -6865,7 +6865,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 33004.52,
                     "pagamento_terreno": 52104.68,
                     "pagamento_terreno_parceria_v_g_v": 52104.68,
@@ -6881,8 +6881,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 526274.71,
-                "saldo_acumulado_mes": 31595371.76,
+                "saldo_mes": 518874.71,
+                "saldo_acumulado_mes": 31754188.27,
                 "unidades_vendidas": 0
             },
             "2033-02": {
@@ -6911,7 +6911,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 32653.89,
                     "pagamento_terreno": 51551.13,
                     "pagamento_terreno_parceria_v_g_v": 51551.13,
@@ -6927,8 +6927,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 520536.23,
-                "saldo_acumulado_mes": 32115907.99,
+                "saldo_mes": 513136.23,
+                "saldo_acumulado_mes": 32267324.49,
                 "unidades_vendidas": 0
             },
             "2033-03": {
@@ -6957,7 +6957,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 32303.25,
                     "pagamento_terreno": 50997.57,
                     "pagamento_terreno_parceria_v_g_v": 50997.57,
@@ -6973,8 +6973,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 514797.75,
-                "saldo_acumulado_mes": 32630705.73,
+                "saldo_mes": 507397.75,
+                "saldo_acumulado_mes": 32774722.24,
                 "unidades_vendidas": 0
             },
             "2033-04": {
@@ -7003,7 +7003,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 31952.61,
                     "pagamento_terreno": 50444.01,
                     "pagamento_terreno_parceria_v_g_v": 50444.01,
@@ -7019,8 +7019,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 509059.26,
-                "saldo_acumulado_mes": 33139764.99,
+                "saldo_mes": 501659.26,
+                "saldo_acumulado_mes": 33276381.5,
                 "unidades_vendidas": 0
             },
             "2033-05": {
@@ -7049,7 +7049,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 31601.97,
                     "pagamento_terreno": 49890.46,
                     "pagamento_terreno_parceria_v_g_v": 49890.46,
@@ -7065,8 +7065,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 503320.78,
-                "saldo_acumulado_mes": 33643085.76,
+                "saldo_mes": 495920.78,
+                "saldo_acumulado_mes": 33772302.28,
                 "unidades_vendidas": 0
             },
             "2033-06": {
@@ -7095,7 +7095,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 31251.34,
                     "pagamento_terreno": 49336.9,
                     "pagamento_terreno_parceria_v_g_v": 49336.9,
@@ -7111,8 +7111,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 497582.3,
-                "saldo_acumulado_mes": 34140668.06,
+                "saldo_mes": 490182.3,
+                "saldo_acumulado_mes": 34262484.58,
                 "unidades_vendidas": 0
             },
             "2033-07": {
@@ -7141,7 +7141,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 30900.7,
                     "pagamento_terreno": 48783.34,
                     "pagamento_terreno_parceria_v_g_v": 48783.34,
@@ -7157,8 +7157,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 491843.82,
-                "saldo_acumulado_mes": 34632511.88,
+                "saldo_mes": 484443.82,
+                "saldo_acumulado_mes": 34746928.4,
                 "unidades_vendidas": 0
             },
             "2033-08": {
@@ -7187,7 +7187,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 30550.06,
                     "pagamento_terreno": 48229.79,
                     "pagamento_terreno_parceria_v_g_v": 48229.79,
@@ -7203,8 +7203,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 486105.34,
-                "saldo_acumulado_mes": 35118617.22,
+                "saldo_mes": 478705.34,
+                "saldo_acumulado_mes": 35225633.75,
                 "unidades_vendidas": 0
             },
             "2033-09": {
@@ -7233,7 +7233,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 30199.42,
                     "pagamento_terreno": 47676.23,
                     "pagamento_terreno_parceria_v_g_v": 47676.23,
@@ -7249,8 +7249,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 480366.85,
-                "saldo_acumulado_mes": 35598984.06,
+                "saldo_mes": 472966.85,
+                "saldo_acumulado_mes": 35698600.6,
                 "unidades_vendidas": 0
             },
             "2033-10": {
@@ -7279,7 +7279,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 29848.79,
                     "pagamento_terreno": 47122.68,
                     "pagamento_terreno_parceria_v_g_v": 47122.68,
@@ -7295,8 +7295,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 474628.37,
-                "saldo_acumulado_mes": 36073612.43,
+                "saldo_mes": 467228.37,
+                "saldo_acumulado_mes": 36165828.97,
                 "unidades_vendidas": 0
             },
             "2033-11": {
@@ -7325,7 +7325,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 29498.15,
                     "pagamento_terreno": 46569.12,
                     "pagamento_terreno_parceria_v_g_v": 46569.12,
@@ -7341,8 +7341,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 475826.03,
-                "saldo_acumulado_mes": 36549438.46,
+                "saldo_mes": 468426.03,
+                "saldo_acumulado_mes": 36634255,
                 "unidades_vendidas": 0
             },
             "2033-12": {
@@ -7371,7 +7371,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 29147.51,
                     "pagamento_terreno": 46015.56,
                     "pagamento_terreno_parceria_v_g_v": 46015.56,
@@ -7387,8 +7387,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 470087.55,
-                "saldo_acumulado_mes": 37019526.01,
+                "saldo_mes": 462687.55,
+                "saldo_acumulado_mes": 37096942.55,
                 "unidades_vendidas": 0
             },
             "2034-01": {
@@ -7417,7 +7417,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 28796.87,
                     "pagamento_terreno": 45462.01,
                     "pagamento_terreno_parceria_v_g_v": 45462.01,
@@ -7433,8 +7433,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 464349.07,
-                "saldo_acumulado_mes": 37483875.08,
+                "saldo_mes": 456949.07,
+                "saldo_acumulado_mes": 37553891.63,
                 "unidades_vendidas": 0
             },
             "2034-02": {
@@ -7463,7 +7463,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 28446.23,
                     "pagamento_terreno": 44908.45,
                     "pagamento_terreno_parceria_v_g_v": 44908.45,
@@ -7479,8 +7479,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 458610.58,
-                "saldo_acumulado_mes": 37942485.66,
+                "saldo_mes": 451210.58,
+                "saldo_acumulado_mes": 38005102.21,
                 "unidades_vendidas": 0
             },
             "2034-03": {
@@ -7509,7 +7509,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 28095.6,
                     "pagamento_terreno": 44354.89,
                     "pagamento_terreno_parceria_v_g_v": 44354.89,
@@ -7525,8 +7525,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 452872.1,
-                "saldo_acumulado_mes": 38395357.76,
+                "saldo_mes": 445472.1,
+                "saldo_acumulado_mes": 38450574.31,
                 "unidades_vendidas": 0
             },
             "2034-04": {
@@ -7555,7 +7555,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 27744.96,
                     "pagamento_terreno": 43801.34,
                     "pagamento_terreno_parceria_v_g_v": 43801.34,
@@ -7571,8 +7571,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 447133.62,
-                "saldo_acumulado_mes": 38842491.38,
+                "saldo_mes": 439733.62,
+                "saldo_acumulado_mes": 38890307.94,
                 "unidades_vendidas": 0
             },
             "2034-05": {
@@ -7601,7 +7601,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 27394.32,
                     "pagamento_terreno": 43247.78,
                     "pagamento_terreno_parceria_v_g_v": 43247.78,
@@ -7617,8 +7617,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 441395.14,
-                "saldo_acumulado_mes": 39283886.52,
+                "saldo_mes": 433995.14,
+                "saldo_acumulado_mes": 39324303.08,
                 "unidades_vendidas": 0
             },
             "2034-06": {
@@ -7647,7 +7647,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 27043.68,
                     "pagamento_terreno": 42694.22,
                     "pagamento_terreno_parceria_v_g_v": 42694.22,
@@ -7663,8 +7663,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 435656.66,
-                "saldo_acumulado_mes": 39719543.18,
+                "saldo_mes": 428256.66,
+                "saldo_acumulado_mes": 39752559.75,
                 "unidades_vendidas": 0
             },
             "2034-07": {
@@ -7693,7 +7693,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 26693.05,
                     "pagamento_terreno": 42140.67,
                     "pagamento_terreno_parceria_v_g_v": 42140.67,
@@ -7709,8 +7709,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 429918.18,
-                "saldo_acumulado_mes": 40149461.36,
+                "saldo_mes": 422518.18,
+                "saldo_acumulado_mes": 40175077.93,
                 "unidades_vendidas": 0
             },
             "2034-08": {
@@ -7739,7 +7739,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 26342.41,
                     "pagamento_terreno": 41587.11,
                     "pagamento_terreno_parceria_v_g_v": 41587.11,
@@ -7755,8 +7755,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 424179.69,
-                "saldo_acumulado_mes": 40573641.05,
+                "saldo_mes": 416779.7,
+                "saldo_acumulado_mes": 40591857.63,
                 "unidades_vendidas": 0
             },
             "2034-09": {
@@ -7785,7 +7785,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 25991.77,
                     "pagamento_terreno": 41033.56,
                     "pagamento_terreno_parceria_v_g_v": 41033.56,
@@ -7801,8 +7801,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 418441.21,
-                "saldo_acumulado_mes": 40992082.26,
+                "saldo_mes": 411041.22,
+                "saldo_acumulado_mes": 41002898.84,
                 "unidades_vendidas": 0
             },
             "2034-10": {
@@ -7831,7 +7831,7 @@
                     "deducoes_i_s_s": 0,
                     "deducoes_outras": 0,
                     "operacional": 0,
-                    "outras_despesas_financeiras": 0,
+                    "outras_despesas_financeiras": 7400,
                     "custo_terreno": 25641.13,
                     "pagamento_terreno": 40479.99,
                     "pagamento_terreno_parceria_v_g_v": 40479.99,
@@ -7847,8 +7847,8 @@
                     "operacional_bonus_equipe_comercial": 0,
                     "operacional_marketing": 0
                 },
-                "saldo_mes": 412702.74,
-                "saldo_acumulado_mes": 41404785,
+                "saldo_mes": 405302.74,
+                "saldo_acumulado_mes": 41408201.58,
                 "unidades_vendidas": 0
             },
             "2034-11": {
@@ -7894,7 +7894,7 @@
                     "operacional_marketing": 0
                 },
                 "saldo_mes": -6936.13,
-                "saldo_acumulado_mes": 41397848.87,
+                "saldo_acumulado_mes": 41401265.45,
                 "unidades_vendidas": 0
             },
             "2034-12": {
@@ -7940,7 +7940,7 @@
                     "operacional_marketing": 0
                 },
                 "saldo_mes": -6936.13,
-                "saldo_acumulado_mes": 41390912.74,
+                "saldo_acumulado_mes": 41394329.32,
                 "unidades_vendidas": 0
             },
             "2035-01": {
@@ -7986,7 +7986,7 @@
                     "operacional_marketing": 0
                 },
                 "saldo_mes": -6936.13,
-                "saldo_acumulado_mes": 41383976.61,
+                "saldo_acumulado_mes": 41387393.19,
                 "unidades_vendidas": 0
             },
             "2035-02": {
@@ -8032,7 +8032,7 @@
                     "operacional_marketing": 0
                 },
                 "saldo_mes": -6936.13,
-                "saldo_acumulado_mes": 41377040.48,
+                "saldo_acumulado_mes": 41380457.06,
                 "unidades_vendidas": 0
             },
             "2035-03": {
@@ -8078,7 +8078,7 @@
                     "operacional_marketing": 0
                 },
                 "saldo_mes": -6936.13,
-                "saldo_acumulado_mes": 41370104.35,
+                "saldo_acumulado_mes": 41373520.93,
                 "unidades_vendidas": 0
             },
             "2035-04": {
@@ -8124,7 +8124,7 @@
                     "operacional_marketing": 0
                 },
                 "saldo_mes": -6936.13,
-                "saldo_acumulado_mes": 41363168.22,
+                "saldo_acumulado_mes": 41366584.8,
                 "unidades_vendidas": 0
             },
             "2035-05": {
@@ -8170,7 +8170,7 @@
                     "operacional_marketing": 0
                 },
                 "saldo_mes": -6936.13,
-                "saldo_acumulado_mes": 41356232.09,
+                "saldo_acumulado_mes": 41359648.67,
                 "unidades_vendidas": 0
             },
             "2035-06": {
@@ -8216,7 +8216,7 @@
                     "operacional_marketing": 0
                 },
                 "saldo_mes": -6936.13,
-                "saldo_acumulado_mes": 41349295.96,
+                "saldo_acumulado_mes": 41352712.54,
                 "unidades_vendidas": 0
             },
             "2035-07": {
@@ -8262,7 +8262,7 @@
                     "operacional_marketing": 0
                 },
                 "saldo_mes": -6936.13,
-                "saldo_acumulado_mes": 41342359.83,
+                "saldo_acumulado_mes": 41345776.41,
                 "unidades_vendidas": 0
             },
             "2035-08": {
@@ -8308,7 +8308,7 @@
                     "operacional_marketing": 0
                 },
                 "saldo_mes": -6936.13,
-                "saldo_acumulado_mes": 41335423.7,
+                "saldo_acumulado_mes": 41338840.28,
                 "unidades_vendidas": 0
             },
             "2035-09": {
@@ -8354,7 +8354,7 @@
                     "operacional_marketing": 0
                 },
                 "saldo_mes": -6936.13,
-                "saldo_acumulado_mes": 41328487.57,
+                "saldo_acumulado_mes": 41331904.15,
                 "unidades_vendidas": 0
             },
             "2035-10": {
@@ -8400,7 +8400,7 @@
                     "operacional_marketing": 0
                 },
                 "saldo_mes": -6936.13,
-                "saldo_acumulado_mes": 41321551.44,
+                "saldo_acumulado_mes": 41324968.02,
                 "unidades_vendidas": 0
             },
             "2035-11": {
@@ -8446,7 +8446,7 @@
                     "operacional_marketing": 0
                 },
                 "saldo_mes": -6936.13,
-                "saldo_acumulado_mes": 41314615.31,
+                "saldo_acumulado_mes": 41318031.89,
                 "unidades_vendidas": 0
             },
             "2035-12": {
@@ -8492,7 +8492,7 @@
                     "operacional_marketing": 0
                 },
                 "saldo_mes": -6936.13,
-                "saldo_acumulado_mes": 41307679.18,
+                "saldo_acumulado_mes": 41311095.76,
                 "unidades_vendidas": 0
             },
             "2036-01": {
@@ -8538,7 +8538,7 @@
                     "operacional_marketing": 0
                 },
                 "saldo_mes": -6936.13,
-                "saldo_acumulado_mes": 41300743.05,
+                "saldo_acumulado_mes": 41304159.63,
                 "unidades_vendidas": 0
             },
             "2036-02": {
@@ -8584,7 +8584,7 @@
                     "operacional_marketing": 0
                 },
                 "saldo_mes": -6936.13,
-                "saldo_acumulado_mes": 41293806.92,
+                "saldo_acumulado_mes": 41297223.5,
                 "unidades_vendidas": 0
             },
             "2036-03": {
@@ -8630,7 +8630,7 @@
                     "operacional_marketing": 0
                 },
                 "saldo_mes": -6936.13,
-                "saldo_acumulado_mes": 41286870.79,
+                "saldo_acumulado_mes": 41290287.37,
                 "unidades_vendidas": 0
             },
             "2036-04": {
@@ -8676,7 +8676,7 @@
                     "operacional_marketing": 0
                 },
                 "saldo_mes": -6936.13,
-                "saldo_acumulado_mes": 41279934.66,
+                "saldo_acumulado_mes": 41283351.24,
                 "unidades_vendidas": 0
             },
             "2036-05": {
@@ -8722,7 +8722,7 @@
                     "operacional_marketing": 0
                 },
                 "saldo_mes": -6936.13,
-                "saldo_acumulado_mes": 41272998.53,
+                "saldo_acumulado_mes": 41276415.11,
                 "unidades_vendidas": 0
             },
             "2036-06": {
@@ -8768,7 +8768,7 @@
                     "operacional_marketing": 0
                 },
                 "saldo_mes": -6936.13,
-                "saldo_acumulado_mes": 41266062.4,
+                "saldo_acumulado_mes": 41269478.98,
                 "unidades_vendidas": 0
             },
             "2036-07": {
@@ -8814,7 +8814,7 @@
                     "operacional_marketing": 0
                 },
                 "saldo_mes": -6936.13,
-                "saldo_acumulado_mes": 41259126.27,
+                "saldo_acumulado_mes": 41262542.85,
                 "unidades_vendidas": 0
             },
             "2036-08": {
@@ -8860,7 +8860,7 @@
                     "operacional_marketing": 0
                 },
                 "saldo_mes": -6936.13,
-                "saldo_acumulado_mes": 41252190.14,
+                "saldo_acumulado_mes": 41255606.72,
                 "unidades_vendidas": 0
             },
             "2036-09": {
@@ -8906,7 +8906,7 @@
                     "operacional_marketing": 0
                 },
                 "saldo_mes": -6936.13,
-                "saldo_acumulado_mes": 41245254.01,
+                "saldo_acumulado_mes": 41248670.59,
                 "unidades_vendidas": 0
             },
             "2036-10": {
@@ -8952,7 +8952,7 @@
                     "operacional_marketing": 0
                 },
                 "saldo_mes": -6936.13,
-                "saldo_acumulado_mes": 41238317.88,
+                "saldo_acumulado_mes": 41241734.46,
                 "unidades_vendidas": 0
             }
         },
@@ -9120,8 +9120,8 @@
                 "exposicao_aplicada": 0
             },
             "2028-05": {
-                "valor": -755297.99,
-                "saldo_acumulado": -2587631.27,
+                "valor": -460564.65,
+                "saldo_acumulado": -2292897.93,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9129,8 +9129,8 @@
                 "exposicao_aplicada": 0
             },
             "2028-06": {
-                "valor": -680286.69,
-                "saldo_acumulado": -3267917.96,
+                "valor": -412474.66,
+                "saldo_acumulado": -2705372.59,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9138,8 +9138,8 @@
                 "exposicao_aplicada": 0
             },
             "2028-07": {
-                "valor": -563697.05,
-                "saldo_acumulado": -3831615.01,
+                "valor": -324000.06,
+                "saldo_acumulado": -3029372.65,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9147,8 +9147,8 @@
                 "exposicao_aplicada": 0
             },
             "2028-08": {
-                "valor": -528436.39,
-                "saldo_acumulado": -4360051.4,
+                "valor": -1541929.1,
+                "saldo_acumulado": -4571301.75,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9156,8 +9156,8 @@
                 "exposicao_aplicada": 0
             },
             "2028-09": {
-                "valor": 11164889.74,
-                "saldo_acumulado": 6804838.34,
+                "valor": 11127418.73,
+                "saldo_acumulado": 6556116.98,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9165,8 +9165,8 @@
                 "exposicao_aplicada": 0
             },
             "2028-10": {
-                "valor": 1888005.81,
-                "saldo_acumulado": 8692844.15,
+                "valor": 1850965.23,
+                "saldo_acumulado": 8407082.21,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9174,8 +9174,8 @@
                 "exposicao_aplicada": 0
             },
             "2028-11": {
-                "valor": 9201373.92,
-                "saldo_acumulado": 17894218.07,
+                "valor": 9180720.44,
+                "saldo_acumulado": 17587802.65,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 8103360,
@@ -9183,8 +9183,8 @@
                 "exposicao_aplicada": 0
             },
             "2028-12": {
-                "valor": 981723.5,
-                "saldo_acumulado": 18875941.57,
+                "valor": 970217.59,
+                "saldo_acumulado": 18558020.24,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9192,8 +9192,8 @@
                 "exposicao_aplicada": 0
             },
             "2029-01": {
-                "valor": 352137.09,
-                "saldo_acumulado": 19228078.66,
+                "valor": 342809.19,
+                "saldo_acumulado": 18900829.43,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9201,8 +9201,8 @@
                 "exposicao_aplicada": 0
             },
             "2029-02": {
-                "valor": 379713.25,
-                "saldo_acumulado": 19607791.91,
+                "valor": 372563.34,
+                "saldo_acumulado": 19273392.77,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9210,8 +9210,8 @@
                 "exposicao_aplicada": 0
             },
             "2029-03": {
-                "valor": 426629.49,
-                "saldo_acumulado": 20034421.4,
+                "valor": 421657.58,
+                "saldo_acumulado": 19695050.35,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9219,8 +9219,8 @@
                 "exposicao_aplicada": 0
             },
             "2029-04": {
-                "valor": 492917.21,
-                "saldo_acumulado": 20527338.61,
+                "valor": 490123.3,
+                "saldo_acumulado": 20185173.65,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9228,8 +9228,8 @@
                 "exposicao_aplicada": 0
             },
             "2029-05": {
-                "valor": 578610.91,
-                "saldo_acumulado": 21105949.52,
+                "valor": 577995.01,
+                "saldo_acumulado": 20763168.66,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9237,8 +9237,8 @@
                 "exposicao_aplicada": 0
             },
             "2029-06": {
-                "valor": 683748.71,
-                "saldo_acumulado": 21789698.23,
+                "valor": 685310.8,
+                "saldo_acumulado": 21448479.46,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9246,8 +9246,8 @@
                 "exposicao_aplicada": 0
             },
             "2029-07": {
-                "valor": 808372.77,
-                "saldo_acumulado": 22598071,
+                "valor": 812112.86,
+                "saldo_acumulado": 22260592.32,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9255,8 +9255,8 @@
                 "exposicao_aplicada": 0
             },
             "2029-08": {
-                "valor": 952529.93,
-                "saldo_acumulado": 23550600.93,
+                "valor": 958448.02,
+                "saldo_acumulado": 23219040.34,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9264,8 +9264,8 @@
                 "exposicao_aplicada": 0
             },
             "2029-09": {
-                "valor": 1116272.45,
-                "saldo_acumulado": 24666873.38,
+                "valor": 1124368.54,
+                "saldo_acumulado": 24343408.88,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9273,8 +9273,8 @@
                 "exposicao_aplicada": 0
             },
             "2029-10": {
-                "valor": 1299658.89,
-                "saldo_acumulado": 25966532.27,
+                "valor": 1309932.98,
+                "saldo_acumulado": 25653341.86,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9282,8 +9282,8 @@
                 "exposicao_aplicada": 0
             },
             "2029-11": {
-                "valor": 1502755.09,
-                "saldo_acumulado": 27469287.36,
+                "valor": 1515207.18,
+                "saldo_acumulado": 27168549.04,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9291,8 +9291,8 @@
                 "exposicao_aplicada": 0
             },
             "2029-12": {
-                "valor": 1725635.46,
-                "saldo_acumulado": 29194922.82,
+                "valor": 1740265.55,
+                "saldo_acumulado": 28908814.59,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9300,8 +9300,8 @@
                 "exposicao_aplicada": 0
             },
             "2030-01": {
-                "valor": 1126841.59,
-                "saldo_acumulado": 30321764.41,
+                "valor": 1141206.21,
+                "saldo_acumulado": 30050020.8,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9309,8 +9309,8 @@
                 "exposicao_aplicada": 0
             },
             "2030-02": {
-                "valor": 1199676.34,
-                "saldo_acumulado": 31521440.75,
+                "valor": 1235836.34,
+                "saldo_acumulado": 31285857.14,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9318,8 +9318,8 @@
                 "exposicao_aplicada": 0
             },
             "2030-03": {
-                "valor": -13263.63,
-                "saldo_acumulado": 31508177.12,
+                "valor": 25074.38,
+                "saldo_acumulado": 31310931.52,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9327,8 +9327,8 @@
                 "exposicao_aplicada": 0
             },
             "2030-04": {
-                "valor": -15453.63,
-                "saldo_acumulado": 31492723.49,
+                "valor": 23973.37,
+                "saldo_acumulado": 31334904.89,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9336,8 +9336,8 @@
                 "exposicao_aplicada": 0
             },
             "2030-05": {
-                "valor": -15453.63,
-                "saldo_acumulado": 31477269.86,
+                "valor": 23973.37,
+                "saldo_acumulado": 31358878.26,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9345,8 +9345,8 @@
                 "exposicao_aplicada": 0
             },
             "2030-06": {
-                "valor": -15453.63,
-                "saldo_acumulado": 31461816.23,
+                "valor": 23973.37,
+                "saldo_acumulado": 31382851.63,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9354,8 +9354,8 @@
                 "exposicao_aplicada": 0
             },
             "2030-07": {
-                "valor": -15453.63,
-                "saldo_acumulado": 31446362.6,
+                "valor": 23973.37,
+                "saldo_acumulado": 31406825,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9363,8 +9363,8 @@
                 "exposicao_aplicada": 0
             },
             "2030-08": {
-                "valor": -8883.59,
-                "saldo_acumulado": 31437479.01,
+                "valor": 27276.41,
+                "saldo_acumulado": 31434101.41,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9372,8 +9372,8 @@
                 "exposicao_aplicada": 0
             },
             "2030-09": {
-                "valor": -4503.57,
-                "saldo_acumulado": 31432975.44,
+                "valor": 29478.43,
+                "saldo_acumulado": 31463579.84,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9381,8 +9381,8 @@
                 "exposicao_aplicada": 0
             },
             "2030-10": {
-                "valor": -123.55,
-                "saldo_acumulado": 31432851.89,
+                "valor": 31680.46,
+                "saldo_acumulado": 31495260.3,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9390,8 +9390,8 @@
                 "exposicao_aplicada": 0
             },
             "2030-11": {
-                "valor": 4256.49,
-                "saldo_acumulado": 31437108.38,
+                "valor": 33882.49,
+                "saldo_acumulado": 31529142.79,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9399,8 +9399,8 @@
                 "exposicao_aplicada": 0
             },
             "2030-12": {
-                "valor": 8636.51,
-                "saldo_acumulado": 31445744.89,
+                "valor": 36084.51,
+                "saldo_acumulado": 31565227.3,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9408,8 +9408,8 @@
                 "exposicao_aplicada": 0
             },
             "2031-01": {
-                "valor": 13016.53,
-                "saldo_acumulado": 31458761.42,
+                "valor": 38286.53,
+                "saldo_acumulado": 31603513.83,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9417,8 +9417,8 @@
                 "exposicao_aplicada": 0
             },
             "2031-02": {
-                "valor": 17396.56,
-                "saldo_acumulado": 31476157.98,
+                "valor": 40488.57,
+                "saldo_acumulado": 31644002.4,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9426,8 +9426,8 @@
                 "exposicao_aplicada": 0
             },
             "2031-03": {
-                "valor": 21776.59,
-                "saldo_acumulado": 31497934.57,
+                "valor": 42690.59,
+                "saldo_acumulado": 31686692.99,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9435,8 +9435,8 @@
                 "exposicao_aplicada": 0
             },
             "2031-04": {
-                "valor": 26156.61,
-                "saldo_acumulado": 31524091.18,
+                "valor": 44892.61,
+                "saldo_acumulado": 31731585.6,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9444,8 +9444,8 @@
                 "exposicao_aplicada": 0
             },
             "2031-05": {
-                "valor": 30536.63,
-                "saldo_acumulado": 31554627.81,
+                "valor": 47094.64,
+                "saldo_acumulado": 31778680.24,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9453,8 +9453,8 @@
                 "exposicao_aplicada": 0
             },
             "2031-06": {
-                "valor": 34916.66,
-                "saldo_acumulado": 31589544.47,
+                "valor": 49296.67,
+                "saldo_acumulado": 31827976.91,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9462,8 +9462,8 @@
                 "exposicao_aplicada": 0
             },
             "2031-07": {
-                "valor": -1624264.57,
-                "saldo_acumulado": 29965279.9,
+                "valor": -1612062.56,
+                "saldo_acumulado": 30215914.35,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9471,8 +9471,8 @@
                 "exposicao_aplicada": 0
             },
             "2031-08": {
-                "valor": -1435044.4,
-                "saldo_acumulado": 28530235.5,
+                "valor": -1425020.4,
+                "saldo_acumulado": 28790893.95,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9480,8 +9480,8 @@
                 "exposicao_aplicada": 0
             },
             "2031-09": {
-                "valor": -1245824.23,
-                "saldo_acumulado": 27284411.27,
+                "valor": -1237978.23,
+                "saldo_acumulado": 27552915.72,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9489,8 +9489,8 @@
                 "exposicao_aplicada": 0
             },
             "2031-10": {
-                "valor": -678163.74,
-                "saldo_acumulado": 26606247.53,
+                "valor": -676851.73,
+                "saldo_acumulado": 26876063.99,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9498,8 +9498,8 @@
                 "exposicao_aplicada": 0
             },
             "2031-11": {
-                "valor": 255805.05,
-                "saldo_acumulado": 26862052.58,
+                "valor": 248405.05,
+                "saldo_acumulado": 27124469.04,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9507,8 +9507,8 @@
                 "exposicao_aplicada": 0
             },
             "2031-12": {
-                "valor": 3445088.72,
-                "saldo_acumulado": 30307141.3,
+                "valor": 3437688.72,
+                "saldo_acumulado": 30562157.76,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9516,8 +9516,8 @@
                 "exposicao_aplicada": 0
             },
             "2032-01": {
-                "valor": 574328.08,
-                "saldo_acumulado": 30881469.38,
+                "valor": 566928.08,
+                "saldo_acumulado": 31129085.84,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9525,8 +9525,8 @@
                 "exposicao_aplicada": 0
             },
             "2032-02": {
-                "valor": 568589.6,
-                "saldo_acumulado": 31450058.98,
+                "valor": 561189.61,
+                "saldo_acumulado": 31690275.45,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9534,8 +9534,8 @@
                 "exposicao_aplicada": 0
             },
             "2032-03": {
-                "valor": 2873352.86,
-                "saldo_acumulado": 34323411.84,
+                "valor": 2865952.87,
+                "saldo_acumulado": 34556228.32,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9543,8 +9543,8 @@
                 "exposicao_aplicada": 0
             },
             "2032-04": {
-                "valor": 557112.64,
-                "saldo_acumulado": 34880524.48,
+                "valor": 549712.65,
+                "saldo_acumulado": 35105940.97,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9552,8 +9552,8 @@
                 "exposicao_aplicada": 0
             },
             "2032-05": {
-                "valor": 551374.15,
-                "saldo_acumulado": 35431898.63,
+                "valor": 543974.16,
+                "saldo_acumulado": 35649915.13,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9561,8 +9561,8 @@
                 "exposicao_aplicada": 0
             },
             "2032-06": {
-                "valor": 27744.17,
-                "saldo_acumulado": 35459642.8,
+                "valor": 20344.18,
+                "saldo_acumulado": 35670259.31,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9570,8 +9570,8 @@
                 "exposicao_aplicada": 0
             },
             "2032-07": {
-                "valor": 25767.07,
-                "saldo_acumulado": 35485409.87,
+                "valor": 18367.08,
+                "saldo_acumulado": 35688626.39,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9579,8 +9579,8 @@
                 "exposicao_aplicada": 0
             },
             "2032-08": {
-                "valor": 23789.97,
-                "saldo_acumulado": 35509199.84,
+                "valor": 16389.98,
+                "saldo_acumulado": 35705016.37,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9588,8 +9588,8 @@
                 "exposicao_aplicada": 0
             },
             "2032-09": {
-                "valor": 21812.87,
-                "saldo_acumulado": 35531012.7,
+                "valor": 14412.88,
+                "saldo_acumulado": 35719429.24,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9597,8 +9597,8 @@
                 "exposicao_aplicada": 0
             },
             "2032-10": {
-                "valor": 19835.76,
-                "saldo_acumulado": 35550848.46,
+                "valor": 12435.77,
+                "saldo_acumulado": 35731865.01,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9606,8 +9606,8 @@
                 "exposicao_aplicada": 0
             },
             "2032-11": {
-                "valor": 38667.06,
-                "saldo_acumulado": 35589515.52,
+                "valor": 31267.07,
+                "saldo_acumulado": 35763132.08,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9615,8 +9615,8 @@
                 "exposicao_aplicada": 0
             },
             "2032-12": {
-                "valor": 36689.96,
-                "saldo_acumulado": 35626205.48,
+                "valor": 29289.97,
+                "saldo_acumulado": 35792422.05,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9624,8 +9624,8 @@
                 "exposicao_aplicada": 0
             },
             "2033-01": {
-                "valor": 34712.87,
-                "saldo_acumulado": 35660918.34,
+                "valor": 27312.87,
+                "saldo_acumulado": 35819734.91,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9633,8 +9633,8 @@
                 "exposicao_aplicada": 0
             },
             "2033-02": {
-                "valor": 32735.77,
-                "saldo_acumulado": 35693654.11,
+                "valor": 25335.77,
+                "saldo_acumulado": 35845070.68,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9642,8 +9642,8 @@
                 "exposicao_aplicada": 0
             },
             "2033-03": {
-                "valor": 30758.67,
-                "saldo_acumulado": 35724412.78,
+                "valor": 23358.67,
+                "saldo_acumulado": 35868429.35,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9651,8 +9651,8 @@
                 "exposicao_aplicada": 0
             },
             "2033-04": {
-                "valor": 28781.56,
-                "saldo_acumulado": 35753194.33,
+                "valor": 21381.56,
+                "saldo_acumulado": 35889810.9,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9660,8 +9660,8 @@
                 "exposicao_aplicada": 0
             },
             "2033-05": {
-                "valor": 26804.46,
-                "saldo_acumulado": 35779998.79,
+                "valor": 19404.46,
+                "saldo_acumulado": 35909215.36,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9669,8 +9669,8 @@
                 "exposicao_aplicada": 0
             },
             "2033-06": {
-                "valor": 24827.36,
-                "saldo_acumulado": 35804826.14,
+                "valor": 17427.36,
+                "saldo_acumulado": 35926642.71,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9678,8 +9678,8 @@
                 "exposicao_aplicada": 0
             },
             "2033-07": {
-                "valor": 22850.25,
-                "saldo_acumulado": 35827676.4,
+                "valor": 15450.25,
+                "saldo_acumulado": 35942092.97,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9687,8 +9687,8 @@
                 "exposicao_aplicada": 0
             },
             "2033-08": {
-                "valor": 20873.15,
-                "saldo_acumulado": 35848549.55,
+                "valor": 13473.15,
+                "saldo_acumulado": 35955566.12,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9696,8 +9696,8 @@
                 "exposicao_aplicada": 0
             },
             "2033-09": {
-                "valor": 18896.04,
-                "saldo_acumulado": 35867445.6,
+                "valor": 11496.04,
+                "saldo_acumulado": 35967062.17,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9705,8 +9705,8 @@
                 "exposicao_aplicada": 0
             },
             "2033-10": {
-                "valor": 16918.94,
-                "saldo_acumulado": 35884364.54,
+                "valor": 9518.94,
+                "saldo_acumulado": 35976581.11,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9714,8 +9714,8 @@
                 "exposicao_aplicada": 0
             },
             "2033-11": {
-                "valor": 21877.98,
-                "saldo_acumulado": 35906242.52,
+                "valor": 14477.98,
+                "saldo_acumulado": 35991059.09,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9723,8 +9723,8 @@
                 "exposicao_aplicada": 0
             },
             "2033-12": {
-                "valor": 470087.55,
-                "saldo_acumulado": 36376330.07,
+                "valor": 462687.55,
+                "saldo_acumulado": 36453746.64,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9732,8 +9732,8 @@
                 "exposicao_aplicada": 0
             },
             "2034-01": {
-                "valor": 464349.07,
-                "saldo_acumulado": 36840679.14,
+                "valor": 456949.07,
+                "saldo_acumulado": 36910695.71,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9741,8 +9741,8 @@
                 "exposicao_aplicada": 0
             },
             "2034-02": {
-                "valor": 458610.58,
-                "saldo_acumulado": 37299289.72,
+                "valor": 451210.58,
+                "saldo_acumulado": 37361906.29,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9750,8 +9750,8 @@
                 "exposicao_aplicada": 0
             },
             "2034-03": {
-                "valor": 452872.1,
-                "saldo_acumulado": 37752161.82,
+                "valor": 445472.1,
+                "saldo_acumulado": 37807378.39,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9759,8 +9759,8 @@
                 "exposicao_aplicada": 0
             },
             "2034-04": {
-                "valor": 447133.62,
-                "saldo_acumulado": 38199295.44,
+                "valor": 439733.62,
+                "saldo_acumulado": 38247112.01,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9768,8 +9768,8 @@
                 "exposicao_aplicada": 0
             },
             "2034-05": {
-                "valor": 441395.14,
-                "saldo_acumulado": 38640690.58,
+                "valor": 433995.14,
+                "saldo_acumulado": 38681107.15,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9777,8 +9777,8 @@
                 "exposicao_aplicada": 0
             },
             "2034-06": {
-                "valor": 435656.66,
-                "saldo_acumulado": 39076347.24,
+                "valor": 428256.66,
+                "saldo_acumulado": 39109363.81,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9786,8 +9786,8 @@
                 "exposicao_aplicada": 0
             },
             "2034-07": {
-                "valor": 429918.18,
-                "saldo_acumulado": 39506265.42,
+                "valor": 422518.18,
+                "saldo_acumulado": 39531881.99,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9795,8 +9795,8 @@
                 "exposicao_aplicada": 0
             },
             "2034-08": {
-                "valor": 424179.69,
-                "saldo_acumulado": 39930445.11,
+                "valor": 416779.7,
+                "saldo_acumulado": 39948661.69,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9804,8 +9804,8 @@
                 "exposicao_aplicada": 0
             },
             "2034-09": {
-                "valor": 418441.21,
-                "saldo_acumulado": 40348886.32,
+                "valor": 411041.22,
+                "saldo_acumulado": 40359702.91,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9813,8 +9813,8 @@
                 "exposicao_aplicada": 0
             },
             "2034-10": {
-                "valor": 412702.74,
-                "saldo_acumulado": 40761589.06,
+                "valor": 405302.74,
+                "saldo_acumulado": 40765005.65,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9823,7 +9823,7 @@
             },
             "2034-11": {
                 "valor": -6936.13,
-                "saldo_acumulado": 40754652.93,
+                "saldo_acumulado": 40758069.52,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9832,7 +9832,7 @@
             },
             "2034-12": {
                 "valor": -6936.13,
-                "saldo_acumulado": 40747716.8,
+                "saldo_acumulado": 40751133.39,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9841,7 +9841,7 @@
             },
             "2035-01": {
                 "valor": -6936.13,
-                "saldo_acumulado": 40740780.67,
+                "saldo_acumulado": 40744197.26,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9850,7 +9850,7 @@
             },
             "2035-02": {
                 "valor": -6936.13,
-                "saldo_acumulado": 40733844.54,
+                "saldo_acumulado": 40737261.13,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9859,7 +9859,7 @@
             },
             "2035-03": {
                 "valor": -6936.13,
-                "saldo_acumulado": 40726908.41,
+                "saldo_acumulado": 40730325,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9868,7 +9868,7 @@
             },
             "2035-04": {
                 "valor": -6936.13,
-                "saldo_acumulado": 40719972.28,
+                "saldo_acumulado": 40723388.87,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9877,7 +9877,7 @@
             },
             "2035-05": {
                 "valor": -6936.13,
-                "saldo_acumulado": 40713036.15,
+                "saldo_acumulado": 40716452.74,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9886,7 +9886,7 @@
             },
             "2035-06": {
                 "valor": -6936.13,
-                "saldo_acumulado": 40706100.02,
+                "saldo_acumulado": 40709516.61,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9895,7 +9895,7 @@
             },
             "2035-07": {
                 "valor": -6936.13,
-                "saldo_acumulado": 40699163.89,
+                "saldo_acumulado": 40702580.48,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9904,7 +9904,7 @@
             },
             "2035-08": {
                 "valor": -6936.13,
-                "saldo_acumulado": 40692227.76,
+                "saldo_acumulado": 40695644.35,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9913,7 +9913,7 @@
             },
             "2035-09": {
                 "valor": -6936.13,
-                "saldo_acumulado": 40685291.63,
+                "saldo_acumulado": 40688708.22,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9922,7 +9922,7 @@
             },
             "2035-10": {
                 "valor": -6936.13,
-                "saldo_acumulado": 40678355.5,
+                "saldo_acumulado": 40681772.09,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9931,7 +9931,7 @@
             },
             "2035-11": {
                 "valor": -6936.13,
-                "saldo_acumulado": 40671419.37,
+                "saldo_acumulado": 40674835.96,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9940,7 +9940,7 @@
             },
             "2035-12": {
                 "valor": -6936.13,
-                "saldo_acumulado": 40664483.24,
+                "saldo_acumulado": 40667899.83,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9949,7 +9949,7 @@
             },
             "2036-01": {
                 "valor": -6936.13,
-                "saldo_acumulado": 40657547.11,
+                "saldo_acumulado": 40660963.7,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9958,7 +9958,7 @@
             },
             "2036-02": {
                 "valor": -6936.13,
-                "saldo_acumulado": 40650610.98,
+                "saldo_acumulado": 40654027.57,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9967,7 +9967,7 @@
             },
             "2036-03": {
                 "valor": -6936.13,
-                "saldo_acumulado": 40643674.85,
+                "saldo_acumulado": 40647091.44,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9976,7 +9976,7 @@
             },
             "2036-04": {
                 "valor": -6936.13,
-                "saldo_acumulado": 40636738.72,
+                "saldo_acumulado": 40640155.31,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9985,7 +9985,7 @@
             },
             "2036-05": {
                 "valor": -6936.13,
-                "saldo_acumulado": 40629802.59,
+                "saldo_acumulado": 40633219.18,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -9994,7 +9994,7 @@
             },
             "2036-06": {
                 "valor": -6936.13,
-                "saldo_acumulado": 40622866.46,
+                "saldo_acumulado": 40626283.05,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -10003,7 +10003,7 @@
             },
             "2036-07": {
                 "valor": -6936.13,
-                "saldo_acumulado": 40615930.33,
+                "saldo_acumulado": 40619346.92,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -10012,7 +10012,7 @@
             },
             "2036-08": {
                 "valor": -6936.13,
-                "saldo_acumulado": 40608994.2,
+                "saldo_acumulado": 40612410.79,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -10021,7 +10021,7 @@
             },
             "2036-09": {
                 "valor": -6936.13,
-                "saldo_acumulado": 40602058.07,
+                "saldo_acumulado": 40605474.66,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -10030,7 +10030,7 @@
             },
             "2036-10": {
                 "valor": -6936.13,
-                "saldo_acumulado": 40595121.94,
+                "saldo_acumulado": 40598538.53,
                 "aporte": 0,
                 "devolucao_aporte": 0,
                 "entrada_antecipacao_pj": 0,
@@ -10040,11 +10040,11 @@
         },
         "totais": {
             "receita": 197339165.80298987,
-            "custo_direto": 136635280.9042391,
+            "custo_direto": 135535280.92423913,
             "impostos": 7893566.720000002,
-            "custos_operacionais": 11572000,
-            "custos_financeiros": 0.2999999999999994,
-            "lucro": 41238317.87875073
+            "custos_operacionais": 12091383.695652178,
+            "custos_financeiros": 577200,
+            "lucro": 41241734.463098556
         },
         "dados_produtos": {
             "total_unidades": 1000,
@@ -10058,7 +10058,7 @@
             "percentual_outros_impostos": 0,
             "percentual_comissao": 0,
             "parceria_vgv": 0.08,
-            "infra_nao_incidente": 0.015,
+            "infra_nao_incidente": 0.01,
             "porcentagem_lote_proprietario": 0,
             "percentual_incorporacao": 0.01,
             "custo_area_comum": 0,
@@ -10096,7 +10096,8 @@
             "custo_medicao_cef": 2000,
             "custo_contratos_cef": 300,
             "percentual_produtos_cef": 0.005,
-            "outras_despesas_financeiras_total": 0.3,
+            "percentual_outras_despesas_financeiras": 0.003,
+            "outras_despesas_financeiras_total": 577200,
             "meses_obra": 36,
             "meses_incorporacao": 18,
             "meses_lancamento": 6,
@@ -10118,7 +10119,7 @@
             "marketing_inicio_antes_lancamento": 3,
             "custo_medicao_contratacao": 24000,
             "perfil_financiamento": "cef",
-            "data_lancamento": "2028-05-08T21:29:22.613375Z",
+            "data_lancamento": "2028-05-09T15:37:21.629504Z",
             "inadimplencia": 0,
             "atraso_meses": 0,
             "taxa_perda": 0,
@@ -10130,7 +10131,7 @@
                 10
             ],
             "meses_com_receitas": 78,
-            "outras_despesas_financeiras_mensal": 0.003846153846153846
+            "outras_despesas_financeiras_mensal": 7400
         }
     },
     "message": "Operação realizada com sucesso"

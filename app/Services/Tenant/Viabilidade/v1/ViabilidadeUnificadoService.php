@@ -235,6 +235,7 @@ class ViabilidadeUnificadoService
             'custoMedicaoCef' => (float) ($v->custo_medicao_cef ?? $defaults['custo_medicao_cef']),
             'custoContratosCef' => (float) ($v->contratos_cef ?? $defaults['contratos_cef']),
             'percentualProdutosCef' => ($v->produtos_cef ?? $defaults['produtos_cef']) / 100,
+            'percentualOutrasDespesasFinanceiras' => ((float) ($v->outras_despesas_financeiras ?? $defaults['outras_despesas_financeiras'])) / 100,
             'outrasDespesasFinanceirasTotal' => (float) ($v->outras_despesas_financeiras ?? $defaults['outras_despesas_financeiras']),
             'mesesObra' => (int) ($v->prazo_obra ?? $defaults['prazo_obra']),
             'mesesIncorporacao' => (int) ($v->prazo_incorporacao ?? $defaults['meses_incorporacao']),

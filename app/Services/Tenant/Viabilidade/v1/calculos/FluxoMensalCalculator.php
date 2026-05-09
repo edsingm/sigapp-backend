@@ -87,10 +87,20 @@ class FluxoMensalCalculator
         $ctx->parceriaVgvTotal = max(0.0, ($params['parceriaVgv'] ?? 0.0) * ($dadosProdutos['vgvComCorrecao'] ?? 0.0));
 
         $outrasDespesasFinanceirasTotal = (float) ($params['outrasDespesasFinanceirasTotal'] ?? 0.0);
+        $percentualOutrasDespesasFinanceiras = (float) ($params['percentualOutrasDespesasFinanceiras'] ?? 0.0);
+        if ($percentualOutrasDespesasFinanceiras > 0) {
+            $baseOutrasDespesasFinanceiras = max(0.0, (float) ($dadosProdutos['vgvSemValorTerrenista'] ?? $dadosProdutos['vgvSemUnidPermutas'] ?? 0.0));
+            $outrasDespesasFinanceirasTotal = $baseOutrasDespesasFinanceiras * $percentualOutrasDespesasFinanceiras;
+            $params['outrasDespesasFinanceirasTotal'] = $outrasDespesasFinanceirasTotal;
+        }
         if ($outrasDespesasFinanceirasTotal > 0) {
             $params['mesesComReceitas'] = $mesesComReceitas;
             $params['outrasDespesasFinanceirasMensal'] = $mesesComReceitas > 0 ? ($outrasDespesasFinanceirasTotal / $mesesComReceitas) : 0.0;
         }
+
+        $totalUnidadesComercializaveis = max(1.0, (float) ($dadosProdutos['totalUnidadesConstrutora'] ?? $dadosProdutos['totalUnidades'] ?? 1.0));
+        $unidadesVendidasAcumuladasFluxo = 0.0;
+        $fracaoVendasCarregada = 0.0;
 
         foreach ($periodo as $data) {
             $mes = $data->format('Y-m');
@@ -103,7 +113,13 @@ class FluxoMensalCalculator
 
             $receitaRpMes = $receitas['detalhes']['Recursos Próprios'] ?? 0.0;
             $lucroSemCefMes = $receitaRpMes - $despesas['total'];
-            $unidadesVendidasMes = ceil($ctx->vendasPorMes[$mes] ?? 0);
+            $vendasMesBrutas = max(0.0, (float) ($ctx->vendasPorMes[$mes] ?? 0.0));
+            $vendasMesComCarry = $vendasMesBrutas + $fracaoVendasCarregada;
+            $unidadesVendidasMes = max(0.0, floor($vendasMesComCarry + 1e-9));
+            $estoqueRemanescenteMes = max(0.0, $totalUnidadesComercializaveis - $unidadesVendidasAcumuladasFluxo);
+            $unidadesVendidasMes = min($unidadesVendidasMes, $estoqueRemanescenteMes);
+            $fracaoVendasCarregada = max(0.0, $vendasMesComCarry - $unidadesVendidasMes);
+            $unidadesVendidasAcumuladasFluxo += $unidadesVendidasMes;
 
             $fluxo[$mes] = [
                 'periodo' => $this->identificarPeriodo($data, $datas),
@@ -111,7 +127,7 @@ class FluxoMensalCalculator
                 'despesas' => $despesas['detalhes'],
                 'saldo_mes' => round($lucroMes, 2),
                 'saldo_acumulado_mes' => round($saldoAcumulado, 2),
-                'unidades_vendidas' => round($unidadesVendidasMes, 2),
+                'unidades_vendidas' => $unidadesVendidasMes,
             ];
 
             $fluxoTir[] = ['data' => $data->copy(), 'valor' => $lucroMes];

@@ -50,7 +50,7 @@ class DespesasCalculator
             $detalhesOperacionais['Operacional - '.$nome] = round($valor, 2);
         }
 
-        $unidadesVendidasMes = $ctx->vendasPorMes[$mes] ?? 0;
+        $unidadesVendidasMes = $this->arredondarUnidadesParaBaixo((float) ($ctx->vendasPorMes[$mes] ?? 0.0));
         $totalUnidadesComercializaveis = max(1, $dadosProdutos['totalUnidadesConstrutora'] ?? $dadosProdutos['totalUnidades'] ?? 1);
         $vgvSemPermutas = $dadosProdutos['vgvSemUnidPermutas'] ?? $vgv;
         $valorPorUnidade = $vgvSemPermutas / $totalUnidadesComercializaveis;
@@ -431,9 +431,9 @@ class DespesasCalculator
         $vgvTotal = $dadosProdutos['vgv'] ?? 0;
         $unidadesConstrutora = max(1, $dadosProdutos['totalUnidadesConstrutora'] ?? $dadosProdutos['totalUnidades'] ?? 1);
         $ticketMedio = $vgvTotal / $unidadesConstrutora;
-        $unidadesVendidasMes = $ctx->vendasPorMes[$mes] ?? 0;
+        $unidadesVendidasMes = $this->arredondarUnidadesParaBaixo((float) ($ctx->vendasPorMes[$mes] ?? 0.0));
         $valorVendidoMes = $unidadesVendidasMes * $ticketMedio;
-        $unidadesDesligadasMes = $this->calcularUnidadesDesligadasMes($mes, (float) $unidadesVendidasMes, $ctx);
+        $unidadesDesligadasMes = $this->calcularUnidadesDesligadasMes($mes, (float) $unidadesVendidasMes, $ctx, (float) $unidadesConstrutora);
         $valorDesligadoMes = $unidadesDesligadasMes * $ticketMedio;
         $taxaComissaoMedia = (($params['percentualVendasHouse'] ?? 0) * ($params['comissaoHousePercentual'] ?? 0)) +
             ((1 - ($params['percentualVendasHouse'] ?? 0)) * ($params['comissaoImobiliariasPercentual'] ?? 0));
@@ -531,7 +531,8 @@ class DespesasCalculator
     private function calcularUnidadesDesligadasMes(
         string $mes,
         float $unidadesVendidasMes,
-        ViabilidadeFluxoContext $ctx
+        ViabilidadeFluxoContext $ctx,
+        float $totalUnidadesComercializaveis
     ): float {
         if (! $ctx->demandaAtingida || $ctx->mesDemandaAtingida === null) {
             return 0.0;
@@ -541,13 +542,24 @@ class DespesasCalculator
             return 0.0;
         }
 
+        $totalUnidadesComercializaveis = max(0.0, $totalUnidadesComercializaveis);
+        $vendasAcumuladasCap = min($totalUnidadesComercializaveis, max(0.0, (float) $ctx->vendasAcumuladas));
+
         if ($mes === $ctx->mesDemandaAtingida) {
             // Mês de virada da demanda: paga acumulado até o mês atual.
-            return max(0.0, (float) $ctx->vendasAcumuladas);
+            return $this->arredondarUnidadesParaBaixo($vendasAcumuladasCap);
         }
 
         // Após a virada: desligamentos mensais seguem as vendas do mês.
-        return max(0.0, $unidadesVendidasMes);
+        $acumuladoAnterior = max(0.0, $vendasAcumuladasCap - max(0.0, $unidadesVendidasMes));
+        $capacidadeMes = max(0.0, $totalUnidadesComercializaveis - $acumuladoAnterior);
+
+        return min($this->arredondarUnidadesParaBaixo($unidadesVendidasMes), $capacidadeMes);
+    }
+
+    private function arredondarUnidadesParaBaixo(float $valor): float
+    {
+        return max(0.0, floor($valor + 1e-9));
     }
 
     private function calcularBonusEquipeComercialResidual(

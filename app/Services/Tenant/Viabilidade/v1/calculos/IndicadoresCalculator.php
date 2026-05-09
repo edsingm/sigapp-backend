@@ -101,10 +101,15 @@ class IndicadoresCalculator
             }
         }
 
+        $tirFinanceiraAnual = $this->calcularTir($fluxoFinanceiroTir);
+        $tirFinanceiraMensal = $this->calcularTaxaMensalEquivalente($tirFinanceiraAnual);
+
         return [
             $fluxoFinanceiro,
             [
-                'tir_financeira' => $this->calcularTir($fluxoFinanceiroTir),
+                'tir_financeira' => $tirFinanceiraAnual,
+                'tir_financeira_am_percentual' => round($tirFinanceiraMensal * 100, 2),
+                'tir_financeira_aa_percentual' => round($tirFinanceiraAnual * 100, 2),
                 'exposicao_maxima_financeira' => collect($fluxoFinanceiro)->min('saldo_acumulado'),
                 'exposicao_maxima_operacional' => collect($fluxo)->min('saldo_acumulado_mes'),
                 'payback_operacional_meses' => $paybackOperacionalMes,
@@ -112,6 +117,15 @@ class IndicadoresCalculator
                 'exposicao_aplicada_total' => round($exposicaoAplicadaTotal, 2),
             ],
         ];
+    }
+
+    private function calcularTaxaMensalEquivalente(float $taxaAnual): float
+    {
+        if ($taxaAnual <= -1.0) {
+            return 0.0;
+        }
+
+        return pow(1 + $taxaAnual, 1 / 12) - 1;
     }
 
     public function calcularIndicadoresVso(array $fluxo, array $dadosProdutos): array

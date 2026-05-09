@@ -136,6 +136,9 @@ class ViabilidadeCalculationResource extends JsonResource
                 'preco' => $produto['preco'] ?? null,
                 'vgv_produto' => $produto['vgv_produto'] ?? null,
                 'metragem' => $produto['metragem'] ?? null,
+                'pgto_por_lote' => $produto['pgto_por_lote'] ?? null,
+                'custo_m2' => $produto['custo_m2'] ?? null,
+                'custo_infra_por_lote' => $produto['custo_infraestrutura'] ?? null,
             ];
         })->filter()->values()->all();
     }

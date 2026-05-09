@@ -80,6 +80,9 @@ class DreCalculator
             + $outrasDespFinanceiras + $despesasOnerosas + $irpjCsll + $impostos['total'];
 
         return [
+            'vgv_total' => round($vgv, 2),
+            'vgv_sem_permutas' => round($vgvSemPermutas, 2),
+            'vgv_sem_terrenista' => round($vgvSemTerrenista, 2),
             'receita_total_vendas' => round($receitaTotalVendas, 2),
             'juros_correcoes' => round($jurosCorrecoes, 2),
             'receita_bruta' => round($receitaBruta, 2),

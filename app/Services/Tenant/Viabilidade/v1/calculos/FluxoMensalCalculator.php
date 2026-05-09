@@ -150,9 +150,18 @@ class FluxoMensalCalculator
         $indicadoresVso = $this->indicadoresCalculator->calcularIndicadoresVso($fluxo, $dadosProdutos);
         $indicadoresVsoJanelas = $this->indicadoresCalculator->calcularIndicadoresVsoJanelas($fluxo, $dadosProdutos);
 
+        $tirOperacionalAnual = $this->indicadoresCalculator->calcularTir($fluxoTir);
+        $tirSemCefAnual = $this->indicadoresCalculator->calcularTir($fluxoTirSemCef);
+        $tirOperacionalMensal = $tirOperacionalAnual > -1.0 ? (pow(1 + $tirOperacionalAnual, 1 / 12) - 1) : 0.0;
+        $tirSemCefMensal = $tirSemCefAnual > -1.0 ? (pow(1 + $tirSemCefAnual, 1 / 12) - 1) : 0.0;
+
         $indicadores = [
-            'tir_operacional' => $this->indicadoresCalculator->calcularTir($fluxoTir),
-            'tir_sem_cef' => $this->indicadoresCalculator->calcularTir($fluxoTirSemCef),
+            'tir_operacional' => $tirOperacionalAnual,
+            'tir_operacional_am_percentual' => round($tirOperacionalMensal * 100, 2),
+            'tir_operacional_aa_percentual' => round($tirOperacionalAnual * 100, 2),
+            'tir_sem_cef' => $tirSemCefAnual,
+            'tir_sem_cef_am_percentual' => round($tirSemCefMensal * 100, 2),
+            'tir_sem_cef_aa_percentual' => round($tirSemCefAnual * 100, 2),
             'exposicao_maxima_operacional' => collect($fluxo)->min('saldo_acumulado_mes'),
             'margem_liquida' => $totais['receita'] > 0 ? ($totais['lucro'] / $totais['receita']) : 0.0,
         ];

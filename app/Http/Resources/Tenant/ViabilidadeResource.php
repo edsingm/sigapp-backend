@@ -94,6 +94,7 @@ class ViabilidadeResource extends JsonResource
             'terreno' => $this->whenLoaded('terreno', fn () => [
                 'id' => $this->terreno->id,
                 'nome' => $this->terreno->nome,
+                'area' => $this->terreno->area_calculada,
             ]),
         ];
 

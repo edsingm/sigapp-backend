@@ -186,6 +186,17 @@ class ViabilidadeService
             return true;
         }
 
+        // Compatibilidade: versões antigas persistiram POC zerado por divergência
+        // de chaves em despesas. Quando houver receita no DRE e POC zerado, força recálculo.
+        $receitaTotalVendas = (float) ($dreResultados['dre_itens']['receita_total_vendas'] ?? 0.0);
+        $receitaCaixaTotal = (float) ($dreResultados['dre_caixa']['receita_total'] ?? 0.0);
+        $pocReceita = (float) ($dreResultados['dre_contabil_poc']['receita_reconhecida_poc'] ?? 0.0);
+        $pocBlocosReceita = (float) ($dreResultados['dre_contabil_poc_mensal_blocos']['resumo']['receita_reconhecida_poc_total'] ?? 0.0);
+
+        if (($receitaTotalVendas > 0 || $receitaCaixaTotal > 0) && $pocReceita === 0.0 && $pocBlocosReceita === 0.0) {
+            return true;
+        }
+
         return false;
     }
 

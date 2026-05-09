@@ -11,17 +11,8 @@ class PocCalculator
         $custoIncorridoTotal = 0.0;
         foreach ($fluxo as $linha) {
             $despesas = $linha['despesas'] ?? [];
-            $obraMes = 0.0;
-            if (isset($despesas['obra'])) {
-                if (is_array($despesas['obra'])) {
-                    $obraMes = (float) ($despesas['obra']['obra_periodo_obra'] ?? 0);
-                } else {
-                    $obraMes = (float) $despesas['obra'];
-                }
-            }
-
-            $custoIncorridoObra += $obraMes;
-            $custoIncorridoTotal += (float) ($linha['despesas']['total'] ?? 0);
+            $custoIncorridoObra += $this->extractObraMes($despesas);
+            $custoIncorridoTotal += $this->extractTotalDespesasMes($linha);
         }
 
         $percentualExecucaoObra = $custoOrcadoObra > 0 ? min(1, $custoIncorridoObra / $custoOrcadoObra) : 0;
@@ -116,22 +107,13 @@ class PocCalculator
 
         foreach ($fluxo as $mes => $linha) {
             $despesas = $linha['despesas'] ?? [];
-            $obraMes = 0.0;
-            if (isset($despesas['obra'])) {
-                if (is_array($despesas['obra'])) {
-                    $obraMes = (float) ($despesas['obra']['obra_periodo_obra'] ?? 0);
-                } else {
-                    $obraMes = (float) $despesas['obra'];
-                }
-            }
-
-            $custoObraMes = max(0.0, $obraMes);
+            $custoObraMes = max(0.0, $this->extractObraMes($despesas));
             $custoObraAcumulado += $custoObraMes;
             $execucaoAcumulada = $custoOrcadoObra > 0 ? min(1, $custoObraAcumulado / $custoOrcadoObra) : 0.0;
             $receitaReconhecidaAlvo = $receitaTotalVendas * $execucaoAcumulada;
             $receitaReconhecidaMes = max(0.0, $receitaReconhecidaAlvo - $receitaReconhecidaAcumulada);
             $receitaReconhecidaAcumulada += $receitaReconhecidaMes;
-            $custoTotalMes = (float) ($linha['despesas']['total'] ?? 0);
+            $custoTotalMes = $this->extractTotalDespesasMes($linha);
             $resultadoContabilMes = $receitaReconhecidaMes - $custoTotalMes;
 
             $quadro[$mes] = [
@@ -172,50 +154,18 @@ class PocCalculator
 
         foreach ($fluxo as $mes => $linha) {
             $despesas = $linha['despesas'] ?? [];
-            $obraMes = 0.0;
-            if (isset($despesas['obra'])) {
-                if (is_array($despesas['obra'])) {
-                    $obraMes = (float) ($despesas['obra']['obra_periodo_obra'] ?? 0);
-                } else {
-                    $obraMes = (float) $despesas['obra'];
-                }
-            }
-            $custoObraMes = max(0.0, $obraMes);
+            $custoObraMes = max(0.0, $this->extractObraMes($despesas));
             $custoObraAcumulado += $custoObraMes;
             $execucaoAcumulada = $custoOrcadoObra > 0 ? min(1, $custoObraAcumulado / $custoOrcadoObra) : 0.0;
             $receitaPocAlvo = $receitaTotalVendas * $execucaoAcumulada;
             $receitaPocMes = max(0.0, $receitaPocAlvo - $receitaPocAcumulada);
             $receitaPocAcumulada += $receitaPocMes;
 
-            $impostosMes = 0.0;
-            if (isset($despesas['deducoes'])) {
-                if (is_array($despesas['deducoes'])) {
-                    $impostosMes = (float) ($despesas['deducoes']['total_impostos'] ?? 0);
-                } else {
-                    $impostosMes = (float) $despesas['deducoes'];
-                }
-            }
-            $impostosMes = max(0.0, $impostosMes);
+            $impostosMes = max(0.0, $this->extractImpostosMes($despesas));
+            $operacionalMes = max(0.0, $this->extractOperacionalMes($despesas));
+            $financeiroMes = max(0.0, $this->extractFinanceiroMes($despesas));
 
-            $operacionalMes = 0.0;
-            if (isset($despesas['operacional'])) {
-                $operacionalMes = (float) $despesas['operacional'];
-            } else {
-                $operacionalMes =
-                    (float) ($despesas['despesas_comerciais']['total_despesas_comerciais'] ?? 0)
-                    + (float) ($despesas['marketing']['total_marketing'] ?? 0)
-                    + (float) ($despesas['itbi_registro']['total_itbi_registro'] ?? 0)
-                    + (float) ($despesas['taxa_caixa']['total_caixa'] ?? 0);
-            }
-            $operacionalMes = max(0.0, $operacionalMes);
-
-            $financeiroMes = 0.0;
-            if (isset($despesas['outras_despesas_financeiras'])) {
-                $financeiroMes = (float) $despesas['outras_despesas_financeiras'];
-            }
-            $financeiroMes = max(0.0, $financeiroMes);
-
-            $custosTotaisMes = max(0.0, (float) ($linha['despesas']['total'] ?? 0));
+            $custosTotaisMes = max(0.0, $this->extractTotalDespesasMes($linha));
             $custoDiretoMes = max(0.0, $custosTotaisMes - $impostosMes - $operacionalMes - $financeiroMes);
             $resultadoContabilMes = $receitaPocMes - ($custoDiretoMes + $impostosMes + $operacionalMes + $financeiroMes);
 
@@ -258,5 +208,83 @@ class PocCalculator
                 'margem_contabil_percentual' => round($margemContabil * 100, 2),
             ],
         ];
+    }
+
+    private function extractObraMes(array $despesas): float
+    {
+        if (isset($despesas['obra'])) {
+            if (is_array($despesas['obra'])) {
+                return (float) ($despesas['obra']['obra_periodo_obra'] ?? 0.0);
+            }
+
+            return (float) $despesas['obra'];
+        }
+
+        if (isset($despesas['Obra'])) {
+            return (float) $despesas['Obra'];
+        }
+
+        return 0.0;
+    }
+
+    private function extractImpostosMes(array $despesas): float
+    {
+        if (isset($despesas['deducoes'])) {
+            if (is_array($despesas['deducoes'])) {
+                return (float) ($despesas['deducoes']['total_impostos'] ?? 0.0);
+            }
+
+            return (float) $despesas['deducoes'];
+        }
+
+        if (isset($despesas['Deduções'])) {
+            return (float) $despesas['Deduções'];
+        }
+
+        return 0.0;
+    }
+
+    private function extractOperacionalMes(array $despesas): float
+    {
+        if (isset($despesas['operacional'])) {
+            return (float) $despesas['operacional'];
+        }
+
+        if (isset($despesas['Operacional'])) {
+            return (float) $despesas['Operacional'];
+        }
+
+        return
+            (float) ($despesas['despesas_comerciais']['total_despesas_comerciais'] ?? 0.0)
+            + (float) ($despesas['marketing']['total_marketing'] ?? 0.0)
+            + (float) ($despesas['itbi_registro']['total_itbi_registro'] ?? 0.0)
+            + (float) ($despesas['taxa_caixa']['total_caixa'] ?? 0.0);
+    }
+
+    private function extractFinanceiroMes(array $despesas): float
+    {
+        if (isset($despesas['outras_despesas_financeiras'])) {
+            return (float) $despesas['outras_despesas_financeiras'];
+        }
+
+        if (isset($despesas['Outras Despesas Financeiras'])) {
+            return (float) $despesas['Outras Despesas Financeiras'];
+        }
+
+        return 0.0;
+    }
+
+    private function extractTotalDespesasMes(array $linha): float
+    {
+        $despesas = $linha['despesas'] ?? [];
+        if (is_array($despesas) && isset($despesas['total'])) {
+            return (float) $despesas['total'];
+        }
+
+        $receitaTotal = (float) (($linha['receitas']['total'] ?? 0.0));
+        $saldoMes = (float) ($linha['saldo_mes'] ?? 0.0);
+        $despesaDerivada = $receitaTotal - $saldoMes;
+
+        return max(0.0, $despesaDerivada);
     }
 }

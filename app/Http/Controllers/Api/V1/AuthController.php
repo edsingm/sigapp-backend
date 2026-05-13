@@ -286,10 +286,3 @@ class AuthController extends Controller
     }
 }
 
-#[OA\Info(
-    version: 'v1',
-    title: 'SIGAPP API',
-    description: 'API REST para SaaS multi-tenant SIGAPP'
-)]
-#[OA\Server(url: '/')]
-final class OpenApiSpec {}

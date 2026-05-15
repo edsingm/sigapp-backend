@@ -252,6 +252,17 @@ class CreateFullTenantJob implements ShouldBeUnique, ShouldQueue
             'error' => $exception->getMessage(),
         ]);
 
+        // Marca o tenant como falhado para que o frontend saiba e o cleanup não tente novamente
+        try {
+            $this->tenant->setConnection($this->getCentralConnectionName());
+            $this->tenant->update(['status' => Tenant::STATUS_SETUP_FAILED]);
+        } catch (\Throwable $e) {
+            Log::error('Falha ao atualizar status do tenant para setup_failed', [
+                'tenant_id' => $this->tenant->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         // Auditoria: falha permanente
         $this->auditTrail('tenant.creation_failed', "Job de criação falhou definitivamente para tenant '{$this->tenant->name}' após {$this->tries} tentativas.", [
             'error' => $exception->getMessage() ?? '',

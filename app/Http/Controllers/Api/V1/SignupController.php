@@ -45,6 +45,8 @@ class SignupController extends Controller
             return ApiResponseService::notFound('PLAN_NOT_FOUND');
         }
 
+        $tenant = null;
+
         try {
             ['tenant' => $tenant, 'contract_acceptance' => $contractAcceptance] =
                 $this->signupService->createPendingTenant($validated, $plan, $request);
@@ -82,6 +84,11 @@ class SignupController extends Controller
             ]);
         } catch (\Exception $e) {
             report($e);
+
+            // Se o tenant foi criado mas o Stripe falhou, remove o tenant órfão
+            if ($tenant) {
+                $this->cleanupFailedSignup($tenant);
+            }
 
             $this->audit('tenant.signup_failed', 'Signup falhou: '.Str::limit($e->getMessage(), 200), [
                 'error' => $e->getMessage(),
@@ -154,6 +161,28 @@ class SignupController extends Controller
             'ip_address' => $contractAcceptance['ip_address'] ?? null,
             'user_agent' => $contractAcceptance['user_agent'] ?? null,
         ]);
+    }
+
+    /**
+     * Remove tenant órfão criado durante falha no Stripe.
+     */
+    private function cleanupFailedSignup(Tenant $tenant): void
+    {
+        try {
+            // Remove customer do Stripe se foi criado
+            if ($tenant->stripe_id) {
+                $this->billingService->deleteCustomer($tenant->stripe_id);
+            }
+        } catch (\Exception $e) {
+            report($e);
+        }
+
+        try {
+            $tenant->domains()->delete();
+            $tenant->delete();
+        } catch (\Exception $e) {
+            report($e);
+        }
     }
 
     private function auditSignupStarted(Tenant $tenant, Plan $plan, array $validated): void

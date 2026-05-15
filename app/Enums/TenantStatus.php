@@ -8,6 +8,7 @@ enum TenantStatus: string
     case ACTIVE = 'active';
     case SUSPENDED = 'suspended';
     case CANCELLED = 'cancelled';
+    case SETUP_FAILED = 'setup_failed';
 
     public function label(): string
     {
@@ -16,6 +17,7 @@ enum TenantStatus: string
             self::ACTIVE => 'Ativo',
             self::SUSPENDED => 'Suspenso',
             self::CANCELLED => 'Cancelado',
+            self::SETUP_FAILED => 'Falha na configuração',
         };
     }
 

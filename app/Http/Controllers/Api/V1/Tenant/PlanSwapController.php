@@ -65,6 +65,7 @@ class PlanSwapController extends Controller
             }
 
             $tenant->update(['plan_id' => $newPlan->id]);
+            cache()->forget('tenant:'.$tenant->slug);
 
             $this->audit('tenant.plan_swapped', "Plano alterado para '{$newPlan->name}'.", [
                 'tenant_id' => $tenant->id,

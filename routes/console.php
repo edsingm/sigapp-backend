@@ -24,3 +24,4 @@ Schedule::command('auth:cleanup-central-login-broker')->everyFiveMinutes();
 Schedule::command('tenants:cleanup-pending')->hourly();
 Schedule::command('tenant:notify-overdue-legalizacao-etapas')->dailyAt('08:00');
 Schedule::command('ai:recalculate-scores')->dailyAt('06:00');
+Schedule::job(new \App\Jobs\RefreshTenantStatsJob)->hourly();

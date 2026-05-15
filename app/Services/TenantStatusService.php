@@ -12,42 +12,89 @@ use Throwable;
 
 class TenantStatusService
 {
-    public function getAggregatedStats()
+    private const CACHE_KEY = 'aggregated_stats';
+
+    /**
+     * TTL em segundos (1 hora). O cache é invalidado pelo RefreshTenantStatsJob.
+     */
+    private const CACHE_TTL = 3600;
+
+    /**
+     * Retorna estatísticas agregadas de todos os tenants.
+     * Usa cache com TTL de 1 hora. Se o cache não existir, retorna dados
+     * básicos (contagem de tenants) e dispara atualização assíncrona.
+     *
+     * @return array{total_tenants: int, total_terrenos: int, total_projetos: int, total_usuarios: int, stale?: bool}
+     */
+    public function getAggregatedStats(): array
     {
-        return Cache::remember('aggregated_stats', 600, function () {
-            $tenants = Tenant::query()->get();
-            $totalTenants = $tenants->count();
-            $totalTerrenos = 0;
-            $totalProjetos = 0;
-            $totalUsuarios = 0;
+        /** @var array<string, mixed>|null $cached */
+        $cached = Cache::get(self::CACHE_KEY);
 
-            foreach ($tenants as $tenant) {
-                try {
-                    $counts = $tenant->run(function () {
-                        return [
-                            'terrenos' => Terreno::query()->count(),
-                            'projetos' => Projeto::query()->count(),
-                            'usuarios' => User::query()->count(),
-                        ];
-                    });
+        if (is_array($cached) && array_key_exists('total_tenants', $cached)) {
+            /** @var array{total_tenants: int, total_terrenos: int, total_projetos: int, total_usuarios: int} */
+            return $cached;
+        }
 
-                    $totalTerrenos += (int) ($counts['terrenos'] ?? 0);
-                    $totalProjetos += (int) ($counts['projetos'] ?? 0);
-                    $totalUsuarios += (int) ($counts['usuarios'] ?? 0);
-                } catch (Throwable $e) {
-                    Log::error('Erro ao agregar estatísticas do tenant', [
-                        'tenant_id' => (string) $tenant->id,
-                        'message' => $e->getMessage(),
-                    ]);
-                }
+        // Retorna dados básicos imediatamente enquanto o Job calcula o resto
+        $basicStats = [
+            'total_tenants' => Tenant::query()->count(),
+            'total_terrenos' => 0,
+            'total_projetos' => 0,
+            'total_usuarios' => 0,
+            'stale' => true,
+        ];
+
+        // Dispara Job assíncrono para calcular estatísticas completas
+        \App\Jobs\RefreshTenantStatsJob::dispatch();
+
+        return $basicStats;
+    }
+
+    /**
+     * Calcula e armazena as estatísticas agregadas.
+     * Chamado pelo RefreshTenantStatsJob.
+     *
+     * @return array{total_tenants: int, total_terrenos: int, total_projetos: int, total_usuarios: int}
+     */
+    public function refreshStats(): array
+    {
+        $tenants = Tenant::query()->select(['id', 'slug'])->get();
+        $totalTenants = $tenants->count();
+        $totalTerrenos = 0;
+        $totalProjetos = 0;
+        $totalUsuarios = 0;
+
+        foreach ($tenants as $tenant) {
+            try {
+                $counts = $tenant->run(function () {
+                    return [
+                        'terrenos' => Terreno::query()->count(),
+                        'projetos' => Projeto::query()->count(),
+                        'usuarios' => User::query()->count(),
+                    ];
+                });
+
+                $totalTerrenos += (int) ($counts['terrenos'] ?? 0);
+                $totalProjetos += (int) ($counts['projetos'] ?? 0);
+                $totalUsuarios += (int) ($counts['usuarios'] ?? 0);
+            } catch (Throwable $e) {
+                Log::error('Erro ao agregar estatísticas do tenant', [
+                    'tenant_id' => (string) $tenant->id,
+                    'message' => $e->getMessage(),
+                ]);
             }
+        }
 
-            return [
-                'total_tenants' => $totalTenants,
-                'total_terrenos' => $totalTerrenos,
-                'total_projetos' => $totalProjetos,
-                'total_usuarios' => $totalUsuarios,
-            ];
-        });
+        $stats = [
+            'total_tenants' => $totalTenants,
+            'total_terrenos' => $totalTerrenos,
+            'total_projetos' => $totalProjetos,
+            'total_usuarios' => $totalUsuarios,
+        ];
+
+        Cache::put(self::CACHE_KEY, $stats, self::CACHE_TTL);
+
+        return $stats;
     }
 }

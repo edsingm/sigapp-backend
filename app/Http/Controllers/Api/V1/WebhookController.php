@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\TenantStatus;
 use App\Jobs\CreateFullTenantJob;
 use App\Models\Central\Tenant;
 use App\Models\Central\WebhookEvent;
@@ -189,19 +190,8 @@ class WebhookController extends CashierController
             'subscription_id' => $session['subscription'] ?? null,
         ]);
 
-        $this->dispatchTenantProvisioning($tenant);
-
-        // Audit: checkout completed
-        $this->audit('tenant.checkout_completed', "Checkout Stripe concluído para tenant '{$tenant->name}'. Job de criação disparado.", [
-            'tenant_id' => $tenant->id,
-            'tenant_slug' => $tenant->slug,
-            'tenant_name' => $tenant->name,
-            'session_id' => $session['id'] ?? null,
-            'subscription_id' => $session['subscription'] ?? null,
-            'customer_id' => $session['customer'] ?? null,
-        ]);
-
         // Sincroniza o estado de billing (stripe_id, stripe_subscription_id, plano, subscription table)
+        // ANTES de disparar o provisionamento para evitar race condition.
         if (! empty($session['subscription'])) {
             try {
                 $this->reconcileTenantBillingState(
@@ -218,6 +208,22 @@ class WebhookController extends CashierController
             }
         }
 
+        // Provisionamento é disparado DENTRO de reconcileTenantBillingState quando necessário.
+        // Garantia extra: se não houve subscription, dispara diretamente.
+        if (empty($session['subscription'])) {
+            $this->dispatchTenantProvisioning($tenant);
+        }
+
+        // Audit: checkout completed
+        $this->audit('tenant.checkout_completed', "Checkout Stripe concluído para tenant '{$tenant->name}'. Job de criação disparado.", [
+            'tenant_id' => $tenant->id,
+            'tenant_slug' => $tenant->slug,
+            'tenant_name' => $tenant->name,
+            'session_id' => $session['id'] ?? null,
+            'subscription_id' => $session['subscription'] ?? null,
+            'customer_id' => $session['customer'] ?? null,
+        ]);
+
         return $this->successMethod();
     }
 
@@ -226,6 +232,9 @@ class WebhookController extends CashierController
      */
     protected function dispatchTenantProvisioning(Tenant $tenant): void
     {
+        // Refresh do banco para evitar dispatch duplicado em caso de webhooks concorrentes
+        $tenant->refresh();
+
         if ($tenant->database_created) {
             Log::info('CreateFullTenantJob ignorado: tenant já provisionado', [
                 'tenant_id' => $tenant->id,
@@ -258,7 +267,11 @@ class WebhookController extends CashierController
         $invoice = (array) data_get($payload, 'data.object', []);
         $customerId = $invoice['customer'] ?? null;
 
-        $tenant = $this->tenantRepository->findByStripeId($customerId);
+        $tenant = $this->validateTenantForWebhook(
+            $this->tenantRepository->findByStripeId($customerId),
+            'invoice.paid',
+            $customerId
+        );
 
         if ($tenant) {
             $this->reconcileTenantBillingState(
@@ -287,7 +300,11 @@ class WebhookController extends CashierController
         $attempts = (int) data_get($invoice, 'attempt_count', 0);
         $invoiceUrl = data_get($invoice, 'hosted_invoice_url');
 
-        $tenant = $this->tenantRepository->findByStripeId($customerId);
+        $tenant = $this->validateTenantForWebhook(
+            $this->tenantRepository->findByStripeId($customerId),
+            'invoice.payment_failed',
+            $customerId
+        );
 
         if (! $tenant) {
             return $this->successMethod();
@@ -331,14 +348,16 @@ class WebhookController extends CashierController
     protected function handleCustomerSubscriptionUpdated(array $payload)
     {
         // Call Parent to let Cashier sync the subscriptions table
-        if (method_exists(parent::class, 'handleCustomerSubscriptionUpdated')) {
-            parent::handleCustomerSubscriptionUpdated($payload);
-        }
+        parent::handleCustomerSubscriptionUpdated($payload);
 
         $subscription = (array) data_get($payload, 'data.object', []);
         $customerId = $subscription['customer'] ?? null;
 
-        $tenant = $this->tenantRepository->findByStripeId($customerId);
+        $tenant = $this->validateTenantForWebhook(
+            $this->tenantRepository->findByStripeId($customerId),
+            'customer.subscription.updated',
+            $customerId
+        );
 
         if ($tenant) {
             $this->reconcileTenantBillingState(
@@ -360,14 +379,16 @@ class WebhookController extends CashierController
      */
     protected function handleCustomerSubscriptionCreated(array $payload)
     {
-        if (method_exists(parent::class, 'handleCustomerSubscriptionCreated')) {
-            parent::handleCustomerSubscriptionCreated($payload);
-        }
+        parent::handleCustomerSubscriptionCreated($payload);
 
         $subscription = (array) data_get($payload, 'data.object', []);
         $customerId = $subscription['customer'] ?? null;
 
-        $tenant = $this->tenantRepository->findByStripeId($customerId);
+        $tenant = $this->validateTenantForWebhook(
+            $this->tenantRepository->findByStripeId($customerId),
+            'customer.subscription.created',
+            $customerId
+        );
 
         if ($tenant) {
             $this->reconcileTenantBillingState(
@@ -390,14 +411,16 @@ class WebhookController extends CashierController
     protected function handleCustomerSubscriptionDeleted(array $payload)
     {
         // Let Cashier sync local DB
-        if (method_exists(parent::class, 'handleCustomerSubscriptionDeleted')) {
-            parent::handleCustomerSubscriptionDeleted($payload);
-        }
+        parent::handleCustomerSubscriptionDeleted($payload);
 
         $subscription = (array) data_get($payload, 'data.object', []);
         $customerId = $subscription['customer'] ?? null;
 
-        $tenant = $this->tenantRepository->findByStripeId($customerId);
+        $tenant = $this->validateTenantForWebhook(
+            $this->tenantRepository->findByStripeId($customerId),
+            'customer.subscription.deleted',
+            $customerId
+        );
 
         if ($tenant) {
             $tenant->update([
@@ -431,7 +454,11 @@ class WebhookController extends CashierController
         $customerId = data_get($subscription, 'customer');
         $trialEnd = data_get($subscription, 'trial_end');
 
-        $tenant = $this->tenantRepository->findByStripeId($customerId);
+        $tenant = $this->validateTenantForWebhook(
+            $this->tenantRepository->findByStripeId($customerId),
+            'customer.subscription.trial_will_end',
+            $customerId
+        );
 
         if (! $tenant || ! $trialEnd) {
             return $this->successMethod();
@@ -561,16 +588,12 @@ class WebhookController extends CashierController
             return;
         }
 
-        $tenant->update([
-            'stripe_subscription_id' => $subscriptionId,
-        ]);
-
         $stripeSubscription = $this->billingService->retrieveSubscription($subscriptionId);
         $stripeStatus = (string) ($stripeSubscription->status ?? '');
 
         $tenant->update([
             'stripe_id' => $stripeSubscription->customer ?? $tenant->stripe_id,
-            'stripe_subscription_id' => $stripeSubscription->id ?? $tenant->stripe_subscription_id,
+            'stripe_subscription_id' => $stripeSubscription->id ?? $subscriptionId,
         ]);
 
         $this->billingService->syncPlanFromPriceId($tenant, data_get($stripeSubscription, 'items.data.0.price.id'));
@@ -586,8 +609,48 @@ class WebhookController extends CashierController
             'database_created' => (bool) $tenant->database_created,
         ], $context));
 
-        if (in_array($stripeStatus, ['active', 'trialing'], true) && ! $tenant->database_created) {
-            $this->dispatchTenantProvisioning($tenant->fresh());
+        if (in_array($stripeStatus, ['active', 'trialing'], true)) {
+            $this->dispatchTenantProvisioning($tenant);
         }
+    }
+
+    /**
+     * Valida se o tenant encontrado pelo Stripe customer ID está em estado válido
+     * para processar eventos de webhook. Retorna null se o tenant não for válido.
+     */
+    private function validateTenantForWebhook(?Tenant $tenant, string $source, ?string $customerId): ?Tenant
+    {
+        if (! $tenant) {
+            Log::warning('Tenant não encontrado para customer_id no webhook', [
+                'customer_id' => $customerId,
+                'source' => $source,
+            ]);
+
+            return null;
+        }
+
+        // Tenants cancelled não devem receber eventos de billing
+        if ($tenant->status === TenantStatus::CANCELLED->value) {
+            Log::warning('Webhook ignorado: tenant cancelado', [
+                'tenant_id' => $tenant->id,
+                'tenant_status' => $tenant->status,
+                'source' => $source,
+            ]);
+
+            return null;
+        }
+
+        // Tenants com setup_failed não devem receber eventos de billing
+        if ($tenant->status === TenantStatus::SETUP_FAILED->value) {
+            Log::warning('Webhook ignorado: setup do tenant falhou', [
+                'tenant_id' => $tenant->id,
+                'tenant_status' => $tenant->status,
+                'source' => $source,
+            ]);
+
+            return null;
+        }
+
+        return $tenant;
     }
 }

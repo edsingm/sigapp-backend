@@ -112,6 +112,9 @@ class TenantRepository implements TenantRepositoryInterface
     {
         $tenant->update(['plan_id' => $planId]);
 
+        // Invalida cache do tenant para que os limites do novo plano sejam aplicados imediatamente
+        cache()->forget('tenant:'.$tenant->slug);
+
         return $tenant->refresh();
     }
 

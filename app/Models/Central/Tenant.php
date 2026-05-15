@@ -2,6 +2,7 @@
 
 namespace App\Models\Central;
 
+use App\Enums\TenantStatus;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -86,15 +87,17 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     }
 
     /**
-     * Constantes de status.
+     * Constantes de status (alias do Enum TenantStatus).
      */
-    public const STATUS_PENDING = 'pending';
+    public const STATUS_PENDING = TenantStatus::PENDING->value;
 
-    public const STATUS_ACTIVE = 'active';
+    public const STATUS_ACTIVE = TenantStatus::ACTIVE->value;
 
-    public const STATUS_SUSPENDED = 'suspended';
+    public const STATUS_SUSPENDED = TenantStatus::SUSPENDED->value;
 
-    public const STATUS_CANCELLED = 'cancelled';
+    public const STATUS_CANCELLED = TenantStatus::CANCELLED->value;
+
+    public const STATUS_SETUP_FAILED = TenantStatus::SETUP_FAILED->value;
 
     /**
      * Obtém o plano associado ao tenant.
@@ -263,26 +266,56 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     }
 
     /**
+     * Cache local dos limites resolvidos para evitar múltiplas resoluções da matrix.
+     * @var array<string, int>|null
+     */
+    private ?array $resolvedLimits = null;
+
+    /**
+     * Obtém os limites do plano com cache local por instância.
+     *
+     * @return array<string, int>
+     */
+    private function getResolvedLimits(): array
+    {
+        if ($this->resolvedLimits === null) {
+            $this->resolvedLimits = $this->plan?->getLimitsAttribute() ?? [];
+        }
+
+        return $this->resolvedLimits;
+    }
+
+    /**
+     * Obtém um limite específico do plano.
+     */
+    private function getPlanLimit(string $key, int $default = 0): int
+    {
+        $value = data_get($this->getResolvedLimits(), $key, $default);
+
+        return is_numeric($value) ? (int) $value : $default;
+    }
+
+    /**
      * Obtém os limites contratuais do plano atribuído.
      */
     public function getMaxUsersAttribute(): int
     {
-        return $this->plan?->getLimit('users') ?? 0;
+        return $this->getPlanLimit('users');
     }
 
     public function getMaxTerrenosAttribute(): int
     {
-        return $this->plan?->getLimit('terrenos') ?? 0;
+        return $this->getPlanLimit('terrenos');
     }
 
     public function getMaxStorageGbAttribute(): int
     {
-        return $this->plan?->getLimit('storage_gb') ?? 0;
+        return $this->getPlanLimit('storage_gb');
     }
 
     public function getMaxProductsAttribute(): int
     {
-        return $this->plan?->getLimit('products') ?? 0;
+        return $this->getPlanLimit('products');
     }
 
     /**

@@ -48,6 +48,17 @@ class TenantBillingService
 
     public function getSignupCheckoutSessionId(Tenant $tenant): ?string
     {
+        $tenantData = $tenant->getAttribute('data');
+
+        // Campo novo: top-level no JSON data
+        if (is_array($tenantData)) {
+            $sessionId = $tenantData['stripe_checkout_session_id'] ?? null;
+            if (is_string($sessionId) && $sessionId !== '') {
+                return $sessionId;
+            }
+        }
+
+        // Fallback: campo antigo dentro de signup_contract_acceptance
         $sessionId = data_get($this->getSignupContractAcceptance($tenant), 'stripe_checkout_session_id');
 
         return is_string($sessionId) && $sessionId !== '' ? $sessionId : null;
@@ -64,10 +75,14 @@ class TenantBillingService
             $tenantData = [];
         }
 
-        data_set($tenantData, 'signup_contract_acceptance.stripe_checkout_session_id', $sessionId);
+        // Campo novo: top-level no JSON data
+        $tenantData['stripe_checkout_session_id'] = $sessionId;
+
+        // Limpa do campo antigo se existir
+        data_set($tenantData, 'signup_contract_acceptance.stripe_checkout_session_id', null);
 
         $tenant->update(['data' => $tenantData]);
-        $tenant->setAttribute('signup_contract_acceptance', data_get($tenantData, 'signup_contract_acceptance', []));
+        $tenant->setAttribute('data', $tenantData);
     }
 
     public function matchesSignupCheckoutSession(Tenant $tenant, ?string $sessionId): bool
@@ -81,9 +96,13 @@ class TenantBillingService
 
     public function findTenantBySignupCheckoutSessionId(string $sessionId): ?Tenant
     {
+        // Busca no campo novo primeiro, depois no antigo
         return Tenant::query()
-            ->where('data->signup_contract_acceptance->stripe_checkout_session_id', $sessionId)
-            ->first();
+            ->where('data->stripe_checkout_session_id', $sessionId)
+            ->first()
+            ?? Tenant::query()
+                ->where('data->signup_contract_acceptance->stripe_checkout_session_id', $sessionId)
+                ->first();
     }
 
     public function retrieveCheckoutSession(string $sessionId): object

@@ -85,7 +85,11 @@ class TenantSignupService
 
             $tenant->domains()->create(['domain' => $tenant->slug]);
 
-            // Segurança: garante que o plan_id seja persistido na tabela de tenants
+            // WORKAROUND stancl/tenancy: Tenant::create() ignora colunas customizadas
+            // que não estão na lista interna do pacote (id, created_at, updated_at, data).
+            // Colunas como plan_id, status, etc. são definidas no $fillable mas não são
+            // persistidas pelo create() nativo. Usamos update() direto como fallback.
+            // Ref: https://github.com/stancl/tenancy/issues/268
             if (! $tenant->getOriginal('plan_id')) {
                 Tenant::whereKey($tenant->id)->update(['plan_id' => $plan->id]);
                 $tenant->refresh();
@@ -101,11 +105,18 @@ class TenantSignupService
 
     /**
      * Armazena o ID da sessão de checkout do Stripe nos dados do tenant.
+     * Salva em campo separado do contract acceptance (dados billing vs dados legais).
      */
     public function storeCheckoutSessionId(Tenant $tenant, string $sessionId): void
     {
         $data = $tenant->data ?? [];
-        data_set($data, 'signup_contract_acceptance.stripe_checkout_session_id', $sessionId);
+
+        // Campo novo: top-level no JSON data
+        $data['stripe_checkout_session_id'] = $sessionId;
+
+        // Limpa do campo antigo (contract acceptance) se existir
+        data_set($data, 'signup_contract_acceptance.stripe_checkout_session_id', null);
+
         $tenant->update(['data' => $data]);
         $tenant->refresh();
     }
@@ -160,7 +171,6 @@ class TenantSignupService
             'plan_slug' => $validated['plan_slug'] ?? null,
             'tenant_slug_requested' => $requestedSlug,
             'tenant_slug_effective' => $effectiveSlug,
-            'stripe_checkout_session_id' => null,
         ];
     }
 }

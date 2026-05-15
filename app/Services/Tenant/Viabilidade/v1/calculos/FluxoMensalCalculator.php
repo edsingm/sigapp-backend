@@ -111,7 +111,7 @@ class FluxoMensalCalculator
             $lucroMes = $receitas['total'] - $despesas['total'];
             $saldoAcumulado += $lucroMes;
 
-            $receitaRpMes = $receitas['detalhes']['Recursos Próprios'] ?? 0.0;
+            $receitaRpMes = $receitas['detalhes']['recursos_proprios']['total_recursos_proprios'] ?? 0.0;
             $lucroSemCefMes = $receitaRpMes - $despesas['total'];
             $vendasMesBrutas = max(0.0, (float) ($ctx->vendasPorMes[$mes] ?? 0.0));
             $vendasMesComCarry = $vendasMesBrutas + $fracaoVendasCarregada;
@@ -123,8 +123,8 @@ class FluxoMensalCalculator
 
             $fluxo[$mes] = [
                 'periodo' => $this->identificarPeriodo($data, $datas),
-                'receitas' => $receitas['detalhes'],
-                'despesas' => $despesas['detalhes'],
+                'receitas' => array_merge($receitas['detalhes'], ['total' => $receitas['total']]),
+                'despesas' => array_merge($despesas['detalhes'], ['total' => $despesas['total']]),
                 'saldo_mes' => round($lucroMes, 2),
                 'saldo_acumulado_mes' => round($saldoAcumulado, 2),
                 'unidades_vendidas' => $unidadesVendidasMes,

@@ -45,6 +45,40 @@ class PlanilhaConformidadeTest extends TestCase
             'updated_at' => $agora,
         ]);
 
+        // ─── Criar premissas_viabilidade ────────────────────────────────
+        DB::table('premissas_viabilidade')->insert([
+            'nome' => 'Padrão',
+            'perfil_financiamento' => 'cef',
+            'ativo' => true,
+            'pis_cofins' => 4.0,
+            'iss' => 0.0,
+            'outros_impostos' => 0.5,
+            'comissao' => 0.0,
+            'parceria_vgv' => 8.0,
+            'infra_nao_incidente' => 1.0,
+            'incorporacao' => 1.0,
+            'area_comum' => 1500,
+            'contrapartidas' => 1.0,
+            'canteiro_mensal' => 85715,
+            'mo_administrativa' => 62502,
+            'seguros' => 0.5,
+            'assistencia_tecnica' => 1.0,
+            'despesas_comerciais' => 5.0,
+            'stand_vendas' => 290000,
+            'mobilia_decoracao' => 0,
+            'ajuda_custo_gerente' => 5000,
+            'ajuda_custo_gerente_regional' => 2733,
+            'reembolso_logistica' => 5000,
+            'marketing' => 1.0,
+            'itbi_iptu' => 1.1,
+            'registro' => 2500,
+            'contratos_cef' => 300,
+            'produtos_cef' => 0.5,
+            'outras_despesas_financeiras' => 0.3,
+            'created_at' => $agora,
+            'updated_at' => $agora,
+        ]);
+
         // ─── Criar viabilidade ───────────────────────────────────────────
         $viabilidadeId = DB::table('viabilidades')->insertGetId([
             'terreno_id' => $terrenoId,
@@ -517,5 +551,7 @@ class PlanilhaConformidadeTest extends TestCase
         Artisan::call('migrate', ['--path' => 'database/migrations/tenant/2026_03_20_000000_add_viabilidade_campos_planilha.php']);
         Artisan::call('migrate', ['--path' => 'database/migrations/tenant/2026_04_25_000001_add_perfil_financiamento_to_viabilidades_table.php']);
         Artisan::call('migrate', ['--path' => 'database/migrations/tenant/2026_04_26_212214_add_data_lancamento_to_viabilidades_table.php']);
+        Artisan::call('migrate', ['--path' => 'database/migrations/tenant/2026_04_27_195000_create_premissas_viabilidade_table.php']);
+        Artisan::call('migrate', ['--path' => 'database/migrations/tenant/2026_04_27_200000_add_versionamento_e_snapshot.php']);
     }
 }

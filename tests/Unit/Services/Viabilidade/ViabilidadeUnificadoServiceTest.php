@@ -539,9 +539,9 @@ class ViabilidadeUnificadoServiceTest extends TestCase
             $receitas['total'],
             'Receita total deve ser zero no período de incorporação sem caches pré-calculados'
         );
-        $this->assertEquals(0.0, $receitas['detalhes']['Recursos Próprios']);
-        $this->assertEquals(0.0, $receitas['detalhes']['Recurso Terrenos']);
-        $this->assertEquals(0.0, $receitas['detalhes']['Medição Obra']);
+        $this->assertEquals(0.0, $receitas['detalhes']['recursos_proprios']['total_recursos_proprios']);
+        $this->assertEquals(0.0, $receitas['detalhes']['recebimento_terreno']['recebimento_total_terreno']);
+        $this->assertEquals(0.0, $receitas['detalhes']['medicao_obra']['recebimento_total_medicao']);
     }
 
     public function test_calcular_receitas_total_igual_a_soma_dos_detalhes(): void
@@ -556,7 +556,7 @@ class ViabilidadeUnificadoServiceTest extends TestCase
             $this->makeParams(),
         );
 
-        $somaDetalhes = array_sum($receitas['detalhes']);
+        $somaDetalhes = $receitas['detalhes']['total'];
 
         $this->assertEqualsWithDelta(
             $somaDetalhes,
@@ -581,9 +581,9 @@ class ViabilidadeUnificadoServiceTest extends TestCase
         $this->assertArrayHasKey('total', $receitas);
         $this->assertArrayHasKey('juros_correcao', $receitas);
         $this->assertArrayHasKey('detalhes', $receitas);
-        $this->assertArrayHasKey('Recursos Próprios', $receitas['detalhes']);
-        $this->assertArrayHasKey('Recurso Terrenos', $receitas['detalhes']);
-        $this->assertArrayHasKey('Medição Obra', $receitas['detalhes']);
+        $this->assertArrayHasKey('recursos_proprios', $receitas['detalhes']);
+        $this->assertArrayHasKey('recebimento_terreno', $receitas['detalhes']);
+        $this->assertArrayHasKey('medicao_obra', $receitas['detalhes']);
     }
 
     // =========================================================================

@@ -3,19 +3,24 @@
 @section('title', 'Bem-vindo ao SIG.APP')
 
 @section('content')
-    <h1 class="text-2xl font-bold text-gray-800 mb-4">Olá!</h1>
-    
-    <p class="text-gray-600 mt-4">
-        Sua conta <strong>{{ $tenantName }}</strong> foi criada com sucesso e já está pronta para uso no nosso sistema.
+    <h2 style="margin: 0 0 16px; font-size: 20px; font-weight: 700; color: #18181b; letter-spacing: -0.01em;">Bem-vindo, {{ $tenantName }}!</h2>
+
+    <p style="margin: 0 0 12px; font-size: 15px; color: #52525b; line-height: 1.6;">
+        Sua conta foi criada com sucesso e já está pronta para uso. Você pode acessar agora mesmo o sistema e começar a gerenciar sua operação.
     </p>
-    
-    <div class="text-center mt-6 mb-6">
-        <a href="{{ $appUrl }}" class="inline-block bg-blue-600 text-white font-semibold px-6 py-3 rounded no-underline">
+
+    <p style="margin: 0 0 24px; font-size: 15px; color: #52525b; line-height: 1.6;">
+        No SIG.APP você tem tudo que precisa para organizar seu negócio em um só lugar.
+    </p>
+
+    <div style="text-align: center; margin: 24px 0;">
+        <a href="{{ $appUrl }}"
+           style="display: inline-block; padding: 14px 32px; background-color: #2563eb; color: #ffffff; font-size: 15px; font-weight: 600; text-decoration: none; border-radius: 8px;">
             Acessar o SIG.APP
         </a>
     </div>
 
-    <p class="text-gray-600 mt-4">
-        Se você tiver alguma dúvida ou precisar de ajuda para começar, basta entrar em contato com o nosso suporte.
+    <p style="margin: 24px 0 0; font-size: 14px; color: #71717a; line-height: 1.5;">
+        Precisa de ajuda? Responda este e-mail ou consulte nossa central de ajuda.
     </p>
 @endsection

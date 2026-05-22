@@ -32,6 +32,11 @@ class PaymentFailedNotification extends Notification
                 'tenantName' => $this->tenantName,
                 'attemptCount' => $this->attemptCount,
                 'invoiceUrl' => $this->invoiceUrl,
+            ])
+            ->text('emails.plain.payment-failed', [
+                'tenantName' => $this->tenantName,
+                'attemptCount' => $this->attemptCount,
+                'invoiceUrl' => $this->invoiceUrl,
             ]);
     }
 }

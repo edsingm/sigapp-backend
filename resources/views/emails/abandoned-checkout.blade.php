@@ -1,26 +1,26 @@
 @extends('emails.layouts.base')
 
-@section('title', 'Sua conta foi removida - SIG.APP')
+@section('title', 'Seu cadastro no SIG.APP')
 
 @section('content')
-    <h1 class="text-2xl font-bold text-gray-800 mb-4">Olá, {{ $tenantName }}!</h1>
-    
-    <p class="text-gray-600 mt-4">
-        Notamos que você iniciou o cadastro no SIG.APP, mas não chegou a concluir todas as etapas do plano <strong>{{ $planSlug }}</strong>.
+    <h2 style="margin: 0 0 16px; font-size: 20px; font-weight: 700; color: #18181b; letter-spacing: -0.01em;">Olá, {{ $tenantName }}!</h2>
+
+    <p style="margin: 0 0 12px; font-size: 15px; color: #52525b; line-height: 1.6;">
+        Você iniciou o cadastro no SIG.APP, mas o processo não foi concluído.
     </p>
 
-    <p class="text-gray-600 mt-4">
-        Por inatividade, sua conta temporária foi removida do nosso banco de dados. Mas não se preocupe! 
-        Se você quiser tentar novamente e conhecer todos os benefícios do SIG.APP, clique abaixo para iniciar um novo cadastro.
+    <p style="margin: 0 0 24px; font-size: 15px; color: #52525b; line-height: 1.6;">
+        Suas informações temporárias foram removidas por segurança, mas você pode começar um novo cadastro quando quiser.
     </p>
-    
-    <div class="text-center mt-6 mb-6">
-        <a href="{{ $signupUrl }}" class="inline-block bg-blue-600 text-white font-semibold px-6 py-3 rounded no-underline">
-            Iniciar Novo Cadastro
+
+    <div style="text-align: center; margin: 24px 0;">
+        <a href="{{ $signupUrl }}"
+           style="display: inline-block; padding: 14px 32px; background-color: #2563eb; color: #ffffff; font-size: 15px; font-weight: 600; text-decoration: none; border-radius: 8px;">
+            Criar Nova Conta
         </a>
     </div>
 
-    <p class="text-gray-600 mt-4">
-        Se você teve alguma dificuldade durante o cadastro ou precisar de ajuda, responda este e-mail para falar com nosso suporte.
+    <p style="margin: 24px 0 0; font-size: 14px; color: #71717a; line-height: 1.5;">
+        Se teve alguma dificuldade ou quer saber mais sobre o SIG.APP, responda este e-mail — ficaremos felizes em ajudar.
     </p>
 @endsection

@@ -1,29 +1,32 @@
 @extends('emails.layouts.base')
 
-@section('title', 'Confirmação de pagamento necessária')
+@section('title', 'Confirmação de segurança necessária - SIG.APP')
 
 @section('content')
-    <h1 class="text-2xl font-bold text-gray-800 mb-4">Olá!</h1>
-    
-    <div class="bg-blue-50 border-l-4 border-blue-600 p-4 mb-6">
-        <p class="text-gray-800 font-semibold">Autenticação do Banco Requerida (SCA / 3D Secure)</p>
+    <h2 style="margin: 0 0 16px; font-size: 20px; font-weight: 700; color: #18181b; letter-spacing: -0.01em;">Confirmação de segurança</h2>
+
+    <div style="background-color: #eff6ff; border-left: 4px solid #2563eb; padding: 16px 20px; margin-bottom: 20px; border-radius: 4px;">
+        <p style="margin: 0; font-size: 14px; font-weight: 600; color: #1e3a5f;">
+            Seu banco solicitou uma autenticação adicional para concluir o pagamento.
+        </p>
     </div>
 
-    <p class="text-gray-600 mt-4">
-        O seu banco exige uma confirmação de segurança adicional para que possamos processar o pagamento da sua assinatura.
+    <p style="margin: 0 0 12px; font-size: 15px; color: #52525b; line-height: 1.6;">
+        Para garantir a segurança da sua transação, o banco emissor do seu cartão precisa que você confirme esta compra usando o sistema de autenticação 3D Secure (SCA).
     </p>
 
-    <p class="text-gray-600 mt-4">
-        Para prosseguir e evitar a interrupção da sua conta, por favor, clique no botão abaixo para aprovar a transação em um ambiente seguro do seu emissor de cartão.
+    <p style="margin: 0 0 24px; font-size: 15px; color: #52525b; line-height: 1.6;">
+        Clique no botão abaixo para concluir a autenticação em um ambiente seguro.
     </p>
 
-    <div class="text-center mt-6 mb-6">
-        <a href="{{ $paymentUrl }}" class="inline-block bg-blue-600 text-white font-semibold px-6 py-3 rounded no-underline">
+    <div style="text-align: center; margin: 24px 0;">
+        <a href="{{ $paymentUrl }}"
+           style="display: inline-block; padding: 14px 32px; background-color: #2563eb; color: #ffffff; font-size: 15px; font-weight: 600; text-decoration: none; border-radius: 8px;">
             Confirmar Pagamento
         </a>
     </div>
 
-    <p class="text-gray-600 mt-4 text-sm text-gray-400">
-        Este link expira em breve. Se você não reconhece esta solicitação ou a cobrança foi cancelada, ignore este e-mail.
+    <p style="margin: 24px 0 0; font-size: 13px; color: #a1a1aa; line-height: 1.5;">
+        Este link expira em breve. Se você não reconhece esta solicitação, ignore este e-mail.
     </p>
 @endsection

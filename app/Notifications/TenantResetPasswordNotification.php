@@ -30,6 +30,10 @@ class TenantResetPasswordNotification extends Notification
             ->view('emails.tenant-reset-password', [
                 'resetUrl' => $this->resetUrl,
                 'expireMinutes' => $this->expireMinutes,
+            ])
+            ->text('emails.plain.tenant-reset-password', [
+                'resetUrl' => $this->resetUrl,
+                'expireMinutes' => $this->expireMinutes,
             ]);
     }
 }

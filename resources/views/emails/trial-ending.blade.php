@@ -1,34 +1,32 @@
 @extends('emails.layouts.base')
 
-@section('title', 'Seu período de avaliação termina em breve')
+@section('title', 'Período de avaliação - SIG.APP')
 
 @section('content')
-    <h1 class="text-2xl font-bold text-gray-800 mb-4">Olá, {{ $tenantName }}!</h1>
-    
-    <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-6">
-        <p class="text-gray-800 font-semibold">Seu período de teste no SIG.APP termina em {{ $daysText }}.</p>
+    <h2 style="margin: 0 0 16px; font-size: 20px; font-weight: 700; color: #18181b; letter-spacing: -0.01em;">Olá, {{ $tenantName }}!</h2>
+
+    <div style="background-color: #fefce8; border-left: 4px solid #eab308; padding: 16px 20px; margin-bottom: 20px; border-radius: 4px;">
+        <p style="margin: 0; font-size: 14px; font-weight: 600; color: #713f12;">
+            Seu período de teste termina em {{ $daysText }} ({{ $formattedDate }}).
+        </p>
     </div>
 
-    <p class="text-gray-600 mt-4">
-        Esperamos que você esteja aproveitando as funcionalidades da sua assinatura!
+    <p style="margin: 0 0 12px; font-size: 15px; color: #52525b; line-height: 1.6;">
+        Esperamos que você esteja aproveitando o SIG.APP! Para continuar usando sem interrupção, sua assinatura será ativada automaticamente após o período de teste.
     </p>
 
-    <p class="text-gray-600 mt-4">
-        Seu período de avaliação gratuita termina no dia <strong>{{ $formattedDate }}</strong>.
-        Após essa data, a cobrança do plano que você escolheu no cadastro será iniciada automaticamente.
+    <p style="margin: 0 0 24px; font-size: 15px; color: #52525b; line-height: 1.6;">
+        Certifique-se de que seu método de pagamento está atualizado para evitar qualquer indisponibilidade.
     </p>
 
-    <p class="text-gray-600 mt-4">
-        Para continuar usando o SIG.APP sem interrupção e sem perda de acesso, certifique-se de que seu método de pagamento cadastrado está atualizado.
-    </p>
-
-    <div class="text-center mt-6 mb-6">
-        <a href="{{ $billingUrl }}" class="inline-block bg-yellow-500 text-white font-semibold px-6 py-3 rounded no-underline shadow">
+    <div style="text-align: center; margin: 24px 0;">
+        <a href="{{ $billingUrl }}"
+           style="display: inline-block; padding: 14px 32px; background-color: #eab308; color: #422006; font-size: 15px; font-weight: 600; text-decoration: none; border-radius: 8px;">
             Gerenciar Assinatura
         </a>
     </div>
 
-    <p class="text-gray-600 mt-4 text-sm">
-        Em caso de dúvidas, sinta-se à vontade para nos contatar.
+    <p style="margin: 24px 0 0; font-size: 14px; color: #71717a; line-height: 1.5;">
+        Dúvidas? Responda este e-mail ou fale com nosso suporte.
     </p>
 @endsection

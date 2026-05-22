@@ -30,6 +30,10 @@ class TenantWelcomeNotification extends Notification
             ->view('emails.tenant-welcome', [
                 'tenantName' => $this->tenantName,
                 'appUrl' => $this->appUrl,
+            ])
+            ->text('emails.plain.tenant-welcome', [
+                'tenantName' => $this->tenantName,
+                'appUrl' => $this->appUrl,
             ]);
     }
 }

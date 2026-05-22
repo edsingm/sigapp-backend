@@ -38,6 +38,12 @@ class TrialEndingNotification extends Notification
                 'formattedDate' => $formattedDate,
                 'daysText' => $daysText,
                 'billingUrl' => rtrim((string) config('app.frontend_url', config('app.url')), '/').'/billing',
+            ])
+            ->text('emails.plain.trial-ending', [
+                'tenantName' => $this->tenantName,
+                'formattedDate' => $formattedDate,
+                'daysText' => $daysText,
+                'billingUrl' => rtrim((string) config('app.frontend_url', config('app.url')), '/').'/billing',
             ]);
     }
 }

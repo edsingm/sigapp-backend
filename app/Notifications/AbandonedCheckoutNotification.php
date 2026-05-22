@@ -35,6 +35,11 @@ class AbandonedCheckoutNotification extends Notification
                 'tenantName' => $this->tenantName,
                 'planSlug' => $this->planSlug,
                 'signupUrl' => $newSignupUrl,
+            ])
+            ->text('emails.plain.abandoned-checkout', [
+                'tenantName' => $this->tenantName,
+                'planSlug' => $this->planSlug,
+                'signupUrl' => $newSignupUrl,
             ]);
     }
 }

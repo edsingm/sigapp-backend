@@ -33,6 +33,9 @@ class PaymentRequiresActionNotification extends Notification
             ->subject('SIG.APP — Confirmação de pagamento necessária')
             ->view('emails.payment-requires-action', [
                 'paymentUrl' => $this->payment->url,
+            ])
+            ->text('emails.plain.payment-requires-action', [
+                'paymentUrl' => $this->payment->url,
             ]);
     }
 }

@@ -1,4 +1,4 @@
-# AGENTS.md — Backend Laravel 12+
+# AGENTS.md — Backend Laravel 13+
 
 Este arquivo contém as regras obrigatórias que todas as IAs (Cursor, Claude, Copilot, Gemini, etc.) devem seguir ao trabalhar neste projeto Laravel.
 
@@ -8,14 +8,15 @@ Este arquivo contém as regras obrigatórias que todas as IAs (Cursor, Claude, C
 
 | Item | Valor |
 |---|---|
-| **Framework** | Laravel 12+ |
-| **Linguagem** | PHP 8.2+ |
-| **Banco de dados** | MySQL 8+ / PostgreSQL 15+ |
+| **Framework** | Laravel 13+ |
+| **Linguagem** | PHP 8.3+ |
+| **Banco de dados** | MySQL 8+ / PostgreSQL 15+ (com `pgvector` para busca semântica) |
 | **Autenticação** | Laravel Sanctum |
-| **Testes** | Pest PHP (padrão do Laravel 12) |
+| **Testes** | PHPUnit 13 |
 | **Análise estática** | PHPStan (nível 8) |
 | **Padrão de código** | PSR-2 + PSR-4 |
 | **Arquitetura** | Controller → Service → Repository |
+| **AI SDK** | Laravel AI (`laravel/ai`) — provider-agnóstico (OpenRouter configurado) |
 
 ---
 
@@ -23,7 +24,7 @@ Este arquivo contém as regras obrigatórias que todas as IAs (Cursor, Claude, C
 
 ### 1. PHP e Padrões de Código
 
-- PHP mínimo: **8.2** — use sempre os recursos modernos da linguagem
+- PHP mínimo: **8.3** — use sempre os recursos modernos da linguagem
 - Seguir **PSR-2** (estilo) e **PSR-4** (autoload) rigorosamente
 - **Sempre declare tipos** em propriedades, parâmetros e retornos de método — nunca omita
 - Use **enums** (PHP 8.1+) ao invés de constantes mágicas ou strings avulsas
@@ -170,6 +171,7 @@ tests/
 - Use **Enums** nativos do PHP nos casts do Eloquent
 - Nunca coloque lógica de negócio em accessors/mutators — use Services
 - Use `#[UseResource]` attribute (Laravel 12+) para vincular resources ao model quando conveniente
+- Use **PHP Attributes** modernos do Laravel 13 para configuração declarativa de models (`#[Table]`, `#[Connection]`, `#[Scope]`, etc.) quando aplicável
 
 ```php
 // ✅ Model bem definido
@@ -327,21 +329,19 @@ Crie um trait ou use o `Handler.php` para padronizar respostas de erro:
 ### 7. Autenticação e Autorização
 
 - Use **Laravel Sanctum** para APIs (SPAs e mobile)
-- Use **Policies** para toda lógica de autorização por recurso — nunca coloque `if ($user->role === 'admin')` nos controllers
+- Use **Policies** como única fonte de verdade para toda lógica de autorização por recurso — nunca coloque `if ($user->role === 'admin')` em Controllers ou Services
+- A verificação de autorização deve acontecer **antes** do Service ser chamado, em uma das camadas HTTP:
+  - **Rota**: `->middleware('can:update,post')` ou `#[Middleware('can:update,post')]`
+- **Services nunca tratam autorização** — eles operam sobre dados já autorizados
 - Registre todas as Policies no `AuthServiceProvider` (ou via `#[Policy]` attribute)
-- Use **Gates** para ações que não são ligadas a um model específico
+- Use **Gates** para ações não ligadas a um model específico
 - **Nunca confie nos dados do cliente** para determinar permissões — sempre verifique no servidor
 
 ```php
-// ✅ Autorização via Policy no Controller
-public function update(UpdatePostRequest $request, Post $post): PostResource
-{
-    $this->authorize('update', $post); // ou faça no FormRequest
+// ✅ Autorização via rota (middleware can)
+Route::put('/posts/{post}', [PostController::class, 'update'])
+    ->middleware('can:update,post');
 
-    $post = $this->postService->update($post, $request->validated());
-
-    return new PostResource($post);
-}
 ```
 
 ---
@@ -369,7 +369,7 @@ class PostNotFoundException extends RuntimeException
     }
 }
 
-// ✅ Registro no Handler (Laravel 12)
+// ✅ Registro no Handler (Laravel 13)
 ->withExceptions(function (Exceptions $exceptions) {
     $exceptions->render(function (PostNotFoundException $e) {
         return response()->json(['message' => $e->getMessage()], 404);
@@ -473,7 +473,7 @@ class SendWelcomeEmail implements ShouldQueue
 
 ### 12. Testes
 
-- **Framework**: Pest PHP (padrão do Laravel 12) — não use PHPUnit diretamente
+- **Framework**: PHPUnit 13 — o projeto usa PHPUnit diretamente, não Pest PHP
 - Toda funcionalidade nova **deve ter testes** antes de ser considerada concluída
 - Use `RefreshDatabase` em testes que interagem com o banco
 - Use `actingAs()` para testar rotas autenticadas
@@ -501,7 +501,7 @@ tests/
     ArchTest.php
 ```
 
-#### Testes de arquitetura com Pest (obrigatório)
+#### Testes de arquitetura com PHPUnit
 
 ```php
 // tests/Architecture/ArchTest.php
@@ -626,7 +626,7 @@ parameters:
 ### 16. Artisan e Comandos
 
 - Use **Artisan Commands** para tarefas recorrentes de manutenção — nunca scripts PHP avulsos
-- Defina `$signature` e `$description` em todo Command
+- Defina `$signature` e `$description` em todo Command (ou use o atributo `#[AsCommand]` do Laravel 13)
 - Agende commands no `routes/console.php` (Laravel 11+/12+) — nunca no `Kernel.php`
 
 ```php
@@ -641,13 +641,14 @@ Schedule::command('backup:run')->dailyAt('02:00');
 
 1. **Nunca instale pacotes nem mude a estrutura de pastas sem listar o que faria e aguardar aprovação explícita**
 2. Prefira sempre **recursos nativos do Laravel** antes de adicionar bibliotecas externas
-3. **Controllers são thin** — qualquer lógica além de receber, delegar e responder vai para o Service
-4. **Toda mutação de dados passa por FormRequest** (validação + autorização) antes de chegar ao Controller
-5. **Toda resposta de API passa por um Resource** — nunca retorne Models brutos
-6. `APP_DEBUG=false` e **nunca** commite `.env` — use `.env.example`
-7. **PHPStan nível 8** deve passar sem erros antes de qualquer merge
-8. Cada **Job deve ter `failed()`** implementado
-9. Toda funcionalidade nova deve ter **testes Feature** cobrindo o happy path e pelo menos um cenário de erro
+3. O projeto usa **Laravel AI SDK** (`laravel/ai`) como camada de IA — nunca integre SDKs de providers diretamente; use sempre o Laravel AI como abstração
+4. **Controllers são thin** — qualquer lógica além de receber, delegar e responder vai para o Service
+5. **Toda mutação de dados passa por FormRequest** (validação + autorização) antes de chegar ao Controller
+6. **Toda resposta de API passa por um Resource** — nunca retorne Models brutos
+7. `APP_DEBUG=false` e **nunca** commite `.env` — use `.env.example`
+8. **PHPStan nível 8** deve passar sem erros antes de qualquer merge
+9. Cada **Job deve ter `failed()`** implementado
+10. Toda funcionalidade nova deve ter **testes Feature** cobrindo o happy path e pelo menos um cenário de erro
 
 ---
 
@@ -668,4 +669,4 @@ Schedule::command('backup:run')->dailyAt('02:00');
 
 ---
 
-**Última atualização:** Março 2026
+**Última atualização:** Maio 2026

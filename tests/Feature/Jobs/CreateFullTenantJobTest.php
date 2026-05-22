@@ -6,7 +6,10 @@ use App\Enums\TenantStatus;
 use App\Jobs\CreateFullTenantJob;
 use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Queue\Attributes\Backoff;
+use Illuminate\Queue\Attributes\Tries;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
@@ -50,7 +53,7 @@ class CreateFullTenantJobTest extends TestCase
         $tenant = $this->makeTenant();
         $job = new CreateFullTenantJob($tenant);
 
-        $this->assertInstanceOf(\Illuminate\Contracts\Queue\ShouldBeUnique::class, $job);
+        $this->assertInstanceOf(ShouldBeUnique::class, $job);
     }
 
     public function test_job_tem_tries_backoff_e_unique_for(): void
@@ -58,8 +61,12 @@ class CreateFullTenantJobTest extends TestCase
         $tenant = $this->makeTenant();
         $job = new CreateFullTenantJob($tenant);
 
-        $this->assertSame(3, $job->tries);
-        $this->assertSame(60, $job->backoff);
+        $refl = new \ReflectionClass($job);
+        $triesAttr = $refl->getAttributes(Tries::class);
+        $backoffAttr = $refl->getAttributes(Backoff::class);
+
+        $this->assertSame(3, $triesAttr[0]->getArguments()[0]);
+        $this->assertSame(60, $backoffAttr[0]->getArguments()[0]);
         $this->assertSame(900, $job->uniqueFor);
     }
 

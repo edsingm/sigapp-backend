@@ -6,6 +6,8 @@ use App\Enums\ProjetoStatus;
 use App\Enums\WorkflowStatus;
 use App\Models\Central\Cidade;
 use App\Traits\HasDashboardCache;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -15,11 +17,11 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Cache;
 
+#[Table('terrenos')]
+#[Fillable(['nome', 'responsavel_id', 'endereco', 'corretor_id', 'estado', 'cidade_code', 'polygon_coords', 'static_map_url', 'area_calculada', 'regional_id', 'workflow_stage', 'workflow_status_code', 'workflow_status_changed_at', 'workflow_reason_code', 'workflow_reason_notes', 'qualification_data', 'qualification_completed_at', 'qualification_completed_by', 'cep', 'bairro', 'observacoes', 'valor', 'zona', 'distrito', 'operacao_urbana', 'data_apresentacao', 'data_negociacao', 'data_opcao', 'data_descarte', 'data_contrato', 'comprador_id', 'created_by', 'updated_by'])]
 class Terreno extends Model
 {
     use HasDashboardCache, HasFactory, SoftDeletes;
-
-    protected $table = 'terrenos';
 
     protected static function booted(): void
     {
@@ -50,42 +52,6 @@ class Terreno extends Model
             Cache::tags(["tenant:{$tenantId}:dashboard"])->flush();
         });
     }
-
-    protected $fillable = [
-        'nome',
-        'responsavel_id',
-        'endereco',
-        'corretor_id',
-        'estado',
-        'cidade_code',
-        'polygon_coords',
-        'static_map_url',
-        'area_calculada',
-        'regional_id',
-        'workflow_stage',
-        'workflow_status_code',
-        'workflow_status_changed_at',
-        'workflow_reason_code',
-        'workflow_reason_notes',
-        'qualification_data',
-        'qualification_completed_at',
-        'qualification_completed_by',
-        'cep',
-        'bairro',
-        'observacoes',
-        'valor',
-        'zona',
-        'distrito',
-        'operacao_urbana',
-        'data_apresentacao',
-        'data_negociacao',
-        'data_opcao',
-        'data_descarte',
-        'data_contrato',
-        'comprador_id',
-        'created_by',
-        'updated_by',
-    ];
 
     protected $casts = [
         'polygon_coords' => 'array',

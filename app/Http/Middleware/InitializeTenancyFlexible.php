@@ -91,7 +91,7 @@ class InitializeTenancyFlexible
             }
         }
 
-        if (app()->environment(['local', 'testing']) && $request->hasHeader('X-Tenant')) {
+        if (app()->environment(['local', 'testing', 'development']) && $request->hasHeader('X-Tenant')) {
             $headerValue = (string) $request->header('X-Tenant', '');
             // Aceita apenas slugs alfanuméricos com hífen (sem injeção de caracteres especiais)
             if (preg_match('/^[a-z0-9\-]{1,63}$/i', $headerValue)) {

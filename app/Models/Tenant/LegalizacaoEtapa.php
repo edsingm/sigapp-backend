@@ -4,43 +4,19 @@ namespace App\Models\Tenant;
 
 use App\Enums\LegalizacaoEtapaStatus;
 use App\Traits\HasDashboardCache;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+#[Table('legalizacao_etapas')]
+#[Fillable(['legalizacao_id', 'parent_id', 'phase_code', 'subphase_code', 'is_required', 'is_critical', 'titulo', 'descricao', 'ordem', 'status', 'inicio_planejado', 'fim_planejado', 'inicio_real', 'fim_real', 'percentual', 'responsavel_id', 'cor', 'tipo_custo', 'valor_custo', 'custo_pago', 'custos', 'created_by', 'updated_by'])]
 class LegalizacaoEtapa extends Model
 {
     use HasDashboardCache, HasFactory, SoftDeletes;
-
-    protected $table = 'legalizacao_etapas';
-
-    protected $fillable = [
-        'legalizacao_id',
-        'parent_id',
-        'phase_code',
-        'subphase_code',
-        'is_required',
-        'is_critical',
-        'titulo',
-        'descricao',
-        'ordem',
-        'status',
-        'inicio_planejado',
-        'fim_planejado',
-        'inicio_real',
-        'fim_real',
-        'percentual',
-        'responsavel_id',
-        'cor',
-        'tipo_custo',
-        'valor_custo',
-        'custo_pago',
-        'custos',
-        'created_by',
-        'updated_by',
-    ];
 
     protected $casts = [
         'status' => LegalizacaoEtapaStatus::class,

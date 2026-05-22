@@ -3,11 +3,15 @@
 namespace App\Models\Tenant;
 
 use App\Enums\PerfilFinanciamento;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+#[Table('premissas_viabilidade')]
+#[Fillable(['nome', 'perfil_financiamento', 'ativo', 'versao', 'vigente_em', 'encerrada_em', 'pis_cofins', 'iss', 'outros_impostos', 'comissao', 'parceria_vgv', 'infra_nao_incidente', 'incorporacao', 'incorp_ri', 'incorp_entrega', 'incorp_ate_lancamento', 'obra_ate_lancamento', 'area_comum', 'contrapartidas', 'canteiro_mensal', 'mo_administrativa', 'seguros', 'assistencia_tecnica', 'despesas_comerciais', 'stand_vendas', 'mobilia_decoracao', 'gastos_mensais_stand', 'comissao_house_percentual', 'comissao_imobiliarias_percentual', 'percentual_vendas_house', 'construcao_stand_meses_antes_lancamento', 'ajuda_custo_gerente', 'ajuda_custo_gerente_regional', 'reembolso_logistica', 'bonus_cca', 'bonus_gerente', 'bonus_gerente_regional', 'bonus_credito', 'bonus_gestor_comercial', 'bonus_equipe_comercial', 'pagamento_comissao_venda', 'pagamento_comissao_desligamento', 'parcelamento_comissao_meses', 'parcelamento_comissao_terreno', 'marketing', 'marketing_lancamento', 'marketing_inicio_antes_lancamento', 'itbi_iptu', 'registro', 'custo_contratacao_cef', 'custo_medicao_cef', 'contratos_cef', 'produtos_cef', 'outras_despesas_financeiras', 'despesas_onerosas_bancos', 'prazo_obra', 'compra_terreno', 'porcentagem_lote_proprietario', 'taxa_juros_pj', 'carencia_pj_meses', 'amortizacao_pj_parcelas', 'percentual_antecipacao_pj', 'aporte_adicional_mensal', 'devolucao_aporte_percentual', 'distribuicao_lucros_percentual_obra', 'taxa_exposicao_aplicada', 'inadimplencia', 'atraso_meses', 'taxa_perda', 'meses_incorporacao', 'meses_lancamento', 'meses_entrega', 'meses_pos_obra', 'variavel_correcao'])]
 /**
  * @property int $id
  * @property string|null $nome
@@ -88,85 +92,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class PremissasViabilidade extends Model
 {
     use HasFactory, SoftDeletes;
-
-    protected $table = 'premissas_viabilidade';
-
-    protected $fillable = [
-        'nome',
-        'perfil_financiamento',
-        'ativo',
-        'versao',
-        'vigente_em',
-        'encerrada_em',
-        'pis_cofins',
-        'iss',
-        'outros_impostos',
-        'comissao',
-        'parceria_vgv',
-        'infra_nao_incidente',
-        'incorporacao',
-        'incorp_ri',
-        'incorp_entrega',
-        'incorp_ate_lancamento',
-        'obra_ate_lancamento',
-        'area_comum',
-        'contrapartidas',
-        'canteiro_mensal',
-        'mo_administrativa',
-        'seguros',
-        'assistencia_tecnica',
-        'despesas_comerciais',
-        'stand_vendas',
-        'mobilia_decoracao',
-        'gastos_mensais_stand',
-        'comissao_house_percentual',
-        'comissao_imobiliarias_percentual',
-        'percentual_vendas_house',
-        'construcao_stand_meses_antes_lancamento',
-        'ajuda_custo_gerente',
-        'ajuda_custo_gerente_regional',
-        'reembolso_logistica',
-        'bonus_cca',
-        'bonus_gerente',
-        'bonus_gerente_regional',
-        'bonus_credito',
-        'bonus_gestor_comercial',
-        'bonus_equipe_comercial',
-        'pagamento_comissao_venda',
-        'pagamento_comissao_desligamento',
-        'parcelamento_comissao_meses',
-        'parcelamento_comissao_terreno',
-        'marketing',
-        'marketing_lancamento',
-        'marketing_inicio_antes_lancamento',
-        'itbi_iptu',
-        'registro',
-        'custo_contratacao_cef',
-        'custo_medicao_cef',
-        'contratos_cef',
-        'produtos_cef',
-        'outras_despesas_financeiras',
-        'despesas_onerosas_bancos',
-        'prazo_obra',
-        'compra_terreno',
-        'porcentagem_lote_proprietario',
-        'taxa_juros_pj',
-        'carencia_pj_meses',
-        'amortizacao_pj_parcelas',
-        'percentual_antecipacao_pj',
-        'aporte_adicional_mensal',
-        'devolucao_aporte_percentual',
-        'distribuicao_lucros_percentual_obra',
-        'taxa_exposicao_aplicada',
-        'inadimplencia',
-        'atraso_meses',
-        'taxa_perda',
-        'meses_incorporacao',
-        'meses_lancamento',
-        'meses_entrega',
-        'meses_pos_obra',
-        'variavel_correcao',
-    ];
 
     protected $casts = [
         'ativo' => 'boolean',
@@ -275,10 +200,10 @@ class PremissasViabilidade extends Model
 
         return $query->where(function ($q) use ($hoje) {
             $q->where('vigente_em', '<=', $hoje)
-              ->orWhereNull('vigente_em');
+                ->orWhereNull('vigente_em');
         })->where(function ($q) use ($hoje) {
             $q->where('encerrada_em', '>=', $hoje)
-              ->orWhereNull('encerrada_em');
+                ->orWhereNull('encerrada_em');
         });
     }
 

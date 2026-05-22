@@ -3,46 +3,18 @@
 namespace App\Models\Tenant;
 
 use App\Traits\HasDashboardCache;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+#[Table('terreno_produtos')]
+#[Fillable(['terreno_id', 'produto_id', 'unidades', 'valor', 'permuta', 'pgto_por_lote', 'observacoes', 'created_by', 'updated_by'])]
 class TerrenoProduto extends Model
 {
     use HasDashboardCache, HasFactory, SoftDeletes;
-
-    protected $table = 'terreno_produtos';
-
-    /**
-     * O método "booted" do modelo.
-     */
-    protected static function booted(): void
-    {
-        static::saved(function (TerrenoProduto $item) {
-            $item->clearTenantCache('terreno_produtos');
-        });
-
-        static::deleted(function (TerrenoProduto $item) {
-            $item->clearTenantCache('terreno_produtos');
-        });
-
-        static::restored(function (TerrenoProduto $item) {
-            $item->clearTenantCache('terreno_produtos');
-        });
-    }
-
-    protected $fillable = [
-        'terreno_id',
-        'produto_id',
-        'unidades',
-        'valor',
-        'permuta',
-        'pgto_por_lote',
-        'observacoes',
-        'created_by',
-        'updated_by',
-    ];
 
     /**
      * Obtém o terreno proprietário do produto do terreno.

@@ -2,52 +2,17 @@
 
 namespace App\Models\Tenant;
 
-use App\Jobs\IndexDocumentEmbeddingJob;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Facades\Cache;
 
+#[Table('terreno_documentos')]
+#[Fillable(['terreno_id', 'nome', 'tipo', 'categoria', 'descricao', 'file_path', 'tamanho', 'status', 'created_by', 'updated_by'])]
 class Documento extends Model
 {
     use HasFactory;
-
-    /**
-     * O método "booted" do modelo.
-     */
-    protected static function booted(): void
-    {
-        static::saved(function (Documento $model) {
-            $tenantId = tenant('id') ?? 'central';
-            Cache::tags(["tenant:{$tenantId}:documentos"])->flush();
-
-            // Dispara indexação de embedding para busca semântica
-            IndexDocumentEmbeddingJob::dispatch($model->id);
-        });
-
-        static::deleted(function (Documento $model) {
-            $tenantId = tenant('id') ?? 'central';
-            Cache::tags(["tenant:{$tenantId}:documentos"])->flush();
-
-            // Remove chunks e embeddings associados
-            AiDocumentChunk::where('document_id', $model->id)->delete();
-        });
-    }
-
-    protected $table = 'terreno_documentos';
-
-    protected $fillable = [
-        'terreno_id',
-        'nome',
-        'tipo',
-        'categoria',
-        'descricao',
-        'file_path',
-        'tamanho',
-        'status',
-        'created_by',
-        'updated_by',
-    ];
 
     protected $casts = [
         'created_at' => 'datetime',

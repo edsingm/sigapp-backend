@@ -2,29 +2,19 @@
 
 namespace App\Models\Tenant;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+#[Table('negociacoes')]
+#[Fillable(['terreno_id', 'status', 'proposal_value', 'business_model', 'started_at', 'closed_at', 'notes', 'created_by', 'updated_by'])]
 class Negociacao extends Model
 {
     use HasFactory, SoftDeletes;
-
-    protected $table = 'negociacoes';
-
-    protected $fillable = [
-        'terreno_id',
-        'status',
-        'proposal_value',
-        'business_model',
-        'started_at',
-        'closed_at',
-        'notes',
-        'created_by',
-        'updated_by',
-    ];
 
     protected $casts = [
         'proposal_value' => 'decimal:2',

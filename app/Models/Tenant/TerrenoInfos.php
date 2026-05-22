@@ -2,14 +2,14 @@
 
 namespace App\Models\Tenant;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Model;
 
+#[Table('terreno_infos')]
+#[Fillable(['terreno_id', 'descricao', 'created_by', 'user_id'])]
 class TerrenoInfos extends Model
 {
-    protected $table = 'terreno_infos';
-
-    protected $fillable = ['terreno_id', 'descricao', 'created_by', 'user_id'];
-
     protected $casts = [
         'created_by' => 'int',
         'user_id' => 'int',

@@ -3,8 +3,9 @@
 namespace Tests\Unit\Jobs;
 
 use App\Jobs\IndexDocumentEmbeddingJob;
-use App\Services\AiEmbeddingService;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Queue\Attributes\Backoff;
+use Illuminate\Queue\Attributes\Tries;
 use Mockery;
 use Tests\TestCase;
 
@@ -20,8 +21,12 @@ class IndexDocumentEmbeddingJobTest extends TestCase
     {
         $job = new IndexDocumentEmbeddingJob(1);
 
-        $this->assertSame(3, $job->tries);
-        $this->assertSame(30, $job->backoff);
+        $refl = new \ReflectionClass($job);
+        $triesAttr = $refl->getAttributes(Tries::class);
+        $backoffAttr = $refl->getAttributes(Backoff::class);
+
+        $this->assertSame(3, $triesAttr[0]->getArguments()[0]);
+        $this->assertSame(30, $backoffAttr[0]->getArguments()[0]);
     }
 
     public function test_job_guarda_document_id(): void
@@ -38,6 +43,6 @@ class IndexDocumentEmbeddingJobTest extends TestCase
     {
         $job = new IndexDocumentEmbeddingJob(1);
 
-        $this->assertInstanceOf(\Illuminate\Contracts\Queue\ShouldQueue::class, $job);
+        $this->assertInstanceOf(ShouldQueue::class, $job);
     }
 }

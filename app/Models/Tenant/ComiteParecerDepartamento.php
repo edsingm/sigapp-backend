@@ -2,25 +2,17 @@
 
 namespace App\Models\Tenant;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+#[Table('comite_pareceres_departamento')]
+#[Fillable(['comite_revisao_id', 'department_code', 'reviewer_user_id', 'decision', 'comments', 'checklist_completed', 'reviewed_at'])]
 class ComiteParecerDepartamento extends Model
 {
     use HasFactory;
-
-    protected $table = 'comite_pareceres_departamento';
-
-    protected $fillable = [
-        'comite_revisao_id',
-        'department_code',
-        'reviewer_user_id',
-        'decision',
-        'comments',
-        'checklist_completed',
-        'reviewed_at',
-    ];
 
     protected $casts = [
         'checklist_completed' => 'boolean',

@@ -11,6 +11,8 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\Attributes\Backoff;
+use Illuminate\Queue\Attributes\Tries;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Artisan;
@@ -18,19 +20,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
+#[Tries(3)]
+#[Backoff(60)]
 class CreateFullTenantJob implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, LogsAudit, Queueable, SerializesModels;
-
-    /**
-     * Número de vezes que o job pode ser tentado.
-     */
-    public int $tries = 3;
-
-    /**
-     * O número de segundos a aguardar antes de tentar o job novamente.
-     */
-    public int $backoff = 60;
 
     /**
      * Mantém o bloqueio exclusivo por tempo suficiente para cobrir as tentativas do Stripe.
@@ -264,10 +258,11 @@ class CreateFullTenantJob implements ShouldBeUnique, ShouldQueue
         }
 
         // Auditoria: falha permanente
-        $this->auditTrail('tenant.creation_failed', "Job de criação falhou definitivamente para tenant '{$this->tenant->name}' após {$this->tries} tentativas.", [
+        $tries = (new \ReflectionClass($this))->getAttributes(Tries::class)[0]->getArguments()[0] ?? 0;
+        $this->auditTrail('tenant.creation_failed', "Job de criação falhou definitivamente para tenant '{$this->tenant->name}' após {$tries} tentativas.", [
             'error' => $exception->getMessage() ?? '',
             'error_class' => get_class($exception) ?? '',
-            'max_tries' => $this->tries ?? 0,
+            'max_tries' => $tries,
             'permanent_failure' => true,
         ]);
     }

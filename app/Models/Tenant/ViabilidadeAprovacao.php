@@ -2,25 +2,19 @@
 
 namespace App\Models\Tenant;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+#[Table('viabilidade_aprovacoes')]
+#[Fillable(['viabilidade_id', 'user_id', 'decision', 'comments', 'created_at'])]
 class ViabilidadeAprovacao extends Model
 {
     use HasFactory;
 
     public const UPDATED_AT = null;
-
-    protected $table = 'viabilidade_aprovacoes';
-
-    protected $fillable = [
-        'viabilidade_id',
-        'user_id',
-        'decision',
-        'comments',
-        'created_at',
-    ];
 
     protected $casts = [
         'created_at' => 'datetime',

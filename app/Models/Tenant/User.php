@@ -10,6 +10,8 @@ use App\Services\Auth\TenantPasswordResetService;
 use App\Services\Auth\TenantUserDirectoryService;
 use App\Traits\HasDashboardCache;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -27,6 +29,8 @@ use Spatie\Permission\Traits\HasRoles;
  * @property Carbon $created_at
  * @property Carbon $updated_at
  */
+#[Fillable(['name', 'email', 'password', 'email_verified_at', 'locale', 'department_id', 'position_id'])]
+#[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     use HasApiTokens, HasDashboardCache, HasFactory, HasRoles, Notifiable;
@@ -60,27 +64,6 @@ class User extends Authenticatable
             }
         });
     }
-
-    /**
-     * Os atributos que podem ser atribuídos em massa.
-     */
-    protected $fillable = [
-        'name',
-        'email',
-        'password',
-        'email_verified_at',
-        'locale',
-        'department_id',
-        'position_id',
-    ];
-
-    /**
-     * Os atributos que devem ser ocultos para serialização.
-     */
-    protected $hidden = [
-        'password',
-        'remember_token',
-    ];
 
     /**
      * Os atributos que devem ser convertidos.

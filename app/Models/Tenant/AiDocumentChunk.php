@@ -2,24 +2,18 @@
 
 namespace App\Models\Tenant;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+#[Table('ai_document_chunks')]
+#[Fillable(['document_id', 'terreno_id', 'chunk_index', 'content', 'metadata'])]
 class AiDocumentChunk extends Model
 {
     use HasFactory;
-
-    protected $table = 'ai_document_chunks';
-
-    protected $fillable = [
-        'document_id',
-        'terreno_id',
-        'chunk_index',
-        'content',
-        'metadata',
-    ];
 
     protected $casts = [
         'metadata' => 'array',

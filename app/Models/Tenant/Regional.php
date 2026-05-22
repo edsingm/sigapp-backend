@@ -2,65 +2,18 @@
 
 namespace App\Models\Tenant;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Facades\Cache;
 
+#[Table('regionais')]
+#[Fillable(['nome', 'estado', 'cidade', 'endereco', 'numero', 'telefone', 'celular', 'observacoes', 'responsavel_id', 'created_by', 'updated_by'])]
 class Regional extends Model
 {
     use HasFactory, SoftDeletes;
-
-    /**
-     * O método "booted" do modelo.
-     */
-    protected static function booted(): void
-    {
-        static::saved(function (Regional $model) {
-            $tenantId = tenant('id') ?? 'central';
-            Cache::tags(["tenant:{$tenantId}:regionais"])->flush();
-            Cache::tags(["tenant:{$tenantId}:terrenos"])->flush();
-        });
-
-        static::deleted(function (Regional $model) {
-            $tenantId = tenant('id') ?? 'central';
-            Cache::tags(["tenant:{$tenantId}:regionais"])->flush();
-            Cache::tags(["tenant:{$tenantId}:terrenos"])->flush();
-        });
-
-        static::restored(function (Regional $model) {
-            $tenantId = tenant('id') ?? 'central';
-            Cache::tags(["tenant:{$tenantId}:regionais"])->flush();
-            Cache::tags(["tenant:{$tenantId}:terrenos"])->flush();
-        });
-    }
-
-    /**
-     * A tabela associada ao modelo.
-     *
-     * @var string
-     */
-    protected $table = 'regionais';
-
-    /**
-     * Os atributos que podem ser atribuídos em massa.
-     *
-     * @var array<int, string>
-     */
-    protected $fillable = [
-        'nome',
-        'estado',
-        'cidade',
-        'endereco',
-        'numero',
-        'telefone',
-        'celular',
-        'observacoes',
-        'responsavel_id',
-        'created_by',
-        'updated_by',
-    ];
 
     /**
      * Os atributos que devem ser convertidos.

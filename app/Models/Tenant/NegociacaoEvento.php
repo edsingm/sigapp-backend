@@ -2,25 +2,18 @@
 
 namespace App\Models\Tenant;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+#[Table('negociacao_eventos')]
+#[Fillable(['negociacao_id', 'event_type', 'payload_json', 'notes', 'user_id', 'happened_at'])]
 class NegociacaoEvento extends Model
 {
     use HasFactory, SoftDeletes;
-
-    protected $table = 'negociacao_eventos';
-
-    protected $fillable = [
-        'negociacao_id',
-        'event_type',
-        'payload_json',
-        'notes',
-        'user_id',
-        'happened_at',
-    ];
 
     protected $casts = [
         'payload_json' => 'array',

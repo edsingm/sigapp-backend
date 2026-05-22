@@ -2,23 +2,17 @@
 
 namespace App\Models\Tenant;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+#[Table('viabilidade_secoes')]
+#[Fillable(['viabilidade_id', 'section_code', 'section_name', 'content_json', 'status'])]
 class ViabilidadeSecao extends Model
 {
     use HasFactory;
-
-    protected $table = 'viabilidade_secoes';
-
-    protected $fillable = [
-        'viabilidade_id',
-        'section_code',
-        'section_name',
-        'content_json',
-        'status',
-    ];
 
     protected $casts = [
         'content_json' => 'array',

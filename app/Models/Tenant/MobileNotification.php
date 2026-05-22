@@ -2,32 +2,17 @@
 
 namespace App\Models\Tenant;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
+#[Fillable(['id', 'user_id', 'title', 'body', 'type', 'entity_type', 'entity_id', 'tenant_slug', 'target_route', 'payload', 'dedupe_key', 'read_at', 'sent_at', 'delivery_error'])]
 class MobileNotification extends Model
 {
     public $incrementing = false;
 
     protected $keyType = 'string';
-
-    protected $fillable = [
-        'id',
-        'user_id',
-        'title',
-        'body',
-        'type',
-        'entity_type',
-        'entity_id',
-        'tenant_slug',
-        'target_route',
-        'payload',
-        'dedupe_key',
-        'read_at',
-        'sent_at',
-        'delivery_error',
-    ];
 
     protected function casts(): array
     {

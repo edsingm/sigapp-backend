@@ -2,23 +2,15 @@
 
 namespace App\Models\Tenant;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+#[Fillable(['terreno_id', 'related_type', 'related_id', 'user_id', 'comment', 'created_at', 'updated_at'])]
 class Comment extends Model
 {
     use HasFactory;
-
-    protected $fillable = [
-        'terreno_id',
-        'related_type',
-        'related_id',
-        'user_id',
-        'comment',
-        'created_at',
-        'updated_at',
-    ];
 
     protected $casts = [
         'created_at' => 'datetime',

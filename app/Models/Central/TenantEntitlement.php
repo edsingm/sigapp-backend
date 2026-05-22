@@ -3,6 +3,8 @@
 namespace App\Models\Central;
 
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,18 +19,11 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * @property Carbon $created_at
  * @property Carbon $updated_at
  */
+#[Table('tenant_entitlements')]
+#[Fillable(['tenant_id', 'entitlement_id', 'value', 'price'])]
 class TenantEntitlement extends Model
 {
     use CentralConnection, HasFactory;
-
-    protected $table = 'tenant_entitlements';
-
-    protected $fillable = [
-        'tenant_id',
-        'entitlement_id',
-        'value',
-        'price',
-    ];
 
     protected function casts(): array
     {

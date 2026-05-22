@@ -49,4 +49,4 @@ parameters:
         - '#Method .+ return type with generic interface Illuminate\\Contracts\\Pagination\\LengthAwarePaginator does not specify its types#'
         - '#Call to an undefined static method App\\Models\\Tenant\\Projeto::find\(\)#'
     reportUnmatchedIgnoredErrors: false
-    phpVersion: 80200
+    phpVersion: 80400

@@ -2,24 +2,18 @@
 
 namespace App\Models\Central;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
+#[Table('plan_role_permission_templates')]
+#[Fillable(['plan_id', 'role_slug', 'permission_name', 'is_required', 'is_default'])]
 class PlanRolePermissionTemplate extends Model
 {
     use CentralConnection, HasFactory;
-
-    protected $table = 'plan_role_permission_templates';
-
-    protected $fillable = [
-        'plan_id',
-        'role_slug',
-        'permission_name',
-        'is_required',
-        'is_default',
-    ];
 
     protected function casts(): array
     {

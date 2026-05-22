@@ -2,9 +2,11 @@
 
 namespace App\Models\Central;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
+#[Fillable(['id', 'email', 'device_name', 'ip_address', 'user_agent', 'tenant_options', 'expires_at', 'completed_at'])]
 class CentralLoginBrokerSession extends Model
 {
     use CentralConnection;
@@ -12,17 +14,6 @@ class CentralLoginBrokerSession extends Model
     public $incrementing = false;
 
     protected $keyType = 'string';
-
-    protected $fillable = [
-        'id',
-        'email',
-        'device_name',
-        'ip_address',
-        'user_agent',
-        'tenant_options',
-        'expires_at',
-        'completed_at',
-    ];
 
     protected function casts(): array
     {

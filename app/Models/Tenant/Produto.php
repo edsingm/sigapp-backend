@@ -2,73 +2,15 @@
 
 namespace App\Models\Tenant;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Facades\Cache;
 
+#[Fillable(['name', 'description', 'image', 'private_area', 'm2_cost', 'infra_cost', 'status', 'sinal', 'parcela_obra', 'parcela_posChave', 'qtde_parcelas_posChave', 'demanda_minCef', 'defasagem_pgtoTerreno', 'avaliacao_lotesCef', 'juros_mensalSinal', 'juros_mensalObra', 'juros_mensalPosChave', 'correcao_anualSinal', 'correcao_anualObra', 'correcao_anualPosChave', 'curva_vendas', 'baloes_anuais', 'balao_entrega_modo', 'assist_tecnica1', 'assist_tecnica2', 'assist_tecnica3', 'assist_tecnica4', 'assist_tecnica5', 'meses_inicioConstrucao', 'porcentagem_ConstrucaoStand'])]
 class Produto extends Model
 {
     use HasFactory, SoftDeletes;
-
-    /**
-     * O método "booted" do modelo.
-     */
-    protected static function booted(): void
-    {
-        static::saved(function (Produto $model) {
-            $tenantId = tenant('id') ?? 'central';
-            Cache::tags(["tenant:{$tenantId}:produtos"])->flush();
-        });
-
-        static::deleted(function (Produto $model) {
-            $tenantId = tenant('id') ?? 'central';
-            Cache::tags(["tenant:{$tenantId}:produtos"])->flush();
-        });
-
-        static::restored(function (Produto $model) {
-            $tenantId = tenant('id') ?? 'central';
-            Cache::tags(["tenant:{$tenantId}:produtos"])->flush();
-        });
-    }
-
-    /**
-     * Os atributos que podem ser atribuídos em massa.
-     *
-     * @var array<int, string>
-     */
-    protected $fillable = [
-        'name',
-        'description',
-        'image',
-        'private_area',
-        'm2_cost',
-        'infra_cost',
-        'status',
-        'sinal',
-        'parcela_obra',
-        'parcela_posChave',
-        'qtde_parcelas_posChave',
-        'demanda_minCef',
-        'defasagem_pgtoTerreno',
-        'avaliacao_lotesCef',
-        'juros_mensalSinal',
-        'juros_mensalObra',
-        'juros_mensalPosChave',
-        'correcao_anualSinal',
-        'correcao_anualObra',
-        'correcao_anualPosChave',
-        'curva_vendas',
-        'baloes_anuais',
-        'balao_entrega_modo',
-        'assist_tecnica1',
-        'assist_tecnica2',
-        'assist_tecnica3',
-        'assist_tecnica4',
-        'assist_tecnica5',
-        'meses_inicioConstrucao',
-        'porcentagem_ConstrucaoStand',
-    ];
 
     protected $casts = [
         'private_area' => 'decimal:2',

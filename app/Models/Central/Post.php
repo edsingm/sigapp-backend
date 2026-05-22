@@ -3,29 +3,17 @@
 namespace App\Models\Central;
 
 use App\Models\User;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
+#[Fillable(['title', 'slug', 'excerpt', 'content', 'category', 'image', 'read_time', 'featured', 'published', 'published_at', 'author_id'])]
 class Post extends Model
 {
     use CentralConnection, HasFactory;
-
-    protected $fillable = [
-        'title',
-        'slug',
-        'excerpt',
-        'content',
-        'category',
-        'image',
-        'read_time',
-        'featured',
-        'published',
-        'published_at',
-        'author_id',
-    ];
 
     protected $casts = [
         'featured' => 'boolean',

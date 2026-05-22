@@ -6,53 +6,19 @@ use App\Enums\LegalizacaoEtapaStatus;
 use App\Enums\LegalizacaoStatus;
 use App\Enums\WorkflowStatus;
 use App\Traits\HasDashboardCache;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+#[Table('legalizacoes')]
+#[Fillable(['terreno_id', 'responsavel_id', 'nome', 'status', 'data_inicio_planejada', 'data_fim_planejada', 'data_inicio_prevista', 'data_conclusao_prevista', 'data_inicio_real', 'data_fim_real', 'percentual_concluido', 'custo_total_previsto', 'observacoes', 'created_by', 'updated_by'])]
 class Legalizacao extends Model
 {
     use HasDashboardCache, HasFactory, SoftDeletes;
-
-    protected $table = 'legalizacoes';
-
-    protected static function booted(): void
-    {
-        static::saved(function (Legalizacao $legalizacao) {
-            $legalizacao->clearTenantCache('legalizacoes');
-            $legalizacao->clearTenantCache('projetos');
-        });
-
-        static::deleted(function (Legalizacao $legalizacao) {
-            $legalizacao->clearTenantCache('legalizacoes');
-            $legalizacao->clearTenantCache('projetos');
-        });
-
-        static::restored(function (Legalizacao $legalizacao) {
-            $legalizacao->clearTenantCache('legalizacoes');
-            $legalizacao->clearTenantCache('projetos');
-        });
-    }
-
-    protected $fillable = [
-        'terreno_id',
-        'responsavel_id',
-        'nome',
-        'status',
-        'data_inicio_planejada',
-        'data_fim_planejada',
-        'data_inicio_prevista',
-        'data_conclusao_prevista',
-        'data_inicio_real',
-        'data_fim_real',
-        'percentual_concluido',
-        'custo_total_previsto',
-        'observacoes',
-        'created_by',
-        'updated_by',
-    ];
 
     protected $casts = [
         'status' => LegalizacaoStatus::class,

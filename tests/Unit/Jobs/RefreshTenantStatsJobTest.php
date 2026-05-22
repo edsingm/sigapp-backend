@@ -4,6 +4,8 @@ namespace Tests\Unit\Jobs;
 
 use App\Jobs\RefreshTenantStatsJob;
 use App\Services\TenantStatusService;
+use Illuminate\Queue\Attributes\Timeout;
+use Illuminate\Queue\Attributes\Tries;
 use Illuminate\Support\Facades\Log;
 use Mockery;
 use Tests\TestCase;
@@ -53,7 +55,11 @@ class RefreshTenantStatsJobTest extends TestCase
     {
         $job = new RefreshTenantStatsJob;
 
-        $this->assertSame(3, $job->tries);
-        $this->assertSame(120, $job->timeout);
+        $refl = new \ReflectionClass($job);
+        $triesAttr = $refl->getAttributes(Tries::class);
+        $timeoutAttr = $refl->getAttributes(Timeout::class);
+
+        $this->assertSame(3, $triesAttr[0]->getArguments()[0]);
+        $this->assertSame(120, $timeoutAttr[0]->getArguments()[0]);
     }
 }

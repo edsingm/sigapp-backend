@@ -4,6 +4,9 @@ namespace App\Models\Central;
 
 use App\Enums\TenantStatus;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -14,6 +17,9 @@ use Stancl\Tenancy\Database\Concerns\HasDatabase;
 use Stancl\Tenancy\Database\Concerns\HasDomains;
 use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
 
+#[Table('tenants')]
+#[Fillable(['name', 'slug', 'status', 'stripe_id', 'stripe_subscription_id', 'plan_id', 'trial_ends_at', 'encryption_key', 'database_created', 'setup_completed_at', 'trial_extended', 'admin_name', 'admin_email', 'admin_password', 'data'])]
+#[Hidden(['admin_password', 'encryption_key'])]
 /**
  * @property string $id
  * @property string $name
@@ -36,40 +42,6 @@ use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
 class Tenant extends BaseTenant implements TenantWithDatabase
 {
     use HasDatabase, HasDomains, HasFactory, \Laravel\Cashier\Billable, Notifiable;
-
-    /**
-     * A tabela associada ao modelo.
-     */
-    protected $table = 'tenants';
-
-    /**
-     * Os atributos que podem ser atribuídos em massa.
-     */
-    protected $fillable = [
-        'name',
-        'slug',
-        'status',
-        'stripe_id',
-        'stripe_subscription_id',
-        'plan_id',
-        'trial_ends_at',
-        'encryption_key',
-        'database_created',
-        'setup_completed_at',
-        'trial_extended',
-        'admin_name',
-        'admin_email',
-        'admin_password',
-        'data',
-    ];
-
-    /**
-     * Os atributos que devem ser ocultos para serialização.
-     */
-    protected $hidden = [
-        'admin_password',
-        'encryption_key',
-    ];
 
     /**
      * Os atributos que devem ser convertidos.
@@ -267,6 +239,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
 
     /**
      * Cache local dos limites resolvidos para evitar múltiplas resoluções da matrix.
+     *
      * @var array<string, int>|null
      */
     private ?array $resolvedLimits = null;

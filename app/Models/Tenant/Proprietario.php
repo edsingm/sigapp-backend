@@ -3,34 +3,18 @@
 namespace App\Models\Tenant;
 
 use App\Traits\HasDashboardCache;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+#[Table('terreno_proprietarios')]
+#[Fillable(['terreno_id', 'nome', 'rg', 'cpf_cnpj', 'nascimento', 'tipo_pessoa', 'estado_civil', 'nacionalidade', 'profissao', 'porcentagem_terreno', 'email', 'telefone', 'endereco', 'cidade', 'estado', 'cep', 'conjuge', 'conjuge_rg', 'conjuge_nascimento', 'conjuge_cpf_cnpj', 'observacoes', 'created_by', 'updated_by'])]
 class Proprietario extends Model
 {
     use HasDashboardCache, HasFactory, SoftDeletes;
-
-    protected $table = 'terreno_proprietarios';
-
-    /**
-     * O método "booted" do modelo.
-     */
-    protected static function booted(): void
-    {
-        static::saved(function (Proprietario $proprietario) {
-            $proprietario->clearTenantCache('proprietarios');
-        });
-
-        static::deleted(function (Proprietario $proprietario) {
-            $proprietario->clearTenantCache('proprietarios');
-        });
-
-        static::restored(function (Proprietario $proprietario) {
-            $proprietario->clearTenantCache('proprietarios');
-        });
-    }
 
     /**
      * Constantes para o tipo de pessoa
@@ -38,32 +22,6 @@ class Proprietario extends Model
     const TIPO_FISICA = 'fisica';
 
     const TIPO_JURIDICA = 'juridica';
-
-    protected $fillable = [
-        'terreno_id',
-        'nome',
-        'rg',
-        'cpf_cnpj',
-        'nascimento',
-        'tipo_pessoa',
-        'estado_civil',
-        'nacionalidade',
-        'profissao',
-        'porcentagem_terreno',
-        'email',
-        'telefone',
-        'endereco',
-        'cidade',
-        'estado',
-        'cep',
-        'conjuge',
-        'conjuge_rg',
-        'conjuge_nascimento',
-        'conjuge_cpf_cnpj',
-        'observacoes',
-        'created_by',
-        'updated_by',
-    ];
 
     protected $casts = [
         'tipo_pessoa' => 'string',

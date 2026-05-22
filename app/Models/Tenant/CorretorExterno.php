@@ -2,51 +2,18 @@
 
 namespace App\Models\Tenant;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Cache;
 
+#[Table('corretores_externos')]
+#[Fillable(['nome', 'email', 'telefone', 'creci'])]
+#[Hidden([])]
 class CorretorExterno extends Model
 {
     use HasFactory;
-
-    /**
-     * O método "booted" do modelo.
-     */
-    protected static function booted(): void
-    {
-        static::saved(function (CorretorExterno $model) {
-            $tenantId = tenant('id') ?? 'central';
-            Cache::tags(["tenant:{$tenantId}:corretores_externos"])->flush();
-            Cache::tags(["tenant:{$tenantId}:terrenos"])->flush();
-        });
-
-        static::deleted(function (CorretorExterno $model) {
-            $tenantId = tenant('id') ?? 'central';
-            Cache::tags(["tenant:{$tenantId}:corretores_externos"])->flush();
-            Cache::tags(["tenant:{$tenantId}:terrenos"])->flush();
-        });
-    }
-
-    /**
-     * A tabela associada ao modelo.
-     */
-    protected $table = 'corretores_externos';
-
-    /**
-     * Os atributos que podem ser atribuídos em massa.
-     */
-    protected $fillable = [
-        'nome',
-        'email',
-        'telefone',
-        'creci',
-    ];
-
-    /**
-     * Os atributos que devem ser ocultos para serialização.
-     */
-    protected $hidden = [];
 
     /**
      * Os atributos que devem ser convertidos.

@@ -3,22 +3,17 @@
 namespace App\Models\Tenant;
 
 use App\Traits\HasDashboardCache;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+#[Table('legalizacao_dependencias')]
+#[Fillable(['legalizacao_id', 'etapa_origem_id', 'etapa_destino_id', 'tipo'])]
 class LegalizacaoDependencia extends Model
 {
     use HasDashboardCache, HasFactory;
-
-    protected $table = 'legalizacao_dependencias';
-
-    protected $fillable = [
-        'legalizacao_id',
-        'etapa_origem_id',
-        'etapa_destino_id',
-        'tipo',
-    ];
 
     protected $casts = [
         'tipo' => 'string',

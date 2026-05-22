@@ -2,9 +2,11 @@
 
 namespace App\Models\Central;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
+#[Fillable(['id', 'ticket_hash', 'tenant_id', 'tenant_user_id', 'email', 'device_name', 'ip_address', 'user_agent', 'expires_at', 'used_at'])]
 class LoginTransferTicket extends Model
 {
     use CentralConnection;
@@ -12,19 +14,6 @@ class LoginTransferTicket extends Model
     public $incrementing = false;
 
     protected $keyType = 'string';
-
-    protected $fillable = [
-        'id',
-        'ticket_hash',
-        'tenant_id',
-        'tenant_user_id',
-        'email',
-        'device_name',
-        'ip_address',
-        'user_agent',
-        'expires_at',
-        'used_at',
-    ];
 
     protected function casts(): array
     {

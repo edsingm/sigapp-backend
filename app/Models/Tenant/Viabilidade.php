@@ -4,16 +4,22 @@ namespace App\Models\Tenant;
 
 use App\Enums\PerfilFinanciamento;
 use App\Traits\HasDashboardCache;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+#[Table('viabilidades')]
+#[Fillable(['terreno_id', 'version', 'is_current', 'parceria_vgv', 'compra_terreno', 'infra_nao_incidente', 'porcentagem_lote_proprietario', 'prazo_obra', 'prazo_lancamento', 'prazo_incorporacao', 'data_lancamento', 'pis_cofins', 'iss', 'outros_impostos', 'comissao', 'incorporacao', 'area_comum', 'contrapartidas', 'canteiro_mensal', 'mo_administrativa', 'seguros', 'assistencia_tecnica', 'despesas_comerciais', 'stand_vendas', 'mobilia_decoracao', 'gastos_mensais_stand', 'comissao_house_percentual', 'comissao_imobiliarias_percentual', 'percentual_vendas_house', 'construcao_stand_meses_antes_lancamento', 'ajuda_custo_gerente', 'ajuda_custo_gerente_regional', 'reembolso_logistica', 'bonus_cca', 'bonus_gerente', 'bonus_gerente_regional', 'bonus_credito', 'bonus_gestor_comercial', 'bonus_equipe_comercial', 'pagamento_comissao_venda', 'pagamento_comissao_desligamento', 'parcelamento_comissao_meses', 'marketing', 'marketing_lancamento', 'marketing_inicio_antes_lancamento', 'itbi_iptu', 'registro', 'custo_contratacao_cef', 'custo_medicao_cef', 'contratos_cef', 'produtos_cef', 'outras_despesas_financeiras', 'despesas_onerosas_bancos', 'percentual_antecipacao_pj', 'aporte_adicional_mensal', 'devolucao_aporte_percentual', 'distribuicao_lucros_percentual_obra', 'taxa_exposicao_aplicada', 'perfil_financiamento', 'resultados_dre', 'premissas_snapshot', 'status', 'approval_status', 'approval_requested_at', 'approval_decided_at', 'approval_decided_by', 'approval_notes', 'submitted_at', 'locked_at', 'created_by', 'updated_by'])]
+#[Hidden([])]
 /**
  * @property int $id
  * @property int $terreno_id
- * @property \App\Enums\PerfilFinanciamento|null $perfil_financiamento
+ * @property PerfilFinanciamento|null $perfil_financiamento
  * @property string|null $data_lancamento
  * @property array<string, mixed>|null $premissas_snapshot
  * @property array<string, mixed>|null $resultados_dre
@@ -23,8 +29,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Viabilidade extends Model
 {
     use HasDashboardCache, HasFactory, SoftDeletes;
-
-    protected $table = 'viabilidades';
 
     protected static function booted()
     {
@@ -101,80 +105,6 @@ class Viabilidade extends Model
         'taxa_exposicao_aplicada',
     ];
 
-    protected $fillable = [
-        'terreno_id',
-        'version',
-        'is_current',
-        'parceria_vgv',
-        'compra_terreno',
-        'infra_nao_incidente',
-        'porcentagem_lote_proprietario',
-        'prazo_obra',
-        'prazo_lancamento',
-        'prazo_incorporacao',
-        'data_lancamento',
-        'pis_cofins',
-        'iss',
-        'outros_impostos',
-        'comissao',
-        'incorporacao',
-        'area_comum',
-        'contrapartidas',
-        'canteiro_mensal',
-        'mo_administrativa',
-        'seguros',
-        'assistencia_tecnica',
-        'despesas_comerciais',
-        'stand_vendas',
-        'mobilia_decoracao',
-        'gastos_mensais_stand',
-        'comissao_house_percentual',
-        'comissao_imobiliarias_percentual',
-        'percentual_vendas_house',
-        'construcao_stand_meses_antes_lancamento',
-        'ajuda_custo_gerente',
-        'ajuda_custo_gerente_regional',
-        'reembolso_logistica',
-        'bonus_cca',
-        'bonus_gerente',
-        'bonus_gerente_regional',
-        'bonus_credito',
-        'bonus_gestor_comercial',
-        'bonus_equipe_comercial',
-        'pagamento_comissao_venda',
-        'pagamento_comissao_desligamento',
-        'parcelamento_comissao_meses',
-        'marketing',
-        'marketing_lancamento',
-        'marketing_inicio_antes_lancamento',
-        'itbi_iptu',
-        'registro',
-        'custo_contratacao_cef',
-        'custo_medicao_cef',
-        'contratos_cef',
-        'produtos_cef',
-        'outras_despesas_financeiras',
-        'despesas_onerosas_bancos',
-        'percentual_antecipacao_pj',
-        'aporte_adicional_mensal',
-        'devolucao_aporte_percentual',
-        'distribuicao_lucros_percentual_obra',
-        'taxa_exposicao_aplicada',
-        'perfil_financiamento',
-        'resultados_dre',
-        'premissas_snapshot',
-        'status',
-        'approval_status',
-        'approval_requested_at',
-        'approval_decided_at',
-        'approval_decided_by',
-        'approval_notes',
-        'submitted_at',
-        'locked_at',
-        'created_by',
-        'updated_by',
-    ];
-
     protected $casts = [
         'parceria_vgv' => 'decimal:2',
         'compra_terreno' => 'decimal:2',
@@ -242,8 +172,6 @@ class Viabilidade extends Model
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
     ];
-
-    protected $hidden = [];
 
     /**
      * Os valores que devem ser convertidos para arrays.

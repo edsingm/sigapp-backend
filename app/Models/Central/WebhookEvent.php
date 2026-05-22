@@ -3,6 +3,8 @@
 namespace App\Models\Central;
 
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Model;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
@@ -17,18 +19,11 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * @property Carbon $created_at
  * @property Carbon $updated_at
  */
+#[Table('webhook_events')]
+#[Fillable(['event_id', 'type', 'payload', 'processed_at'])]
 class WebhookEvent extends Model
 {
     use CentralConnection;
-
-    protected $table = 'webhook_events';
-
-    protected $fillable = [
-        'event_id',
-        'type',
-        'payload',
-        'processed_at',
-    ];
 
     protected function casts(): array
     {

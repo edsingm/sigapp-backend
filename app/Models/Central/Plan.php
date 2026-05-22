@@ -4,6 +4,8 @@ namespace App\Models\Central;
 
 use App\Services\PlanMatrixService;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -27,29 +29,11 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * @property Carbon $created_at
  * @property Carbon $updated_at
  */
+#[Table('plans')]
+#[Fillable(['name', 'slug', 'description', 'stripe_price_id', 'price', 'trial_days', 'is_active', 'is_popular', 'sort_order'])]
 class Plan extends Model
 {
     use CentralConnection, HasFactory;
-
-    /**
-     * A tabela associada ao modelo.
-     */
-    protected $table = 'plans';
-
-    /**
-     * Os atributos que podem ser atribuídos em massa.
-     */
-    protected $fillable = [
-        'name',
-        'slug',
-        'description',
-        'stripe_price_id',
-        'price',
-        'trial_days',
-        'is_active',
-        'is_popular',
-        'sort_order',
-    ];
 
     /**
      * Os atributos que devem ser convertidos.

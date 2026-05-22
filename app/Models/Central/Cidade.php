@@ -3,46 +3,20 @@
 namespace App\Models\Central;
 
 use App\Models\Tenant\Terreno;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
+#[Table('cidades')]
+#[Fillable(['code', 'city', 'state', 'state_code', 'latitude', 'longitude', 'capital', 'area_code', 'timezone', 'population', 'employed', 'per_capta_income', 'property_maximum_value', 'buyer_demand', 'own_property', 'rented_property'])]
+#[Hidden([])]
 class Cidade extends Model
 {
     use CentralConnection, HasFactory;
-
-    /**
-     * A tabela associada ao modelo.
-     */
-    protected $table = 'cidades';
-
-    /**
-     * Os atributos que podem ser atribuídos em massa.
-     */
-    protected $fillable = [
-        'code',
-        'city',
-        'state',
-        'state_code',
-        'latitude',
-        'longitude',
-        'capital',
-        'area_code',
-        'timezone',
-        'population',
-        'employed',
-        'per_capta_income',
-        'property_maximum_value',
-        'buyer_demand',
-        'own_property',
-        'rented_property',
-    ];
-
-    /**
-     * The attributes that should be hidden for serialization.
-     */
-    protected $hidden = [];
 
     /**
      * The attributes that should be cast.

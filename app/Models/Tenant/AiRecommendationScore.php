@@ -2,23 +2,17 @@
 
 namespace App\Models\Tenant;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+#[Table('ai_recommendation_scores')]
+#[Fillable(['terreno_id', 'score', 'tier', 'factors', 'version'])]
 class AiRecommendationScore extends Model
 {
     use HasFactory;
-
-    protected $table = 'ai_recommendation_scores';
-
-    protected $fillable = [
-        'terreno_id',
-        'score',
-        'tier',
-        'factors',
-        'version',
-    ];
 
     protected $casts = [
         'score' => 'decimal:2',

@@ -6,9 +6,10 @@ use App\Enums\TenantStatus;
 use App\Jobs\CreateFullTenantJob;
 use App\Models\Central\Tenant;
 use App\Models\Central\WebhookEvent;
-use App\Notifications\PaymentFailedNotification;
+use App\Notifications\PaymentRetryNotification;
 use App\Notifications\TrialEndingNotification;
 use App\Repositories\Contracts\TenantRepositoryInterface;
+use App\Services\Billing\CouponService;
 use App\Services\Billing\TenantBillingService;
 use App\Traits\LogsAudit;
 use Carbon\Carbon;
@@ -27,6 +28,7 @@ class WebhookController extends CashierController
     public function __construct(
         protected TenantBillingService $billingService,
         protected TenantRepositoryInterface $tenantRepository,
+        protected CouponService $couponService,
     ) {
         if ($this->requiresSignedWebhook() && $this->hasWebhookSecret()) {
             $this->middleware(VerifyWebhookSignature::class);
@@ -310,8 +312,8 @@ class WebhookController extends CashierController
             return $this->successMethod();
         }
 
-        // Notifica o usuário em toda falha de pagamento
-        $tenant->notify(new PaymentFailedNotification($tenant->name, $attempts, $invoiceUrl));
+        // Notifica o usuário em toda falha de pagamento com deep link
+        $tenant->notify(new PaymentRetryNotification($tenant->name, $attempts, $invoiceUrl));
 
         $this->audit('tenant.payment_notification_sent', "Notificação de falha de pagamento enviada (tentativa {$attempts}).", [
             'tenant_id' => $tenant->id,
@@ -502,6 +504,26 @@ class WebhookController extends CashierController
             'charge_id' => $chargeId,
             'amount' => $amount,
             'reason' => $reason,
+        ]);
+
+        return $this->successMethod();
+    }
+
+    /**
+     * Handle coupon.redeemed event.
+     */
+    protected function handleCouponRedeemed(array $payload)
+    {
+        $couponData = (array) data_get($payload, 'data.object', []);
+        $stripeCouponId = data_get($couponData, 'id');
+
+        if ($stripeCouponId) {
+            $this->couponService->incrementRedemption($stripeCouponId);
+        }
+
+        $this->audit('coupon.redeemed_webhook', 'Coupon redemption registrado via webhook.', [
+            'stripe_coupon_id' => $stripeCouponId,
+            'customer' => data_get($payload, 'data.object.customer'),
         ]);
 
         return $this->successMethod();

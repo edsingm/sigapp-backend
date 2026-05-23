@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Admin\AclController;
 use App\Http\Controllers\Api\V1\Admin\AuditController;
+use App\Http\Controllers\Api\V1\Admin\CouponController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController;
 use App\Http\Controllers\Api\V1\Admin\EntitlementController;
 use App\Http\Controllers\Api\V1\Admin\PlanAdminController;
@@ -227,6 +228,9 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
 
                         // Entitlements — CRUD admin
                         Route::apiResource('entitlements', EntitlementController::class);
+
+                        // Coupons — CRUD admin
+                        Route::apiResource('coupons', CouponController::class)->except(['create', 'edit']);
                     });
                 });
 

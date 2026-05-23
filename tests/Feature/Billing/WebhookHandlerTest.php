@@ -4,7 +4,7 @@ namespace Tests\Feature\Billing;
 
 use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
-use App\Notifications\PaymentFailedNotification;
+use App\Notifications\PaymentRetryNotification;
 use App\Notifications\TrialEndingNotification;
 use App\Services\Billing\TenantBillingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -85,7 +85,7 @@ class WebhookHandlerTest extends TestCase
             'id' => 'in_test_001',
         ])->assertOk();
 
-        Notification::assertSentTo($tenant, PaymentFailedNotification::class);
+        Notification::assertSentTo($tenant, PaymentRetryNotification::class);
         $this->assertEquals(Tenant::STATUS_ACTIVE, $tenant->fresh()->status);
     }
 
@@ -100,7 +100,7 @@ class WebhookHandlerTest extends TestCase
             'id' => 'in_test_002',
         ])->assertOk();
 
-        Notification::assertSentTo($tenant, PaymentFailedNotification::class);
+        Notification::assertSentTo($tenant, PaymentRetryNotification::class);
         $this->assertEquals(Tenant::STATUS_ACTIVE, $tenant->fresh()->status);
     }
 
@@ -115,7 +115,7 @@ class WebhookHandlerTest extends TestCase
             'id' => 'in_test_003',
         ])->assertOk();
 
-        Notification::assertSentTo($tenant, PaymentFailedNotification::class);
+        Notification::assertSentTo($tenant, PaymentRetryNotification::class);
         $this->assertEquals(Tenant::STATUS_SUSPENDED, $tenant->fresh()->status);
     }
 
@@ -191,7 +191,7 @@ class WebhookHandlerTest extends TestCase
         $this->postWebhook('invoice.payment_failed', $dataObject, ['id' => $eventId])->assertOk();
 
         // Notificação deve ter sido enviada apenas uma vez
-        Notification::assertSentToTimes($tenant, PaymentFailedNotification::class, 1);
+        Notification::assertSentToTimes($tenant, PaymentRetryNotification::class, 1);
     }
 
     // -------------------------------------------------------------------------
@@ -269,7 +269,7 @@ class WebhookHandlerTest extends TestCase
         // Tenant deve continuar ativo (não suspenso)
         $this->assertEquals(Tenant::STATUS_ACTIVE, $tenant->fresh()->status);
         // Deve ter sido notificado
-        Notification::assertSentTo($tenant, PaymentFailedNotification::class);
+        Notification::assertSentTo($tenant, PaymentRetryNotification::class);
     }
 
     // -------------------------------------------------------------------------

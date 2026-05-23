@@ -2,9 +2,10 @@
 
 namespace App\Services\Billing;
 
+use App\Enums\TenantStatus;
 use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
-use App\Notifications\PaymentFailedNotification;
+use App\Notifications\PaymentRetryNotification;
 use Carbon\Carbon;
 use Laravel\Cashier\Cashier;
 use Stripe\StripeClient;
@@ -353,7 +354,7 @@ class TenantBillingService
         return match ($stripeStatus) {
             'active', 'trialing' => tap(self::STATUS_ACTIVE, fn () => $tenant->activate()),
             'past_due' => tap(self::STATUS_NOOP, fn () => $tenant->notify(
-                new PaymentFailedNotification((string) $tenant->getAttribute('name'), 0, null)
+                new PaymentRetryNotification((string) $tenant->getAttribute('name'), 0, null)
             )),
             'unpaid', 'incomplete_expired' => tap(self::STATUS_SUSPENDED, fn () => $tenant->suspend()),
             'canceled' => tap(self::STATUS_CANCELLED, fn () => $tenant->cancel()),
@@ -450,5 +451,111 @@ class TenantBillingService
             'source' => 'stripe',
             'stripe_status' => $stripeStatus,
         ];
+    }
+
+    /**
+     * Retorna o status de pagamento do tenant para dunning self-service.
+     *
+     * @return array<string, mixed>
+     */
+    public function getPaymentRetryStatus(Tenant $tenant): array
+    {
+        $result = [
+            'is_past_due' => false,
+            'attempt_count' => 0,
+            'next_retry_at' => null,
+            'amount_due' => null,
+            'currency' => null,
+            'invoice_url' => null,
+            'invoice_id' => null,
+            'can_retry' => false,
+            'subscription_status' => $tenant->status,
+        ];
+
+        if (! $tenant->stripe_id) {
+            return $result;
+        }
+
+        try {
+            $stripe = $this->stripe();
+
+            $invoices = $stripe->invoices->all([
+                'customer' => $tenant->stripe_id,
+                'status' => 'open',
+                'limit' => 1,
+            ]);
+
+            if (isset($invoices->data[0])) {
+                $invoice = $invoices->data[0];
+                $amountRemaining = $invoice->amount_remaining ?? 0;
+
+                if ($amountRemaining > 0) {
+                    $result['is_past_due'] = true;
+                    $result['attempt_count'] = (int) ($invoice->attempt_count ?? 0);
+                    $result['amount_due'] = $amountRemaining;
+                    $result['currency'] = $invoice->currency ?? 'brl';
+                    $result['invoice_url'] = $invoice->hosted_invoice_url ?? null;
+                    $result['invoice_id'] = $invoice->id ?? null;
+                    $result['can_retry'] = $tenant->status !== TenantStatus::CANCELLED->value;
+
+                    if ($invoice->next_payment_attempt) {
+                        $result['next_retry_at'] = Carbon::createFromTimestamp(
+                            $invoice->next_payment_attempt
+                        )->toIso8601String();
+                    }
+                }
+            }
+        } catch (\Throwable) {
+            // Em caso de erro, retorna o estado básico
+        }
+
+        return $result;
+    }
+
+    /**
+     * Dispara o reprocessamento de uma invoice pendente.
+     */
+    public function triggerPaymentRetry(Tenant $tenant): bool
+    {
+        if (! $tenant->stripe_id) {
+            return false;
+        }
+
+        try {
+            $stripe = $this->stripe();
+
+            $invoices = $stripe->invoices->all([
+                'customer' => $tenant->stripe_id,
+                'status' => 'open',
+                'limit' => 1,
+            ]);
+
+            if (isset($invoices->data[0])) {
+                $invoice = $invoices->data[0];
+                $invoiceId = $invoice->id ?? '';
+
+                if (($invoice->amount_remaining ?? 0) > 0 && $invoiceId !== '') {
+                    $stripe->invoices->sendInvoice($invoiceId, []);
+
+                    return true;
+                }
+            }
+        } catch (\Throwable) {
+            return false;
+        }
+
+        return false;
+    }
+
+    /**
+     * Notifica o tenant sobre falha de pagamento com deep link.
+     */
+    public function notifyPaymentRetry(Tenant $tenant, int $attemptCount, ?string $invoiceUrl = null): void
+    {
+        $tenant->notify(new PaymentRetryNotification(
+            tenantName: $tenant->name,
+            attemptCount: $attemptCount,
+            invoiceUrl: $invoiceUrl,
+        ));
     }
 }

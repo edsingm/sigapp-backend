@@ -14,22 +14,25 @@ use App\Http\Controllers\Api\V1\Tenant\AiPredictiveAnalysisController;
 use App\Http\Controllers\Api\V1\Tenant\AiScoringController;
 use App\Http\Controllers\Api\V1\Tenant\AiTaskController;
 use App\Http\Controllers\Api\V1\Tenant\AiWorkflowController;
+use App\Http\Controllers\Api\V1\Tenant\BillingHistoryController;
 use App\Http\Controllers\Api\V1\Tenant\CommitteeController;
 use App\Http\Controllers\Api\V1\Tenant\Common\ModulesController;
 use App\Http\Controllers\Api\V1\Tenant\ContractController;
 use App\Http\Controllers\Api\V1\Tenant\CorretoresExternosController;
+use App\Http\Controllers\Api\V1\Tenant\CouponController as TenantCouponController;
 use App\Http\Controllers\Api\V1\Tenant\DashboardController;
 use App\Http\Controllers\Api\V1\Tenant\DocumentosController;
+use App\Http\Controllers\Api\V1\Tenant\DunningController;
 use App\Http\Controllers\Api\V1\Tenant\LegalizacaoController;
 use App\Http\Controllers\Api\V1\Tenant\LegalizacaoEtapaController;
 use App\Http\Controllers\Api\V1\Tenant\MobileDeviceController;
 use App\Http\Controllers\Api\V1\Tenant\MobileNotificationController;
 use App\Http\Controllers\Api\V1\Tenant\NegotiationController;
 use App\Http\Controllers\Api\V1\Tenant\PlanSwapController;
+use App\Http\Controllers\Api\V1\Tenant\PremissasViabilidadeController;
 use App\Http\Controllers\Api\V1\Tenant\ProdutosController;
 use App\Http\Controllers\Api\V1\Tenant\ProjetoController;
 use App\Http\Controllers\Api\V1\Tenant\ProprietariosController;
-use App\Http\Controllers\Api\V1\Tenant\PremissasViabilidadeController;
 use App\Http\Controllers\Api\V1\Tenant\RegionaisController;
 use App\Http\Controllers\Api\V1\Tenant\TenantController;
 use App\Http\Controllers\Api\V1\Tenant\TerrenoController;
@@ -107,6 +110,9 @@ Route::middleware([
                 Route::post('/tenant/subscription/swap', [PlanSwapController::class, 'swap']);
                 Route::post('/tenant/billing/setup-intent', [TenantController::class, 'createSetupIntent']);
                 Route::post('/tenant/billing/payment-method', [TenantController::class, 'updateDefaultPaymentMethod']);
+                Route::post('/tenant/billing/coupon/redeem', [TenantCouponController::class, 'redeem']);
+                Route::get('/tenant/billing/payment-status', [DunningController::class, 'status']);
+                Route::post('/tenant/billing/retry-payment', [DunningController::class, 'retryPayment']);
             });
 
             Route::middleware(CheckSubscriptionStatus::class)->group(function () {
@@ -114,6 +120,13 @@ Route::middleware([
                 // Tenant info
                 Route::get('/tenant', [TenantController::class, 'show']);
                 Route::get('/tenant/usage', [TenantController::class, 'usage']);
+
+                // Billing history
+                Route::prefix('tenant/billing')->group(function () {
+                    Route::get('/history', [BillingHistoryController::class, 'index']);
+                    Route::get('/invoices/{invoiceId}', [BillingHistoryController::class, 'show']);
+                    Route::get('/invoices/{invoiceId}/pdf', [BillingHistoryController::class, 'downloadPdf']);
+                });
 
                 // Users (select inputs for tenant forms)
                 Route::get('/users/for-select', [UserController::class, 'usersForSelect']);

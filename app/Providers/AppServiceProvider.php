@@ -102,5 +102,8 @@ class AppServiceProvider extends ServiceProvider
         foreach ($tenantModels as $model) {
             Gate::policy($model, TenantPolicy::class);
         }
+
+    // ←←← Adicione aqui:
+    Gate::define('viewApiDocs', fn() => app()->environment('local'));
     }
 }

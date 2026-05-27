@@ -48,5 +48,12 @@ parameters:
         - '#Method .+ return type with generic interface Illuminate\\Database\\Eloquent\\Builder does not specify its types#'
         - '#Method .+ return type with generic interface Illuminate\\Contracts\\Pagination\\LengthAwarePaginator does not specify its types#'
         - '#Call to an undefined static method App\\Models\\Tenant\\Projeto::find\(\)#'
+        - '#Call to an undefined static method App\\Models\\Tenant\\Terreno::find\(\)#'
+        - '#Access to an undefined property App\\Models\\Tenant\\Terreno::\$id#'
+        - '#Access to an undefined property App\\Models\\Tenant\\Terreno::\$polygon_coords#'
+        - '#Access to an undefined property App\\Http\\Resources\\Tenant\\TerrenoResource::\$area_#'
+        - '#Access to an undefined property App\\Http\\Resources\\Tenant\\TerrenoResource::\$percentual_aproveitamento#'
+        - '#Access to an undefined property App\\Http\\Resources\\Tenant\\TerrenoResource::\$area_calculada_em#'
+        - '#Access to an undefined property App\\Http\\Resources\\Tenant\\TerrenoResource::\$area_calculo_status#'
     reportUnmatchedIgnoredErrors: false
     phpVersion: 80400

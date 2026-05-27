@@ -40,4 +40,24 @@ return [
         'access_token' => env('EXPO_ACCESS_TOKEN'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Elevation API (TopographyService)
+    |--------------------------------------------------------------------------
+    |
+    | Provider: 'google' (Google Elevation API) or 'opentopo' (OpenTopography)
+    |
+    */
+    'elevation' => [
+        'provider' => env('ELEVATION_PROVIDER', 'open-elevation'),
+    ],
+
+    'google_maps' => [
+        'key' => env('GOOGLE_MAPS_KEY'),
+    ],
+
+    'opentopography' => [
+        'key' => env('OPENTOPOGRAPHY_KEY'),
+    ],
+
 ];

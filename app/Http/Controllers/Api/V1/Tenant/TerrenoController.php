@@ -4,16 +4,18 @@ namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\FilterTerrenosRequest;
-use App\Http\Requests\Tenant\StoreTerrenoRequest;
 use App\Http\Requests\Tenant\StoreTerrenoInfoRequest;
-use App\Http\Requests\Tenant\UpdateTerrenoRequest;
+use App\Http\Requests\Tenant\StoreTerrenoRequest;
 use App\Http\Requests\Tenant\UpdateTerrenoInfoRequest;
+use App\Http\Requests\Tenant\UpdateTerrenoRequest;
 use App\Http\Requests\Tenant\UploadKmzRequest;
 use App\Http\Resources\Tenant\TerrenoInfoResource;
 use App\Http\Resources\Tenant\TerrenoResource;
+use App\Jobs\CalculateUsableAreaJob;
 use App\Models\Tenant\Terreno;
 use App\Services\ApiResponseService;
 use App\Services\Tenant\TerrenoService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
@@ -204,5 +206,30 @@ class TerrenoController extends Controller
         Gate::authorize('viewAny', Terreno::class);
 
         return ApiResponseService::success($this->service->listForSelect());
+    }
+
+    /**
+     * Recalcula a área útil de um terreno de forma assíncrona.
+     */
+    public function recalculateArea(string $terreno): JsonResponse
+    {
+        $terreno = $this->service->findOrFail($terreno);
+        Gate::authorize('update', $terreno);
+
+        if (empty($terreno->polygon_coords)) {
+            return ApiResponseService::error(
+                'POLYGON_REQUIRED',
+                'Terreno não possui polígono definido. Importe um KMZ/KML primeiro.',
+                null,
+                422,
+            );
+        }
+
+        CalculateUsableAreaJob::dispatch($terreno->id);
+
+        return ApiResponseService::success(
+            ['status' => 'queued'],
+            'Recálculo de área útil iniciado. O resultado estará disponível em breve.',
+        );
     }
 }

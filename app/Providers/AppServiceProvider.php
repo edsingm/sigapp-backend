@@ -18,34 +18,43 @@ use App\Models\Tenant\Terreno;
 use App\Models\Tenant\TerrenoProduto;
 use App\Models\Tenant\Viabilidade;
 use App\Policies\Tenant\TenantPolicy;
+use App\Repositories\CentralUserRepository;
 use App\Repositories\Contracts\CentralUserRepositoryInterface;
+use App\Repositories\Contracts\DashboardRepositoryInterface;
 use App\Repositories\Contracts\EntitlementRepositoryInterface;
 use App\Repositories\Contracts\PermissionRepositoryInterface;
 use App\Repositories\Contracts\PlanRepositoryInterface;
 use App\Repositories\Contracts\PlanRolePermissionTemplateRepositoryInterface;
 use App\Repositories\Contracts\PostRepositoryInterface;
 use App\Repositories\Contracts\ProdutoRepositoryInterface;
+use App\Repositories\Contracts\ProjetoRepositoryInterface;
 use App\Repositories\Contracts\ProprietarioRepositoryInterface;
 use App\Repositories\Contracts\RegionalRepositoryInterface;
 use App\Repositories\Contracts\RoleRepositoryInterface;
-use App\Repositories\Contracts\DashboardRepositoryInterface;
 use App\Repositories\Contracts\TenantRepositoryInterface;
 use App\Repositories\Contracts\TerrenoExportRepositoryInterface;
 use App\Repositories\Contracts\TerrenoProdutoRepositoryInterface;
-use App\Repositories\Contracts\ProjetoRepositoryInterface;
-use App\Repositories\CentralUserRepository;
+use App\Repositories\DashboardRepository;
 use App\Repositories\EntitlementRepository;
-use App\Repositories\PostRepository;
-use App\Repositories\ProprietarioRepository;
+use App\Repositories\PermissionRepository;
 use App\Repositories\PlanRepository;
 use App\Repositories\PlanRolePermissionTemplateRepository;
-use App\Repositories\TenantRepository;
+use App\Repositories\PostRepository;
+use App\Repositories\ProdutoRepository;
 use App\Repositories\ProjetoRepository;
+use App\Repositories\ProprietarioRepository;
+use App\Repositories\RegionalRepository;
+use App\Repositories\RoleRepository;
+use App\Repositories\TenantRepository;
+use App\Repositories\TerrenoExportRepository;
+use App\Repositories\TerrenoProdutoRepository;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Cashier\Cashier;
-
-
+use App\Observers\Tenant\TerrenoObserver;
+use Dedoc\Scramble\Scramble;
+use Dedoc\Scramble\Support\Generator\OpenApi;
+use Dedoc\Scramble\Support\Generator\SecurityScheme;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -61,14 +70,14 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(PostRepositoryInterface::class, PostRepository::class);
         $this->app->bind(PlanRepositoryInterface::class, PlanRepository::class);
         $this->app->bind(TenantRepositoryInterface::class, TenantRepository::class);
-        $this->app->bind(RoleRepositoryInterface::class, \App\Repositories\RoleRepository::class);
-        $this->app->bind(PermissionRepositoryInterface::class, \App\Repositories\PermissionRepository::class);
-        $this->app->bind(ProdutoRepositoryInterface::class, \App\Repositories\ProdutoRepository::class);
-        $this->app->bind(RegionalRepositoryInterface::class, \App\Repositories\RegionalRepository::class);
-        $this->app->bind(TerrenoProdutoRepositoryInterface::class, \App\Repositories\TerrenoProdutoRepository::class);
+        $this->app->bind(RoleRepositoryInterface::class, RoleRepository::class);
+        $this->app->bind(PermissionRepositoryInterface::class, PermissionRepository::class);
+        $this->app->bind(ProdutoRepositoryInterface::class, ProdutoRepository::class);
+        $this->app->bind(RegionalRepositoryInterface::class, RegionalRepository::class);
+        $this->app->bind(TerrenoProdutoRepositoryInterface::class, TerrenoProdutoRepository::class);
         $this->app->bind(ProprietarioRepositoryInterface::class, ProprietarioRepository::class);
-        $this->app->bind(DashboardRepositoryInterface::class, \App\Repositories\DashboardRepository::class);
-        $this->app->bind(TerrenoExportRepositoryInterface::class, \App\Repositories\TerrenoExportRepository::class);
+        $this->app->bind(DashboardRepositoryInterface::class, DashboardRepository::class);
+        $this->app->bind(TerrenoExportRepositoryInterface::class, TerrenoExportRepository::class);
         $this->app->bind(PlanRolePermissionTemplateRepositoryInterface::class, PlanRolePermissionTemplateRepository::class);
         $this->app->bind(ProjetoRepositoryInterface::class, ProjetoRepository::class);
     }
@@ -103,7 +112,17 @@ class AppServiceProvider extends ServiceProvider
             Gate::policy($model, TenantPolicy::class);
         }
 
-    // ←←← Adicione aqui:
-    Gate::define('viewApiDocs', fn() => app()->environment('local'));
+        // Observer para cálculo automático de área útil
+        Terreno::observe(TerrenoObserver::class);
+
+        Gate::define('viewApiDocs', fn() => app()->environment('local'));
+
+
+        Scramble::afterOpenApiGenerated(function (OpenApi $openApi) {
+            $openApi->secure(
+                SecurityScheme::http('bearer')
+                    ->setDescription('Insira o token no formato: Bearer seu_token_aqui')
+            );
+        });
     }
 }

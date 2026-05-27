@@ -2,6 +2,7 @@
 
 namespace App\Models\Tenant;
 
+use App\Enums\DeclividadeClassificacao;
 use App\Enums\ProjetoStatus;
 use App\Enums\WorkflowStatus;
 use App\Models\Central\Cidade;
@@ -18,7 +19,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Cache;
 
 #[Table('terrenos')]
-#[Fillable(['nome', 'responsavel_id', 'endereco', 'corretor_id', 'estado', 'cidade_code', 'polygon_coords', 'static_map_url', 'area_calculada', 'regional_id', 'workflow_stage', 'workflow_status_code', 'workflow_status_changed_at', 'workflow_reason_code', 'workflow_reason_notes', 'qualification_data', 'qualification_completed_at', 'qualification_completed_by', 'cep', 'bairro', 'observacoes', 'valor', 'zona', 'distrito', 'operacao_urbana', 'data_apresentacao', 'data_negociacao', 'data_opcao', 'data_descarte', 'data_contrato', 'comprador_id', 'created_by', 'updated_by'])]
+#[Fillable(['nome', 'responsavel_id', 'endereco', 'corretor_id', 'estado', 'cidade_code', 'polygon_coords', 'static_map_url', 'area_calculada', 'area_total', 'area_declividade', 'area_app', 'area_util', 'percentual_aproveitamento', 'declividade_classificacao', 'declividade_avaliacao', 'declividade_impacto_custo', 'declividade_percentual_maximo', 'declividade_percentual_medio', 'app_polygons', 'steep_polygons', 'area_calculada_em', 'area_calculo_status', 'regional_id', 'workflow_stage', 'workflow_status_code', 'workflow_status_changed_at', 'workflow_reason_code', 'workflow_reason_notes', 'qualification_data', 'qualification_completed_at', 'qualification_completed_by', 'cep', 'bairro', 'observacoes', 'valor', 'zona', 'distrito', 'operacao_urbana', 'data_apresentacao', 'data_negociacao', 'data_opcao', 'data_descarte', 'data_contrato', 'comprador_id', 'created_by', 'updated_by'])]
 class Terreno extends Model
 {
     use HasDashboardCache, HasFactory, SoftDeletes;
@@ -56,6 +57,17 @@ class Terreno extends Model
     protected $casts = [
         'polygon_coords' => 'array',
         'area_calculada' => 'decimal:2',
+        'area_total' => 'decimal:2',
+        'area_declividade' => 'decimal:2',
+        'area_app' => 'decimal:2',
+        'area_util' => 'decimal:2',
+        'declividade_percentual_maximo' => 'decimal:2',
+        'declividade_percentual_medio' => 'decimal:2',
+        'app_polygons' => 'array',
+        'steep_polygons' => 'array',
+        'declividade_classificacao' => DeclividadeClassificacao::class,
+        'percentual_aproveitamento' => 'decimal:2',
+        'area_calculada_em' => 'datetime',
         'valor' => 'decimal:2',
         'qualification_data' => 'array',
         'workflow_status_changed_at' => 'datetime',
@@ -253,13 +265,5 @@ class Terreno extends Model
                 ProjetoStatus::EM_LEGALIZACAO,
             ])
             ->latestOfMany();
-    }
-
-    /**
-     * Alias para area_calculada (compatibilidade com templates antigos)
-     */
-    public function getAreaTotalAttribute()
-    {
-        return $this->area_calculada;
     }
 }

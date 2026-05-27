@@ -120,13 +120,17 @@ class StripeCheckoutService
 
     private function signupSuccessUrl(): string
     {
-        return rtrim((string) config('app.frontend_url'), '/').'/signup/success?session_id={CHECKOUT_SESSION_ID}';
+        $landingUrl = config('app.landing_url');
+
+        return rtrim((string) $landingUrl, '/').'/cadastro?success=1&session_id={CHECKOUT_SESSION_ID}';
     }
 
     private function signupCancelUrl(string $planSlug): string
     {
         $query = http_build_query(['plan' => $planSlug, 'cancelled' => 1]);
 
-        return rtrim((string) config('app.frontend_url'), '/').'/cadastro?'.$query.'&session_id={CHECKOUT_SESSION_ID}';
+        $landingUrl = config('app.landing_url');
+
+        return rtrim((string) $landingUrl, '/').'/cadastro?'.$query.'&session_id={CHECKOUT_SESSION_ID}';
     }
 }

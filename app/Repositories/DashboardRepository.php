@@ -17,44 +17,44 @@ class DashboardRepository implements DashboardRepositoryInterface
 {
     public function countTotalTenants(): int
     {
-        return Tenant::count();
+        return Tenant::query()->count();
     }
 
     public function countActiveTenants(): int
     {
-        return Tenant::where('status', Tenant::STATUS_ACTIVE)->count();
+        return Tenant::query()->where('status', Tenant::STATUS_ACTIVE)->count();
     }
 
     public function countPendingTenants(): int
     {
-        return Tenant::where('status', Tenant::STATUS_PENDING)->count();
+        return Tenant::query()->where('status', Tenant::STATUS_PENDING)->count();
     }
 
     public function countSuspendedTenants(): int
     {
-        return Tenant::where('status', Tenant::STATUS_SUSPENDED)->count();
+        return Tenant::query()->where('status', Tenant::STATUS_SUSPENDED)->count();
     }
 
     public function countCancelledTenants(): int
     {
-        return Tenant::where('status', Tenant::STATUS_CANCELLED)->count();
+        return Tenant::query()->where('status', Tenant::STATUS_CANCELLED)->count();
     }
 
     public function countTodayTenants(): int
     {
-        return Tenant::whereDate('created_at', today())->count();
+        return Tenant::query()->whereDate('created_at', today())->count();
     }
 
     public function countTrialTenants(): int
     {
-        return Tenant::whereNotNull('trial_ends_at')
+        return Tenant::query()->whereNotNull('trial_ends_at')
             ->where('trial_ends_at', '>', now())
             ->count();
     }
 
     public function countTrialExpiredTenants(): int
     {
-        return Tenant::whereNotNull('trial_ends_at')
+        return Tenant::query()->whereNotNull('trial_ends_at')
             ->where('trial_ends_at', '<=', now())
             ->whereNotIn('status', [Tenant::STATUS_ACTIVE])
             ->count();
@@ -62,23 +62,26 @@ class DashboardRepository implements DashboardRepositoryInterface
 
     public function calculateMrr(): float
     {
-        return Tenant::where('status', Tenant::STATUS_ACTIVE)
+        return Tenant::query()->where('status', Tenant::STATUS_ACTIVE)
             ->whereNotNull('plan_id')
             ->with('plan')
             ->get()
             ->sum(function (Tenant $tenant): float {
-                return $tenant->plan?->price ?? 0.0;
+                return (float) $tenant->plan()->value('price');
             });
     }
 
     public function tenantsByPlan(): Collection
     {
-        return Plan::withCount(['tenants' => function ($query) {
+        /** @var Collection<int, Plan> $plans */
+        $plans = Plan::query()->withCount(['tenants' => function ($query): void {
             $query->where('status', Tenant::STATUS_ACTIVE);
         }])
             ->where('is_active', true)
-            ->ordered()
+            ->orderBy('sort_order')
             ->get();
+
+        return $plans;
     }
 
     public function tenantsTrend(int $days = 30): SupportCollection
@@ -87,7 +90,7 @@ class DashboardRepository implements DashboardRepositoryInterface
 
         for ($i = $days - 1; $i >= 0; $i--) {
             $date = Carbon::today()->subDays($i);
-            $count = Tenant::whereDate('created_at', $date)->count();
+            $count = Tenant::query()->whereDate('created_at', $date)->count();
             $trend->push([
                 'date' => $date->format('d/m'),
                 'count' => $count,
@@ -99,24 +102,33 @@ class DashboardRepository implements DashboardRepositoryInterface
 
     public function recentTenants(int $limit = 5): Collection
     {
-        return Tenant::with('plan')
+        /** @var Collection<int, Tenant> $tenants */
+        $tenants = Tenant::query()->with('plan')
             ->latest()
             ->take($limit)
             ->get();
+
+        return $tenants;
     }
 
     public function recentActivity(int $limit = 10): Collection
     {
-        return AuditLog::with('user')
+        /** @var Collection<int, AuditLog> $activities */
+        $activities = AuditLog::query()->with('user')
             ->latest()
             ->take($limit)
             ->get();
+
+        return $activities;
     }
 
     public function recentTenantsSimple(int $limit = 5): Collection
     {
-        return Tenant::latest()
+        /** @var Collection<int, Tenant> $tenants */
+        $tenants = Tenant::query()->latest()
             ->take($limit)
             ->get();
+
+        return $tenants;
     }
 }

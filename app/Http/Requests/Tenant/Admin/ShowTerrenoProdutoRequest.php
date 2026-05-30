@@ -14,6 +14,9 @@ class ShowTerrenoProdutoRequest extends FormRequest
         return Gate::allows('viewAny', \App\Models\Tenant\TerrenoProduto::class);
     }
 
+    /**
+     * @return array<string, array<int, \Illuminate\Contracts\Validation\ValidationRule|string>>
+     */
     public function rules(): array
     {
         return [];

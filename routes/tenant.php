@@ -1,8 +1,10 @@
 <?php
 
-use App\Http\Controllers\Api\V1\AuthController;
+use App\Models\Central\Tenant as CentralTenant;
 use App\Http\Controllers\Api\V1\CidadesController;
 use App\Http\Controllers\Api\V1\LanguageController;
+use App\Http\Controllers\Api\V1\TenantAuthController;
+use App\Http\Controllers\Api\V1\TenantPasswordResetController;
 use App\Http\Controllers\Api\V1\Tenant\Admin\DepartmentController as AdminDepartmentController;
 use App\Http\Controllers\Api\V1\Tenant\Admin\PermissionController as AdminPermissionController;
 use App\Http\Controllers\Api\V1\Tenant\Admin\PositionController as AdminPositionController;
@@ -67,30 +69,32 @@ Route::middleware([
     Route::prefix('api/v1')->group(function () {
 
         // Public tenant routes
-        Route::middleware('throttle:api-public')->group(function () {
+        Route::middleware(['tenant.context', 'throttle:api-public'])->group(function () {
 
             // Auth - Login for tenant
-            Route::post('/auth/login', [AuthController::class, 'login']);
-            Route::post('/auth/exchange-ticket', [AuthController::class, 'exchangeTicket'])
+            Route::post('/auth/login', [TenantAuthController::class, 'login']);
+            Route::post('/auth/exchange-ticket', [TenantAuthController::class, 'exchangeTicket'])
                 ->middleware('throttle:transfer-ticket');
-            Route::post('/auth/password/forgot', [AuthController::class, 'forgotPassword'])
+            Route::post('/auth/password/forgot', [TenantPasswordResetController::class, 'forgotPassword'])
                 ->middleware('throttle:password-reset-request');
-            Route::post('/auth/password/reset', [AuthController::class, 'resetPassword'])
+            Route::post('/auth/password/reset', [TenantPasswordResetController::class, 'resetPassword'])
                 ->middleware('throttle:password-reset-submit');
         });
         // Authenticated tenant routes (always accessible after login)
         Route::middleware([
+            'tenant.context',
             'auth:sanctum',
+            'auth.tenant',
             'throttle:api-auth',
             SetUserLocale::class,
         ])->group(function () {
 
             // Auth
-            Route::post('/auth/logout', [AuthController::class, 'logout']);
-            Route::post('/auth/logout-all', [AuthController::class, 'logoutAll']);
-            Route::post('/auth/refresh', [AuthController::class, 'refresh']);
-            Route::get('/auth/me', [AuthController::class, 'me']);
-            Route::put('/auth/me', [AuthController::class, 'updateMe']);
+            Route::post('/auth/logout', [TenantAuthController::class, 'logout']);
+            Route::post('/auth/logout-all', [TenantAuthController::class, 'logoutAll']);
+            Route::post('/auth/refresh', [TenantAuthController::class, 'refresh']);
+            Route::get('/auth/me', [TenantAuthController::class, 'me']);
+            Route::put('/auth/me', [TenantAuthController::class, 'updateMe']);
 
             // Locale
             Route::put('/locale', [LanguageController::class, 'set']);
@@ -383,13 +387,21 @@ Route::middleware([
     Route::middleware(['auth:sanctum'])->get('/api/health', function () {
         $tenant = tenancy()->tenant;
 
+        if (! $tenant instanceof CentralTenant) {
+            return response()->json([
+                'status' => 'error',
+                'timestamp' => now()->toIso8601String(),
+                'tenant' => null,
+            ], 503);
+        }
+
         return response()->json([
             'status' => 'ok',
             'timestamp' => now()->toIso8601String(),
             'tenant' => [
                 'id' => $tenant->id,
-                'name' => $tenant->name,
-                'status' => $tenant->status,
+                'name' => (string) $tenant->getAttribute('name'),
+                'status' => (string) $tenant->getAttribute('status'),
             ],
         ]);
     });

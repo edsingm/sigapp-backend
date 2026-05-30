@@ -35,7 +35,7 @@ class LegalizacaoEtapaController extends Controller
         try {
             $legalizacao = $this->legalizacaoService->findOrFail($legalizacaoId);
             $etapas = $this->etapaRepository->findByLegalizacao(
-                $legalizacao->id,
+                (string) $legalizacao->getKey(),
                 ['dependenciasDestino', 'dependenciasOrigem']
             );
 
@@ -57,12 +57,12 @@ class LegalizacaoEtapaController extends Controller
         try {
             $legalizacao = $this->legalizacaoService->findOrFail($legalizacaoId);
             $dados = $request->validated();
-            $dados['legalizacao_id'] = $legalizacao->id;
+            $dados['legalizacao_id'] = $legalizacao->getKey();
             $dados['created_by'] = $request->user()->id;
             $dados['updated_by'] = $request->user()->id;
 
             if (! isset($dados['ordem'])) {
-                $dados['ordem'] = $this->legalizacaoService->proximaOrdem($legalizacao->id);
+                $dados['ordem'] = $this->legalizacaoService->proximaOrdem((int) $legalizacao->getKey());
             }
 
             $etapa = $this->legalizacaoService->adicionarEtapa($legalizacao, $dados);
@@ -149,7 +149,7 @@ class LegalizacaoEtapaController extends Controller
             $legalizacao = $this->legalizacaoService->findOrFail($legalizacaoId);
             $this->legalizacaoService->reordenarEtapas($legalizacao, $request->validated()['etapas']);
 
-            $etapas = $this->etapaRepository->findByLegalizacao($legalizacao->id);
+            $etapas = $this->etapaRepository->findByLegalizacao((string) $legalizacao->getKey());
 
             return ApiResponseService::success(
                 LegalizacaoEtapaResource::collection($etapas),

@@ -29,13 +29,16 @@ class PaymentRequiresActionNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
+        $paymentIntent = $this->payment->asStripePaymentIntent();
+        $paymentUrl = data_get($paymentIntent, 'next_action.redirect_to_url.url');
+
         return (new MailMessage)
             ->subject('SIG.APP — Confirmação de pagamento necessária')
             ->view('emails.payment-requires-action', [
-                'paymentUrl' => $this->payment->url,
+                'paymentUrl' => is_string($paymentUrl) ? $paymentUrl : null,
             ])
             ->text('emails.plain.payment-requires-action', [
-                'paymentUrl' => $this->payment->url,
+                'paymentUrl' => is_string($paymentUrl) ? $paymentUrl : null,
             ]);
     }
 }

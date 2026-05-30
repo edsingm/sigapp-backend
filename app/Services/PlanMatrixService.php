@@ -78,11 +78,12 @@ class PlanMatrixService
      */
     public function resolveForTenant(Tenant $tenant): array
     {
-        if (! $tenant->plan_id) {
+        $planId = $tenant->getAttribute('plan_id');
+        if (! is_int($planId)) {
             throw new InvalidArgumentException('Tenant não possui plano atribuído.');
         }
 
-        $base = $this->planRepository->getMatrix($tenant->plan_id);
+        $base = $this->planRepository->getMatrix($planId);
         $extras = $tenant->extraEntitlements()->with('entitlement')->get();
 
         if ($extras->isEmpty()) {

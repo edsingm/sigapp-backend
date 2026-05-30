@@ -1,0 +1,28 @@
+<?php
+
+namespace App\Http\Middleware;
+
+use App\Models\User;
+use App\Services\ApiResponseService;
+use Closure;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class EnsureCentralUser
+{
+    /**
+     * Garante que o usuário autenticado seja um usuário central.
+     *
+     * @param  Closure(Request): Response  $next
+     */
+    public function handle(Request $request, Closure $next): Response
+    {
+        $user = $request->user();
+
+        if (! $user instanceof User) {
+            return ApiResponseService::forbidden('Autenticação restrita a usuários centrais.');
+        }
+
+        return $next($request);
+    }
+}

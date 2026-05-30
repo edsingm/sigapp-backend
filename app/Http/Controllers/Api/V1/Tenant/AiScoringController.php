@@ -39,8 +39,8 @@ class AiScoringController extends Controller
 
         return new JsonResponse([
             'data' => [
-                'terreno_id' => $terreno->id,
-                'terreno_nome' => $terreno->nome,
+                'terreno_id' => $terreno->getKey(),
+                'terreno_nome' => (string) $terreno->getAttribute('nome'),
                 ...$result,
             ],
         ]);

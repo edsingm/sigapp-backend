@@ -9,6 +9,7 @@ use App\Repositories\Contracts\PlanRepositoryInterface;
 use App\Repositories\Contracts\PlanRolePermissionTemplateRepositoryInterface;
 use App\Services\ApiResponseService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class AclController extends Controller
 {
@@ -69,20 +70,28 @@ class AclController extends Controller
 
         $templates = $this->templateRepository->findByPlanId($plan->id);
 
-        $grouped = $templates
-            ->groupBy('role_slug')
-            ->map(function ($rows, string $roleSlug) {
-                return [
-                    'role_slug' => $roleSlug,
-                    'permissions' => $rows->map(fn (PlanRolePermissionTemplate $row) => [
-                        'name' => $row->permission_name,
-                        'is_required' => (bool) $row->is_required,
-                        'is_default' => (bool) $row->is_default,
-                    ])->values(),
-                    'permissions_count' => $rows->count(),
+        /** @var Collection<string, Collection<int, PlanRolePermissionTemplate>> $templatesByRole */
+        $templatesByRole = $templates->groupBy('role_slug');
+
+        $grouped = [];
+
+        foreach ($templatesByRole as $roleSlug => $rows) {
+            $permissions = [];
+
+            foreach ($rows as $row) {
+                $permissions[] = [
+                    'name' => $row->permission_name,
+                    'is_required' => (bool) $row->is_required,
+                    'is_default' => (bool) $row->is_default,
                 ];
-            })
-            ->values();
+            }
+
+            $grouped[] = [
+                'role_slug' => $roleSlug,
+                'permissions' => $permissions,
+                'permissions_count' => count($permissions),
+            ];
+        }
 
         return ApiResponseService::success([
             'plan' => [

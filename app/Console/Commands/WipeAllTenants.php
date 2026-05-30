@@ -2,9 +2,8 @@
 
 namespace App\Console\Commands;
 
-
+use App\Models\Central\Tenant;
 use Illuminate\Console\Command;
-use Stancl\Tenancy\Database\Models\Tenant;
 
 class WipeAllTenants extends Command
 {
@@ -25,16 +24,18 @@ class WipeAllTenants extends Command
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(): int
     {
-        if (!$this->confirm('Tem certeza? Isso vai apagar TODOS os schemas de tenants!')) {
-            return;
+        if (! $this->confirm('Tem certeza? Isso vai apagar TODOS os schemas de tenants!')) {
+            return self::SUCCESS;
         }
 
-        $count = Tenant::count();
+        $count = Tenant::query()->count();
 
-        Tenant::all()->each->delete();
+        Tenant::query()->get()->each->delete();
 
         $this->info("✅ {$count} tenants e seus schemas foram apagados com sucesso!");
+
+        return self::SUCCESS;
     }
 }

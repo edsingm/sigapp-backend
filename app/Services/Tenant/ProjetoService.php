@@ -320,7 +320,7 @@ class ProjetoService
     /**
      * Resolve o status lógico do projeto com base no estado do terreno e legalização.
      */
-    protected function resolveStatusFromRelations(?Terreno $terreno): string
+    protected function resolveStatusFromRelations(?Terreno $terreno): ProjetoStatus
     {
         if (in_array($terreno?->workflow_status_code, [WorkflowStatus::LEGALIZADO_FINALIZADO->value], true)) {
             return ProjetoStatus::FINALIZADO;

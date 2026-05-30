@@ -2,10 +2,12 @@
 
 namespace App\Http\Resources\Tenant;
 
+use App\Models\Tenant\Terreno;
 use App\Services\Tenant\LandWorkflowService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/** @mixin Terreno */
 class TerrenoResource extends JsonResource
 {
     /**
@@ -15,6 +17,8 @@ class TerrenoResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $declividadeClassificacao = $this->resource->getAttribute('declividade_classificacao');
+
         return [
             'id' => $this->id,
             'nome' => $this->nome,
@@ -36,14 +40,14 @@ class TerrenoResource extends JsonResource
             'percentual_aproveitamento' => $this->percentual_aproveitamento ? (float) $this->percentual_aproveitamento : null,
             'area_calculada_em' => $this->area_calculada_em?->toIso8601String(),
             'area_calculo_status' => $this->area_calculo_status,
-            'declividade_classificacao' => $this->declividade_classificacao?->value ?? null,
-            'declividade_classificacao_label' => $this->declividade_classificacao?->label() ?? null,
-            'declividade_avaliacao' => $this->declividade_avaliacao,
-            'declividade_impacto_custo' => $this->declividade_impacto_custo,
-            'declividade_percentual_maximo' => $this->declividade_percentual_maximo ? (float) $this->declividade_percentual_maximo : null,
-            'declividade_percentual_medio' => $this->declividade_percentual_medio ? (float) $this->declividade_percentual_medio : null,
-            'app_polygons' => $this->app_polygons,
-            'steep_polygons' => $this->steep_polygons,
+            'declividade_classificacao' => $declividadeClassificacao instanceof \App\Enums\DeclividadeClassificacao ? $declividadeClassificacao->value : null,
+            'declividade_classificacao_label' => $declividadeClassificacao instanceof \App\Enums\DeclividadeClassificacao ? $declividadeClassificacao->label() : null,
+            'declividade_avaliacao' => $this->resource->getAttribute('declividade_avaliacao'),
+            'declividade_impacto_custo' => $this->resource->getAttribute('declividade_impacto_custo'),
+            'declividade_percentual_maximo' => $this->resource->getAttribute('declividade_percentual_maximo') !== null ? (float) $this->resource->getAttribute('declividade_percentual_maximo') : null,
+            'declividade_percentual_medio' => $this->resource->getAttribute('declividade_percentual_medio') !== null ? (float) $this->resource->getAttribute('declividade_percentual_medio') : null,
+            'app_polygons' => $this->resource->getAttribute('app_polygons'),
+            'steep_polygons' => $this->resource->getAttribute('steep_polygons'),
             'workflow_stage' => $this->workflow_stage,
             'workflow_status_code' => $this->workflow_status_code,
             'workflow_status_label' => LandWorkflowService::statuses()[$this->workflow_status_code]['label'] ?? null,

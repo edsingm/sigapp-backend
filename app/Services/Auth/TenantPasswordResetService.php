@@ -103,7 +103,7 @@ class TenantPasswordResetService
         return $this->tenantAppUrl->resetPasswordUrl($tenant, [
             'token' => $token,
             'email' => $email,
-            'tenant' => (string) $tenant->slug,
+            'tenant' => (string) $tenant->getAttribute('slug'),
         ]);
     }
 }

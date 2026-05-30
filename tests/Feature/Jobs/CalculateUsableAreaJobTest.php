@@ -13,6 +13,7 @@ use App\Services\Tenant\Area\AreaCalculatorService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -38,12 +39,12 @@ class CalculateUsableAreaJobTest extends TestCase
         $this->artisan('migrate', ['--path' => 'database/migrations/tenant', '--realpath' => false]);
 
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
-        Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
 
         $this->admin = User::create([
             'name' => 'Tenant Admin',
             'email' => 'tenant-admin@test.com',
-            'password' => \Hash::make('password123'),
+            'password' => Hash::make('password123'),
         ]);
         $this->admin->assignRole('admin');
     }

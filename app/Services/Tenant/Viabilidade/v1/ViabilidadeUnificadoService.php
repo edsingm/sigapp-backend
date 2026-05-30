@@ -60,7 +60,8 @@ class ViabilidadeUnificadoService
             $terreno = $this->buscarTerreno($terrenoId);
             $viabilidade = $this->buscarViabilidade($terrenoId, $viabilidadeRef);
             $params = $this->montarParametros($viabilidade);
-            $resultado = $this->fluxoMensalCalculator->calcular($terreno, $params, $customProdutos);
+            $produtosCustomizados = is_array($customProdutos) ? array_values($customProdutos) : null;
+            $resultado = $this->fluxoMensalCalculator->calcular($terreno, $params, $produtosCustomizados);
 
             $this->salvarSnapshot($viabilidade, $resultado);
 
@@ -181,11 +182,11 @@ class ViabilidadeUnificadoService
 
     private function montarParametros(?Viabilidade $v): array
     {
-        $perfilValue = $v?->perfil_financiamento;
+        $perfilValue = $v?->getAttribute('perfil_financiamento');
         $perfilStr = $perfilValue instanceof PerfilFinanciamento
             ? $perfilValue->value
             : 'cef';
-        $dataLancamentoViabilidade = $v?->data_lancamento;
+        $dataLancamentoViabilidade = $v?->getAttribute('data_lancamento');
 
         $defaults = $this->premissasService->resolverDefaults($perfilStr);
 
@@ -273,13 +274,13 @@ class ViabilidadeUnificadoService
      */
     private function salvarSnapshot(Viabilidade $viabilidade, array $resultado): void
     {
-        $viabilidade->premissas_snapshot = [
+        $viabilidade->setAttribute('premissas_snapshot', [
             'calculado_em' => now()->toDateTimeString(),
             'parametros' => $resultado['parametros_utilizados'] ?? [],
             'indicadores' => $resultado['indicadores'] ?? [],
             'vgv' => $resultado['vgv'] ?? null,
             'total_unidades' => $resultado['totalUnidades'] ?? null,
-        ];
+        ]);
 
         $viabilidade->saveQuietly();
     }

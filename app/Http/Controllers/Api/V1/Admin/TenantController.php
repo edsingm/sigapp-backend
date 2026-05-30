@@ -10,6 +10,7 @@ use App\Http\Resources\AdminTenantSummaryResource;
 use App\Models\Central\Tenant;
 use App\Services\ApiResponseService;
 use App\Services\Admin\TenantAdminService;
+use Illuminate\Http\JsonResponse;
 
 class TenantController extends Controller
 {
@@ -20,7 +21,7 @@ class TenantController extends Controller
     /**
      * Lista todos os tenants com paginação e filtros.
      */
-    public function index(ListTenantsRequest $request)
+    public function index(ListTenantsRequest $request): JsonResponse
     {
         $tenants = $this->tenantService
             ->paginate(
@@ -36,7 +37,7 @@ class TenantController extends Controller
     /**
      * Obtém detalhes de um tenant específico.
      */
-    public function show(Tenant $tenant)
+    public function show(Tenant $tenant): JsonResponse
     {
         return ApiResponseService::success(
             AdminTenantDetailResource::make($this->tenantService->detail($tenant))->resolve(),
@@ -47,7 +48,7 @@ class TenantController extends Controller
     /**
      * Ativa um tenant.
      */
-    public function activate(UpdateTenantStatusRequest $request, Tenant $tenant)
+    public function activate(UpdateTenantStatusRequest $request, Tenant $tenant): JsonResponse
     {
         if ($tenant->isActive()) {
             return ApiResponseService::error('ALREADY_ACTIVE', 'Tenant já está ativo');
@@ -69,7 +70,7 @@ class TenantController extends Controller
         }
 
         // Registrar ação
-        $this->audit('tenant.activated', "Tenant {$tenant->name} ({$tenant->id}) ativado após reconciliação de billing.", [
+        $this->audit('tenant.activated', "Tenant {$tenant->getAttribute('name')} ({$tenant->id}) ativado após reconciliação de billing.", [
             'tenant_id' => $tenant->id,
             'source' => $reconciliation['source'] ?? null,
             'stripe_status' => $reconciliation['stripe_status'] ?? null,
@@ -84,16 +85,16 @@ class TenantController extends Controller
     /**
      * Suspende um tenant.
      */
-    public function suspend(UpdateTenantStatusRequest $request, Tenant $tenant)
+    public function suspend(UpdateTenantStatusRequest $request, Tenant $tenant): JsonResponse
     {
-        if ($tenant->status === Tenant::STATUS_SUSPENDED) {
+        if ((string) $tenant->getAttribute('status') === Tenant::STATUS_SUSPENDED) {
             return ApiResponseService::error('ALREADY_SUSPENDED', 'Tenant já está suspenso');
         }
 
         $tenant = $this->tenantService->suspend($tenant);
 
         // Registrar ação
-        $this->audit('tenant.suspended', "Tenant {$tenant->name} ({$tenant->id}) suspenso manualmente.", [
+        $this->audit('tenant.suspended', "Tenant {$tenant->getAttribute('name')} ({$tenant->id}) suspenso manualmente.", [
             'tenant_id' => $tenant->id,
         ]);
 

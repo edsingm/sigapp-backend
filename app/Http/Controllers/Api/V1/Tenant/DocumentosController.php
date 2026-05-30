@@ -10,10 +10,12 @@ use App\Http\Resources\Tenant\DocumentoResource;
 use App\Models\Tenant\Documento;
 use App\Repositories\Tenant\DocumentoRepository;
 use App\Services\Tenant\DocumentoService;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class DocumentosController extends Controller
 {
@@ -51,9 +53,17 @@ class DocumentosController extends Controller
      */
     public function store(StoreDocumentoRequest $request): JsonResponse
     {
+        $arquivo = $request->file('arquivo');
+
+        if (! $arquivo instanceof UploadedFile) {
+            return response()->json([
+                'message' => 'Arquivo inválido.',
+            ], 422);
+        }
+
         $documento = $this->documentoService->createFromUpload(
             $request->validated(),
-            $request->file('arquivo'),
+            $arquivo,
             $request->user()
         );
 
@@ -108,26 +118,28 @@ class DocumentosController extends Controller
     /**
      * Baixar o arquivo do documento.
      */
-    public function download(int $id)
+    public function download(int $id): BinaryFileResponse|JsonResponse
     {
         $documento = $this->documentoRepository->findOrFail($id);
         Gate::authorize('view', $documento);
 
-        if (! $documento->file_path || ! Storage::disk($this->documentoService->storageDisk())->exists($documento->file_path)) {
+        $filePath = $documento->getAttribute('file_path');
+
+        if (! is_string($filePath) || $filePath === '' || ! Storage::disk($this->documentoService->storageDisk())->exists($filePath)) {
             return response()->json([
                 'message' => 'Arquivo não encontrado.',
             ], 404);
         }
 
-        $downloadName = $documento->nome;
-        $extension = pathinfo($documento->file_path, PATHINFO_EXTENSION);
+        $downloadName = (string) $documento->getAttribute('nome');
+        $extension = pathinfo($filePath, PATHINFO_EXTENSION);
 
         if ($extension !== '' && pathinfo($downloadName, PATHINFO_EXTENSION) === '') {
             $downloadName .= '.'.$extension;
         }
 
         return response()->download(
-            Storage::disk($this->documentoService->storageDisk())->path($documento->file_path),
+            Storage::disk($this->documentoService->storageDisk())->path($filePath),
             $downloadName
         );
     }
@@ -135,26 +147,28 @@ class DocumentosController extends Controller
     /**
      * Visualizar o arquivo do documento no navegador.
      */
-    public function view(int $id)
+    public function view(int $id): BinaryFileResponse|JsonResponse
     {
         $documento = $this->documentoRepository->findOrFail($id);
         Gate::authorize('view', $documento);
 
-        if (! $documento->file_path || ! Storage::disk($this->documentoService->storageDisk())->exists($documento->file_path)) {
+        $filePath = $documento->getAttribute('file_path');
+
+        if (! is_string($filePath) || $filePath === '' || ! Storage::disk($this->documentoService->storageDisk())->exists($filePath)) {
             return response()->json([
                 'message' => 'Arquivo não encontrado.',
             ], 404);
         }
 
-        $filename = $documento->nome;
-        $extension = pathinfo($documento->file_path, PATHINFO_EXTENSION);
+        $filename = (string) $documento->getAttribute('nome');
+        $extension = pathinfo($filePath, PATHINFO_EXTENSION);
 
         if ($extension !== '' && pathinfo($filename, PATHINFO_EXTENSION) === '') {
             $filename .= '.'.$extension;
         }
 
         return response()->file(
-            Storage::disk($this->documentoService->storageDisk())->path($documento->file_path),
+            Storage::disk($this->documentoService->storageDisk())->path($filePath),
             [
                 'Content-Disposition' => 'inline; filename="'.addslashes($filename).'"',
             ]

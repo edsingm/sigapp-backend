@@ -6,6 +6,7 @@ use App\Models\Tenant\Terreno;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Attributes\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -19,7 +20,7 @@ class Cidade extends Model
     use CentralConnection, HasFactory;
 
     /**
-     * The attributes that should be cast.
+     * @var array<string, string>
      */
     protected $casts = [
         'latitude' => 'decimal:8',
@@ -63,24 +64,30 @@ class Cidade extends Model
 
     /**
      * Relacionamento com áreas vinculadas à cidade (por código)
+     *
+     * @return HasMany<Terreno, $this>
      */
     public function areas(): HasMany
     {
         return $this->hasMany(Terreno::class, 'cidade_code', 'code');
     }
 
-    // Scope para buscar estados únicos (por state_code)
-    public function scopeStates($query)
+    /**
+     * @param  Builder<self>  $query
+     */
+    public function scopeStates(Builder $query): void
     {
-        return $query->select('state_code', 'state')
+        $query->select(['state_code', 'state'])
             ->distinct()
             ->orderBy('state');
     }
 
-    // Scope para buscar cidades de um estado específico (por state_code)
-    public function scopeCitiesByState($query, $stateCode)
+    /**
+     * @param  Builder<self>  $query
+     */
+    public function scopeCitiesByState(Builder $query, string $stateCode): void
     {
-        return $query->where('state_code', $stateCode)
+        $query->where('state_code', $stateCode)
             ->orderBy('city');
     }
 

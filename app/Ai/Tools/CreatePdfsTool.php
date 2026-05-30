@@ -26,7 +26,7 @@ class CreatePdfsTool implements Tool
         $html = $request['html_content'];
 
         Pdf::html($html)
-            ->withTitle($request['title'] ?? 'Documento Gerado')
+            ->meta(title: $request['title'] ?? 'Documento Gerado')
             ->format('A4')
             ->margins(20, 20, 20, 20)
             ->save(storage_path("app/public/{$path}"));

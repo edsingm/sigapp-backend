@@ -7,6 +7,9 @@ use App\Http\Middleware\ApiRequestLogger;
 use App\Http\Middleware\CheckFeature;
 use App\Http\Middleware\CheckSubscriptionStatus;
 use App\Http\Middleware\InitializeTenancyFlexible;
+use App\Http\Middleware\EnsureTenantAdmin;
+use App\Http\Middleware\EnsureTenantContext;
+use App\Http\Middleware\EnsureTenantUser;
 use App\Models\Central\Cidade;
 use App\Models\Tenant\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -28,6 +31,9 @@ class CidadesApiTest extends TestCase
             AddTenantContextToLogs::class,
             ApiRequestLogger::class,
             CheckSubscriptionStatus::class,
+            EnsureTenantContext::class,
+            EnsureTenantUser::class,
+            EnsureTenantAdmin::class,
             CheckFeature::class,
         ]);
 

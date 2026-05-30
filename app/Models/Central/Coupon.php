@@ -5,6 +5,7 @@ namespace App\Models\Central;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -24,8 +25,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property Carbon|null $redeem_by
  * @property bool $expires_after_first_redemption
  * @property bool $is_active
- * @property array|null $applies_to_plans
- * @property array|null $applies_to_tenants
+ * @property array<int, int|string>|null $applies_to_plans
+ * @property array<int, int|string>|null $applies_to_tenants
  * @property Carbon $created_at
  * @property Carbon $updated_at
  */
@@ -48,6 +49,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 ])]
 class Coupon extends Model
 {
+    /** @use HasFactory<Factory<self>> */
     use HasFactory, SoftDeletes;
 
     protected function casts(): array
@@ -65,19 +67,27 @@ class Coupon extends Model
         ];
     }
 
+    /**
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
     }
 
+    /**
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
     public function scopeAvailable(Builder $query): Builder
     {
-        return $query->active()
-            ->where(function (Builder $q) {
+        return $query->where('is_active', true)
+            ->where(function (Builder $q): void {
                 $q->whereNull('redeem_by')
                     ->orWhere('redeem_by', '>', now());
             })
-            ->where(function (Builder $q) {
+            ->where(function (Builder $q): void {
                 $q->whereNull('max_redemptions')
                     ->orWhereColumn('times_redeemed', '<', 'max_redemptions');
             });
@@ -118,7 +128,7 @@ class Coupon extends Model
         }
 
         return in_array($tenant->id, $this->applies_to_tenants, true)
-            || in_array($tenant->slug, $this->applies_to_tenants, true);
+            || in_array((string) $tenant->getAttribute('slug'), $this->applies_to_tenants, true);
     }
 
     public function formattedDiscount(): string

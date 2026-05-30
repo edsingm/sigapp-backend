@@ -18,6 +18,9 @@ class ListRegionaisRequest extends FormRequest
     /**
      * @return array<string, ValidationRule|array<mixed>|string>
      */
+    /**
+     * @return array<string, array<int, \Illuminate\Contracts\Validation\ValidationRule|string>>
+     */
     public function rules(): array
     {
         return [

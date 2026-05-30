@@ -169,18 +169,18 @@ class LegalizacaoService
             $etapa = $this->etapaRepository->findByIdAndLegalizacao($dados['id'], $legalizacao->id);
 
             $updatePayload = [
-                'titulo' => $normalized['titulo'] ?? $etapa->titulo,
-                'descricao' => $normalized['descricao'] ?? $etapa->descricao,
-                'ordem' => $normalized['ordem'] ?? $etapa->ordem,
-                'parent_id' => $hasParentId ? ($normalized['parent_id'] ?? null) : $etapa->parent_id,
-                'inicio_planejado' => $normalized['inicio_planejado'] ?? $etapa->inicio_planejado,
-                'fim_planejado' => $normalized['fim_planejado'] ?? $etapa->fim_planejado,
-                'inicio_real' => $normalized['inicio_real'] ?? $etapa->inicio_real,
-                'fim_real' => $normalized['fim_real'] ?? $etapa->fim_real,
-                'status' => $normalized['status'] ?? $etapa->status,
-                'percentual' => $normalized['percentual'] ?? $etapa->percentual,
-                'responsavel_id' => $normalized['responsavel_id'] ?? $etapa->responsavel_id,
-                'cor' => $normalized['cor'] ?? $etapa->cor,
+                'titulo' => $normalized['titulo'] ?? $etapa->getAttribute('titulo'),
+                'descricao' => $normalized['descricao'] ?? $etapa->getAttribute('descricao'),
+                'ordem' => $normalized['ordem'] ?? $etapa->getAttribute('ordem'),
+                'parent_id' => $hasParentId ? ($normalized['parent_id'] ?? null) : $etapa->getAttribute('parent_id'),
+                'inicio_planejado' => $normalized['inicio_planejado'] ?? $etapa->getAttribute('inicio_planejado'),
+                'fim_planejado' => $normalized['fim_planejado'] ?? $etapa->getAttribute('fim_planejado'),
+                'inicio_real' => $normalized['inicio_real'] ?? $etapa->getAttribute('inicio_real'),
+                'fim_real' => $normalized['fim_real'] ?? $etapa->getAttribute('fim_real'),
+                'status' => $normalized['status'] ?? $etapa->getAttribute('status'),
+                'percentual' => $normalized['percentual'] ?? $etapa->getAttribute('percentual'),
+                'responsavel_id' => $normalized['responsavel_id'] ?? $etapa->getAttribute('responsavel_id'),
+                'cor' => $normalized['cor'] ?? $etapa->getAttribute('cor'),
                 'updated_by' => Auth::id(),
             ];
 
@@ -579,14 +579,14 @@ class LegalizacaoService
             'updated_by' => Auth::id(),
         ];
 
-        if ($status === LegalizacaoEtapaStatus::CONCLUIDA) {
+        if ($status === LegalizacaoEtapaStatus::CONCLUIDA->value) {
             $payload['percentual'] = 100;
-            if (! $etapa->fim_real) {
+            if ($etapa->getAttribute('fim_real') === null) {
                 $payload['fim_real'] = now()->toDateString();
             }
         }
 
-        if ($status === LegalizacaoEtapaStatus::EM_ANDAMENTO && ! $etapa->inicio_real) {
+        if ($status === LegalizacaoEtapaStatus::EM_ANDAMENTO->value && $etapa->getAttribute('inicio_real') === null) {
             $payload['inicio_real'] = now()->toDateString();
         }
 
@@ -595,7 +595,7 @@ class LegalizacaoService
         $legalizacao = $etapa->legalizacao;
         $legalizacao?->recalcularProgresso();
 
-        if ($legalizacao && $status === LegalizacaoEtapaStatus::CONCLUIDA) {
+        if ($legalizacao && $status === LegalizacaoEtapaStatus::CONCLUIDA->value) {
             $temPendenciaCritica = $this->repository->hasCriticalOpenPendencia($legalizacao->id);
 
             if ($temPendenciaCritica) {

@@ -6,6 +6,9 @@ use App\Http\Middleware\AddTenantContextToLogs;
 use App\Http\Middleware\ApiRequestLogger;
 use App\Http\Middleware\CheckSubscriptionStatus;
 use App\Http\Middleware\InitializeTenancyFlexible;
+use App\Http\Middleware\EnsureTenantAdmin;
+use App\Http\Middleware\EnsureTenantContext;
+use App\Http\Middleware\EnsureTenantUser;
 use App\Models\Tenant\CorretorExterno;
 use App\Models\Tenant\Produto;
 use App\Models\Tenant\Proprietario;
@@ -35,6 +38,9 @@ class ViabilidadeApiTest extends TestCase
             AddTenantContextToLogs::class,
             ApiRequestLogger::class,
             CheckSubscriptionStatus::class,
+            EnsureTenantContext::class,
+            EnsureTenantUser::class,
+            EnsureTenantAdmin::class,
         ]);
 
         $this->artisan('migrate', ['--path' => 'database/migrations/tenant', '--realpath' => false]);
@@ -42,7 +48,7 @@ class ViabilidadeApiTest extends TestCase
         $this->popularPremissasPadrao();
 
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
-        Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
 
         $this->admin = User::create([
             'name' => 'Tenant Admin',
@@ -60,7 +66,7 @@ class ViabilidadeApiTest extends TestCase
             ->postJson('/api/v1/viabilidades', $this->makePayload($terrenoProduto));
 
         $createResponse->assertCreated()
-            ->assertJsonPath('data.viabilidade.terreno_id', $terrenoProduto->terreno_id)
+            ->assertJsonPath('data.viabilidade.terreno_id', $terrenoProduto->getAttribute('terreno_id'))
             ->assertJsonStructure([
                 'data' => [
                     'viabilidade' => ['id'],
@@ -135,10 +141,10 @@ class ViabilidadeApiTest extends TestCase
         $this->actingAs($this->admin)
             ->getJson('/api/v1/viabilidades/for-select')
             ->assertOk()
-            ->assertJsonPath('data.0.terreno_id', $terrenoProduto->terreno_id);
+            ->assertJsonPath('data.0.terreno_id', $terrenoProduto->getAttribute('terreno_id'));
 
         $this->actingAs($this->admin)
-            ->getJson("/api/v1/viabilidades/terreno/{$terrenoProduto->terreno_id}/latest")
+            ->getJson('/api/v1/viabilidades/terreno/'.$terrenoProduto->getAttribute('terreno_id').'/latest')
             ->assertOk()
             ->assertJsonPath('data.id', $duplicateId);
     }
@@ -147,7 +153,7 @@ class ViabilidadeApiTest extends TestCase
     {
         $terrenoProduto = $this->createViabilityFixture();
         $viabilidade = Viabilidade::create([
-            'terreno_id' => $terrenoProduto->terreno_id,
+            'terreno_id' => $terrenoProduto->getAttribute('terreno_id'),
             'version' => 1,
             'is_current' => true,
             'status' => 'rascunho',
@@ -216,12 +222,12 @@ class ViabilidadeApiTest extends TestCase
 
         $response = $this->actingAs($this->admin)
             ->postJson('/api/v1/viabilidades?include=auditoria', [
-                'terreno_id' => $terrenoProduto->terreno_id,
+                'terreno_id' => $terrenoProduto->getAttribute('terreno_id'),
                 'medicao_contratacao' => 48000,
                 'custo_medicao_cef' => 1250,
                 'produtos' => [
                     [
-                        'id' => $terrenoProduto->id,
+                        'id' => $terrenoProduto->getKey(),
                         'unidades' => 12,
                         'valor' => 250000,
                         'permuta' => 0,
@@ -244,7 +250,7 @@ class ViabilidadeApiTest extends TestCase
 
         $response = $this->actingAs($this->admin)
             ->postJson('/api/v1/viabilidades', [
-                'terreno_id' => $terrenoProduto->terreno_id,
+                'terreno_id' => $terrenoProduto->getAttribute('terreno_id'),
                 'gastos_mensais_stand' => 0.1234,
                 'comissao_house_percentual' => 4.5,
                 'comissao_imobiliarias_percentual' => 5.5,
@@ -254,7 +260,7 @@ class ViabilidadeApiTest extends TestCase
                 'marketing_inicio_antes_lancamento' => 5,
                 'produtos' => [
                     [
-                        'id' => $terrenoProduto->id,
+                        'id' => $terrenoProduto->getKey(),
                         'unidades' => 12,
                         'valor' => 250000,
                         'permuta' => 0,
@@ -337,11 +343,11 @@ class ViabilidadeApiTest extends TestCase
     private function makePayload(TerrenoProduto $terrenoProduto): array
     {
         return [
-            'terreno_id' => $terrenoProduto->terreno_id,
+            'terreno_id' => $terrenoProduto->getAttribute('terreno_id'),
             'prazo_obra' => 18,
             'produtos' => [
                 [
-                    'id' => $terrenoProduto->id,
+                    'id' => $terrenoProduto->getKey(),
                     'unidades' => 12,
                     'valor' => 250000,
                     'permuta' => 0,

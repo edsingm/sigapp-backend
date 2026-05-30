@@ -10,6 +10,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Table('terreno_documentos')]
 #[Fillable(['terreno_id', 'nome', 'tipo', 'categoria', 'descricao', 'file_path', 'tamanho', 'status', 'created_by', 'updated_by'])]
+/**
+ * @property int $id
+ * @property string|null $file_path
+ * @property string $status
+ * @property string $tipo
+ * @property string|null $categoria
+ */
 class Documento extends Model
 {
     use HasFactory;

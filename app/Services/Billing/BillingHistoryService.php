@@ -10,6 +10,8 @@ use Stripe\StripeClient;
 
 class BillingHistoryService
 {
+    private const INVOICE_EXPAND = ['data.lines.data.plan'];
+
     protected function stripe(): StripeClient
     {
         return Cashier::stripe();
@@ -37,7 +39,9 @@ class BillingHistoryService
         ?string $dateFrom = null,
         ?string $dateTo = null,
     ): array {
-        if (! $tenant->stripe_id) {
+        $stripeId = $this->stripeId($tenant);
+
+        if ($stripeId === null) {
             return [
                 'data' => [],
                 'meta' => [
@@ -52,7 +56,7 @@ class BillingHistoryService
 
         $cacheKey = sprintf(
             'billing_invoices:%s:%s:%s:%s:%d:%d',
-            $tenant->stripe_id,
+            $stripeId,
             $status ?? 'all',
             $dateFrom ?? 'none',
             $dateTo ?? 'none',
@@ -61,10 +65,12 @@ class BillingHistoryService
         );
 
         return Cache::tags(['billing_history', 'billing_history_'.$tenant->id])
-            ->remember($cacheKey, now()->addMinutes(5), function () use ($tenant, $perPage, $page, $status, $dateFrom, $dateTo) {
+            ->remember($cacheKey, now()->addMinutes(5), function () use ($stripeId, $perPage, $page, $status, $dateFrom, $dateTo): array {
+                /** @var array{customer: string, limit: int, expand: list<string>, status?: non-empty-string, created?: array{gte?: int, lte?: int}, starting_after?: string} $params */
                 $params = [
-                    'customer' => $tenant->stripe_id,
+                    'customer' => $stripeId,
                     'limit' => $perPage,
+                    'expand' => self::INVOICE_EXPAND,
                 ];
 
                 if ($status !== null && $status !== '') {
@@ -84,7 +90,7 @@ class BillingHistoryService
                     $previousPageParams = [...$params, 'limit' => ($page - 1) * $perPage];
                     $previousInvoices = $this->stripe()->invoices->all($previousPageParams);
                     $lastItem = end($previousInvoices->data);
-                    if ($lastItem) {
+                    if ($lastItem !== false && is_string($lastItem->id) && $lastItem->id !== '') {
                         $params['starting_after'] = $lastItem->id;
                     }
                 }
@@ -146,18 +152,22 @@ class BillingHistoryService
      */
     public function findInvoice(Tenant $tenant, string $invoiceId): ?array
     {
-        if (! $tenant->stripe_id) {
+        $stripeId = $this->stripeId($tenant);
+
+        if ($stripeId === null) {
             return null;
         }
 
-        $cacheKey = sprintf('billing_invoice:%s:%s', $tenant->stripe_id, $invoiceId);
+        $cacheKey = sprintf('billing_invoice:%s:%s', $stripeId, $invoiceId);
 
         return Cache::tags(['billing_history', 'billing_history_'.$tenant->id])
-            ->remember($cacheKey, now()->addMinutes(5), function () use ($tenant, $invoiceId) {
+            ->remember($cacheKey, now()->addMinutes(5), function () use ($stripeId, $invoiceId): ?array {
                 try {
-                    $invoice = $this->stripe()->invoices->retrieve($invoiceId, []);
+                    $invoice = $this->stripe()->invoices->retrieve($invoiceId, [
+                        'expand' => self::INVOICE_EXPAND,
+                    ]);
 
-                    if ((string) $invoice->customer !== (string) $tenant->stripe_id) {
+                    if ((string) $invoice->customer !== $stripeId) {
                         return null;
                     }
 
@@ -214,5 +224,12 @@ class BillingHistoryService
     public function invalidateCache(Tenant $tenant): void
     {
         Cache::tags(['billing_history', 'billing_history_'.$tenant->id])->flush();
+    }
+
+    private function stripeId(Tenant $tenant): ?string
+    {
+        $stripeId = $tenant->getAttribute('stripe_id');
+
+        return is_string($stripeId) && $stripeId !== '' ? $stripeId : null;
     }
 }

@@ -15,6 +15,7 @@ use App\Services\Signup\TenantSignupService;
 use App\Traits\LogsAudit;
 use App\Exceptions\SignupSlugReservedException;
 use Illuminate\Support\Str;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
 use Stancl\Tenancy\Exceptions\TenantDatabaseAlreadyExistsException;
 
@@ -35,7 +36,7 @@ class SignupController extends Controller
      *
      * POST /api/v1/signup
      */
-    public function store(SignupRequest $request)
+    public function store(SignupRequest $request): JsonResponse
     {
         $validated = $request->validated();
 
@@ -64,7 +65,7 @@ class SignupController extends Controller
                 'checkout_url' => $session->url,
                 'tenant_id' => $tenant->id,
                 'session_id' => $session->id,
-                'tenant_slug' => $tenant->slug,
+                'tenant_slug' => $this->tenantSlug($tenant),
             ], 'CHECKOUT_TENANT_CREATED_SUCCESSFULLY');
 
         } catch (ValidationException $e) {
@@ -113,7 +114,7 @@ class SignupController extends Controller
      *
      * GET /api/v1/signup/{sessionId}/status
      */
-    public function status(string $sessionId)
+    public function status(string $sessionId): JsonResponse
     {
         try {
             $session = $this->billingService->retrieveCheckoutSession($sessionId);
@@ -132,10 +133,10 @@ class SignupController extends Controller
             }
 
             return ApiResponseService::success([
-                'status' => $tenant->status,
+                'status' => $tenant->getAttribute('status'),
                 'payment_status' => $session->payment_status,
-                'is_ready' => $tenant->isActive() && $tenant->database_created,
-                'tenant_slug' => $tenant->slug,
+                'is_ready' => $tenant->isActive() && (bool) $tenant->getAttribute('database_created'),
+                'tenant_slug' => $this->tenantSlug($tenant),
             ]);
         } catch (\Exception) {
             return ApiResponseService::notFound('SESSION_NOT_FOUND');
@@ -146,8 +147,8 @@ class SignupController extends Controller
     {
         $this->audit('tenant.signup_contract_accepted', 'Aceite de contrato de utilização registrado no signup.', [
             'tenant_id' => $tenant->id,
-            'tenant_slug' => $tenant->slug,
-            'tenant_name' => $tenant->name,
+            'tenant_slug' => $this->tenantSlug($tenant),
+            'tenant_name' => $this->tenantName($tenant),
             'plan_slug' => $plan->slug,
             'admin_email' => $validated['admin_email'],
             'admin_name' => $validated['admin_name'],
@@ -170,8 +171,9 @@ class SignupController extends Controller
     {
         try {
             // Remove customer do Stripe se foi criado
-            if ($tenant->stripe_id) {
-                $this->billingService->deleteCustomer($tenant->stripe_id);
+            $stripeId = $tenant->getAttribute('stripe_id');
+            if (is_string($stripeId) && $stripeId !== '') {
+                $this->billingService->deleteCustomer($stripeId);
             }
         } catch (\Exception $e) {
             report($e);
@@ -187,15 +189,25 @@ class SignupController extends Controller
 
     private function auditSignupStarted(Tenant $tenant, Plan $plan, array $validated): void
     {
-        $this->audit('tenant.signup_started', "Novo tenant '{$tenant->name}' criado (pendente). Aguardando checkout Stripe.", [
+        $this->audit('tenant.signup_started', "Novo tenant '{$this->tenantName($tenant)}' criado (pendente). Aguardando checkout Stripe.", [
             'tenant_id' => $tenant->id,
-            'tenant_slug' => $tenant->slug,
-            'tenant_name' => $tenant->name,
+            'tenant_slug' => $this->tenantSlug($tenant),
+            'tenant_name' => $this->tenantName($tenant),
             'plan_slug' => $plan->slug,
             'plan_name' => $plan->name,
             'admin_email' => $validated['admin_email'],
             'admin_name' => $validated['admin_name'],
             'trial_days' => $plan->trial_days,
         ]);
+    }
+
+    private function tenantSlug(Tenant $tenant): string
+    {
+        return (string) $tenant->getAttribute('slug');
+    }
+
+    private function tenantName(Tenant $tenant): string
+    {
+        return (string) $tenant->getAttribute('name');
     }
 }

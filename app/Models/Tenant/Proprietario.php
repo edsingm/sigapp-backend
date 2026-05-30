@@ -12,6 +12,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Table('terreno_proprietarios')]
 #[Fillable(['terreno_id', 'nome', 'rg', 'cpf_cnpj', 'nascimento', 'tipo_pessoa', 'estado_civil', 'nacionalidade', 'profissao', 'porcentagem_terreno', 'email', 'telefone', 'endereco', 'cidade', 'estado', 'cep', 'conjuge', 'conjuge_rg', 'conjuge_nascimento', 'conjuge_cpf_cnpj', 'observacoes', 'created_by', 'updated_by'])]
+/**
+ * @property int $id
+ * @property-read Terreno|null $terreno
+ */
 class Proprietario extends Model
 {
     use HasDashboardCache, HasFactory, SoftDeletes;

@@ -24,9 +24,10 @@ class PublicTenantController extends Controller
 
         $tenant = $this->tenantRepository->findBySlug($normalizedSubdomain);
         $domain = Domain::query()->where('domain', $normalizedSubdomain)->first();
+        $tenantStatus = $tenant instanceof Tenant ? (string) $tenant->getAttribute('status') : null;
 
         $expiredPending = $tenant
-            && $tenant->status === Tenant::STATUS_PENDING
+            && $tenantStatus === Tenant::STATUS_PENDING
             && $tenant->created_at->lt(now()->subDay());
 
         $tenantReserved = $tenant ? ! $expiredPending : false;
@@ -40,7 +41,7 @@ class PublicTenantController extends Controller
 
         $messageKey = 'SUBDOMAIN_AVAILABLE';
         if ($exists) {
-            $messageKey = ($tenant && $tenant->status === Tenant::STATUS_PENDING && ! $expiredPending)
+            $messageKey = ($tenant && $tenantStatus === Tenant::STATUS_PENDING && ! $expiredPending)
                 ? 'SUBDOMAIN_RESERVED'
                 : 'SUBDOMAIN_UNVAVAILABLE';
         }

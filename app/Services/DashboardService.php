@@ -13,6 +13,9 @@ class DashboardService
         private readonly DashboardRepositoryInterface $repository,
     ) {}
 
+    /**
+     * @return array<string, float|int>
+     */
     public function stats(): array
     {
         return [
@@ -34,9 +37,9 @@ class DashboardService
     public function tenantsByPlan(): Collection
     {
         return $this->repository->tenantsByPlan()
-            ->map(fn ($plan) => [
+            ->map(fn (\App\Models\Central\Plan $plan) => [
                 'name' => $plan->name,
-                'count' => $plan->tenants_count,
+                'count' => (int) $plan->tenants_count,
                 'price' => $plan->price,
             ]);
     }

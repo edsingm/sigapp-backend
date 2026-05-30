@@ -10,6 +10,12 @@ class DreCalculator
         private readonly ImpostosService $impostosService,
     ) {}
 
+    /**
+     * @param  array<string, array<string, mixed>>  $fluxo
+     * @param  array<string, mixed>  $dadosProdutos
+     * @param  array<string, mixed>  $params
+     * @return array<string, mixed>
+     */
     public function calcular(array $fluxo, array $dadosProdutos, array $params): array
     {
         $vgv = $dadosProdutos['vgv'];
@@ -162,7 +168,24 @@ class DreCalculator
     }
 
     /**
-     * @return array{0:float,1:float,2:float,3:float,4:float,5:float,6:float,7:float,8:float,9:float,10:float,11:array,12:float,13:float}
+     * @param  array<string, mixed>  $dadosProdutos
+     * @param  array<string, mixed>  $params
+     * @return array{
+     *   0: float,
+     *   1: float,
+     *   2: float|int,
+     *   3: float|int,
+     *   4: float|int,
+     *   5: float|int,
+     *   6: float|int,
+     *   7: float|int,
+     *   8: float|int,
+     *   9: float,
+     *   10: float|int,
+     *   11: array<string, float|int>,
+     *   12: float|int,
+     *   13: float|int
+     * }
      */
     private function calcularCustosDiretosDre(
         array $dadosProdutos,
@@ -275,7 +298,18 @@ class DreCalculator
     }
 
     /**
-     * @return array{0:array,1:float,2:float,3:float,4:float,5:float,6:float,7:float}
+     * @param  array<string, mixed>  $dadosProdutos
+     * @param  array<string, mixed>  $params
+     * @return array{
+     *   0: array{total: float|int, detalhes: array<string, float|int>},
+     *   1: float,
+     *   2: float,
+     *   3: float,
+     *   4: float|int,
+     *   5: float|int,
+     *   6: float|int,
+     *   7: float|int
+     * }
      */
     private function calcularDespesasOperacionaisDre(array $dadosProdutos, array $params): array
     {
@@ -301,6 +335,11 @@ class DreCalculator
         ];
     }
 
+    /**
+     * @param  array<string, mixed>  $dadosProdutos
+     * @param  array<string, mixed>  $params
+     * @return array{total: float|int, detalhes: array<string, float|int>}
+     */
     private function calcularDespesasComerciaisDetalhadas(array $dadosProdutos, array $params): array
     {
         $vgvSemPermuta = $dadosProdutos['vgvSemUnidPermutas'] ?? 0.0;

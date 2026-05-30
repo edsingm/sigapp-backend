@@ -152,34 +152,35 @@ class CouponService
      */
     public function redeem(Tenant $tenant, string $code): array
     {
-        $coupon = Coupon::where('code', strtoupper(trim($code)))->first();
+        $coupon = Coupon::query()->where('code', strtoupper(trim($code)))->first();
 
         if ($coupon === null) {
             return ['success' => false, 'error' => 'COUPON_NOT_FOUND', 'coupon' => null];
         }
 
-        $plan = $tenant->plan;
+        $plan = $tenant->plan()->first();
         $validation = $this->validateForTenant($coupon, $tenant, $plan);
 
         if (! $validation['valid']) {
             return ['success' => false, 'error' => $validation['error'], 'coupon' => $coupon];
         }
 
-        if (! $tenant->stripe_subscription_id) {
+        $stripeSubscriptionId = $tenant->getAttribute('stripe_subscription_id');
+        if (! is_string($stripeSubscriptionId) || $stripeSubscriptionId === '') {
             return ['success' => false, 'error' => 'NO_ACTIVE_SUBSCRIPTION', 'coupon' => $coupon];
         }
 
         try {
-            $this->stripe()->subscriptions->update($tenant->stripe_subscription_id, [
+            $this->stripe()->subscriptions->update($stripeSubscriptionId, [
                 'coupon' => $coupon->stripe_coupon_id,
             ]);
 
-            $coupon->increment('times_redeemed');
+            Coupon::query()->whereKey($coupon->getKey())->increment('times_redeemed');
 
             $this->audit('coupon.redeemed', "Coupon '{$coupon->code}' aplicado ao tenant.", [
                 'coupon_id' => $coupon->id,
                 'tenant_id' => $tenant->id,
-                'tenant_slug' => $tenant->slug,
+                'tenant_slug' => (string) $tenant->getAttribute('slug'),
             ]);
 
             return ['success' => true, 'error' => null, 'coupon' => $coupon];
@@ -193,7 +194,7 @@ class CouponService
      */
     public function findByCode(string $code): ?Coupon
     {
-        return Coupon::where('code', strtoupper(trim($code)))->first();
+        return Coupon::query()->where('code', strtoupper(trim($code)))->first();
     }
 
     /**
@@ -201,10 +202,10 @@ class CouponService
      */
     public function incrementRedemption(string $stripeCouponId): void
     {
-        $coupon = Coupon::where('stripe_coupon_id', $stripeCouponId)->first();
+        $coupon = Coupon::query()->where('stripe_coupon_id', $stripeCouponId)->first();
 
         if ($coupon) {
-            $coupon->increment('times_redeemed');
+            Coupon::query()->whereKey($coupon->getKey())->increment('times_redeemed');
         }
     }
 }

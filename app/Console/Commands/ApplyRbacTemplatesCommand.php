@@ -62,7 +62,9 @@ class ApplyRbacTemplatesCommand extends Command
         }
 
         foreach ($tenants as $tenant) {
-            $this->line("\n→ Tenant: {$tenant->id} ({$tenant->slug})");
+            $tenantSlug = (string) $tenant->getAttribute('slug');
+
+            $this->line("\n→ Tenant: {$tenant->id} ({$tenantSlug})");
 
             $tenant->run(function () {
                 foreach (RolesEnum::cases() as $roleEnum) {

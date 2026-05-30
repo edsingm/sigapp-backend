@@ -8,7 +8,11 @@ use App\Http\Middleware\ApiRequestLogger;
 use App\Http\Middleware\CheckFeature;
 use App\Http\Middleware\CheckSubscriptionStatus;
 use App\Http\Middleware\EnforcePlanLimits;
+use App\Http\Middleware\EnsureCentralContext;
+use App\Http\Middleware\EnsureCentralUser;
 use App\Http\Middleware\EnsureTenantAdmin;
+use App\Http\Middleware\EnsureTenantContext;
+use App\Http\Middleware\EnsureTenantUser;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\ForceJsonResponse;
 use App\Http\Middleware\InitializeTenancyFlexible;
@@ -36,8 +40,13 @@ return Application::configure(basePath: dirname(__DIR__))
             'force.json' => ForceJsonResponse::class,
             'tenant.logs' => AddTenantContextToLogs::class,
             'api.logger' => ApiRequestLogger::class,
+            'central.context' => EnsureCentralContext::class,
+            'tenant.context' => EnsureTenantContext::class,
+            'auth.central' => EnsureCentralUser::class,
+            'auth.tenant' => EnsureTenantUser::class,
             'enforce.limits' => EnforcePlanLimits::class,
             'subscription.active' => CheckSubscriptionStatus::class,
+            'central.admin' => EnsureUserIsAdmin::class,
             'tenant.admin' => EnsureTenantAdmin::class,
             'user.admin' => EnsureUserIsAdmin::class,
             'permission.gate' => PermissionGate::class,

@@ -14,6 +14,9 @@ class DestroyRegionalRequest extends FormRequest
         return Gate::allows('delete', \App\Models\Tenant\Regional::class);
     }
 
+    /**
+     * @return array<string, array<int, \Illuminate\Contracts\Validation\ValidationRule|string>>
+     */
     public function rules(): array
     {
         return [];

@@ -5,7 +5,12 @@ namespace Tests\Feature\Tenant;
 use App\Http\Middleware\AddTenantContextToLogs;
 use App\Http\Middleware\ApiRequestLogger;
 use App\Http\Middleware\CheckSubscriptionStatus;
+use App\Http\Middleware\EnsureCentralContext;
+use App\Http\Middleware\EnsureCentralUser;
 use App\Http\Middleware\EnsureUserIsAdmin;
+use App\Http\Middleware\EnsureTenantAdmin;
+use App\Http\Middleware\EnsureTenantContext;
+use App\Http\Middleware\EnsureTenantUser;
 use App\Http\Middleware\InitializeTenancyFlexible;
 use App\Models\Tenant\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -27,6 +32,11 @@ class LocaleApiTest extends TestCase
             AddTenantContextToLogs::class,
             ApiRequestLogger::class,
             CheckSubscriptionStatus::class,
+            EnsureTenantContext::class,
+            EnsureTenantUser::class,
+            EnsureTenantAdmin::class,
+            EnsureCentralContext::class,
+            EnsureCentralUser::class,
             EnsureUserIsAdmin::class,
         ]);
 

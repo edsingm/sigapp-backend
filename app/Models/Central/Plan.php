@@ -26,6 +26,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * @property int $sort_order
  * @property array<string, mixed> $features
  * @property array<string, int> $limits
+ * @property int $tenants_count
  * @property Carbon $created_at
  * @property Carbon $updated_at
  */

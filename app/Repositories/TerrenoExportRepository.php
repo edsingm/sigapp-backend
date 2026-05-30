@@ -57,6 +57,10 @@ class TerrenoExportRepository implements TerrenoExportRepositoryInterface
             ->find($id);
     }
 
+    /**
+     * @param  \Illuminate\Database\Eloquent\Builder<Terreno>  $query
+     * @param  array<string, mixed>  $filters
+     */
     private function applyFilters(\Illuminate\Database\Eloquent\Builder $query, array $filters): void
     {
         $nome = $filters['nome'] ?? null;

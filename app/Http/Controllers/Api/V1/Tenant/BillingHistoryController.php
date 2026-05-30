@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Tenant\InvoiceResource;
+use App\Models\Central\Tenant;
 use App\Models\Tenant\Terreno;
 use App\Services\ApiResponseService;
 use App\Services\Billing\BillingHistoryService;
@@ -28,19 +29,25 @@ class BillingHistoryController extends Controller
         Gate::authorize('viewAny', Terreno::class);
 
         $tenant = tenancy()->tenant;
+        if (! $tenant instanceof Tenant) {
+            return ApiResponseService::serverError('TENANT_CONTEXT_NOT_AVAILABLE');
+        }
 
-        $perPage = (int) $request->query('per_page', 10);
-        $page = (int) $request->query('page', 1);
+        $perPage = (int) $request->query('per_page', '10');
+        $page = (int) $request->query('page', '1');
         $perPage = min(max($perPage, 1), 50);
         $page = max($page, 1);
+        $status = $request->has('status') ? $request->string('status')->toString() : null;
+        $dateFrom = $request->has('date_from') ? $request->string('date_from')->toString() : null;
+        $dateTo = $request->has('date_to') ? $request->string('date_to')->toString() : null;
 
         $invoices = $this->billingHistoryService->getInvoices(
             $tenant,
             perPage: $perPage,
             page: $page,
-            status: $request->query('status'),
-            dateFrom: $request->query('date_from'),
-            dateTo: $request->query('date_to'),
+            status: $status,
+            dateFrom: $dateFrom,
+            dateTo: $dateTo,
         );
 
         return ApiResponseService::success([
@@ -59,6 +66,9 @@ class BillingHistoryController extends Controller
         Gate::authorize('viewAny', Terreno::class);
 
         $tenant = tenancy()->tenant;
+        if (! $tenant instanceof Tenant) {
+            return ApiResponseService::serverError('TENANT_CONTEXT_NOT_AVAILABLE');
+        }
 
         $invoice = $this->billingHistoryService->findInvoice($tenant, $invoiceId);
 
@@ -82,6 +92,9 @@ class BillingHistoryController extends Controller
         Gate::authorize('viewAny', Terreno::class);
 
         $tenant = tenancy()->tenant;
+        if (! $tenant instanceof Tenant) {
+            return ApiResponseService::serverError('TENANT_CONTEXT_NOT_AVAILABLE');
+        }
 
         $pdfUrl = $this->billingHistoryService->getInvoicePdfUrl($tenant, $invoiceId);
 

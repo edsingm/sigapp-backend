@@ -79,7 +79,7 @@ class WebhookHandlerTest extends TestCase
         $tenant = $this->makeTenant();
 
         $this->postWebhook('invoice.payment_failed', [
-            'customer' => $tenant->stripe_id,
+            'customer' => $tenant->getAttribute('stripe_id'),
             'attempt_count' => 1,
             'hosted_invoice_url' => 'https://invoice.stripe.com/inv_test',
             'id' => 'in_test_001',
@@ -95,7 +95,7 @@ class WebhookHandlerTest extends TestCase
         $tenant = $this->makeTenant();
 
         $this->postWebhook('invoice.payment_failed', [
-            'customer' => $tenant->stripe_id,
+            'customer' => $tenant->getAttribute('stripe_id'),
             'attempt_count' => 2,
             'id' => 'in_test_002',
         ])->assertOk();
@@ -110,7 +110,7 @@ class WebhookHandlerTest extends TestCase
         $tenant = $this->makeTenant();
 
         $this->postWebhook('invoice.payment_failed', [
-            'customer' => $tenant->stripe_id,
+            'customer' => $tenant->getAttribute('stripe_id'),
             'attempt_count' => 3,
             'id' => 'in_test_003',
         ])->assertOk();
@@ -147,7 +147,7 @@ class WebhookHandlerTest extends TestCase
         $trialEnd = now()->addDays(3)->timestamp;
 
         $this->postWebhook('customer.subscription.trial_will_end', [
-            'customer' => $tenant->stripe_id,
+            'customer' => $tenant->getAttribute('stripe_id'),
             'trial_end' => $trialEnd,
             'id' => 'sub_test_trial_'.uniqid(),
             'status' => 'trialing',
@@ -180,7 +180,7 @@ class WebhookHandlerTest extends TestCase
         $eventId = 'evt_test_duplicate_'.uniqid();
 
         $dataObject = [
-            'customer' => $tenant->stripe_id,
+            'customer' => $tenant->getAttribute('stripe_id'),
             'attempt_count' => 1,
             'id' => 'in_dup_001',
         ];
@@ -207,7 +207,7 @@ class WebhookHandlerTest extends TestCase
         ]);
 
         $this->postWebhook('customer.subscription.deleted', [
-            'customer' => $tenant->stripe_id,
+            'customer' => $tenant->getAttribute('stripe_id'),
             'id' => $subscriptionId,
             'status' => 'canceled',
         ])->assertOk();
@@ -233,7 +233,7 @@ class WebhookHandlerTest extends TestCase
             ->andReturn((object) [
                 'id' => $subscriptionId,
                 'status' => 'past_due',
-                'customer' => $tenant->stripe_id,
+                'customer' => $tenant->getAttribute('stripe_id'),
                 'items' => (object) [
                     'data' => [
                         (object) [
@@ -252,7 +252,7 @@ class WebhookHandlerTest extends TestCase
         $this->app->instance(TenantBillingService::class, $billingMock);
 
         $this->postWebhook('customer.subscription.updated', [
-            'customer' => $tenant->stripe_id,
+            'customer' => $tenant->getAttribute('stripe_id'),
             'id' => $subscriptionId,
             'status' => 'past_due',
             'items' => [

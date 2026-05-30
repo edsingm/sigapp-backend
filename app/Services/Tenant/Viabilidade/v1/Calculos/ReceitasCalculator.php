@@ -14,6 +14,12 @@ class ReceitasCalculator
         private readonly CurvaService $curvaService,
     ) {}
 
+    /**
+     * @param  array<string, array<string, mixed>>  $dadosProdutos
+     * @param  array<string, Carbon>  $datas
+     * @param  array<string, mixed>  $params
+     * @return array{total: float|int, juros_correcao: float|int, detalhes: array<string, mixed>}
+     */
     public function calcular(
         string $mes,
         array $dadosProdutos,
@@ -73,6 +79,11 @@ class ReceitasCalculator
         ];
     }
 
+    /**
+     * @param  array<string, mixed>  $dadosProdutos
+     * @param  array<string, Carbon>  $datas
+     * @return array{valor: float}
+     */
     private function calcularRecursoTerrenos(string $mes, array $dadosProdutos, array $datas, ViabilidadeFluxoContext $ctx): array
     {
         if (! $ctx->demandaAtingida || $ctx->mesDemandaAtingida === null) {
@@ -164,6 +175,12 @@ class ReceitasCalculator
         return $avaliacaoCef;
     }
 
+    /**
+     * @param  array<string, mixed>  $dadosProdutos
+     * @param  array<string, Carbon>  $datas
+     * @param  array<string, mixed>  $params
+     * @return array{valor: float|int}
+     */
     private function calcularMedicaoObra(
         string $mes,
         array $dadosProdutos,
@@ -206,6 +223,10 @@ class ReceitasCalculator
         return ['valor' => round($valorReceberMes, 2)];
     }
 
+    /**
+     * @param  array<string, mixed>  $dadosProdutos
+     * @param  array<string, Carbon>  $datas
+     */
     public function inicializarValorMedicaoTotal(array $dadosProdutos, array $datas, ViabilidadeFluxoContext $ctx): void
     {
         $vgvSemPermuta = $dadosProdutos['vgvSemUnidPermutas'] ?? 0.0;
@@ -242,6 +263,9 @@ class ReceitasCalculator
         $ctx->valorMedicaoTotal = max(0, $valorFinanciamento - $totalRecursoTerrenos);
     }
 
+    /**
+     * @return array<int, float>
+     */
     private function agregarCurvaFinanceiraMedicao(int $mesesObra, float $obraAteLancamento): array
     {
         return $this->curvaService->getCurvaFinanceiraMedicaoParaPrazo($mesesObra, $obraAteLancamento);

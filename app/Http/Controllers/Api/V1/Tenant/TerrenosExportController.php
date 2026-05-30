@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\FilterTerrenosRequest;
 use App\Models\Tenant\Terreno;
 use App\Services\Tenant\TerrenoExportService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -23,7 +24,7 @@ class TerrenosExportController extends Controller
         private readonly TerrenoExportService $exportService,
     ) {}
 
-    public function exportPdf(FilterTerrenosRequest $request)
+    public function exportPdf(FilterTerrenosRequest $request): mixed
     {
         Gate::authorize('export', Terreno::class);
 
@@ -41,7 +42,7 @@ class TerrenosExportController extends Controller
             ->name('listagem-terrenos-'.now()->format('Y-m-d').'.pdf');
     }
 
-    public function exportSinglePdf(int $id)
+    public function exportSinglePdf(int $id): mixed
     {
         Gate::authorize('export', Terreno::class);
 
@@ -61,10 +62,10 @@ class TerrenosExportController extends Controller
                 $browsershot->waitUntilNetworkIdle()
                     ->delay(2000);
             })
-            ->name('detalhe-terreno-'.$terreno->id.'-'.Str::slug($terreno->nome).'.pdf');
+            ->name('detalhe-terreno-'.$terreno->getKey().'-'.Str::slug((string) $terreno->getAttribute('nome')).'.pdf');
     }
 
-    public function exportExcel(FilterTerrenosRequest $request)
+    public function exportExcel(FilterTerrenosRequest $request): mixed
     {
         Gate::authorize('export', Terreno::class);
 
@@ -73,7 +74,7 @@ class TerrenosExportController extends Controller
         return Excel::download(new TerrenosExport($filters), 'listagem-terrenos-'.now()->format('Y-m-d').'.xlsx');
     }
 
-    public function checklistPdf(Request $request, int $id)
+    public function checklistPdf(Request $request, int $id): mixed
     {
         Gate::authorize('export', Terreno::class);
 
@@ -86,7 +87,13 @@ class TerrenosExportController extends Controller
                 return response()->json(['message' => 'Terreno não encontrado'], 404);
             }
 
-            $extraData = $request->validated();
+            $extraData = $request->only([
+                'status',
+                'observacoes',
+                'checklist',
+                'responsavel',
+                'data',
+            ]);
             Log::info('Dados extras recebidos:', $extraData);
 
             $data = [
@@ -101,7 +108,7 @@ class TerrenosExportController extends Controller
                 ->withBrowsershot(function ($browsershot) {
                     $this->exportService->applyBrowsershotDefaults($browsershot);
                 })
-                ->name('checklist-'.$terreno->id.'-'.Str::slug($terreno->nome).'.pdf')
+                ->name('checklist-'.$terreno->getKey().'-'.Str::slug((string) $terreno->getAttribute('nome')).'.pdf')
                 ->toResponse(request());
         } catch (\Exception $e) {
             Log::error('Erro ao gerar checklist PDF: '.$e->getMessage(), [

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Enums\TenantStatus;
 use App\Http\Controllers\Controller;
+use App\Models\Central\Tenant;
 use App\Services\ApiResponseService;
 use App\Services\Billing\TenantBillingService;
 use Illuminate\Http\JsonResponse;
@@ -22,6 +23,9 @@ class DunningController extends Controller
     public function status(): JsonResponse
     {
         $tenant = tenancy()->tenant;
+        if (! $tenant instanceof Tenant) {
+            return ApiResponseService::serverError('TENANT_CONTEXT_NOT_AVAILABLE');
+        }
 
         $status = $this->billingService->getPaymentRetryStatus($tenant);
 
@@ -36,8 +40,11 @@ class DunningController extends Controller
     public function retryPayment(): JsonResponse
     {
         $tenant = tenancy()->tenant;
+        if (! $tenant instanceof Tenant) {
+            return ApiResponseService::serverError('TENANT_CONTEXT_NOT_AVAILABLE');
+        }
 
-        if ($tenant->status === TenantStatus::CANCELLED->value) {
+        if ((string) $tenant->getAttribute('status') === TenantStatus::CANCELLED->value) {
             return ApiResponseService::conflict('ACCOUNT_CANCELLED');
         }
 

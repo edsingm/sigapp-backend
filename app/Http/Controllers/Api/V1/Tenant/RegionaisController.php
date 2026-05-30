@@ -12,8 +12,11 @@ use App\Http\Requests\Tenant\Admin\ShowRegionalRequest;
 use App\Http\Requests\Tenant\StoreRegionalRequest;
 use App\Http\Requests\Tenant\UpdateRegionalRequest;
 use App\Http\Resources\Tenant\RegionalResource;
+use App\Models\Tenant\Regional;
 use App\Services\ApiResponseService;
 use App\Services\Tenant\RegionalService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class RegionaisController extends Controller
 {
@@ -21,7 +24,7 @@ class RegionaisController extends Controller
         private readonly RegionalService $regionalService,
     ) {}
 
-    public function index(ListRegionaisRequest $request)
+    public function index(ListRegionaisRequest $request): AnonymousResourceCollection
     {
         $perPage = $request->integer('per_page', 10);
         $search = $request->has('q') ? $request->string('q')->toString() : null;
@@ -37,17 +40,21 @@ class RegionaisController extends Controller
             ]);
     }
 
-    public function forSelect(SelectRegionaisRequest $request)
+    public function forSelect(SelectRegionaisRequest $request): JsonResponse
     {
+        /** @var \Illuminate\Database\Eloquent\Collection<int, Regional> $regionais */
         $regionais = $this->regionalService->forSelect();
 
         return ApiResponseService::success(
-            $regionais->map(fn ($r) => ['id' => $r->id, 'nome' => $r->nome])->values(),
+            $regionais->map(static fn (Regional $regional): array => [
+                'id' => $regional->getKey(),
+                'nome' => $regional->getAttribute('nome'),
+            ])->values(),
             'Regionais recuperadas com sucesso'
         );
     }
 
-    public function show(ShowRegionalRequest $request, int $id)
+    public function show(ShowRegionalRequest $request, int $id): JsonResponse
     {
         $regional = $this->regionalService->findById($id);
 
@@ -61,7 +68,7 @@ class RegionaisController extends Controller
         );
     }
 
-    public function store(StoreRegionalRequest $request)
+    public function store(StoreRegionalRequest $request): JsonResponse
     {
         $validated = $request->validated();
         $validated['created_by'] = $request->user()->id;
@@ -74,7 +81,7 @@ class RegionaisController extends Controller
         );
     }
 
-    public function update(UpdateRegionalRequest $request, int $id)
+    public function update(UpdateRegionalRequest $request, int $id): JsonResponse
     {
         $regional = $this->regionalService->findById($id);
 
@@ -93,7 +100,7 @@ class RegionaisController extends Controller
         );
     }
 
-    public function destroy(DestroyRegionalRequest $request, int $id)
+    public function destroy(DestroyRegionalRequest $request, int $id): JsonResponse
     {
         $regional = $this->regionalService->findById($id);
 

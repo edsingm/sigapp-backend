@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\Central\Cidade;
+use Illuminate\Database\Connection;
 use Illuminate\Database\Eloquent\Collection;
 
 class CidadeRepository
@@ -12,7 +13,14 @@ class CidadeRepository
      */
     public function listStates(): Collection
     {
-        return Cidade::states()->get();
+        /** @var Collection<int, Cidade> $states */
+        $states = Cidade::query()
+            ->select(['state_code', 'state'])
+            ->distinct()
+            ->orderBy('state')
+            ->get();
+
+        return $states;
     }
 
     /**
@@ -20,7 +28,13 @@ class CidadeRepository
      */
     public function listByState(string $stateCode): Collection
     {
-        return Cidade::citiesByState($stateCode)->get(['code', 'city as name']);
+        /** @var Collection<int, Cidade> $cities */
+        $cities = Cidade::query()
+            ->where('state_code', $stateCode)
+            ->orderBy('city')
+            ->get(['code', 'city', 'state', 'state_code']);
+
+        return $cities;
     }
 
     /**
@@ -33,13 +47,19 @@ class CidadeRepository
             ->orderBy('city')
             ->limit(100);
 
-        if ($query->getConnection()->getDriverName() === 'pgsql') {
+        /** @var Connection $connection */
+        $connection = $query->getConnection();
+
+        if ($connection->getDriverName() === 'pgsql') {
             $query->whereRaw('unaccent(city) ILIKE unaccent(?)', ["%{$term}%"]);
         } else {
             $query->whereRaw('lower(city) like lower(?)', ["%{$term}%"]);
         }
 
-        return $query->get();
+        /** @var Collection<int, Cidade> $cities */
+        $cities = $query->get();
+
+        return $cities;
     }
 
     public function findByCode(string $cityCode): ?Cidade

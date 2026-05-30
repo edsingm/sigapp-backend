@@ -14,6 +14,9 @@ class TerrenoContato extends Model
 {
     use HasFactory;
 
+    /**
+     * @var array<string, string>
+     */
     protected $casts = [
         'terreno_id' => 'int',
         'created_by' => 'int',

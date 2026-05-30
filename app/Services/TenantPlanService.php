@@ -44,7 +44,7 @@ class TenantPlanService
             throw new InvalidArgumentException('Tenant não encontrado.');
         }
 
-        $currentPlan = $tenant->plan;
+        $currentPlan = $tenant->plan()->first();
         $newPlan = Plan::find($newPlanId);
 
         if (! $newPlan || ! $newPlan->is_active) {
@@ -70,7 +70,7 @@ class TenantPlanService
             throw new InvalidArgumentException('Tenant não encontrado.');
         }
 
-        $currentPlan = $tenant->plan;
+        $currentPlan = $tenant->plan()->first();
         $newPlan = Plan::find($newPlanId);
 
         if (! $newPlan || ! $newPlan->is_active) {

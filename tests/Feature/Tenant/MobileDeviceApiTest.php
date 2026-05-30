@@ -6,6 +6,9 @@ use App\Http\Middleware\AddTenantContextToLogs;
 use App\Http\Middleware\ApiRequestLogger;
 use App\Http\Middleware\CheckSubscriptionStatus;
 use App\Http\Middleware\InitializeTenancyFlexible;
+use App\Http\Middleware\EnsureTenantAdmin;
+use App\Http\Middleware\EnsureTenantContext;
+use App\Http\Middleware\EnsureTenantUser;
 use App\Models\Tenant\MobileDeviceInstallation;
 use App\Models\Tenant\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -27,6 +30,9 @@ class MobileDeviceApiTest extends TestCase
             AddTenantContextToLogs::class,
             ApiRequestLogger::class,
             CheckSubscriptionStatus::class,
+            EnsureTenantContext::class,
+            EnsureTenantUser::class,
+            EnsureTenantAdmin::class,
         ]);
 
         $this->artisan('migrate', ['--path' => 'database/migrations/tenant', '--realpath' => false]);

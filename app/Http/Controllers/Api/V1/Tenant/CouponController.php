@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\RedeemCouponRequest;
+use App\Models\Central\Coupon;
+use App\Models\Central\Tenant;
 use App\Models\Tenant\Terreno;
 use App\Services\ApiResponseService;
 use App\Services\Billing\CouponService;
@@ -26,6 +28,9 @@ class CouponController extends Controller
         Gate::authorize('viewAny', Terreno::class);
 
         $tenant = tenancy()->tenant;
+        if (! $tenant instanceof Tenant) {
+            return ApiResponseService::serverError('TENANT_CONTEXT_NOT_AVAILABLE');
+        }
 
         $result = $this->couponService->redeem($tenant, $request->validated('code'));
 
@@ -43,13 +48,16 @@ class CouponController extends Controller
             };
         }
 
-        $coupon = $result['coupon'];
+        $coupon = $result['coupon'] ?? null;
+        if (! $coupon instanceof Coupon) {
+            return ApiResponseService::error('COUPON_REDEEM_ERROR', 'COUPON_REDEEM_ERROR', null, 500);
+        }
 
         return ApiResponseService::success([
             'coupon' => [
-                'code' => $coupon->code,
-                'name' => $coupon->name,
-                'formatted_discount' => $coupon->formatted_discount,
+                'code' => $coupon->getAttribute('code'),
+                'name' => $coupon->getAttribute('name'),
+                'formatted_discount' => $coupon->formattedDiscount(),
             ],
         ], language()->t('COUPON_REDEEMED'));
     }

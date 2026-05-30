@@ -52,7 +52,7 @@ class CreateFullTenantJob implements ShouldBeUnique, ShouldQueue
             'tenant_id' => $this->tenant->id,
         ]);
 
-        if ($this->tenant->database_created) {
+        if ((bool) $this->tenant->getAttribute('database_created')) {
             Log::info('CreateFullTenantJob ignorado: tenant já provisionado', [
                 'tenant_id' => $this->tenant->id,
             ]);
@@ -61,7 +61,7 @@ class CreateFullTenantJob implements ShouldBeUnique, ShouldQueue
         }
 
         // Auditoria: criação iniciada
-        $this->auditTrail('tenant.creation_started', "Job de criação iniciado para tenant '{$this->tenant->name}'.");
+        $this->auditTrail('tenant.creation_started', "Job de criação iniciado para tenant '{$this->tenantName()}'.");
 
         try {
             $this->createDatabase();
@@ -94,7 +94,7 @@ class CreateFullTenantJob implements ShouldBeUnique, ShouldQueue
 
             // Auditoria: criação concluída
             $this->restoreCentralConnection($centralConnection);
-            $this->auditTrail('tenant.creation_completed', "Tenant '{$this->tenant->name}' criado e ativado com sucesso.", [
+            $this->auditTrail('tenant.creation_completed', "Tenant '{$this->tenantName()}' criado e ativado com sucesso.", [
                 'status' => TenantStatus::ACTIVE->value,
             ]);
 
@@ -115,7 +115,7 @@ class CreateFullTenantJob implements ShouldBeUnique, ShouldQueue
                 'error' => $e->getMessage(),
                 'error_class' => get_class($e),
                 'attempt' => $this->attempts(),
-                'max_tries' => $this->tries,
+                'max_tries' => $this->maxTries(),
             ]);
 
             throw $e;
@@ -199,7 +199,9 @@ class CreateFullTenantJob implements ShouldBeUnique, ShouldQueue
      */
     protected function sendWelcomeEmail(): void
     {
-        if (! $this->tenant->admin_email) {
+        $adminEmail = $this->tenantAdminEmail();
+
+        if ($adminEmail === null) {
             Log::warning('Email de boas-vindas não enviado: admin_email ausente', [
                 'tenant_id' => $this->tenant->id,
             ]);
@@ -208,7 +210,7 @@ class CreateFullTenantJob implements ShouldBeUnique, ShouldQueue
         }
 
         $notification = new TenantWelcomeNotification(
-            tenantName: $this->tenant->name,
+            tenantName: $this->tenantName(),
             appUrl: config('app.frontend_url', config('app.url')),
         );
 
@@ -216,7 +218,7 @@ class CreateFullTenantJob implements ShouldBeUnique, ShouldQueue
 
         Log::info('Email de boas-vindas enviado', [
             'tenant_id' => $this->tenant->id,
-            'email' => $this->tenant->admin_email,
+            'email' => $adminEmail,
         ]);
     }
 
@@ -225,14 +227,14 @@ class CreateFullTenantJob implements ShouldBeUnique, ShouldQueue
      */
     protected function cacheTenantInfo(): void
     {
-        $cacheKey = 'tenant:'.$this->tenant->slug;
+        $cacheKey = 'tenant:'.$this->tenantSlug();
 
         cache()->put($cacheKey, [
             'id' => $this->tenant->id,
-            'name' => $this->tenant->name,
-            'slug' => $this->tenant->slug,
-            'plan_id' => $this->tenant->plan_id,
-            'status' => $this->tenant->status,
+            'name' => $this->tenantName(),
+            'slug' => $this->tenantSlug(),
+            'plan_id' => $this->tenant->getAttribute('plan_id'),
+            'status' => $this->tenant->getAttribute('status'),
         ], now()->addHours(24));
     }
 
@@ -259,7 +261,7 @@ class CreateFullTenantJob implements ShouldBeUnique, ShouldQueue
 
         // Auditoria: falha permanente
         $tries = (new \ReflectionClass($this))->getAttributes(Tries::class)[0]->getArguments()[0] ?? 0;
-        $this->auditTrail('tenant.creation_failed', "Job de criação falhou definitivamente para tenant '{$this->tenant->name}' após {$tries} tentativas.", [
+        $this->auditTrail('tenant.creation_failed', "Job de criação falhou definitivamente para tenant '{$this->tenantName()}' após {$tries} tentativas.", [
             'error' => $exception->getMessage() ?? '',
             'error_class' => get_class($exception) ?? '',
             'max_tries' => $tries,
@@ -271,11 +273,41 @@ class CreateFullTenantJob implements ShouldBeUnique, ShouldQueue
     {
         $this->audit($action, $description, array_merge([
             'tenant_id' => $this->tenant->id ?? null,
-            'tenant_slug' => $this->tenant->slug ?? null,
-            'tenant_name' => $this->tenant->name ?? null,
-            'plan_id' => $this->tenant->plan_id ?? null,
-            'admin_email' => $this->tenant->admin_email ?? null,
+            'tenant_slug' => $this->tenantSlug(),
+            'tenant_name' => $this->tenantName(),
+            'plan_id' => $this->tenant->getAttribute('plan_id'),
+            'admin_email' => $this->tenantAdminEmail(),
         ], $metadata));
 
+    }
+
+    private function tenantName(): string
+    {
+        return (string) $this->tenant->getAttribute('name');
+    }
+
+    private function tenantSlug(): string
+    {
+        return (string) $this->tenant->getAttribute('slug');
+    }
+
+    private function tenantAdminEmail(): ?string
+    {
+        $email = $this->tenant->getAttribute('admin_email');
+
+        return is_string($email) && $email !== '' ? $email : null;
+    }
+
+    private function maxTries(): int
+    {
+        $attributes = (new \ReflectionClass($this))->getAttributes(Tries::class);
+
+        if ($attributes === []) {
+            return 0;
+        }
+
+        $tries = $attributes[0]->getArguments()[0] ?? 0;
+
+        return is_int($tries) ? $tries : 0;
     }
 }

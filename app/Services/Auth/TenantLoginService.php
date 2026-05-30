@@ -5,6 +5,7 @@ namespace App\Services\Auth;
 use App\Models\Tenant\User;
 use App\Models\User as CentralUser;
 use Carbon\Carbon;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -14,9 +15,9 @@ class TenantLoginService
      * Tenta o login do usuário no tenant e retorna o payload do token em caso de sucesso.
      *
      * @param  array<string, mixed>  $credentials
-     * @return array{success: bool, user?: User, token?: string, abilities?: list<string>, expires_at?: string|null}
+     * @return array{success: false}|array{success: true, user: User, token: string, abilities: list<string>, expires_at: string|null}
      */
-    public function attempt(array $credentials, Request $request): array
+    public function attempt(array $credentials, ?string $deviceName = null): array
     {
         $user = User::query()
             ->where('email', $credentials['email'])
@@ -26,12 +27,12 @@ class TenantLoginService
             return ['success' => false];
         }
 
-        if ($request->has('device_name')) {
-            $user->tokens()->where('name', $credentials['device_name'])->delete();
+        if (is_string($deviceName) && $deviceName !== '') {
+            $user->tokens()->where('name', $deviceName)->delete();
         }
 
         $tokenResult = $user->createToken(
-            $credentials['device_name'] ?? 'tenant-api-token',
+            $deviceName ?: 'tenant-api-token',
             ['tenant-api'],
             now()->addDays(7)
         );
@@ -73,7 +74,7 @@ class TenantLoginService
      *
      * @param  array<int, string>  $abilities
      */
-    public function tokenExpiration(mixed $user, array $abilities): Carbon
+    public function tokenExpiration(Authenticatable $user, array $abilities): Carbon
     {
         $isAdminToken = $user instanceof CentralUser
             && in_array('admin', $abilities, true);

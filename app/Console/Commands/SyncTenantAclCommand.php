@@ -49,7 +49,9 @@ class SyncTenantAclCommand extends Command
         $this->info("Iniciando sync de ACL para {$tenants->count()} tenant(s)...");
 
         foreach ($tenants as $tenant) {
-            $this->line("-> {$tenant->id} ({$tenant->slug})");
+            $tenantSlug = (string) $tenant->getAttribute('slug');
+
+            $this->line("-> {$tenant->id} ({$tenantSlug})");
 
             try {
                 $result = $tenant->run(fn () => $syncService->syncForCurrentTenant());

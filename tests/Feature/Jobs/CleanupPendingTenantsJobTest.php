@@ -7,7 +7,6 @@ use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
 use App\Services\Billing\TenantBillingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Mockery;
 use Tests\TestCase;
 
 class CleanupPendingTenantsJobTest extends TestCase
@@ -53,8 +52,7 @@ class CleanupPendingTenantsJobTest extends TestCase
         ]);
         $tenantId = $tenant->id;
 
-        $billingService = Mockery::mock(TenantBillingService::class);
-        $this->app->instance(TenantBillingService::class, $billingService);
+        $billingService = new class extends TenantBillingService {};
 
         $job = new CleanupPendingTenantsJob;
         $job->handle($billingService);
@@ -70,8 +68,7 @@ class CleanupPendingTenantsJobTest extends TestCase
         ]);
         $tenantId = $tenant->id;
 
-        $billingService = Mockery::mock(TenantBillingService::class);
-        $this->app->instance(TenantBillingService::class, $billingService);
+        $billingService = new class extends TenantBillingService {};
 
         $job = new CleanupPendingTenantsJob;
         $job->handle($billingService);
@@ -86,20 +83,17 @@ class CleanupPendingTenantsJobTest extends TestCase
         ]);
         $tenantId = $tenant->id;
 
-        $billingService = Mockery::mock(TenantBillingService::class);
-        $billingService->shouldReceive('getSignupCheckoutSessionId')
-            ->andReturn(null);
-        $this->app->instance(TenantBillingService::class, $billingService);
+        $billingService = new class extends TenantBillingService
+        {
+            public function getSignupCheckoutSessionId(Tenant $tenant): ?string
+            {
+                return null;
+            }
+        };
 
         $job = new CleanupPendingTenantsJob;
         $job->handle($billingService);
 
         $this->assertDatabaseHas('tenants', ['id' => $tenantId]);
-    }
-
-    protected function tearDown(): void
-    {
-        Mockery::close();
-        parent::tearDown();
     }
 }

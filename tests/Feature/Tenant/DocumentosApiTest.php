@@ -7,6 +7,9 @@ use App\Http\Middleware\ApiRequestLogger;
 use App\Http\Middleware\CheckSubscriptionStatus;
 use App\Http\Middleware\EnforcePlanLimits;
 use App\Http\Middleware\InitializeTenancyFlexible;
+use App\Http\Middleware\EnsureTenantAdmin;
+use App\Http\Middleware\EnsureTenantContext;
+use App\Http\Middleware\EnsureTenantUser;
 use App\Jobs\IndexDocumentEmbeddingJob;
 use App\Models\Tenant\Documento;
 use App\Models\Tenant\Terreno;
@@ -36,13 +39,16 @@ class DocumentosApiTest extends TestCase
             AddTenantContextToLogs::class,
             ApiRequestLogger::class,
             CheckSubscriptionStatus::class,
+            EnsureTenantContext::class,
+            EnsureTenantUser::class,
+            EnsureTenantAdmin::class,
             EnforcePlanLimits::class,
         ]);
 
         $this->artisan('migrate', ['--path' => 'database/migrations/tenant', '--realpath' => false]);
 
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
-        Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
 
         $this->admin = User::create([
             'name' => 'Documento Admin',
@@ -80,7 +86,7 @@ class DocumentosApiTest extends TestCase
 
         $documentoId = $createResponse->json('data.id');
         $documento = Documento::findOrFail($documentoId);
-        Storage::disk('local')->assertExists($documento->file_path);
+        Storage::assertExists($documento->file_path);
 
         $this->actingAs($this->admin)->getJson('/api/v1/documentos')
             ->assertOk()

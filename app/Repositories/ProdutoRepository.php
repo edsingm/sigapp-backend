@@ -8,6 +8,7 @@ use App\Models\Tenant\Produto;
 use App\Repositories\Contracts\ProdutoRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class ProdutoRepository implements ProdutoRepositoryInterface
 {
@@ -23,7 +24,7 @@ class ProdutoRepository implements ProdutoRepositoryInterface
         $query = Produto::query();
 
         if ($withTrashed) {
-            $query->withTrashed();
+            $query->withoutGlobalScope(SoftDeletingScope::class);
         }
 
         return $query->find($id);
@@ -31,7 +32,7 @@ class ProdutoRepository implements ProdutoRepositoryInterface
 
     public function create(array $data): Produto
     {
-        return Produto::create($data);
+        return Produto::query()->create($data);
     }
 
     public function update(Produto $produto, array $data): Produto
@@ -53,11 +54,14 @@ class ProdutoRepository implements ProdutoRepositoryInterface
 
     public function searchForSelect(string $search): Collection
     {
-        return Produto::query()
+        /** @var Collection<int, Produto> $produtos */
+        $produtos = Produto::query()
             ->where('name', 'like', "%{$search}%")
             ->orWhere('description', 'like', "%{$search}%")
             ->orderBy('name')
             ->limit(20)
             ->get();
+
+        return $produtos;
     }
 }

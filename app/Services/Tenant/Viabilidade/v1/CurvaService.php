@@ -12,11 +12,12 @@ namespace App\Services\Tenant\Viabilidade\v1;
  */
 class CurvaService
 {
-
     /**
      * Curvas de desembolso de obra por período de construção (Curva S)
      * Valores em percentual do custo total de obra.
      * Fonte: Dados históricos do projeto legado.
+     *
+     * @var array<int, list<float>>
      */
     private array $curvasObra = [
         18 => [1.5, 2.0, 3.0, 4.5, 5.5, 6.5, 7.5, 8.5, 9.0, 9.0, 8.5, 7.5, 6.5, 5.5, 4.5, 4.0, 3.5, 2.5],
@@ -56,6 +57,9 @@ class CurvaService
      * @param int $mesesTotal Duração total da obra
      * @return array Curva normalizada para 100%
      */
+    /**
+     * @return list<float>
+     */
     public function getCurvaObraParaPrazo(int $mesesTotal): array
     {
         $prazoMaisProximo = $this->getPrazoMaisProximo($mesesTotal);
@@ -64,6 +68,9 @@ class CurvaService
         return $this->normalizarCurva($curva);
     }
 
+    /**
+     * @return list<float>
+     */
     public function getCurvaObraBaseParaPrazo(int $mesesTotal): array
     {
         $prazoMaisProximo = $this->getPrazoMaisProximo($mesesTotal);
@@ -87,6 +94,9 @@ class CurvaService
         );
     }
 
+    /**
+     * @return array<int, float>
+     */
     public function getCurvaFinanceiraMedicaoParaPrazo(int $mesesTotal, float $obraAteLancamento = 0.0): array
     {
         unset($obraAteLancamento);
@@ -147,13 +157,17 @@ class CurvaService
     /**
      * Normaliza uma curva para que a soma seja exatamente 100%
      */
+    /**
+     * @param  list<float>  $curva
+     * @return list<float>
+     */
     public function normalizarCurva(array $curva): array
     {
         $soma = array_sum($curva);
 
         if ($soma > 0 && abs($soma - 100) > 0.1) {
             $fator = 100 / $soma;
-            $curva = array_map(fn($val) => $val * $fator, $curva);
+            $curva = array_map(static fn (float $val): float => $val * $fator, $curva);
         }
 
         return $curva;
@@ -166,6 +180,10 @@ class CurvaService
      * @param \Carbon\Carbon $dataInicio Data de início da distribuição
      * @param array $curva Curva de distribuição (percentuais)
      * @return array Array associativo [Y-m => valor]
+     */
+    /**
+     * @param  list<float>  $curva
+     * @return array<string, float>
      */
     public function distribuirPorCurva(float $total, \Carbon\Carbon $dataInicio, array $curva): array
     {
@@ -188,6 +206,10 @@ class CurvaService
         return $distribuicao;
     }
 
+    /**
+     * @param  array<array-key, mixed>|string|null  $valor
+     * @return list<float>
+     */
     public function extrairCurva(array|string|null $valor): array
     {
         if ($valor === null) {
@@ -214,14 +236,16 @@ class CurvaService
             $curva[] = $numero;
         }
 
-        return array_values($curva);
+        return $curva;
     }
 
+    /**
+     * @param  list<float>  $curva
+     * @return list<float>
+     */
     public function ajustarCurva(array $curva, int $meses): array
     {
         $meses = max(0, $meses);
-        $curva = array_values($curva);
-
         if ($meses === 0) {
             return [];
         }
@@ -235,10 +259,13 @@ class CurvaService
         return $this->normalizarCurva($curva);
     }
 
+    /**
+     * @param  list<float>  $curva
+     * @return list<float>
+     */
     public function interpolarCurva(array $curva, int $meses): array
     {
         $meses = max(0, $meses);
-        $curva = array_values($curva);
         $n = count($curva);
 
         if ($meses === 0 || $n === 0) {
@@ -271,6 +298,10 @@ class CurvaService
         return $this->normalizarCurva($resultado);
     }
 
+    /**
+     * @param  array<array-key, mixed>  $produtos
+     * @return array{valid: bool, faltando: list<string>}
+     */
     public function validarCurvasObrigatorias(array $produtos): array
     {
         $faltando = [];

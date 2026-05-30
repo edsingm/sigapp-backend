@@ -5,6 +5,8 @@ namespace App\Models\Tenant;
 use App\Enums\PerfilFinanciamento;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -91,8 +93,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class PremissasViabilidade extends Model
 {
+    /** @use HasFactory<Factory<self>> */
     use HasFactory, SoftDeletes;
 
+    /**
+     * @var array<string, string>
+     */
     protected $casts = [
         'ativo' => 'boolean',
         'versao' => 'integer',
@@ -174,34 +180,52 @@ class PremissasViabilidade extends Model
         'ativo' => true,
     ];
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function updatedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
     }
 
-    public function scopeAtivo($query)
+    /**
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
+    public function scopeAtivo(Builder $query): Builder
     {
         return $query->where('ativo', true);
     }
 
-    public function scopePorPerfil($query, string $perfil)
+    /**
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
+    public function scopePorPerfil(Builder $query, string $perfil): Builder
     {
         return $query->where('perfil_financiamento', $perfil);
     }
 
-    public function scopeVigente($query)
+    /**
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
+    public function scopeVigente(Builder $query): Builder
     {
         $hoje = now()->toDateString();
 
-        return $query->where(function ($q) use ($hoje) {
+        return $query->where(function (Builder $q) use ($hoje): void {
             $q->where('vigente_em', '<=', $hoje)
                 ->orWhereNull('vigente_em');
-        })->where(function ($q) use ($hoje) {
+        })->where(function (Builder $q) use ($hoje): void {
             $q->where('encerrada_em', '>=', $hoje)
                 ->orWhereNull('encerrada_em');
         });
@@ -209,10 +233,23 @@ class PremissasViabilidade extends Model
 
     public static function carregarAtiva(?string $perfil = null): ?self
     {
-        $query = static::ativo()->vigente()->orderBy('vigente_em', 'desc');
+        /** @var Builder<self> $query */
+        $query = static::query()
+            ->where('ativo', true)
+            ->where(function (Builder $q): void {
+                $hoje = now()->toDateString();
+                $q->where('vigente_em', '<=', $hoje)
+                    ->orWhereNull('vigente_em');
+            })
+            ->where(function (Builder $q): void {
+                $hoje = now()->toDateString();
+                $q->where('encerrada_em', '>=', $hoje)
+                    ->orWhereNull('encerrada_em');
+            })
+            ->orderBy('vigente_em', 'desc');
 
         if ($perfil !== null) {
-            $query->porPerfil($perfil);
+            $query->where('perfil_financiamento', $perfil);
         }
 
         return $query->first();

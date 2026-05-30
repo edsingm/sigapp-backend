@@ -46,6 +46,7 @@ class TenantAppUrl
     private function resolveTenantHost(Tenant $tenant, string $frontendHost): string
     {
         $domain = $tenant->domains()->orderBy('id')->value('domain');
+        $tenantSlug = (string) $tenant->getAttribute('slug');
 
         if (is_string($domain) && $domain !== '') {
             $domainHost = parse_url($domain, PHP_URL_HOST);
@@ -58,7 +59,7 @@ class TenantAppUrl
         $normalizedHost = strtolower($frontendHost);
 
         if ($normalizedHost === 'localhost' || $normalizedHost === '127.0.0.1') {
-            return "{$tenant->slug}.localhost";
+            return "{$tenantSlug}.localhost";
         }
 
         if (str_starts_with($normalizedHost, 'www.')) {
@@ -76,10 +77,10 @@ class TenantAppUrl
             }
 
             if ($normalizedHost === $centralDomain || $normalizedHost === "www.{$centralDomain}") {
-                return "{$tenant->slug}.{$centralDomain}";
+                return "{$tenantSlug}.{$centralDomain}";
             }
         }
 
-        return "{$tenant->slug}.{$normalizedHost}";
+        return "{$tenantSlug}.{$normalizedHost}";
     }
 }

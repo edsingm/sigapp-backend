@@ -15,10 +15,13 @@ class RoleRepository implements RoleRepositoryInterface
 {
     public function forSelect(): Collection
     {
-        return Role::query()
+        /** @var Collection<int, Role> $roles */
+        $roles = Role::query()
             ->where('guard_name', 'web')
             ->orderBy('name')
             ->get(['id', 'name']);
+
+        return $roles;
     }
 
     public function list(?string $search = null): Collection
@@ -33,7 +36,10 @@ class RoleRepository implements RoleRepositoryInterface
             $query->where('name', 'like', "%{$search}%");
         }
 
-        return $query->get();
+        /** @var Collection<int, Role> $roles */
+        $roles = $query->get();
+
+        return $roles;
     }
 
     public function findById(int $id): ?Role
@@ -47,10 +53,13 @@ class RoleRepository implements RoleRepositoryInterface
 
     public function create(string $name): Role
     {
-        return Role::create([
+        /** @var Role $role */
+        $role = Role::query()->create([
             'name' => $name,
             'guard_name' => 'web',
         ]);
+
+        return $role;
     }
 
     public function update(Role $role, string $name): Role
@@ -72,9 +81,12 @@ class RoleRepository implements RoleRepositoryInterface
      */
     public function findPermissionsByIds(array $ids): Collection
     {
-        return Permission::whereIn('id', $ids)
+        /** @var Collection<int, Permission> $permissions */
+        $permissions = Permission::query()->whereIn('id', $ids)
             ->where('guard_name', 'web')
             ->get();
+
+        return $permissions;
     }
 
     public function countUsers(Role $role): int

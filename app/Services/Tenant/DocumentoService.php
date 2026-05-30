@@ -69,7 +69,7 @@ class DocumentoService
             'updated_by' => $user->id,
         ]);
 
-        return $this->documentoRepository->findOrFail($documento->id, ['terreno:id,nome', 'createdBy:id,name']);
+        return $this->documentoRepository->findOrFail($documento->getKey(), ['terreno:id,nome', 'createdBy:id,name']);
     }
 
     /**
@@ -84,8 +84,9 @@ class DocumentoService
 
     public function delete(Documento $documento): bool
     {
-        if ($documento->file_path && Storage::disk(self::STORAGE_DISK)->exists($documento->file_path)) {
-            Storage::disk(self::STORAGE_DISK)->delete($documento->file_path);
+        $filePath = $documento->getAttribute('file_path');
+        if (is_string($filePath) && Storage::disk(self::STORAGE_DISK)->exists($filePath)) {
+            Storage::disk(self::STORAGE_DISK)->delete($filePath);
         }
 
         return $this->documentoRepository->delete($documento);

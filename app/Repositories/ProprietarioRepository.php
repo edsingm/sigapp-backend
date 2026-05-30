@@ -25,17 +25,19 @@ class ProprietarioRepository implements ProprietarioRepositoryInterface
 
     public function findById(int $id): ?Proprietario
     {
-        return Proprietario::find($id);
+        return Proprietario::query()->find($id);
     }
 
     public function findWithRelations(int $id): ?Proprietario
     {
-        return Proprietario::with(['terreno', 'createdBy', 'updatedBy'])->find($id);
+        return Proprietario::query()
+            ->with(['terreno', 'createdBy', 'updatedBy'])
+            ->find($id);
     }
 
     public function create(array $data): Proprietario
     {
-        return Proprietario::create($data);
+        return Proprietario::query()->create($data);
     }
 
     public function update(Proprietario $proprietario, array $data): Proprietario

@@ -9,9 +9,12 @@ class DocumentoRepository
 {
     /**
      * @param  array<string, mixed>  $filters
+     * @return LengthAwarePaginator<int, Documento>
      */
     public function paginate(array $filters): LengthAwarePaginator
     {
+        $sortDirection = ($filters['sort_dir'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+
         $query = Documento::query()
             ->with(['terreno:id,nome', 'createdBy:id,name', 'updatedBy:id,name']);
 
@@ -36,7 +39,7 @@ class DocumentoRepository
         }
 
         return $query
-            ->orderBy((string) ($filters['sort_by'] ?? 'created_at'), (string) ($filters['sort_dir'] ?? 'desc'))
+            ->orderBy((string) ($filters['sort_by'] ?? 'created_at'), $sortDirection)
             ->paginate((int) ($filters['per_page'] ?? 15));
     }
 
@@ -66,7 +69,7 @@ class DocumentoRepository
     {
         $documento->update($data);
 
-        return $documento->fresh(['terreno:id,nome', 'createdBy:id,name', 'updatedBy:id,name']);
+        return $documento->fresh(['terreno:id,nome', 'createdBy:id,name', 'updatedBy:id,name']) ?? $documento;
     }
 
     public function delete(Documento $documento): bool

@@ -100,7 +100,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
      */
     public function getDatabaseName(): string
     {
-        return static::makeTenantDatabaseIdentifier((string) $this->slug);
+        return static::makeTenantDatabaseIdentifier((string) $this->getAttribute('slug'));
     }
 
     /**
@@ -174,7 +174,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
      */
     public function isActive(): bool
     {
-        return $this->status === self::STATUS_ACTIVE;
+        return (string) $this->getAttribute('status') === self::STATUS_ACTIVE;
     }
 
     /**
@@ -182,7 +182,9 @@ class Tenant extends BaseTenant implements TenantWithDatabase
      */
     public function onTrial(): bool
     {
-        return $this->trial_ends_at && $this->trial_ends_at->isFuture();
+        $trialEndsAt = $this->getAttribute('trial_ends_at');
+
+        return $trialEndsAt instanceof Carbon && $trialEndsAt->isFuture();
     }
 
     /**
@@ -190,7 +192,9 @@ class Tenant extends BaseTenant implements TenantWithDatabase
      */
     public function trialEnded(): bool
     {
-        return $this->trial_ends_at && $this->trial_ends_at->isPast();
+        $trialEndsAt = $this->getAttribute('trial_ends_at');
+
+        return $trialEndsAt instanceof Carbon && $trialEndsAt->isPast();
     }
 
     /**
@@ -296,7 +300,9 @@ class Tenant extends BaseTenant implements TenantWithDatabase
      */
     public function routeNotificationForMail(): ?string
     {
-        return $this->admin_email;
+        $adminEmail = $this->getAttribute('admin_email');
+
+        return is_string($adminEmail) && $adminEmail !== '' ? $adminEmail : null;
     }
 
     public static function getCustomColumns(): array

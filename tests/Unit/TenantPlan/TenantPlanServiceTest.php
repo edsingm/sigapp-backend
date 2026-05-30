@@ -59,9 +59,9 @@ class TenantPlanServiceTest extends TestCase
 
     public function test_it_assigns_a_plan_to_tenant(): void
     {
-        $result = $this->service->assignPlan($this->tenant->id, $this->planA->id);
+        $result = $this->service->assignPlan($this->tenantId(), $this->planA->id);
 
-        $this->assertSame($this->planA->id, $result->plan_id);
+        $this->assertSame($this->planA->id, $result->getAttribute('plan_id'));
         $this->assertDatabaseHas('tenants', ['id' => $this->tenant->id, 'plan_id' => $this->planA->id]);
     }
 
@@ -78,16 +78,16 @@ class TenantPlanServiceTest extends TestCase
 
         $this->expectException(InvalidArgumentException::class);
 
-        $this->service->assignPlan($this->tenant->id, $inactive->id);
+        $this->service->assignPlan($this->tenantId(), $inactive->id);
     }
 
     public function test_upgrade_succeeds_for_higher_sort_order_plan(): void
     {
         $this->tenant->update(['plan_id' => $this->planA->id]);
 
-        $result = $this->service->upgradePlan($this->tenant->id, $this->planB->id);
+        $result = $this->service->upgradePlan($this->tenantId(), $this->planB->id);
 
-        $this->assertSame($this->planB->id, $result->plan_id);
+        $this->assertSame($this->planB->id, $result->getAttribute('plan_id'));
     }
 
     public function test_upgrade_fails_when_new_plan_has_lower_or_equal_order(): void
@@ -96,16 +96,16 @@ class TenantPlanServiceTest extends TestCase
 
         $this->expectException(InvalidArgumentException::class);
 
-        $this->service->upgradePlan($this->tenant->id, $this->planA->id);
+        $this->service->upgradePlan($this->tenantId(), $this->planA->id);
     }
 
     public function test_downgrade_succeeds_for_lower_sort_order_plan(): void
     {
         $this->tenant->update(['plan_id' => $this->planB->id]);
 
-        $result = $this->service->downgradePlan($this->tenant->id, $this->planA->id);
+        $result = $this->service->downgradePlan($this->tenantId(), $this->planA->id);
 
-        $this->assertSame($this->planA->id, $result->plan_id);
+        $this->assertSame($this->planA->id, $result->getAttribute('plan_id'));
     }
 
     public function test_downgrade_fails_when_new_plan_has_higher_or_equal_order(): void
@@ -114,7 +114,7 @@ class TenantPlanServiceTest extends TestCase
 
         $this->expectException(InvalidArgumentException::class);
 
-        $this->service->downgradePlan($this->tenant->id, $this->planB->id);
+        $this->service->downgradePlan($this->tenantId(), $this->planB->id);
     }
 
     public function test_it_adds_extra_entitlement_to_tenant(): void
@@ -126,7 +126,7 @@ class TenantPlanServiceTest extends TestCase
             'default_value' => false,
         ]);
 
-        $record = $this->service->addExtraEntitlement($this->tenant->id, $ent->id, true, 5000);
+        $record = $this->service->addExtraEntitlement($this->tenantId(), $ent->id, true, 5000);
 
         $this->assertSame($this->tenant->id, $record->tenant_id);
         $this->assertSame($ent->id, $record->entitlement_id);
@@ -138,7 +138,7 @@ class TenantPlanServiceTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
 
-        $this->service->addExtraEntitlement($this->tenant->id, 99999, true, 1000);
+        $this->service->addExtraEntitlement($this->tenantId(), 99999, true, 1000);
     }
 
     public function test_it_lists_extra_entitlements_with_entitlement_loaded(): void
@@ -150,9 +150,9 @@ class TenantPlanServiceTest extends TestCase
             'default_value' => false,
         ]);
 
-        $this->service->addExtraEntitlement($this->tenant->id, $ent->id, true, 1000);
+        $this->service->addExtraEntitlement($this->tenantId(), $ent->id, true, 1000);
 
-        $list = $this->service->listExtraEntitlements($this->tenant->id);
+        $list = $this->service->listExtraEntitlements($this->tenantId());
 
         $this->assertCount(1, $list);
         $this->assertNotNull($list->first()->entitlement);
@@ -168,9 +168,9 @@ class TenantPlanServiceTest extends TestCase
             'default_value' => false,
         ]);
 
-        $this->service->addExtraEntitlement($this->tenant->id, $ent->id, true, 1000);
+        $this->service->addExtraEntitlement($this->tenantId(), $ent->id, true, 1000);
 
-        $updated = $this->service->updateExtraEntitlement($this->tenant->id, $ent->id, ['price' => 9999]);
+        $updated = $this->service->updateExtraEntitlement($this->tenantId(), $ent->id, ['price' => 9999]);
 
         $this->assertSame(9999, $updated->price);
     }
@@ -184,12 +184,17 @@ class TenantPlanServiceTest extends TestCase
             'default_value' => false,
         ]);
 
-        $this->service->addExtraEntitlement($this->tenant->id, $ent->id, true, 1000);
-        $this->service->removeExtraEntitlement($this->tenant->id, $ent->id);
+        $this->service->addExtraEntitlement($this->tenantId(), $ent->id, true, 1000);
+        $this->service->removeExtraEntitlement($this->tenantId(), $ent->id);
 
         $this->assertDatabaseMissing('tenant_entitlements', [
             'tenant_id' => $this->tenant->id,
             'entitlement_id' => $ent->id,
         ]);
+    }
+
+    private function tenantId(): string
+    {
+        return (string) $this->tenant->id;
     }
 }

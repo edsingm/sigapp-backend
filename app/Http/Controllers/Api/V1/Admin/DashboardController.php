@@ -7,7 +7,6 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\DashboardIndexRequest;
 use App\Http\Resources\Admin\DashboardStatsResource;
-use App\Services\ApiResponseService;
 use App\Services\DashboardService;
 use Illuminate\Http\JsonResponse;
 
@@ -24,6 +23,42 @@ class DashboardController extends Controller
         $trend = $this->dashboardService->tenantsTrend();
         $recentTenants = $this->dashboardService->recentTenants();
         $recentActivity = $this->dashboardService->recentActivity();
+        $recentTenantsPayload = [];
+        $recentActivityPayload = [];
+
+        foreach ($recentTenants as $tenant) {
+            $plan = $tenant->plan()->first();
+            $createdAt = $tenant->getAttribute('created_at');
+
+            $recentTenantsPayload[] = [
+                'id' => $tenant->getKey(),
+                'name' => (string) $tenant->getAttribute('name'),
+                'domain' => (string) $tenant->getAttribute('domain'),
+                'plan' => $plan !== null ? [
+                    'id' => $plan->getKey(),
+                    'name' => (string) $plan->getAttribute('name'),
+                ] : null,
+                'status' => (string) $tenant->getAttribute('status'),
+                'created_at' => $createdAt instanceof \DateTimeInterface ? $createdAt->format(DATE_ATOM) : null,
+            ];
+        }
+
+        foreach ($recentActivity as $log) {
+            $user = $log->user()->first();
+            $createdAt = $log->getAttribute('created_at');
+
+            $recentActivityPayload[] = [
+                'id' => $log->getKey(),
+                'action' => (string) $log->getAttribute('action'),
+                'entity_type' => $log->getAttribute('entity_type'),
+                'entity_id' => $log->getAttribute('entity_id'),
+                'user' => $user !== null ? [
+                    'id' => $user->getKey(),
+                    'name' => (string) $user->getAttribute('name'),
+                ] : null,
+                'created_at' => $createdAt instanceof \DateTimeInterface ? $createdAt->format(DATE_ATOM) : null,
+            ];
+        }
 
         return response()->json([
             'success' => true,
@@ -31,28 +66,8 @@ class DashboardController extends Controller
                 'stats' => $stats->toArray($request),
                 'tenants_by_plan' => $tenantsByPlan,
                 'trend' => $trend,
-                'recent_tenants' => $recentTenants->map(fn ($tenant) => [
-                    'id' => $tenant->id,
-                    'name' => $tenant->name,
-                    'domain' => $tenant->domain,
-                    'plan' => $tenant->plan ? [
-                        'id' => $tenant->plan->id,
-                        'name' => $tenant->plan->name,
-                    ] : null,
-                    'status' => $tenant->status,
-                    'created_at' => $tenant->created_at?->toIso8601String(),
-                ]),
-                'recent_activity' => $recentActivity->map(fn ($log) => [
-                    'id' => $log->id,
-                    'action' => $log->action,
-                    'entity_type' => $log->entity_type,
-                    'entity_id' => $log->entity_id,
-                    'user' => $log->user ? [
-                        'id' => $log->user->id,
-                        'name' => $log->user->name,
-                    ] : null,
-                    'created_at' => $log->created_at?->toIso8601String(),
-                ]),
+                'recent_tenants' => $recentTenantsPayload,
+                'recent_activity' => $recentActivityPayload,
             ],
         ]);
     }

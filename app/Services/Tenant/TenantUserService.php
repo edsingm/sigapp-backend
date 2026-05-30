@@ -7,6 +7,7 @@ use App\Models\Tenant\User;
 use App\Repositories\Tenant\UserRepository;
 use App\Services\Acl\PermissionNameResolver;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Permission;
 
@@ -51,7 +52,9 @@ class TenantUserService
         }
 
         if ($role !== null && $role !== '') {
-            $query->role($role);
+            $query->whereHas('roles', function (Builder $builder) use ($role): void {
+                $builder->where('name', $role);
+            });
         }
 
         return $query->orderBy($sort, $order)->paginate($perPage);
@@ -84,7 +87,7 @@ class TenantUserService
         $role = $data['role'] ?? RolesEnum::USER->value;
         $user->syncRoles([$role]);
 
-        return $user->fresh(['roles', 'permissions', 'department', 'position']);
+        return $user->load(['roles', 'permissions', 'department', 'position']);
     }
 
     /**

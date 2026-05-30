@@ -37,7 +37,7 @@ class RegionalRepository implements RegionalRepositoryInterface
 
     public function create(array $data): Regional
     {
-        return Regional::create($data);
+        return Regional::query()->create($data);
     }
 
     public function update(Regional $regional, array $data): Regional
@@ -54,8 +54,11 @@ class RegionalRepository implements RegionalRepositoryInterface
 
     public function forSelect(): Collection
     {
-        return Regional::query()
+        /** @var Collection<int, Regional> $regionais */
+        $regionais = Regional::query()
             ->orderBy('nome')
             ->get(['id', 'nome']);
+
+        return $regionais;
     }
 }

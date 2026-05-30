@@ -22,11 +22,11 @@ trait LogsAudit
             $request = request();
 
             AuditLog::create([
-                'user_id' => $request?->user()?->id,
+                'user_id' => $request->user()?->id,
                 'action' => $action,
                 'description' => $description,
-                'ip_address' => $request?->ip(),
-                'user_agent' => $request?->userAgent(),
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
                 'metadata' => $metadata ?: null,
             ]);
         } catch (\Throwable $e) {

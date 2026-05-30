@@ -2,7 +2,9 @@
 
 namespace App\Services\Tenant\Viabilidade\v1\Calculos;
 
+use App\Models\Tenant\Produto;
 use App\Models\Tenant\Terreno;
+use App\Models\Tenant\TerrenoProduto;
 use App\Services\Tenant\Viabilidade\v1\ImpostosService;
 use Carbon\Carbon;
 
@@ -12,6 +14,11 @@ class ProdutosProcessor
         private readonly ImpostosService $impostosService,
     ) {}
 
+    /**
+     * @param  array<string, mixed>  $params
+     * @param  list<array<string, mixed>>|null  $customProdutos
+     * @return array<string, mixed>
+     */
     public function processar(Terreno $terreno, array $params, ?array $customProdutos): array
     {
         $dados = [
@@ -45,13 +52,15 @@ class ProdutosProcessor
             }
         }
 
-        foreach ($terreno->terrenoProdutos as $terrenoProduto) {
-            if (! $terrenoProduto?->produto) {
+        /** @var \Illuminate\Database\Eloquent\Collection<int, TerrenoProduto> $terrenoProdutos */
+        $terrenoProdutos = $terreno->terrenoProdutos()->with('produto')->get();
+
+        foreach ($terrenoProdutos as $terrenoProduto) {
+            $produto = $terrenoProduto->produto()->first();
+            if (! $produto instanceof Produto) {
                 continue;
             }
-
-            $produto = $terrenoProduto->produto;
-            $cp = $customMap[$terrenoProduto->id] ?? [];
+            $cp = $customMap[$terrenoProduto->getKey()] ?? [];
 
             $unidades = $cp['unidades'] ?? $terrenoProduto->unidades ?? 1;
             $valor = $cp['valor'] ?? $terrenoProduto->valor ?? 0;
@@ -103,9 +112,9 @@ class ProdutosProcessor
             $dados['custoInfraestrutura'] += $custoInfra * ($unidades - $permutas);
 
             $dados['produtos'][] = [
-                'id' => $produto->id,
-                'terreno_produto_id' => $terrenoProduto->id,
-                'nome' => $produto->name,
+                'id' => $produto->getKey(),
+                'terreno_produto_id' => $terrenoProduto->getKey(),
+                'nome' => (string) $produto->getAttribute('name'),
                 'preco' => $valor,
                 'metragem' => $areaPrivativa,
                 'quantidade_unidades' => $unidades,
@@ -158,6 +167,11 @@ class ProdutosProcessor
         return $dados;
     }
 
+    /**
+     * @param  array<string, mixed>  $params
+     * @param  array<string, mixed>  $dadosProdutos
+     * @return array<string, mixed>
+     */
     public function mesclarParametros(array $params, array $dadosProdutos): array
     {
         $produtos = $dadosProdutos['produtos'] ?? [];
@@ -202,6 +216,9 @@ class ProdutosProcessor
         return $params;
     }
 
+    /**
+     * @return list<float>
+     */
     private function extrairAssistenciaTecnicaProduto(mixed $produto): array
     {
         return [

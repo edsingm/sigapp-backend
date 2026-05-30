@@ -15,7 +15,7 @@ class CentralUserRepository implements CentralUserRepositoryInterface
 
     public function findById(int $id): ?User
     {
-        return User::find($id);
+        return User::query()->find($id);
     }
 
     public function paginate(int $perPage = 15): LengthAwarePaginator
@@ -30,7 +30,7 @@ class CentralUserRepository implements CentralUserRepositoryInterface
      */
     public function create(array $data): User
     {
-        return User::create($data);
+        return User::query()->create($data);
     }
 
     /**

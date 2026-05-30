@@ -12,23 +12,30 @@ class InvoiceResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $lines = $this->value('lines');
+
         return [
-            'id' => $this->id,
-            'number' => $this->number,
-            'status' => $this->status,
-            'amount_due' => $this->amount_due,
-            'amount_paid' => $this->amount_paid,
-            'amount_remaining' => $this->amount_remaining,
-            'currency' => $this->currency,
-            'hosted_invoice_url' => $this->hosted_invoice_url,
-            'invoice_pdf' => $this->invoice_pdf,
-            'created_at' => $this->created_at,
-            'period_start' => $this->period_start,
-            'period_end' => $this->period_end,
+            'id' => $this->value('id'),
+            'number' => $this->value('number'),
+            'status' => $this->value('status'),
+            'amount_due' => $this->value('amount_due'),
+            'amount_paid' => $this->value('amount_paid'),
+            'amount_remaining' => $this->value('amount_remaining'),
+            'currency' => $this->value('currency'),
+            'hosted_invoice_url' => $this->value('hosted_invoice_url'),
+            'invoice_pdf' => $this->value('invoice_pdf'),
+            'created_at' => $this->value('created_at'),
+            'period_start' => $this->value('period_start'),
+            'period_end' => $this->value('period_end'),
             'lines' => $this->when(
-                $request->boolean('include_lines') && isset($this->lines),
-                fn () => $this->lines
+                $request->boolean('include_lines') && is_array($lines),
+                fn () => $lines
             ),
         ];
+    }
+
+    private function value(string $key): mixed
+    {
+        return is_array($this->resource) ? ($this->resource[$key] ?? null) : data_get($this->resource, $key);
     }
 }

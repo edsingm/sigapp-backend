@@ -11,6 +11,16 @@ class IndicadoresCalculator
         private readonly ImpostosService $impostosService,
     ) {}
 
+    /**
+     * @param  array<string, array<string, mixed>>  $fluxo
+     * @param  array<string, Carbon>  $datas
+     * @param  array<string, mixed>  $params
+     * @param  array<string, mixed>  $dadosProdutos
+     * @return array{
+     *   0: array<string, array<string, float|int>>,
+     *   1: array<string, float|int|string|null>
+     * }
+     */
     public function calcularIndicadoresFinanceiros(array $fluxo, array $datas, array $params, array $dadosProdutos): array
     {
         $fluxoFinanceiro = [];
@@ -128,6 +138,11 @@ class IndicadoresCalculator
         return pow(1 + $taxaAnual, 1 / 12) - 1;
     }
 
+    /**
+     * @param  array<string, array<string, mixed>>  $fluxo
+     * @param  array<string, mixed>  $dadosProdutos
+     * @return array<string, float|int|string|null>
+     */
     public function calcularIndicadoresVso(array $fluxo, array $dadosProdutos): array
     {
         $unidadesConstrutora = max(1, (int) ($dadosProdutos['totalUnidadesConstrutora'] ?? $dadosProdutos['totalUnidades'] ?? 1));
@@ -168,6 +183,11 @@ class IndicadoresCalculator
         ];
     }
 
+    /**
+     * @param  array<string, array<string, mixed>>  $fluxo
+     * @param  array<string, mixed>  $dadosProdutos
+     * @return array{vso_janelas: array<string, array<string, float|int>>}
+     */
     public function calcularIndicadoresVsoJanelas(array $fluxo, array $dadosProdutos): array
     {
         $unidadesConstrutora = max(1, (int) ($dadosProdutos['totalUnidadesConstrutora'] ?? $dadosProdutos['totalUnidades'] ?? 1));
@@ -200,7 +220,7 @@ class IndicadoresCalculator
 
             $ultimo = end($somasMoveis) ?: 0;
             $maximo = max($somasMoveis);
-            $media = count($somasMoveis) > 0 ? (array_sum($somasMoveis) / count($somasMoveis)) : 0;
+            $media = array_sum($somasMoveis) / count($somasMoveis);
 
             $resultado[$janela.'m'] = [
                 'ultimo_percentual' => round(($ultimo / $unidadesConstrutora) * 100, 2),
@@ -214,6 +234,9 @@ class IndicadoresCalculator
         ];
     }
 
+    /**
+     * @param  list<array{data?: Carbon, valor: float|int}>  $fluxo
+     */
     public function calcularTir(array $fluxo): float
     {
         $temPositivo = false;
@@ -242,10 +265,7 @@ class IndicadoresCalculator
                 if (abs($df) < 1e-10) {
                     break;
                 }
-                $proximaTaxa = $taxa - ($f / $df);
-                if ($proximaTaxa <= -1) {
-                    break;
-                }
+                $proximaTaxa = max(-0.999999, (float) ($taxa - ($f / $df)));
                 if (abs($proximaTaxa - $taxa) < 1e-8) {
                     return pow(1 + $proximaTaxa, 12) - 1;
                 }

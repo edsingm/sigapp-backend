@@ -349,6 +349,7 @@ class PlanilhaConformidadeTest extends TestCase
 
         // Agrupar por fase + totais
         $porFase = [];
+        /** @var array<string, array{entradas: float|int, saidas: float|int, saldo: float|int, meses: int, minSaldo: float|int|null, maxSaldo: float|int|null}> $totaisFase */
         $totaisFase = [];
         $periodosEncontrados = [];
         foreach ($fluxo as $mes => $linha) {
@@ -362,6 +363,9 @@ class PlanilhaConformidadeTest extends TestCase
         
         foreach ($fluxo as $mes => $linha) {
             $periodo = $linha['periodo'] ?? '?';
+            if (! isset($totaisFase[$periodo])) {
+                $totaisFase[$periodo] = ['entradas' => 0, 'saidas' => 0, 'saldo' => 0, 'meses' => 0, 'minSaldo' => null, 'maxSaldo' => null];
+            }
             $receita = $linha['receitas']['total'] ?? 0;
             $custos = $linha['despesas']['total'] ?? 0;
             $acum = $linha['saldo_acumulado_mes'] ?? 0;

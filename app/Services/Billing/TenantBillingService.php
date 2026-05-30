@@ -151,6 +151,10 @@ class TenantBillingService
      */
     public function getAdminFinanceOverview(Tenant $tenant): array
     {
+        $tenantStatus = (string) $tenant->getAttribute('status');
+        $tenantStripeId = $tenant->getAttribute('stripe_id');
+        $trialEndsAt = $tenant->getAttribute('trial_ends_at');
+
         $finance = [
             'has_payment_method' => false,
             'card_brand' => null,
@@ -158,14 +162,14 @@ class TenantBillingService
             'card_exp_month' => null,
             'card_exp_year' => null,
             'invoices' => [],
-            'subscription_status' => $tenant->status,
+            'subscription_status' => $tenantStatus,
             'renews_at' => null,
             'canceled_at' => null,
             'error' => null,
         ];
 
         try {
-            if ($tenant->stripe_id) {
+            if (is_string($tenantStripeId) && $tenantStripeId !== '') {
                 $finance['has_payment_method'] = $tenant->hasDefaultPaymentMethod();
 
                 if ($finance['has_payment_method']) {
@@ -183,9 +187,11 @@ class TenantBillingService
 
                 if ($subscription !== null) {
                     $finance['subscription_status'] = $subscription->stripe_status;
+                    $stripeSubscriptionData = $subscription->asStripeSubscription();
+                    $currentPeriodEnd = data_get($stripeSubscriptionData, 'current_period_end');
                     $finance['renews_at'] = $subscription->ends_at
                         ? null
-                        : $subscription->asStripeSubscription()->current_period_end;
+                        : (is_int($currentPeriodEnd) ? $currentPeriodEnd : null);
                     $finance['canceled_at'] = $subscription->ends_at;
                 }
 
@@ -202,7 +208,7 @@ class TenantBillingService
                 }
             } elseif ($tenant->onTrial()) {
                 $finance['subscription_status'] = 'trialing';
-                $finance['renews_at'] = $tenant->trial_ends_at?->timestamp;
+                $finance['renews_at'] = $trialEndsAt?->timestamp;
             }
         } catch (\Throwable $exception) {
             $finance['error'] = 'Erro ao carregar dados do Stripe: '.$exception->getMessage();
@@ -218,19 +224,22 @@ class TenantBillingService
     {
         $tenant->load('plan');
         $localSubscription = $tenant->subscription('default');
+        $tenantStripeId = $tenant->getAttribute('stripe_id');
+        $tenantStripeSubscriptionId = $tenant->getAttribute('stripe_subscription_id');
+        $tenantTrialEndsAt = $tenant->getAttribute('trial_ends_at');
 
         $stripeData = null;
         $invoices = [];
         $stripeError = null;
 
-        if ($tenant->stripe_id) {
+        if (is_string($tenantStripeId) && $tenantStripeId !== '') {
             try {
                 $stripe = $tenant->stripe();
-                $customer = $stripe->customers->retrieve($tenant->stripe_id, []);
+                $customer = $stripe->customers->retrieve($tenantStripeId, []);
 
                 $stripeSubscription = null;
-                if ($tenant->stripe_subscription_id) {
-                    $stripeSubscription = $stripe->subscriptions->retrieve($tenant->stripe_subscription_id, []);
+                if (is_string($tenantStripeSubscriptionId) && $tenantStripeSubscriptionId !== '') {
+                    $stripeSubscription = $stripe->subscriptions->retrieve($tenantStripeSubscriptionId, []);
                 }
 
                 $defaultPaymentMethod = null;
@@ -260,11 +269,11 @@ class TenantBillingService
                         'id' => $stripeSubscription->id ?? null,
                         'status' => $stripeSubscription->status ?? null,
                         'collection_method' => $stripeSubscription->collection_method ?? null,
-                        'current_period_start' => $stripeSubscription->current_period_start
-                            ? Carbon::createFromTimestamp($stripeSubscription->current_period_start)->toIso8601String()
+                        'current_period_start' => is_int(data_get($stripeSubscription, 'current_period_start'))
+                            ? Carbon::createFromTimestamp((int) data_get($stripeSubscription, 'current_period_start'))->toIso8601String()
                             : null,
-                        'current_period_end' => $stripeSubscription->current_period_end
-                            ? Carbon::createFromTimestamp($stripeSubscription->current_period_end)->toIso8601String()
+                        'current_period_end' => is_int(data_get($stripeSubscription, 'current_period_end'))
+                            ? Carbon::createFromTimestamp((int) data_get($stripeSubscription, 'current_period_end'))->toIso8601String()
                             : null,
                         'cancel_at' => $stripeSubscription->cancel_at
                             ? Carbon::createFromTimestamp($stripeSubscription->cancel_at)->toIso8601String()
@@ -279,7 +288,7 @@ class TenantBillingService
                 ];
 
                 $stripeInvoices = $stripe->invoices->all([
-                    'customer' => $tenant->stripe_id,
+                    'customer' => $tenantStripeId,
                     'limit' => 8,
                 ]);
 
@@ -312,10 +321,10 @@ class TenantBillingService
 
         return [
             'on_trial' => $tenant->onTrial(),
-            'trial_ends_at' => $tenant->trial_ends_at?->toIso8601String(),
+            'trial_ends_at' => $tenantTrialEndsAt?->toIso8601String(),
             'trial_ended' => $tenant->trialEnded(),
-            'stripe_customer_id' => $tenant->stripe_id,
-            'stripe_subscription_id' => $tenant->stripe_subscription_id,
+            'stripe_customer_id' => $tenantStripeId,
+            'stripe_subscription_id' => $tenantStripeSubscriptionId,
             'local_subscription' => $localSubscription ? [
                 'stripe_status' => $localSubscription->stripe_status,
                 'trial_ends_at' => $localSubscription->trial_ends_at?->toIso8601String(),
@@ -335,7 +344,7 @@ class TenantBillingService
 
         $newPlan = Plan::where('stripe_price_id', $priceId)->first();
 
-        if ($newPlan && $newPlan->id !== $tenant->plan_id) {
+        if ($newPlan && $newPlan->id !== $tenant->getAttribute('plan_id')) {
             $tenant->update(['plan_id' => $newPlan->id]);
         }
     }
@@ -365,6 +374,7 @@ class TenantBillingService
     public function syncSubscription(Tenant $tenant, string $subscriptionId): void
     {
         $stripeSubscription = $this->retrieveSubscription($subscriptionId);
+        $tenantTrialEndsAt = $tenant->getAttribute('trial_ends_at');
         $subscriptionItems = $stripeSubscription->items->data ?? [];
         $primaryItem = $subscriptionItems[0] ?? null;
 
@@ -404,10 +414,10 @@ class TenantBillingService
         // corrigindo possível dessincronização entre o valor local (calculado no signup)
         // e o valor real registrado no Stripe (contado a partir do checkout completion).
         if ($stripeSubscription->trial_end) {
-            if (! $tenant->trial_ends_at || ! $tenant->trial_ends_at->eq($trialEndsAt)) {
+            if (! $tenantTrialEndsAt || ! $tenantTrialEndsAt->eq($trialEndsAt)) {
                 $tenant->update(['trial_ends_at' => $trialEndsAt]);
             }
-        } elseif ($tenant->trial_ends_at && $stripeSubscription->status !== 'trialing') {
+        } elseif ($tenantTrialEndsAt && $stripeSubscription->status !== 'trialing') {
             // Trial encerrado no Stripe mas ainda definido localmente — limpa
             $tenant->update(['trial_ends_at' => null]);
         }
@@ -415,7 +425,10 @@ class TenantBillingService
 
     public function reconcileTenantActivation(Tenant $tenant): array
     {
-        if ($tenant->onTrial() && ! $tenant->stripe_subscription_id) {
+        $tenantTrialEndsAt = $tenant->getAttribute('trial_ends_at');
+        $tenantStripeSubscriptionId = $tenant->getAttribute('stripe_subscription_id');
+
+        if ($tenant->onTrial() && (! is_string($tenantStripeSubscriptionId) || $tenantStripeSubscriptionId === '')) {
             $tenant->activate();
 
             return [
@@ -425,7 +438,7 @@ class TenantBillingService
             ];
         }
 
-        if (! $tenant->stripe_subscription_id) {
+        if (! is_string($tenantStripeSubscriptionId) || $tenantStripeSubscriptionId === '') {
             return [
                 'eligible' => false,
                 'source' => 'missing_subscription_reference',
@@ -433,12 +446,12 @@ class TenantBillingService
             ];
         }
 
-        $subscription = $this->retrieveSubscription($tenant->stripe_subscription_id);
+        $subscription = $this->retrieveSubscription($tenantStripeSubscriptionId);
         $stripeStatus = (string) ($subscription->status ?? '');
 
         $tenant->update([
-            'stripe_id' => $subscription->customer ?? $tenant->stripe_id,
-            'stripe_subscription_id' => $subscription->id ?? $tenant->stripe_subscription_id,
+            'stripe_id' => $subscription->customer ?? $tenant->getAttribute('stripe_id'),
+            'stripe_subscription_id' => $subscription->id ?? $tenantStripeSubscriptionId,
         ]);
 
         $this->syncPlanFromPriceId($tenant, $subscription->items->data[0]->price->id ?? null);
@@ -460,6 +473,8 @@ class TenantBillingService
      */
     public function getPaymentRetryStatus(Tenant $tenant): array
     {
+        $tenantStatus = (string) $tenant->getAttribute('status');
+        $tenantStripeId = $tenant->getAttribute('stripe_id');
         $result = [
             'is_past_due' => false,
             'attempt_count' => 0,
@@ -469,10 +484,10 @@ class TenantBillingService
             'invoice_url' => null,
             'invoice_id' => null,
             'can_retry' => false,
-            'subscription_status' => $tenant->status,
+            'subscription_status' => $tenantStatus,
         ];
 
-        if (! $tenant->stripe_id) {
+        if (! is_string($tenantStripeId) || $tenantStripeId === '') {
             return $result;
         }
 
@@ -480,7 +495,7 @@ class TenantBillingService
             $stripe = $this->stripe();
 
             $invoices = $stripe->invoices->all([
-                'customer' => $tenant->stripe_id,
+                'customer' => $tenantStripeId,
                 'status' => 'open',
                 'limit' => 1,
             ]);
@@ -496,7 +511,7 @@ class TenantBillingService
                     $result['currency'] = $invoice->currency ?? 'brl';
                     $result['invoice_url'] = $invoice->hosted_invoice_url ?? null;
                     $result['invoice_id'] = $invoice->id ?? null;
-                    $result['can_retry'] = $tenant->status !== TenantStatus::CANCELLED->value;
+                    $result['can_retry'] = $tenantStatus !== TenantStatus::CANCELLED->value;
 
                     if ($invoice->next_payment_attempt) {
                         $result['next_retry_at'] = Carbon::createFromTimestamp(
@@ -517,7 +532,8 @@ class TenantBillingService
      */
     public function triggerPaymentRetry(Tenant $tenant): bool
     {
-        if (! $tenant->stripe_id) {
+        $tenantStripeId = $tenant->getAttribute('stripe_id');
+        if (! is_string($tenantStripeId) || $tenantStripeId === '') {
             return false;
         }
 
@@ -525,7 +541,7 @@ class TenantBillingService
             $stripe = $this->stripe();
 
             $invoices = $stripe->invoices->all([
-                'customer' => $tenant->stripe_id,
+                'customer' => $tenantStripeId,
                 'status' => 'open',
                 'limit' => 1,
             ]);
@@ -553,7 +569,7 @@ class TenantBillingService
     public function notifyPaymentRetry(Tenant $tenant, int $attemptCount, ?string $invoiceUrl = null): void
     {
         $tenant->notify(new PaymentRetryNotification(
-            tenantName: $tenant->name,
+            tenantName: (string) $tenant->getAttribute('name'),
             attemptCount: $attemptCount,
             invoiceUrl: $invoiceUrl,
         ));

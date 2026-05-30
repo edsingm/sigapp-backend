@@ -122,7 +122,8 @@ class ViabilidadeCalculationResource extends JsonResource
             return [];
         }
 
-        return collect($produtos)->map(function (mixed $produto): array {
+        /** @var list<array<string, mixed>> $items */
+        $items = array_values(collect($produtos)->map(function (mixed $produto): array {
             if (! is_array($produto)) {
                 return [];
             }
@@ -140,7 +141,9 @@ class ViabilidadeCalculationResource extends JsonResource
                 'custo_m2' => $produto['custo_m2'] ?? null,
                 'custo_infra_por_lote' => $produto['custo_infraestrutura'] ?? null,
             ];
-        })->filter()->values()->all();
+        })->filter(static fn (array $produto): bool => $produto !== [])->values()->all());
+
+        return $items;
     }
 
     /**
@@ -153,7 +156,8 @@ class ViabilidadeCalculationResource extends JsonResource
             return self::DEFAULT_INCLUDES;
         }
 
-        return collect(array_merge(
+        /** @var list<string> $include */
+        $include = array_values(collect(array_merge(
             self::DEFAULT_INCLUDES,
             explode(',', $raw)
         ))
@@ -161,7 +165,9 @@ class ViabilidadeCalculationResource extends JsonResource
             ->filter()
             ->unique()
             ->values()
-            ->all();
+            ->all());
+
+        return $include;
     }
 
     /**

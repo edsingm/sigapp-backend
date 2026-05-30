@@ -46,7 +46,6 @@ class EnumTest extends TestCase
     public function test_tenant_status_label_retorna_string(): void
     {
         foreach (TenantStatus::cases() as $case) {
-            $this->assertIsString($case->label());
             $this->assertNotEmpty($case->label());
         }
     }
@@ -255,17 +254,24 @@ class EnumTest extends TestCase
 
     public function test_tryfrom_rejeita_valores_invalidos(): void
     {
-        $this->assertNull(TenantStatus::tryFrom('invalid'));
-        $this->assertNull(AccessLevel::tryFrom('invalid'));
-        $this->assertNull(EntitlementType::tryFrom('invalid'));
-        $this->assertNull(RolesEnum::tryFrom('invalid'));
-        $this->assertNull(SectorsEnum::tryFrom('invalid'));
-        $this->assertNull(SubmodulesEnum::tryFrom('invalid'));
-        $this->assertNull(LegalizacaoEtapaStatus::tryFrom('invalid'));
-        $this->assertNull(LegalizacaoStatus::tryFrom('invalid'));
-        $this->assertNull(PerfilFinanciamento::tryFrom('invalid'));
-        $this->assertNull(ProjetoStatus::tryFrom('invalid'));
-        $this->assertNull(UserType::tryFrom('invalid'));
-        $this->assertNull(WorkflowStatus::tryFrom('invalid'));
+        $invalidValue = $this->invalidEnumValue();
+
+        $this->assertNull(TenantStatus::tryFrom($invalidValue));
+        $this->assertNull(AccessLevel::tryFrom($invalidValue));
+        $this->assertNull(EntitlementType::tryFrom($invalidValue));
+        $this->assertNull(RolesEnum::tryFrom($invalidValue));
+        $this->assertNull(SectorsEnum::tryFrom($invalidValue));
+        $this->assertNull(SubmodulesEnum::tryFrom($invalidValue));
+        $this->assertNull(LegalizacaoEtapaStatus::tryFrom($invalidValue));
+        $this->assertNull(LegalizacaoStatus::tryFrom($invalidValue));
+        $this->assertNull(PerfilFinanciamento::tryFrom($invalidValue));
+        $this->assertNull(ProjetoStatus::tryFrom($invalidValue));
+        $this->assertNull(UserType::tryFrom($invalidValue));
+        $this->assertNull(WorkflowStatus::tryFrom($invalidValue));
+    }
+
+    private function invalidEnumValue(): string
+    {
+        return '__invalid_enum_value__';
     }
 }

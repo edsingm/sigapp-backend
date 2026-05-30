@@ -15,10 +15,13 @@ class PlanRolePermissionTemplateRepository implements PlanRolePermissionTemplate
      */
     public function findByPlanId(int $planId): Collection
     {
-        return PlanRolePermissionTemplate::query()
+        /** @var Collection<int, PlanRolePermissionTemplate> $templates */
+        $templates = PlanRolePermissionTemplate::query()
             ->where('plan_id', $planId)
             ->orderBy('role_slug')
             ->orderBy('permission_name')
             ->get();
+
+        return $templates;
     }
 }

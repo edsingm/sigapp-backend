@@ -13,6 +13,13 @@ class DespesasCalculator
         private readonly DreCalculator $dreCalculator,
     ) {}
 
+    /**
+     * @param  array<string, mixed>  $receitas
+     * @param  array<string, mixed>  $dadosProdutos
+     * @param  array<string, Carbon>  $datas
+     * @param  array<string, mixed>  $params
+     * @return array{total: float|int, detalhes: array<string, float|int>, categorias: array<string, float|int>}
+     */
     public function calcular(
         string $mes,
         array $receitas,
@@ -135,6 +142,12 @@ class DespesasCalculator
         ];
     }
 
+    /**
+     * @param  array<string, Carbon>  $datas
+     * @param  array<string, mixed>  $params
+     * @param  array<string, mixed>  $dadosProdutos
+     * @return array{detalhes: array<string, float|int>, total: float|int}
+     */
     private function calcularCustosDiretos(
         string $mes,
         string $periodo,
@@ -208,6 +221,12 @@ class DespesasCalculator
         ];
     }
 
+    /**
+     * @param  array<string, mixed>  $dadosProdutos
+     * @param  array<string, Carbon>  $datas
+     * @param  array<string, mixed>  $params
+     * @return array{total: float|int, detalhes: array<string, float|int>}
+     */
     private function calcularCustosOperacionais(
         string $mes,
         array $dadosProdutos,
@@ -224,6 +243,12 @@ class DespesasCalculator
         ];
     }
 
+    /**
+     * @param  array<string, mixed>  $receitas
+     * @param  array<string, mixed>  $dadosProdutos
+     * @param  array<string, mixed>  $params
+     * @return array{ret_imoveis: float, ret_lotes: float, iss: float, outras: float, total: float}
+     */
     private function calcularDeducoesMensais(array $receitas, array $dadosProdutos, array $params): array
     {
         $receitaMes = (float) ($receitas['total'] ?? 0.0);
@@ -302,6 +327,13 @@ class DespesasCalculator
         return $receitaTotal > 0 ? ($totalCustoTerreno * $receitaMes) / $receitaTotal : 0;
     }
 
+    /**
+     * @param  array<string, mixed>  $receitas
+     * @param  array<string, mixed>  $dadosProdutos
+     * @param  array<string, Carbon>  $datas
+     * @param  array<string, mixed>  $params
+     * @return array{parceria: float, permuta_fisica: float, comissao_corretor: float, total: float}
+     */
     private function calcularPagamentoTerreno(string $mes, string $periodo, array $receitas, array $dadosProdutos, array $datas, array $params, ViabilidadeFluxoContext $ctx): array
     {
         $receitaMes = max(0.0, (float) ($receitas['total'] ?? 0.0));
@@ -420,6 +452,12 @@ class DespesasCalculator
         return $total;
     }
 
+    /**
+     * @param  array<string, mixed>  $dadosProdutos
+     * @param  array<string, Carbon>  $datas
+     * @param  array<string, mixed>  $params
+     * @return array{total: float|int, detalhes: array<string, float|int>}
+     */
     private function calcularDespesasComerciaisMensais(
         string $mes,
         array $dadosProdutos,
@@ -451,7 +489,7 @@ class DespesasCalculator
             ? ($custoTotalStand / max(1, (int) ($params['mesesLancamento'] ?? 1)))
             : 0;
         $gastosMensaisStand = $this->mesEstaEntre($dataAtual, $datas['dataLancamento'], $datas['fimObra'])
-            ? (float) (($params['gastosMensaisStand'] * $dadosProdutos['vgv']) / 100 ?? 0.0)
+            ? (float) (($params['gastosMensaisStand'] * $dadosProdutos['vgv']) / 100)
             : 0.0;
         $ajudaCustoGerentes = $this->mesEstaEntre($dataAtual, $datas['dataLancamento'], $datas['fimObra'])
             ? (float) (($params['ajudaCustoGerente'] ?? 0) + ($params['ajudaCustoGerenteRegional']))
@@ -496,6 +534,12 @@ class DespesasCalculator
         ];
     }
 
+    /**
+     * @param  array<string, mixed>  $dadosProdutos
+     * @param  array<string, Carbon>  $datas
+     * @param  array<string, mixed>  $params
+     * @return array{total: float|int}
+     */
     private function calcularMarketingMensal(
         string $mes,
         array $dadosProdutos,
@@ -574,7 +618,7 @@ class DespesasCalculator
 
         $totalDespesasComerciais = $vgvSemPermuta * (float) ($params['percentualDespesasComerciais'] ?? 0.0);
         $totalConstrucaoStand = max(0.0, (float) ($params['standVendas'] ?? 0.0) + (float) ($params['mobiliaDecoracao'] ?? 0.0));
-        $gastoStandMensalEfetivo = max(0.0, (($params['gastosMensaisStand'] * $vgvTotal) / 100) ?? 0.0);
+        $gastoStandMensalEfetivo = max(0.0, (($params['gastosMensaisStand'] * $vgvTotal) / 100));
         $totalGastoStandMensal = $gastoStandMensalEfetivo * $mesesComercial;
         // No residual comercial, a planilha considera comissão total sobre o VGV total.
         $totalComissao = max(0.0, $vgvTotal * $taxaComissaoMedia);
@@ -669,6 +713,9 @@ class DespesasCalculator
         return 'Indefinido';
     }
 
+    /**
+     * @return list<float>
+     */
     private function agregarCurvaObra(int $mesesObra): array
     {
         return $this->curvaService->getCurvaObraParaPrazo($mesesObra);

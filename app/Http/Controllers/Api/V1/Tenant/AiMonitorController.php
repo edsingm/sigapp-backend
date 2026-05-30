@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Tenant;
 use App\Http\Controllers\Controller;
 use App\Models\Tenant\Terreno;
 use App\Services\Tenant\AiMonitorService;
+use Illuminate\Support\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -27,6 +28,7 @@ class AiMonitorController extends Controller
         $focusArea = $request->get('focus_area');
         $limit = min($request->integer('limit', 50), 200);
 
+        /** @var Collection<int, array<string, mixed>> $alerts */
         $alerts = collect();
 
         if ($focusArea === null || $focusArea === 'stalled') {
@@ -52,18 +54,36 @@ class AiMonitorController extends Controller
         ]);
     }
 
-    protected function detectStalledTerrains(int $limit)
+    /**
+     * @return list<array<string, mixed>>
+     */
+    protected function detectStalledTerrains(int $limit): array
     {
-        return $this->aiMonitorService->detectStalledTerrains($limit);
+        /** @var list<array<string, mixed>> $alerts */
+        $alerts = $this->aiMonitorService->detectStalledTerrains($limit)->values()->all();
+
+        return $alerts;
     }
 
-    protected function detectInconsistencies(int $limit)
+    /**
+     * @return list<array<string, mixed>>
+     */
+    protected function detectInconsistencies(int $limit): array
     {
-        return $this->aiMonitorService->detectInconsistencies($limit);
+        /** @var list<array<string, mixed>> $alerts */
+        $alerts = $this->aiMonitorService->detectInconsistencies($limit)->values()->all();
+
+        return $alerts;
     }
 
-    protected function detectOverdueItems(int $limit)
+    /**
+     * @return list<array<string, mixed>>
+     */
+    protected function detectOverdueItems(int $limit): array
     {
-        return $this->aiMonitorService->detectOverdueItems($limit);
+        /** @var list<array<string, mixed>> $alerts */
+        $alerts = $this->aiMonitorService->detectOverdueItems($limit)->values()->all();
+
+        return $alerts;
     }
 }

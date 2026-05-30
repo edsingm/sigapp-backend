@@ -2,9 +2,11 @@
 
 namespace App\Http\Resources\Tenant;
 
+use App\Models\Tenant\Viabilidade;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/** @mixin Viabilidade */
 class ViabilidadeResource extends JsonResource
 {
     /**
@@ -20,6 +22,9 @@ class ViabilidadeResource extends JsonResource
     public function toArray(Request $request): array
     {
         $include = $this->parseInclude($request);
+        $perfilFinanciamento = $this->getAttribute('perfil_financiamento');
+        $terreno = $this->relationLoaded('terreno') ? $this->resource->getRelation('terreno') : null;
+        $updatedBy = $this->relationLoaded('updatedBy') ? $this->resource->getRelation('updatedBy') : null;
 
         $data = [
             'id' => $this->id,
@@ -51,7 +56,7 @@ class ViabilidadeResource extends JsonResource
             'comissao_house_percentual' => (float) $this->comissao_house_percentual,
             'comissao_imobiliarias_percentual' => (float) $this->comissao_imobiliarias_percentual,
             'percentual_vendas_house' => (float) $this->percentual_vendas_house,
-            'construcao_stand_meses_antes_lancamento' => (int) $this->construcao_stand_meses_antes_lancamento,
+            'construcao_stand_meses_antes_lancamento' => (int) $this->getAttribute('construcao_stand_meses_antes_lancamento'),
             'ajuda_custo_gerente' => (float) $this->ajuda_custo_gerente,
             'ajuda_custo_gerente_regional' => (float) $this->ajuda_custo_gerente_regional,
             'reembolso_logistica' => (float) $this->reembolso_logistica,
@@ -60,7 +65,7 @@ class ViabilidadeResource extends JsonResource
             'bonus_gerente_regional' => (float) $this->bonus_gerente_regional,
             'bonus_credito' => (float) $this->bonus_credito,
             'bonus_gestor_comercial' => (float) $this->bonus_gestor_comercial,
-            'bonus_equipe_comercial' => (float) $this->bonus_equipe_comercial,
+            'bonus_equipe_comercial' => (float) $this->getAttribute('bonus_equipe_comercial'),
             'pagamento_comissao_venda' => (float) $this->pagamento_comissao_venda,
             'pagamento_comissao_desligamento' => (float) $this->pagamento_comissao_desligamento,
             'parcelamento_comissao_meses' => (int) $this->parcelamento_comissao_meses,
@@ -69,8 +74,8 @@ class ViabilidadeResource extends JsonResource
             'marketing_inicio_antes_lancamento' => (int) $this->marketing_inicio_antes_lancamento,
             'itbi_iptu' => (float) $this->itbi_iptu,
             'registro' => (float) $this->registro,
-            'custo_contratacao_cef' => (float) $this->custo_contratacao_cef,
-            'custo_medicao_cef' => (float) $this->custo_medicao_cef,
+            'custo_contratacao_cef' => (float) $this->getAttribute('custo_contratacao_cef'),
+            'custo_medicao_cef' => (float) $this->getAttribute('custo_medicao_cef'),
             'contratos_cef' => (float) $this->contratos_cef,
             'produtos_cef' => (float) $this->produtos_cef,
             'outras_despesas_financeiras' => (float) $this->outras_despesas_financeiras,
@@ -80,7 +85,9 @@ class ViabilidadeResource extends JsonResource
             'devolucao_aporte_percentual' => (float) $this->devolucao_aporte_percentual,
             'distribuicao_lucros_percentual_obra' => (float) $this->distribuicao_lucros_percentual_obra,
             'taxa_exposicao_aplicada' => (float) $this->taxa_exposicao_aplicada,
-            'perfil_financiamento' => $this->perfil_financiamento?->value ?? 'cef',
+            'perfil_financiamento' => $perfilFinanciamento instanceof \App\Enums\PerfilFinanciamento
+                ? $perfilFinanciamento->value
+                : 'cef',
             'status' => $this->status,
             'approval_status' => $this->approval_status ?? ($this->status === 'ativo' ? 'aprovada' : 'pendente'),
             'approval_requested_at' => $this->approval_requested_at?->toIso8601String(),
@@ -91,11 +98,11 @@ class ViabilidadeResource extends JsonResource
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
             'deleted_at' => $this->deleted_at?->format('Y-m-d H:i:s'),
-            'terreno' => $this->whenLoaded('terreno', fn () => [
-                'id' => $this->terreno->id,
-                'nome' => $this->terreno->nome,
-                'area' => $this->terreno->area_calculada,
-            ]),
+            'terreno' => $terreno instanceof \App\Models\Tenant\Terreno ? [
+                'id' => $terreno->id,
+                'nome' => $terreno->getAttribute('nome'),
+                'area' => $terreno->getAttribute('area_calculada'),
+            ] : null,
         ];
 
         if ($this->shouldInclude($include, 'auditoria')) {
@@ -104,9 +111,9 @@ class ViabilidadeResource extends JsonResource
                     'id' => $this->createdBy->id,
                     'name' => $this->createdBy->name,
                 ] : null,
-                'updated_by_user' => $this->relationLoaded('updatedBy') && $this->updatedBy ? [
-                    'id' => $this->updatedBy->id,
-                    'name' => $this->updatedBy->name,
+                'updated_by_user' => $updatedBy instanceof \App\Models\Tenant\User ? [
+                    'id' => $updatedBy->id,
+                    'name' => $updatedBy->name,
                 ] : null,
                 'approval_decided_by_user' => $this->relationLoaded('approvalDecidedBy') && $this->approvalDecidedBy ? [
                     'id' => $this->approvalDecidedBy->id,
@@ -145,12 +152,15 @@ class ViabilidadeResource extends JsonResource
             return self::DEFAULT_INCLUDES;
         }
 
-        return collect(explode(',', $raw))
+        /** @var list<string> $include */
+        $include = array_values(collect(explode(',', $raw))
             ->map(fn (string $item): string => trim($item))
             ->filter()
             ->unique()
             ->values()
-            ->all();
+            ->all());
+
+        return $include;
     }
 
     /**

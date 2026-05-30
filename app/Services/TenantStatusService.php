@@ -59,7 +59,8 @@ class TenantStatusService
      */
     public function refreshStats(): array
     {
-        $tenants = Tenant::query()->select(['id', 'slug'])->get();
+        /** @var \Illuminate\Database\Eloquent\Collection<int, Tenant> $tenants */
+        $tenants = Tenant::query()->get(['id', 'slug']);
         $totalTenants = $tenants->count();
         $totalTerrenos = 0;
         $totalProjetos = 0;

@@ -15,22 +15,24 @@ class AdminTenantDetailResource extends JsonResource
     {
         /** @var Tenant $tenant */
         $tenant = $this->resource['tenant'];
+        $trialEndsAt = $tenant->getAttribute('trial_ends_at');
+        $setupCompletedAt = $tenant->getAttribute('setup_completed_at');
 
         return [
             'id' => $tenant->id,
-            'name' => $tenant->name,
-            'slug' => $tenant->slug,
-            'status' => $tenant->status,
-            'admin_name' => $tenant->admin_name,
-            'admin_email' => $tenant->admin_email,
-            'stripe_id' => $tenant->stripe_id,
-            'stripe_subscription_id' => $tenant->stripe_subscription_id,
-            'database_created' => (bool) $tenant->database_created,
-            'trial_extended' => (bool) $tenant->trial_extended,
-            'trial_ends_at' => $tenant->trial_ends_at?->toIso8601String(),
+            'name' => $tenant->getAttribute('name'),
+            'slug' => $tenant->getAttribute('slug'),
+            'status' => $tenant->getAttribute('status'),
+            'admin_name' => $tenant->getAttribute('admin_name'),
+            'admin_email' => $tenant->getAttribute('admin_email'),
+            'stripe_id' => $tenant->getAttribute('stripe_id'),
+            'stripe_subscription_id' => $tenant->getAttribute('stripe_subscription_id'),
+            'database_created' => (bool) $tenant->getAttribute('database_created'),
+            'trial_extended' => (bool) $tenant->getAttribute('trial_extended'),
+            'trial_ends_at' => $trialEndsAt instanceof \DateTimeInterface ? $trialEndsAt->format(\DateTimeInterface::ATOM) : null,
             'on_trial' => $tenant->onTrial(),
             'trial_ended' => $tenant->trialEnded(),
-            'setup_completed_at' => $tenant->setup_completed_at?->toIso8601String(),
+            'setup_completed_at' => $setupCompletedAt instanceof \DateTimeInterface ? $setupCompletedAt->format(\DateTimeInterface::ATOM) : null,
             'created_at' => $tenant->created_at?->toIso8601String(),
             'updated_at' => $tenant->updated_at?->toIso8601String(),
             'plan' => new PlanResource($tenant->plan),

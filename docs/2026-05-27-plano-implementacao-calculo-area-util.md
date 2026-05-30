@@ -106,7 +106,7 @@ Implementar cálculo automático de área útil a partir do polígono do terreno
 
 ## 3. Dependências Externas
 
-### 3.1 API de Topografia (Declividade)
+### 3.1 API de Topografia (Declividade) -->> FEITO 27/05/2026
 
 **Opção 1: OpenTopography (Recomendado)**
 - **Dataset:** SRTM GL1 (30m) ou COP30 (30m)
@@ -125,7 +125,7 @@ Implementar cálculo automático de área útil a partir do polígono do terreno
 
 **Recomendação:** OpenTopography (gratuito, resolução adequada)
 
-### 3.2 API de Hidrografia (APP)
+### 3.2 API de Hidrografia (APP) -->> FEITO 27/05/2026
 
 **Opção 1: Dados estáticos (Recomendado para MVP)**
 - Download de shapefiles da ANA (Agência Nacional de Águas)

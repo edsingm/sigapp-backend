@@ -42,7 +42,6 @@ class CheckSubscriptionStatusTest extends TestCase
     public function test_tenant_status_label_retorna_string(): void
     {
         foreach (TenantStatus::cases() as $case) {
-            $this->assertIsString($case->label());
             $this->assertNotEmpty($case->label());
         }
     }

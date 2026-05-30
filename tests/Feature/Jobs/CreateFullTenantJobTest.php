@@ -86,7 +86,7 @@ class CreateFullTenantJobTest extends TestCase
         $job->failed(new \RuntimeException('Database creation failed'));
 
         $tenant->refresh();
-        $this->assertSame(TenantStatus::SETUP_FAILED->value, $tenant->status);
+        $this->assertSame(TenantStatus::SETUP_FAILED->value, $tenant->getAttribute('status'));
     }
 
     public function test_job_pode_ser_dispatchado(): void

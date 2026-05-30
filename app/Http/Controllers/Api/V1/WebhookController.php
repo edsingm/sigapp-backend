@@ -124,18 +124,18 @@ class WebhookController extends CashierController
         if ($validationFailure = $this->validateCheckoutSessionCompleted($tenant, $session)) {
             Log::warning('Checkout concluído rejeitado pela validação de vínculo', [
                 'tenant_id' => $tenant->id,
-                'tenant_slug' => $tenant->slug,
+                'tenant_slug' => $this->tenantSlug($tenant),
                 'session_id' => $session['id'] ?? null,
                 'stored_session_id' => $this->billingService->getSignupCheckoutSessionId($tenant),
                 'client_reference_id' => $session['client_reference_id'] ?? null,
                 'customer_id' => $session['customer'] ?? null,
-                'stored_customer_id' => $tenant->stripe_id,
+                'stored_customer_id' => $this->tenantStripeId($tenant),
                 'reason' => $validationFailure,
             ]);
 
             $this->audit('tenant.checkout_validation_failed', 'Checkout concluído rejeitado pela validação de vínculo.', [
                 'tenant_id' => $tenant->id,
-                'tenant_slug' => $tenant->slug,
+                'tenant_slug' => $this->tenantSlug($tenant),
                 'session_id' => $session['id'] ?? null,
                 'customer_id' => $session['customer'] ?? null,
                 'reason' => $validationFailure,
@@ -151,15 +151,15 @@ class WebhookController extends CashierController
         if (! $signupContractAccepted) {
             Log::warning('Checkout completed para tenant sem aceite de contrato registrado no signup', [
                 'tenant_id' => $tenant->id,
-                'tenant_slug' => $tenant->slug,
+                'tenant_slug' => $this->tenantSlug($tenant),
                 'session_id' => $session['id'] ?? null,
                 'customer_id' => $session['customer'] ?? null,
             ]);
 
             $this->audit('tenant.checkout_missing_contract_acceptance', 'Checkout concluído sem aceite de contrato de utilização registrado no signup.', [
                 'tenant_id' => $tenant->id,
-                'tenant_slug' => $tenant->slug,
-                'tenant_name' => $tenant->name,
+                'tenant_slug' => $this->tenantSlug($tenant),
+                'tenant_name' => $this->tenantName($tenant),
                 'session_id' => $session['id'] ?? null,
                 'subscription_id' => $session['subscription'] ?? null,
                 'customer_id' => $session['customer'] ?? null,
@@ -217,10 +217,10 @@ class WebhookController extends CashierController
         }
 
         // Audit: checkout completed
-        $this->audit('tenant.checkout_completed', "Checkout Stripe concluído para tenant '{$tenant->name}'. Job de criação disparado.", [
+        $this->audit('tenant.checkout_completed', "Checkout Stripe concluído para tenant '{$this->tenantName($tenant)}'. Job de criação disparado.", [
             'tenant_id' => $tenant->id,
-            'tenant_slug' => $tenant->slug,
-            'tenant_name' => $tenant->name,
+            'tenant_slug' => $this->tenantSlug($tenant),
+            'tenant_name' => $this->tenantName($tenant),
             'session_id' => $session['id'] ?? null,
             'subscription_id' => $session['subscription'] ?? null,
             'customer_id' => $session['customer'] ?? null,
@@ -237,7 +237,7 @@ class WebhookController extends CashierController
         // Refresh do banco para evitar dispatch duplicado em caso de webhooks concorrentes
         $tenant->refresh();
 
-        if ($tenant->database_created) {
+        if ($this->tenantDatabaseCreated($tenant)) {
             Log::info('CreateFullTenantJob ignorado: tenant já provisionado', [
                 'tenant_id' => $tenant->id,
             ]);
@@ -313,11 +313,11 @@ class WebhookController extends CashierController
         }
 
         // Notifica o usuário em toda falha de pagamento com deep link
-        $tenant->notify(new PaymentRetryNotification($tenant->name, $attempts, $invoiceUrl));
+        $tenant->notify(new PaymentRetryNotification($this->tenantName($tenant), $attempts, $invoiceUrl));
 
         $this->audit('tenant.payment_notification_sent', "Notificação de falha de pagamento enviada (tentativa {$attempts}).", [
             'tenant_id' => $tenant->id,
-            'tenant_slug' => $tenant->slug,
+            'tenant_slug' => $this->tenantSlug($tenant),
             'attempt_count' => $attempts,
             'invoice_id' => data_get($invoice, 'id'),
         ]);
@@ -330,10 +330,10 @@ class WebhookController extends CashierController
                 'attempts' => $attempts,
             ]);
 
-            $this->audit('tenant.payment_failed', "Pagamento falhou {$attempts}x para tenant '{$tenant->name}'. Tenant suspenso.", [
+            $this->audit('tenant.payment_failed', "Pagamento falhou {$attempts}x para tenant '{$this->tenantName($tenant)}'. Tenant suspenso.", [
                 'tenant_id' => $tenant->id,
-                'tenant_slug' => $tenant->slug,
-                'tenant_name' => $tenant->name,
+                'tenant_slug' => $this->tenantSlug($tenant),
+                'tenant_name' => $this->tenantName($tenant),
                 'customer_id' => $customerId,
                 'attempt_count' => $attempts,
                 'invoice_id' => data_get($invoice, 'id'),
@@ -426,16 +426,16 @@ class WebhookController extends CashierController
 
         if ($tenant) {
             $tenant->update([
-                'stripe_subscription_id' => $subscription['id'] ?? $tenant->stripe_subscription_id,
+                'stripe_subscription_id' => $subscription['id'] ?? $this->tenantStripeSubscriptionId($tenant),
             ]);
 
             $this->billingService->applyStripeSubscriptionStatus($tenant, 'canceled');
             Log::info('Tenant cancelou assinatura', ['tenant_id' => $tenant->id]);
 
-            $this->audit('tenant.subscription_canceled', "Assinatura cancelada para tenant '{$tenant->name}'.", [
+            $this->audit('tenant.subscription_canceled', "Assinatura cancelada para tenant '{$this->tenantName($tenant)}'.", [
                 'tenant_id' => $tenant->id,
-                'tenant_slug' => $tenant->slug,
-                'tenant_name' => $tenant->name,
+                'tenant_slug' => $this->tenantSlug($tenant),
+                'tenant_name' => $this->tenantName($tenant),
                 'customer_id' => $customerId,
                 'subscription_id' => $subscription['id'] ?? null,
             ]);
@@ -468,11 +468,11 @@ class WebhookController extends CashierController
 
         $trialEndsAt = Carbon::createFromTimestamp($trialEnd);
 
-        $tenant->notify(new TrialEndingNotification($tenant->name, $trialEndsAt));
+        $tenant->notify(new TrialEndingNotification($this->tenantName($tenant), $trialEndsAt));
 
         $this->audit('tenant.trial_ending_notified', 'Notificação de fim do período de teste enviada.', [
             'tenant_id' => $tenant->id,
-            'tenant_slug' => $tenant->slug,
+            'tenant_slug' => $this->tenantSlug($tenant),
             'trial_ends_at' => $trialEndsAt->toIso8601String(),
         ]);
 
@@ -512,7 +512,7 @@ class WebhookController extends CashierController
     /**
      * Handle coupon.redeemed event.
      */
-    protected function handleCouponRedeemed(array $payload)
+    protected function handleCouponRedeemed(array $payload): Response
     {
         $couponData = (array) data_get($payload, 'data.object', []);
         $stripeCouponId = data_get($couponData, 'id');
@@ -560,7 +560,9 @@ class WebhookController extends CashierController
             return 'session_mismatch';
         }
 
-        if ($tenant->stripe_id && $tenant->stripe_id !== ($session['customer'] ?? null)) {
+        $tenantStripeId = $this->tenantStripeId($tenant);
+
+        if ($tenantStripeId !== null && $tenantStripeId !== ($session['customer'] ?? null)) {
             return 'customer_mismatch';
         }
 
@@ -590,7 +592,7 @@ class WebhookController extends CashierController
 
         Log::warning('Referência local do checkout ausente; vínculo recuperado a partir do webhook assinado', [
             'tenant_id' => $tenant->id,
-            'tenant_slug' => $tenant->slug,
+            'tenant_slug' => $this->tenantSlug($tenant),
             'session_id' => $receivedSessionId,
         ]);
     }
@@ -614,7 +616,7 @@ class WebhookController extends CashierController
         $stripeStatus = (string) ($stripeSubscription->status ?? '');
 
         $tenant->update([
-            'stripe_id' => $stripeSubscription->customer ?? $tenant->stripe_id,
+            'stripe_id' => $stripeSubscription->customer ?? $this->tenantStripeId($tenant),
             'stripe_subscription_id' => $stripeSubscription->id ?? $subscriptionId,
         ]);
 
@@ -628,7 +630,7 @@ class WebhookController extends CashierController
             'source' => $source,
             'stripe_status' => $stripeStatus,
             'applied_status' => $appliedStatus,
-            'database_created' => (bool) $tenant->database_created,
+            'database_created' => $this->tenantDatabaseCreated($tenant),
         ], $context));
 
         if (in_array($stripeStatus, ['active', 'trialing'], true)) {
@@ -652,10 +654,10 @@ class WebhookController extends CashierController
         }
 
         // Tenants cancelled não devem receber eventos de billing
-        if ($tenant->status === TenantStatus::CANCELLED->value) {
+        if ($this->tenantStatus($tenant) === TenantStatus::CANCELLED->value) {
             Log::warning('Webhook ignorado: tenant cancelado', [
                 'tenant_id' => $tenant->id,
-                'tenant_status' => $tenant->status,
+                'tenant_status' => $this->tenantStatus($tenant),
                 'source' => $source,
             ]);
 
@@ -663,10 +665,10 @@ class WebhookController extends CashierController
         }
 
         // Tenants com setup_failed não devem receber eventos de billing
-        if ($tenant->status === TenantStatus::SETUP_FAILED->value) {
+        if ($this->tenantStatus($tenant) === TenantStatus::SETUP_FAILED->value) {
             Log::warning('Webhook ignorado: setup do tenant falhou', [
                 'tenant_id' => $tenant->id,
-                'tenant_status' => $tenant->status,
+                'tenant_status' => $this->tenantStatus($tenant),
                 'source' => $source,
             ]);
 
@@ -674,5 +676,39 @@ class WebhookController extends CashierController
         }
 
         return $tenant;
+    }
+
+    private function tenantName(Tenant $tenant): string
+    {
+        return (string) $tenant->getAttribute('name');
+    }
+
+    private function tenantSlug(Tenant $tenant): string
+    {
+        return (string) $tenant->getAttribute('slug');
+    }
+
+    private function tenantStatus(Tenant $tenant): string
+    {
+        return (string) $tenant->getAttribute('status');
+    }
+
+    private function tenantStripeId(Tenant $tenant): ?string
+    {
+        $stripeId = $tenant->getAttribute('stripe_id');
+
+        return is_string($stripeId) && $stripeId !== '' ? $stripeId : null;
+    }
+
+    private function tenantStripeSubscriptionId(Tenant $tenant): ?string
+    {
+        $subscriptionId = $tenant->getAttribute('stripe_subscription_id');
+
+        return is_string($subscriptionId) && $subscriptionId !== '' ? $subscriptionId : null;
+    }
+
+    private function tenantDatabaseCreated(Tenant $tenant): bool
+    {
+        return (bool) $tenant->getAttribute('database_created');
     }
 }

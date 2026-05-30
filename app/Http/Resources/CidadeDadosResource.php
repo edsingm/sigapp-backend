@@ -2,31 +2,36 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Central\Cidade;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/** @mixin Cidade */
 class CidadeDadosResource extends JsonResource
 {
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(Request $request): array
     {
         return [
-            'id' => $this->id,
-            'code' => $this->code,
-            'city' => $this->city,
-            'state' => $this->state,
-            'state_code' => $this->state_code,
-            'latitude' => $this->latitude,
-            'longitude' => $this->longitude,
-            'capital' => $this->capital,
-            'area_code' => $this->area_code,
-            'timezone' => $this->timezone,
-            'population' => $this->population,
-            'employed' => $this->employed,
-            'per_capta_income' => $this->per_capta_income,
-            'property_maximum_value' => $this->property_maximum_value,
-            'buyer_demand' => $this->buyer_demand,
-            'own_property' => $this->own_property,
-            'rented_property' => $this->rented_property,
+            'id' => $this->resource->getAttribute('id'),
+            'code' => $this->resource->getAttribute('code'),
+            'city' => $this->resource->getAttribute('city'),
+            'state' => $this->resource->getAttribute('state'),
+            'state_code' => $this->resource->getAttribute('state_code'),
+            'latitude' => $this->resource->getAttribute('latitude'),
+            'longitude' => $this->resource->getAttribute('longitude'),
+            'capital' => $this->resource->getAttribute('capital'),
+            'area_code' => $this->resource->getAttribute('area_code'),
+            'timezone' => $this->resource->getAttribute('timezone'),
+            'population' => $this->resource->getAttribute('population'),
+            'employed' => $this->resource->getAttribute('employed'),
+            'per_capta_income' => $this->resource->getAttribute('per_capta_income'),
+            'property_maximum_value' => $this->resource->getAttribute('property_maximum_value'),
+            'buyer_demand' => $this->resource->getAttribute('buyer_demand'),
+            'own_property' => $this->resource->getAttribute('own_property'),
+            'rented_property' => $this->resource->getAttribute('rented_property'),
         ];
     }
 }

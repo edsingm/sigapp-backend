@@ -28,13 +28,19 @@ class UserRepository
      */
     public function listForSelect(): Collection
     {
-        return User::query()
+        /** @var Collection<int, User> $users */
+        $users = User::query()
             ->select('id', 'name')
             ->orderBy('name')
             ->limit(200)
             ->get();
+
+        return $users;
     }
 
+    /**
+     * @return Builder<User>
+     */
     public function queryWithRelations(): Builder
     {
         return User::query()->with(['roles', 'department', 'position']);
@@ -42,7 +48,7 @@ class UserRepository
 
     public function create(array $data): User
     {
-        return User::create($data);
+        return User::query()->create($data);
     }
 
     public function adminEligibleCount(array $adminRoleNames): int

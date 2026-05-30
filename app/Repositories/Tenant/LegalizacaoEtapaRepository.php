@@ -22,7 +22,7 @@ class LegalizacaoEtapaRepository
 
     public function findByIdAndLegalizacao(int|string $id, int|string $legalizacaoId, array $relations = []): LegalizacaoEtapa
     {
-        $query = LegalizacaoEtapa::where('legalizacao_id', $legalizacaoId);
+        $query = LegalizacaoEtapa::query()->where('legalizacao_id', $legalizacaoId);
 
         if (! empty($relations)) {
             $query->with($relations);
@@ -36,19 +36,22 @@ class LegalizacaoEtapaRepository
      */
     public function findByLegalizacao(int|string $legalizacaoId, array $relations = []): Collection
     {
-        $query = LegalizacaoEtapa::where('legalizacao_id', $legalizacaoId)
+        $query = LegalizacaoEtapa::query()->where('legalizacao_id', $legalizacaoId)
             ->orderBy('ordem');
 
         if (! empty($relations)) {
             $query->with($relations);
         }
 
-        return $query->get();
+        /** @var Collection<int, LegalizacaoEtapa> $etapas */
+        $etapas = $query->get();
+
+        return $etapas;
     }
 
     public function create(array $data): LegalizacaoEtapa
     {
-        return LegalizacaoEtapa::create($data);
+        return LegalizacaoEtapa::query()->create($data);
     }
 
     public function update(LegalizacaoEtapa $etapa, array $data): LegalizacaoEtapa
@@ -63,7 +66,7 @@ class LegalizacaoEtapaRepository
         int $etapaOrigemId,
         int $etapaDestinoId
     ): LegalizacaoDependencia {
-        return LegalizacaoDependencia::where('legalizacao_id', $legalizacaoId)
+        return LegalizacaoDependencia::query()->where('legalizacao_id', $legalizacaoId)
             ->where('etapa_origem_id', $etapaOrigemId)
             ->where('etapa_destino_id', $etapaDestinoId)
             ->firstOrFail();
@@ -84,7 +87,7 @@ class LegalizacaoEtapaRepository
                 continue;
             }
 
-            LegalizacaoEtapa::where('legalizacao_id', $legalizacao->id)
+            LegalizacaoEtapa::query()->where('legalizacao_id', $legalizacao->id)
                 ->where('id', $ordemData['id'])
                 ->update([
                     'ordem' => $ordemData['ordem'],
@@ -98,14 +101,14 @@ class LegalizacaoEtapaRepository
      */
     public function deleteMany(array $etapaIds, int $legalizacaoId): int
     {
-        return LegalizacaoEtapa::where('legalizacao_id', $legalizacaoId)
+        return LegalizacaoEtapa::query()->where('legalizacao_id', $legalizacaoId)
             ->whereIn('id', $etapaIds)
             ->delete();
     }
 
     public function getNextOrdem(int $legalizacaoId): int
     {
-        $ultimaOrdem = LegalizacaoEtapa::where('legalizacao_id', $legalizacaoId)
+        $ultimaOrdem = LegalizacaoEtapa::query()->where('legalizacao_id', $legalizacaoId)
             ->max('ordem');
 
         return $ultimaOrdem ? $ultimaOrdem + 1 : 1;
@@ -132,7 +135,7 @@ class LegalizacaoEtapaRepository
 
             $visitados[] = $atual;
 
-            $proximos = LegalizacaoDependencia::where('etapa_origem_id', $atual)
+            $proximos = LegalizacaoDependencia::query()->where('etapa_origem_id', $atual)
                 ->pluck('etapa_destino_id')
                 ->all();
 
@@ -148,7 +151,7 @@ class LegalizacaoEtapaRepository
 
     public function dependencyExists(int $legalizacaoId, int $etapaOrigemId, int $etapaDestinoId): bool
     {
-        return LegalizacaoDependencia::where('legalizacao_id', $legalizacaoId)
+        return LegalizacaoDependencia::query()->where('legalizacao_id', $legalizacaoId)
             ->where('etapa_origem_id', $etapaOrigemId)
             ->where('etapa_destino_id', $etapaDestinoId)
             ->exists();
@@ -156,7 +159,7 @@ class LegalizacaoEtapaRepository
 
     public function createDependency(array $data): LegalizacaoDependencia
     {
-        return LegalizacaoDependencia::create($data);
+        return LegalizacaoDependencia::query()->create($data);
     }
 
     /**
@@ -164,7 +167,7 @@ class LegalizacaoEtapaRepository
      */
     public function deleteDependencies(array $dependenciaIds, int $legalizacaoId): int
     {
-        return LegalizacaoDependencia::where('legalizacao_id', $legalizacaoId)
+        return LegalizacaoDependencia::query()->where('legalizacao_id', $legalizacaoId)
             ->whereIn('id', $dependenciaIds)
             ->delete();
     }

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services\Tenant;
 
+use App\Models\Tenant\Terreno;
 use App\Repositories\Contracts\TerrenoExportRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Str;
 
 class TerrenoExportService
 {
@@ -16,11 +16,14 @@ class TerrenoExportService
     ) {}
 
     /**
-     * @return Collection<int, \App\Models\Tenant\Terreno>
+     * @param  array<string, mixed>  $filters
+     * @return Collection<int, Terreno>
      */
     public function getTerrenosForExport(array $filters, string $tenantId): Collection
     {
-        $cacheKey = "tenant:{$tenantId}:terrenos:export:pdf:" . md5(json_encode($filters));
+        $encodedFilters = json_encode($filters);
+        $cacheKeyPayload = is_string($encodedFilters) ? $encodedFilters : serialize($filters);
+        $cacheKey = "tenant:{$tenantId}:terrenos:export:pdf:" . md5($cacheKeyPayload);
 
         return Cache::tags(["tenant:{$tenantId}:terrenos"])
             ->remember($cacheKey, now()->addMinutes(10), function () use ($filters) {
@@ -28,21 +31,25 @@ class TerrenoExportService
             });
     }
 
-    public function getTerrenoForSingleExport(int $id): ?\App\Models\Tenant\Terreno
+    public function getTerrenoForSingleExport(int $id): ?Terreno
     {
         return $this->repository->findForSingleExport($id);
     }
 
-    public function getTerrenoForChecklist(int $id): ?\App\Models\Tenant\Terreno
+    public function getTerrenoForChecklist(int $id): ?Terreno
     {
         return $this->repository->findForChecklist($id);
     }
 
     /**
+     * @param  Collection<int, Terreno>  $terrenos
+     * @param  array<string, mixed>  $filters
      * @return array<string, mixed>
      */
     public function buildExportData(Collection $terrenos, array $filters): array
     {
+        $workflowStatuses = is_array($filters['workflow_statuses'] ?? null) ? $filters['workflow_statuses'] : [];
+
         return [
             'terrenos' => $terrenos,
             'totalTerrenos' => $terrenos->count(),
@@ -51,7 +58,7 @@ class TerrenoExportService
                 'nome' => $filters['nome'] ?? null,
                 'dataInicio' => $filters['data_inicio'] ?? null,
                 'dataFim' => $filters['data_fim'] ?? null,
-                'workflow_statuses' => collect($filters['workflow_statuses'] ?? [])
+                'workflow_statuses' => collect($workflowStatuses)
                     ->map(fn (string $code) => LandWorkflowService::statuses()[$code]['label'] ?? $code)
                     ->values()
                     ->all(),
@@ -62,11 +69,11 @@ class TerrenoExportService
     /**
      * @return array<string, mixed>
      */
-    public function buildSingleExportData(\App\Models\Tenant\Terreno $terreno, ?string $userName): array
+    public function buildSingleExportData(Terreno $terreno, ?string $userName): array
     {
-        $vgvEstimado = $terreno->terrenoProdutos->reduce(function ($acc, $p) {
-            return $acc + ($p->unidades * ($p->valor ?? 0));
-        }, 0);
+        $vgvEstimado = $terreno->terrenoProdutos()->get()->reduce(function (float $acc, mixed $p): float {
+            return $acc + (((float) $p->getAttribute('unidades')) * ((float) $p->getAttribute('valor')));
+        }, 0.0);
 
         return [
             'terreno' => $terreno,
@@ -96,13 +103,17 @@ class TerrenoExportService
         return null;
     }
 
-    public function applyBrowsershotDefaults($browsershot): void
+    public function applyBrowsershotDefaults(mixed $browsershot): void
     {
-        $chromePath = $this->resolveChromePath();
-        if ($chromePath) {
-            $browsershot->setChromePath($chromePath);
+        if (! is_object($browsershot) || ! method_exists($browsershot, 'noSandbox')) {
+            return;
         }
 
-        $browsershot->noSandbox();
+        $chromePath = $this->resolveChromePath();
+        if ($chromePath && method_exists($browsershot, 'setChromePath')) {
+            call_user_func([$browsershot, 'setChromePath'], $chromePath);
+        }
+
+        call_user_func([$browsershot, 'noSandbox']);
     }
 }

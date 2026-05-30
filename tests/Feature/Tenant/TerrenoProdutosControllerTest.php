@@ -8,6 +8,9 @@ use App\Http\Middleware\AddTenantContextToLogs;
 use App\Http\Middleware\ApiRequestLogger;
 use App\Http\Middleware\CheckSubscriptionStatus;
 use App\Http\Middleware\InitializeTenancyFlexible;
+use App\Http\Middleware\EnsureTenantAdmin;
+use App\Http\Middleware\EnsureTenantContext;
+use App\Http\Middleware\EnsureTenantUser;
 use App\Models\Tenant\Produto;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\TerrenoProduto;
@@ -33,6 +36,9 @@ class TerrenoProdutosControllerTest extends TestCase
             AddTenantContextToLogs::class,
             ApiRequestLogger::class,
             CheckSubscriptionStatus::class,
+            EnsureTenantContext::class,
+            EnsureTenantUser::class,
+            EnsureTenantAdmin::class,
             \App\Http\Middleware\CheckFeature::class,
         ]);
 
@@ -40,7 +46,7 @@ class TerrenoProdutosControllerTest extends TestCase
 
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-        Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
 
         $this->adminUser = User::create([
             'name' => 'Admin Test',

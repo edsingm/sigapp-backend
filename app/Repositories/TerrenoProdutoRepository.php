@@ -58,9 +58,13 @@ class TerrenoProdutoRepository implements TerrenoProdutoRepositoryInterface
         $terrenoProduto->delete();
     }
 
+    /**
+     * @return Collection<int, TerrenoProduto>
+     */
     public function byTerreno(int $terrenoId): Collection
     {
-        return TerrenoProduto::query()
+        /** @var Collection<int, TerrenoProduto> $items */
+        $items = TerrenoProduto::query()
             ->where('terreno_id', $terrenoId)
             ->with([
                 'terreno',
@@ -68,5 +72,7 @@ class TerrenoProdutoRepository implements TerrenoProdutoRepositoryInterface
             ])
             ->orderBy('created_at', 'desc')
             ->get();
+
+        return $items;
     }
 }

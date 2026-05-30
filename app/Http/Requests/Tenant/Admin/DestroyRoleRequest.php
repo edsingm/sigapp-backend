@@ -15,6 +15,9 @@ class DestroyRoleRequest extends FormRequest
         return $user !== null && $user->hasAnyRole(['admin', 'ADMIN', 'director', 'DIRECTOR']);
     }
 
+    /**
+     * @return array<string, array<int, \Illuminate\Contracts\Validation\ValidationRule|string>>
+     */
     public function rules(): array
     {
         return [];

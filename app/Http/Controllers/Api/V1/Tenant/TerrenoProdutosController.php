@@ -13,6 +13,8 @@ use App\Http\Requests\Tenant\UpdateTerrenoProdutoRequest;
 use App\Http\Resources\Tenant\TerrenoProdutoResource;
 use App\Services\ApiResponseService;
 use App\Services\Tenant\TerrenoProdutoService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class TerrenoProdutosController extends Controller
 {
@@ -20,7 +22,7 @@ class TerrenoProdutosController extends Controller
         private readonly TerrenoProdutoService $terrenoProdutoService,
     ) {}
 
-    public function index(ListTerrenoProdutosRequest $request)
+    public function index(ListTerrenoProdutosRequest $request): AnonymousResourceCollection
     {
         $perPage = $request->integer('per_page', 10);
         $terrenoId = $request->has('terreno_id') ? $request->integer('terreno_id') : null;
@@ -36,7 +38,7 @@ class TerrenoProdutosController extends Controller
             ]);
     }
 
-    public function show(ShowTerrenoProdutoRequest $request, int $id)
+    public function show(ShowTerrenoProdutoRequest $request, int $id): JsonResponse
     {
         $terrenoProduto = $this->terrenoProdutoService->findById($id);
 
@@ -50,7 +52,7 @@ class TerrenoProdutosController extends Controller
         );
     }
 
-    public function store(StoreTerrenoProdutoRequest $request)
+    public function store(StoreTerrenoProdutoRequest $request): JsonResponse
     {
         $validated = $request->validated();
         $validated['created_by'] = $request->user()->id;
@@ -63,7 +65,7 @@ class TerrenoProdutosController extends Controller
         );
     }
 
-    public function update(UpdateTerrenoProdutoRequest $request, int $id)
+    public function update(UpdateTerrenoProdutoRequest $request, int $id): JsonResponse
     {
         $terrenoProduto = $this->terrenoProdutoService->findById($id);
 
@@ -82,7 +84,7 @@ class TerrenoProdutosController extends Controller
         );
     }
 
-    public function destroy(DestroyTerrenoProdutoRequest $request, int $id)
+    public function destroy(DestroyTerrenoProdutoRequest $request, int $id): JsonResponse
     {
         $terrenoProduto = $this->terrenoProdutoService->findById($id);
 
@@ -95,7 +97,7 @@ class TerrenoProdutosController extends Controller
         return ApiResponseService::success(null, 'Associação terreno-produto excluída com sucesso');
     }
 
-    public function byTerreno(ListTerrenoProdutosRequest $request, int $terrenoId)
+    public function byTerreno(ListTerrenoProdutosRequest $request, int $terrenoId): JsonResponse
     {
         $terrenoProdutos = $this->terrenoProdutoService->byTerreno($terrenoId);
 

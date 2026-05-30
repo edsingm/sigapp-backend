@@ -41,8 +41,7 @@ class RoleController extends Controller
         ]);
 
         $payload = $roles->map(function ($role) use ($usersPerRole) {
-            $resource = new RoleResource($role);
-            $role->users_count = $usersPerRole[$role->id] ?? 0;
+            $resource = RoleResource::withUsersCount($role, (int) ($usersPerRole[$role->id] ?? 0));
 
             return $resource->toArray(request());
         })->values();
@@ -60,8 +59,7 @@ class RoleController extends Controller
 
         $usersCount = $this->roleService->countUsers($role);
 
-        $resource = new RoleResource($role);
-        $role->users_count = $usersCount;
+        $resource = RoleResource::withUsersCount($role, $usersCount);
 
         return ApiResponseService::success($resource, 'Role recuperada com sucesso');
     }
@@ -123,10 +121,8 @@ class RoleController extends Controller
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        $role->users_count = $this->roleService->countUsers($role);
-
         return ApiResponseService::success(
-            new RoleResource($role),
+            RoleResource::withUsersCount($role, $this->roleService->countUsers($role)),
             'Role atualizada com sucesso'
         );
     }

@@ -16,37 +16,53 @@ class PlanRepository implements PlanRepositoryInterface
 
     public function all(): Collection
     {
-        return Plan::ordered()->get();
+        /** @var Collection<int, Plan> $plans */
+        $plans = Plan::query()
+            ->orderBy('sort_order')
+            ->get();
+
+        return $plans;
     }
 
     public function findAllActiveOrdered(): Collection
     {
-        return Plan::active()->ordered()->get();
+        /** @var Collection<int, Plan> $plans */
+        $plans = Plan::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get();
+
+        return $plans;
     }
 
     public function paginate(int $perPage = 15): LengthAwarePaginator
     {
-        return Plan::ordered()->paginate($perPage);
+        return Plan::query()
+            ->orderBy('sort_order')
+            ->paginate($perPage);
     }
 
     public function findById(int $id): ?Plan
     {
-        return Plan::find($id);
+        return Plan::query()->find($id);
     }
 
     public function findBySlug(string $slug): ?Plan
     {
-        return Plan::where('slug', $slug)->first();
+        return Plan::query()->where('slug', $slug)->first();
     }
 
     public function findActiveBySlug(string $slug): ?Plan
     {
-        return Plan::where('slug', $slug)->active()->first();
+        return Plan::query()
+            ->where('slug', $slug)
+            ->where('is_active', true)
+            ->first();
     }
 
     public function create(array $data): Plan
     {
-        return Plan::create($data);
+        return Plan::query()->create($data);
     }
 
     public function update(Plan $plan, array $data): Plan

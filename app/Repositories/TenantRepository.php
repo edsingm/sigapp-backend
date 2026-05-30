@@ -52,6 +52,10 @@ class TenantRepository implements TenantRepositoryInterface
             'storage_used' => 0,
         ];
 
+        if (! (bool) $tenant->getAttribute('database_created') || $tenant->getAttribute('setup_completed_at') === null) {
+            return $stats;
+        }
+
         try {
             tenancy()->initialize($tenant);
 
@@ -78,34 +82,34 @@ class TenantRepository implements TenantRepositoryInterface
 
     public function findById(string $id): ?Tenant
     {
-        return Tenant::find($id);
+        return Tenant::query()->find($id);
     }
 
     public function findBySlug(string $slug): ?Tenant
     {
-        return Tenant::where('slug', $slug)->first();
+        return Tenant::query()->where('slug', $slug)->first();
     }
 
     public function findByIdOrSlug(string $identifier): ?Tenant
     {
-        return Tenant::where('id', $identifier)
+        return Tenant::query()->where('id', $identifier)
             ->orWhere('slug', $identifier)
             ->first();
     }
 
     public function findByStripeId(string $stripeId): ?Tenant
     {
-        return Tenant::where('stripe_id', $stripeId)->first();
+        return Tenant::query()->where('stripe_id', $stripeId)->first();
     }
 
     public function existsBySlug(string $slug): bool
     {
-        return Tenant::where('slug', $slug)->exists();
+        return Tenant::query()->where('slug', $slug)->exists();
     }
 
     public function existsByDomain(string $domain): bool
     {
-        return Domain::where('domain', $domain)->exists();
+        return Domain::query()->where('domain', $domain)->exists();
     }
 
     public function updatePlan(Tenant $tenant, int $planId): Tenant
@@ -113,7 +117,7 @@ class TenantRepository implements TenantRepositoryInterface
         $tenant->update(['plan_id' => $planId]);
 
         // Invalida cache do tenant para que os limites do novo plano sejam aplicados imediatamente
-        cache()->forget('tenant:'.$tenant->slug);
+        cache()->forget('tenant:'.(string) $tenant->getAttribute('slug'));
 
         return $tenant->refresh();
     }
@@ -135,7 +139,7 @@ class TenantRepository implements TenantRepositoryInterface
 
     public function updateExtraEntitlement(Tenant $tenant, int $entitlementId, array $data): TenantEntitlement
     {
-        $record = TenantEntitlement::where('tenant_id', $tenant->id)
+        $record = TenantEntitlement::query()->where('tenant_id', $tenant->id)
             ->where('entitlement_id', $entitlementId)
             ->firstOrFail();
 
@@ -146,9 +150,9 @@ class TenantRepository implements TenantRepositoryInterface
 
     public function removeExtraEntitlement(Tenant $tenant, int $entitlementId): bool
     {
-        return TenantEntitlement::where('tenant_id', $tenant->id)
+        return TenantEntitlement::query()->where('tenant_id', $tenant->id)
             ->where('entitlement_id', $entitlementId)
             ->firstOrFail()
-            ->delete();
+            ->delete() === true;
     }
 }

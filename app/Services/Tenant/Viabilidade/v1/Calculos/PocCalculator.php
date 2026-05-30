@@ -4,9 +4,15 @@ namespace App\Services\Tenant\Viabilidade\v1\Calculos;
 
 class PocCalculator
 {
+    /**
+     * @param  array<string, array<string, mixed>>  $fluxo
+     * @param  array<string, mixed>  $dre
+     * @param  array<string, mixed>  $dadosProdutos
+     * @return array<string, float>
+     */
     public function calcularDreContabilPoc(array $fluxo, array $dre, array $dadosProdutos): array
     {
-        $custoOrcadoObra = ($dadosProdutos['custoObraHabitacao'] ?? 0) + ($dadosProdutos['custoInfraestrutura'] ?? 0);
+        $custoOrcadoObra = (float) ($dadosProdutos['custoObraHabitacao'] ?? 0) + (float) ($dadosProdutos['custoInfraestrutura'] ?? 0);
         $custoIncorridoObra = 0.0;
         $custoIncorridoTotal = 0.0;
         foreach ($fluxo as $linha) {
@@ -32,6 +38,10 @@ class PocCalculator
         ];
     }
 
+    /**
+     * @param  array<string, mixed>  $totais
+     * @return array<string, float>
+     */
     public function calcularDreCaixa(array $totais): array
     {
         $receitaTotal = (float) ($totais['receita'] ?? 0.0);
@@ -55,6 +65,12 @@ class PocCalculator
         ];
     }
 
+    /**
+     * @param  array<string, mixed>  $dreCaixa
+     * @param  array<string, mixed>  $dreGerencial
+     * @param  array<string, mixed>  $drePocMensalBlocos
+     * @return array<string, array<int|string, float|string>>
+     */
     public function calcularPonteReconcilicao(array $dreCaixa, array $dreGerencial, array $drePocMensalBlocos): array
     {
         $caixaReceita = (float) ($dreCaixa['receita_total'] ?? 0.0);
@@ -97,6 +113,12 @@ class PocCalculator
         ];
     }
 
+    /**
+     * @param  array<string, array<string, mixed>>  $fluxo
+     * @param  array<string, mixed>  $dre
+     * @param  array<string, mixed>  $dadosProdutos
+     * @return array{meses: array<string, array<string, float>>, resumo: array<string, float>}
+     */
     public function calcularQuadroPocMensal(array $fluxo, array $dre, array $dadosProdutos): array
     {
         $quadro = [];
@@ -136,6 +158,12 @@ class PocCalculator
         ];
     }
 
+    /**
+     * @param  array<string, array<string, mixed>>  $fluxo
+     * @param  array<string, mixed>  $dre
+     * @param  array<string, mixed>  $dadosProdutos
+     * @return array{meses: array<string, array<string, float>>, resumo: array<string, float>}
+     */
     public function calcularQuadroPocMensalPorBlocos(array $fluxo, array $dre, array $dadosProdutos): array
     {
         $quadro = [];

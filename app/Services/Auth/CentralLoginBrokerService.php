@@ -247,8 +247,8 @@ class CentralLoginBrokerService
 
             $matches[] = [
                 'tenant_id' => (string) $tenant->id,
-                'tenant_name' => (string) $tenant->name,
-                'tenant_slug' => (string) $tenant->slug,
+                'tenant_name' => (string) $tenant->getAttribute('name'),
+                'tenant_slug' => (string) $tenant->getAttribute('slug'),
                 'tenant_url' => $tenantUrl,
                 'tenant_user_id' => (string) $candidate['tenant_user_id'],
                 'user_name' => (string) $candidate['user_name'],
@@ -349,7 +349,8 @@ class CentralLoginBrokerService
                 return null;
             }
 
-            $domain = $tenant->slug.'.'.$baseDomain;
+            $tenantSlug = (string) $tenant->getAttribute('slug');
+            $domain = $tenantSlug.'.'.$baseDomain;
         }
 
         if (Str::startsWith($domain, ['http://', 'https://'])) {

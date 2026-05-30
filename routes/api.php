@@ -11,13 +11,15 @@ use App\Http\Controllers\Api\V1\Admin\TenantController;
 use App\Http\Controllers\Api\V1\Admin\TenantPlanController;
 use App\Http\Controllers\Api\V1\Admin\UserController;
 use App\Http\Controllers\Api\V1\AdminController;
-use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BlogController;
+use App\Http\Controllers\Api\V1\CentralAuthController;
 use App\Http\Controllers\Api\V1\LanguageController;
 use App\Http\Controllers\Api\V1\PlanController;
 use App\Http\Controllers\Api\V1\PublicTenantController;
 use App\Http\Controllers\Api\V1\SignupController;
 use App\Http\Controllers\Api\V1\TenantStatusController;
+use App\Http\Controllers\Api\V1\TenantAuthController;
+use App\Http\Controllers\Api\V1\TenantPasswordResetController;
 use App\Http\Controllers\Api\V1\WebhookController;
 use App\Http\Middleware\ForceJsonResponse;
 use App\Http\Middleware\SetUserLocale;
@@ -107,7 +109,8 @@ RateLimiter::for('password-reset-submit', function (Request $request) {
 });
 
 RateLimiter::for('signup-status', function (Request $request) {
-    $sessionId = (string) $request->route('sessionId', '');
+    $sessionParameter = $request->route('sessionId', '');
+    $sessionId = is_scalar($sessionParameter) ? (string) $sessionParameter : '';
 
     return Limit::perMinute(30)
         ->by('signup-status:'.$request->ip().':'.sha1($sessionId))
@@ -142,7 +145,7 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
             Route::domain($domain)->group(function () {
 
                 // Public routes (no authentication)
-                Route::middleware('throttle:api-public')->group(function () {
+                Route::middleware(['central.context', 'throttle:api-public'])->group(function () {
 
                     // Plans
                     Route::get('/plans', [PlanController::class, 'index']);
@@ -158,13 +161,13 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
                         ->withoutMiddleware(['throttle:api-public']);
 
                     // Auth - central broker flow
-                    Route::post('/auth/login', [AuthController::class, 'login'])
+                    Route::post('/auth/login', [CentralAuthController::class, 'login'])
                         ->middleware('throttle:central-login');
-                    Route::post('/auth/select-tenant', [AuthController::class, 'selectTenant'])
+                    Route::post('/auth/select-tenant', [CentralAuthController::class, 'selectTenant'])
                         ->middleware('throttle:central-login-select');
-                    Route::post('/auth/password/forgot', [AuthController::class, 'forgotPassword'])
+                    Route::post('/auth/password/forgot', [TenantPasswordResetController::class, 'forgotPassword'])
                         ->middleware('throttle:password-reset-request');
-                    Route::post('/auth/password/reset', [AuthController::class, 'resetPassword'])
+                    Route::post('/auth/password/reset', [TenantPasswordResetController::class, 'resetPassword'])
                         ->middleware('throttle:password-reset-submit');
 
                     // Blog (public)
@@ -174,19 +177,19 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
                 });
 
                 // Authenticated routes (central app)
-                Route::middleware(['auth:sanctum', 'user.admin', 'throttle:api-auth', SetUserLocale::class])->group(function () {
+                Route::middleware(['central.context', 'auth:sanctum', 'auth.central', 'central.admin', 'throttle:api-auth', SetUserLocale::class])->group(function () {
 
                     // Locale
                     Route::put('/locale', [LanguageController::class, 'set']);
 
                     // Auth
-                    Route::post('/auth/logout', [AuthController::class, 'logout']);
-                    Route::post('/auth/logout-all', [AuthController::class, 'logoutAll']);
-                    Route::post('/auth/refresh', [AuthController::class, 'refresh']);
-                    Route::get('/auth/me', [AuthController::class, 'me']);
+                    Route::post('/auth/logout', [TenantAuthController::class, 'logout']);
+                    Route::post('/auth/logout-all', [TenantAuthController::class, 'logoutAll']);
+                    Route::post('/auth/refresh', [TenantAuthController::class, 'refresh']);
+                    Route::get('/auth/me', [TenantAuthController::class, 'me']);
                 });
 
-                Route::middleware(['auth:sanctum', 'user.admin', 'throttle:api-auth'])->group(function () {
+                Route::middleware(['central.context', 'auth:sanctum', 'auth.central', 'central.admin', 'throttle:api-auth'])->group(function () {
                     Route::get('/tenant-status', [TenantStatusController::class, 'index']);
 
                     // Admin Routes

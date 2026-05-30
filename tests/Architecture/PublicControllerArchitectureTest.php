@@ -6,13 +6,21 @@ use PHPUnit\Framework\TestCase;
 
 class PublicControllerArchitectureTest extends TestCase
 {
-    public function test_auth_controller_avoids_inline_validation(): void
+    public function test_public_auth_controllers_avoid_inline_validation(): void
     {
-        $contents = file_get_contents(__DIR__.'/../../app/Http/Controllers/Api/V1/AuthController.php');
+        $controllers = [
+            __DIR__.'/../../app/Http/Controllers/Api/V1/CentralAuthController.php',
+            __DIR__.'/../../app/Http/Controllers/Api/V1/TenantAuthController.php',
+            __DIR__.'/../../app/Http/Controllers/Api/V1/TenantPasswordResetController.php',
+        ];
 
-        $this->assertIsString($contents);
-        $this->assertStringNotContainsString('->validate(', $contents);
-        $this->assertStringNotContainsString('$request->validate(', $contents);
+        foreach ($controllers as $controllerPath) {
+            $contents = file_get_contents($controllerPath);
+
+            $this->assertIsString($contents);
+            $this->assertStringNotContainsString('->validate(', $contents);
+            $this->assertStringNotContainsString('$request->validate(', $contents);
+        }
     }
 
     public function test_blog_controller_avoids_direct_post_queries(): void

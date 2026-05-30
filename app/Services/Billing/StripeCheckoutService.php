@@ -20,12 +20,15 @@ class StripeCheckoutService
      */
     public function createCustomer(Tenant $tenant, array $validated): Customer
     {
+        $tenantId = (int) $tenant->getKey();
+        $tenantSlug = (string) $tenant->getAttribute('slug');
+
         $customer = Cashier::stripe()->customers->create([
-            'email' => $validated['admin_email'],
-            'name' => $validated['organization_name'],
+            'email' => (string) $validated['admin_email'],
+            'name' => (string) $validated['organization_name'],
             'metadata' => [
-                'tenant_id' => $tenant->id,
-                'tenant_slug' => $tenant->slug,
+                'tenant_id' => (string) $tenantId,
+                'tenant_slug' => $tenantSlug,
             ],
         ]);
 
@@ -48,11 +51,14 @@ class StripeCheckoutService
         string $customerId,
         array $sessionOptions = [],
     ): Session {
-        $priceId = $plan->stripe_price_id ?? $this->createPriceOnTheFly($plan);
+        $priceId = (string) ($plan->getAttribute('stripe_price_id') ?? $this->createPriceOnTheFly($plan));
+        $tenantId = (string) $tenant->getKey();
+        $planTrialDays = (int) $plan->getAttribute('trial_days');
+        $planSlug = (string) $plan->getAttribute('slug');
 
         return Cashier::stripe()->checkout->sessions->create(array_merge([
             'customer' => $customerId,
-            'client_reference_id' => (string) $tenant->id,
+            'client_reference_id' => $tenantId,
             'mode' => 'subscription',
             'line_items' => [
                 [
@@ -61,9 +67,9 @@ class StripeCheckoutService
                 ],
             ],
             'subscription_data' => [
-                'trial_period_days' => $plan->trial_days,
+                'trial_period_days' => $planTrialDays,
                 'metadata' => [
-                    'tenant_id' => $tenant->id,
+                    'tenant_id' => $tenantId,
                 ],
             ],
             // Permite códigos de desconto/cupom no checkout
@@ -72,10 +78,10 @@ class StripeCheckoutService
             'tax_id_collection' => ['enabled' => true],
             'customer_update' => ['name' => 'auto', 'address' => 'auto'],
             'success_url' => $this->signupSuccessUrl(),
-            'cancel_url' => $this->signupCancelUrl($plan->slug),
+            'cancel_url' => $this->signupCancelUrl($planSlug),
             'metadata' => [
-                'tenant_id' => $tenant->id,
-                'plan_slug' => $plan->slug,
+                'tenant_id' => $tenantId,
+                'plan_slug' => $planSlug,
             ],
         ], $sessionOptions));
     }
@@ -97,8 +103,8 @@ class StripeCheckoutService
 
         $product = Cashier::stripe()->products->create(
             [
-                'name' => $plan->name,
-                'description' => $plan->description,
+                'name' => (string) $plan->getAttribute('name'),
+                'description' => (string) ($plan->getAttribute('description') ?? ''),
             ],
             ['idempotency_key' => 'product-'.$idempotencyBase]
         );
@@ -106,8 +112,8 @@ class StripeCheckoutService
         $price = Cashier::stripe()->prices->create(
             [
                 'product' => $product->id,
-                'unit_amount' => $plan->price,
-                'currency' => config('cashier.currency', 'brl'),
+                'unit_amount' => (int) $plan->getAttribute('price'),
+                'currency' => (string) config('cashier.currency', 'brl'),
                 'recurring' => ['interval' => 'month'],
             ],
             ['idempotency_key' => 'price-'.$idempotencyBase.'-'.$plan->price]

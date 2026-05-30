@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Enums\Common\RolesEnum;
+use App\Models\Tenant\User;
 use App\Services\ApiResponseService;
 use Closure;
 use Illuminate\Http\Request;
@@ -24,7 +25,11 @@ class EnsureTenantAdmin
             'director',
         ];
 
-        if (! $user || ! $user->hasAnyRole($allowedRoles)) {
+        if (! $user instanceof User || ! $user->hasAnyRole($allowedRoles)) {
+            return ApiResponseService::forbidden('Acesso restrito a administradores do tenant.');
+        }
+
+        if (! tenancy()->initialized) {
             return ApiResponseService::forbidden('Acesso restrito a administradores do tenant.');
         }
 

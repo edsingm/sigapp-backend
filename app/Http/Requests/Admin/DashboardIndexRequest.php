@@ -14,6 +14,9 @@ class DashboardIndexRequest extends FormRequest
         return Gate::allows('view', \App\Models\Central\Tenant::class);
     }
 
+    /**
+     * @return array<string, array<int, \Illuminate\Contracts\Validation\ValidationRule|string>>
+     */
     public function rules(): array
     {
         return [];

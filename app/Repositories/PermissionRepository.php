@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repositories;
 
 use App\Enums\Common\ModulesEnum;
+use App\Enums\Common\SubmodulesEnum;
 use App\Models\Tenant\User;
 use App\Repositories\Contracts\PermissionRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
@@ -25,7 +26,10 @@ class PermissionRepository implements PermissionRepositoryInterface
             $query->where('name', 'like', "%{$search}%");
         }
 
-        return $query->get();
+        /** @var Collection<int, Permission> $permissions */
+        $permissions = $query->get();
+
+        return $permissions;
     }
 
     public function findById(int $id): ?Permission
@@ -39,10 +43,13 @@ class PermissionRepository implements PermissionRepositoryInterface
 
     public function create(string $name): Permission
     {
-        return Permission::create([
+        /** @var Permission $permission */
+        $permission = Permission::query()->create([
             'name' => $name,
             'guard_name' => 'web',
         ]);
+
+        return $permission;
     }
 
     public function update(Permission $permission, string $name): Permission
@@ -87,7 +94,12 @@ class PermissionRepository implements PermissionRepositoryInterface
             [$module, $resource, $level] = $parts;
             $mod = ModulesEnum::tryFrom($module);
 
-            return $mod !== null && in_array($resource, $mod->submodules(), true) && in_array($level, $levels, true);
+            $submodules = array_map(
+                static fn (SubmodulesEnum $submodule): string => $submodule->value,
+                $mod?->submodules() ?? []
+            );
+
+            return $mod !== null && in_array($resource, $submodules, true) && in_array($level, $levels, true);
         }
 
         if (count($parts) === 2) {

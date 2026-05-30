@@ -20,6 +20,24 @@ use Illuminate\Support\Facades\Cache;
 
 #[Table('terrenos')]
 #[Fillable(['nome', 'responsavel_id', 'endereco', 'corretor_id', 'estado', 'cidade_code', 'polygon_coords', 'static_map_url', 'area_calculada', 'area_total', 'area_declividade', 'area_app', 'area_util', 'percentual_aproveitamento', 'declividade_classificacao', 'declividade_avaliacao', 'declividade_impacto_custo', 'declividade_percentual_maximo', 'declividade_percentual_medio', 'app_polygons', 'steep_polygons', 'area_calculada_em', 'area_calculo_status', 'regional_id', 'workflow_stage', 'workflow_status_code', 'workflow_status_changed_at', 'workflow_reason_code', 'workflow_reason_notes', 'qualification_data', 'qualification_completed_at', 'qualification_completed_by', 'cep', 'bairro', 'observacoes', 'valor', 'zona', 'distrito', 'operacao_urbana', 'data_apresentacao', 'data_negociacao', 'data_opcao', 'data_descarte', 'data_contrato', 'comprador_id', 'created_by', 'updated_by'])]
+/**
+ * @property int $id
+ * @property string $nome
+ * @property string|null $declividade_impacto_custo
+ * @property float|int|null $declividade_percentual_maximo
+ * @property float|int|null $declividade_percentual_medio
+ * @property array<int, mixed>|null $app_polygons
+ * @property array<int, mixed>|null $steep_polygons
+ * @property string|null $workflow_stage
+ * @property string|null $workflow_status_code
+ * @property \Carbon\Carbon|null $workflow_status_changed_at
+ * @property \Carbon\Carbon|null $updated_at
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Tenant\TerrenoProduto> $terrenoProdutos
+ * @property-read \App\Models\Tenant\Viabilidade|null $viabilidadeAtual
+ * @property-read \App\Models\Tenant\ComiteRevisao|null $comiteAtual
+ * @property-read \App\Models\Tenant\Legalizacao|null $legalizacao
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Tenant\Task> $tasks
+ */
 class Terreno extends Model
 {
     use HasDashboardCache, HasFactory, SoftDeletes;

@@ -19,7 +19,7 @@ class EnsureUserIsAdmin
     {
         $user = $request->user();
 
-        if (! $user || ! $user instanceof User) {
+        if (tenancy()->initialized || ! $user instanceof User) {
             return ApiResponseService::forbidden('Acesso restrito a administradores centrais.');
         }
 

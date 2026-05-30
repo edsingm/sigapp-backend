@@ -20,6 +20,11 @@ class FluxoMensalCalculator
         private readonly ProdutosProcessor $produtosProcessor,
     ) {}
 
+    /**
+     * @param  array<string, mixed>  $params
+     * @param  list<array<string, mixed>>|null  $customProdutos
+     * @return array<string, mixed>
+     */
     public function calcular(Terreno $terreno, array $params, ?array $customProdutos): array
     {
         $dadosProdutos = $this->produtosProcessor->processar($terreno, $params, $customProdutos);
@@ -72,19 +77,21 @@ class FluxoMensalCalculator
         $mesesComReceitas = 0;
         $totalJurosCorrecoesPrevistos = 0.0;
 
-        foreach ($periodoReceitas as $dataReceita) {
+        /** @var list<Carbon> $periodoReceitasLista */
+        $periodoReceitasLista = $periodoReceitas->toArray();
+        foreach ($periodoReceitasLista as $dataReceita) {
             $mesReceita = $dataReceita->format('Y-m');
             $receitasMes = $this->receitasCalculator->calcular($mesReceita, $dadosProdutos, $datas, $params, $ctxReceitas);
-            $totalJurosCorrecoesPrevistos += (float) ($receitasMes['juros_correcao'] ?? 0.0);
+            $totalJurosCorrecoesPrevistos += (float) $receitasMes['juros_correcao'];
 
-            if (($receitasMes['total'] ?? 0.0) > 0.01) {
+            if ((float) $receitasMes['total'] > 0.01) {
                 $mesesComReceitas++;
             }
         }
 
         $dadosProdutos['correcaoSobreVgv'] = $totalJurosCorrecoesPrevistos;
         $dadosProdutos['vgvComCorrecao'] = ($dadosProdutos['vgvSemValorTerrenista'] ?? 0) + $totalJurosCorrecoesPrevistos;
-        $ctx->parceriaVgvTotal = max(0.0, ($params['parceriaVgv'] ?? 0.0) * ($dadosProdutos['vgvComCorrecao'] ?? 0.0));
+        $ctx->parceriaVgvTotal = max(0.0, ((float) ($params['parceriaVgv'] ?? 0.0)) * ((float) $dadosProdutos['vgvComCorrecao']));
 
         $outrasDespesasFinanceirasTotal = (float) ($params['outrasDespesasFinanceirasTotal'] ?? 0.0);
         $percentualOutrasDespesasFinanceiras = (float) ($params['percentualOutrasDespesasFinanceiras'] ?? 0.0);
@@ -102,7 +109,9 @@ class FluxoMensalCalculator
         $unidadesVendidasAcumuladasFluxo = 0.0;
         $fracaoVendasCarregada = 0.0;
 
-        foreach ($periodo as $data) {
+        /** @var list<Carbon> $periodoLista */
+        $periodoLista = $periodo->toArray();
+        foreach ($periodoLista as $data) {
             $mes = $data->format('Y-m');
 
             $receitas = $this->receitasCalculator->calcular($mes, $dadosProdutos, $datas, $params, $ctx);
@@ -140,7 +149,7 @@ class FluxoMensalCalculator
             $totais['custos_financeiros'] += $despesas['categorias']['custos_financeiros'];
             $totais['lucro'] += $lucroMes;
 
-            $totalJurosCorrecoes += $receitas['juros_correcao'] ?? 0.0;
+            $totalJurosCorrecoes += (float) $receitas['juros_correcao'];
         }
 
         $dadosProdutos['correcaoSobreVgv'] = $totalJurosCorrecoes;
@@ -200,6 +209,19 @@ class FluxoMensalCalculator
         ];
     }
 
+    /**
+     * @param  array<string, mixed>  $params
+     * @return array{
+     *   inicioIncorporacao: Carbon,
+     *   dataLancamento: Carbon,
+     *   fimLancamento: Carbon,
+     *   inicioObra: Carbon,
+     *   fimObra: Carbon,
+     *   dataEntrega: Carbon,
+     *   inicioPos: Carbon,
+     *   fimPos: Carbon
+     * }
+     */
     private function calcularPeriodos(Carbon $dataInicio, array $params): array
     {
         $dataLancamento = $dataInicio->copy();
@@ -248,6 +270,11 @@ class FluxoMensalCalculator
         return $data->copy()->startOfMonth()->format('Y-m');
     }
 
+    /**
+     * @param  list<array<string, mixed>>  $produtos
+     * @param  array<string, Carbon>  $datas
+     * @param  array<string, mixed>  $params
+     */
     private function preCalcularRecebiveis(array $produtos, array $datas, array $params, ViabilidadeFluxoContext $ctx): void
     {
         if ($ctx->perfil->isCef()) {
@@ -259,6 +286,11 @@ class FluxoMensalCalculator
         $this->aplicarInadimplencia($ctx, $params);
     }
 
+    /**
+     * @param  list<array<string, mixed>>  $produtos
+     * @param  array<string, Carbon>  $datas
+     * @param  array<string, mixed>  $params
+     */
     private function preCalcularRecebiveisCef(array $produtos, array $datas, array $params, ViabilidadeFluxoContext $ctx): void
     {
         $ctx->recursosProprios = [];
@@ -361,6 +393,11 @@ class FluxoMensalCalculator
         }
     }
 
+    /**
+     * @param  list<array<string, mixed>>  $produtos
+     * @param  array<string, Carbon>  $datas
+     * @param  array<string, mixed>  $params
+     */
     private function preCalcularRecebiveisProprio(array $produtos, array $datas, array $params, ViabilidadeFluxoContext $ctx): void
     {
         $ctx->recursosProprios = [];
@@ -471,6 +508,9 @@ class FluxoMensalCalculator
         ksort($ctx->recursosProprios);
     }
 
+    /**
+     * @param  array<string, mixed>  $params
+     */
     private function aplicarInadimplencia(ViabilidadeFluxoContext $ctx, array $params): void
     {
         if ($ctx->perfil->isCef()) {
@@ -531,6 +571,10 @@ class FluxoMensalCalculator
         }
     }
 
+    /**
+     * @param  array<string, mixed>  $dadosProdutos
+     * @param  array<string, Carbon>  $datas
+     */
     private function inicializarCachesCef(array $dadosProdutos, array $datas, ViabilidadeFluxoContext $ctx): void
     {
         $ctx->vendasPorMes = [];
@@ -553,6 +597,9 @@ class FluxoMensalCalculator
         $this->receitasCalculator->inicializarValorMedicaoTotal($dadosProdutos, $datas, $ctx);
     }
 
+    /**
+     * @return list<float>
+     */
     private function agregarCurvaObra(int $mesesObra): array
     {
         return $this->curvaService->getCurvaObraParaPrazo($mesesObra);

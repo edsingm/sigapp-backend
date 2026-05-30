@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Tenant;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\PlanSwapRequest;
 use App\Http\Resources\PlanResource;
+use App\Models\Central\Tenant;
 use App\Repositories\Contracts\PlanRepositoryInterface;
 use App\Services\ApiResponseService;
 use App\Services\Billing\TenantBillingService;
@@ -32,6 +33,9 @@ class PlanSwapController extends Controller
     public function swap(PlanSwapRequest $request): JsonResponse
     {
         $tenant = tenancy()->tenant;
+        if (! $tenant instanceof Tenant) {
+            return ApiResponseService::serverError('TENANT_CONTEXT_NOT_AVAILABLE');
+        }
 
         $newPlan = $this->planRepository->findActiveBySlug($request->validated('plan_slug'));
 
@@ -39,7 +43,9 @@ class PlanSwapController extends Controller
             return ApiResponseService::notFound('PLAN_NOT_FOUND');
         }
 
-        if (! $newPlan->stripe_price_id) {
+        $stripePriceId = $newPlan->getAttribute('stripe_price_id');
+
+        if (! is_string($stripePriceId) || $stripePriceId === '') {
             return ApiResponseService::error('PLAN_UNAVAILABLE', 'PLAN_UNAVAILABLE', null, 422);
         }
 
@@ -49,7 +55,7 @@ class PlanSwapController extends Controller
             return ApiResponseService::conflict('NO_ACTIVE_SUBSCRIPTION');
         }
 
-        if ($subscription->stripe_price === $newPlan->stripe_price_id) {
+        if ((string) $subscription->getAttribute('stripe_price') === $stripePriceId) {
             return ApiResponseService::conflict('ALREADY_ON_THIS_PLAN');
         }
 
@@ -58,20 +64,20 @@ class PlanSwapController extends Controller
         try {
             if ($prorate) {
                 // swapAndInvoice: cobra imediatamente o valor proporcional (upgrade)
-                $subscription->swapAndInvoice($newPlan->stripe_price_id);
+                $subscription->swapAndInvoice($stripePriceId);
             } else {
                 // swap: aplica no próximo ciclo sem cobrança imediata (downgrade)
-                $subscription->swap($newPlan->stripe_price_id);
+                $subscription->swap($stripePriceId);
             }
 
-            $tenant->update(['plan_id' => $newPlan->id]);
-            cache()->forget('tenant:'.$tenant->slug);
+            $tenant->update(['plan_id' => $newPlan->getKey()]);
+            cache()->forget('tenant:'.$tenant->getAttribute('slug'));
 
-            $this->audit('tenant.plan_swapped', "Plano alterado para '{$newPlan->name}'.", [
+            $this->audit('tenant.plan_swapped', "Plano alterado para '{$newPlan->getAttribute('name')}'.", [
                 'tenant_id' => $tenant->id,
-                'tenant_slug' => $tenant->slug,
-                'new_plan_id' => $newPlan->id,
-                'new_plan_slug' => $newPlan->slug,
+                'tenant_slug' => $tenant->getAttribute('slug'),
+                'new_plan_id' => $newPlan->getKey(),
+                'new_plan_slug' => $newPlan->getAttribute('slug'),
                 'prorate' => $prorate,
             ]);
 
@@ -83,7 +89,7 @@ class PlanSwapController extends Controller
         } catch (\Exception $e) {
             Log::error('Erro ao trocar plano da assinatura', [
                 'tenant_id' => $tenant->id,
-                'new_plan_slug' => $newPlan->slug,
+                'new_plan_slug' => $newPlan->getAttribute('slug'),
                 'error' => $e->getMessage(),
             ]);
 

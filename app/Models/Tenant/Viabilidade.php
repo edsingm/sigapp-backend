@@ -21,10 +21,69 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property int $terreno_id
  * @property PerfilFinanciamento|null $perfil_financiamento
  * @property string|null $data_lancamento
+ * @property float|int|null $pis_cofins
+ * @property float|int|null $iss
+ * @property float|int|null $outros_impostos
+ * @property float|int|null $comissao
+ * @property float|int|null $parceria_vgv
+ * @property float|int|null $infra_nao_incidente
+ * @property float|int|null $porcentagem_lote_proprietario
+ * @property float|int|null $incorporacao
+ * @property float|int|null $area_comum
+ * @property float|int|null $contrapartidas
+ * @property float|int|null $canteiro_mensal
+ * @property float|int|null $mo_administrativa
+ * @property float|int|null $seguros
+ * @property float|int|null $assistencia_tecnica
+ * @property float|int|null $despesas_comerciais
+ * @property float|int|null $stand_vendas
+ * @property float|int|null $mobilia_decoracao
+ * @property float|int|null $gastos_mensais_stand
+ * @property float|int|null $comissao_house_percentual
+ * @property float|int|null $comissao_imobiliarias_percentual
+ * @property float|int|null $percentual_vendas_house
+ * @property int|null $construcao_stand_meses_antes_lancamento
+ * @property float|int|null $ajuda_custo_gerente
+ * @property float|int|null $ajuda_custo_gerente_regional
+ * @property float|int|null $reembolso_logistica
+ * @property float|int|null $bonus_cca
+ * @property float|int|null $bonus_gerente
+ * @property float|int|null $bonus_gerente_regional
+ * @property float|int|null $bonus_credito
+ * @property float|int|null $bonus_gestor_comercial
+ * @property float|int|null $bonus_equipe_comercial
+ * @property float|int|null $pagamento_comissao_venda
+ * @property float|int|null $pagamento_comissao_desligamento
+ * @property int|null $parcelamento_comissao_meses
+ * @property float|int|null $marketing
+ * @property float|int|null $marketing_lancamento
+ * @property int|null $marketing_inicio_antes_lancamento
+ * @property float|int|null $itbi_iptu
+ * @property float|int|null $registro
+ * @property float|int|null $custo_contratacao_cef
+ * @property float|int|null $custo_medicao_cef
+ * @property float|int|null $contratos_cef
+ * @property float|int|null $produtos_cef
+ * @property float|int|null $outras_despesas_financeiras
+ * @property int|null $prazo_obra
+ * @property int|null $prazo_lancamento
+ * @property int|null $prazo_incorporacao
+ * @property float|int|null $compra_terreno
+ * @property float|int|null $percentual_antecipacao_pj
+ * @property float|int|null $aporte_adicional_mensal
+ * @property float|int|null $devolucao_aporte_percentual
+ * @property float|int|null $distribuicao_lucros_percentual_obra
+ * @property float|int|null $taxa_exposicao_aplicada
  * @property array<string, mixed>|null $premissas_snapshot
  * @property array<string, mixed>|null $resultados_dre
  * @property string|null $status
  * @property string|null $approval_status
+ * @property-read Terreno|null $terreno
+ * @property-read User|null $createdBy
+ * @property-read User|null $updatedBy
+ * @property-read User|null $approvalDecidedBy
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, ViabilidadeSecao> $secoes
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, ViabilidadeAprovacao> $aprovacoes
  */
 class Viabilidade extends Model
 {

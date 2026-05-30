@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Tests\TestCase;
 
@@ -82,7 +83,6 @@ class ViabilidadeRealOutputTest extends TestCase
         $service = app(ViabilidadeUnificadoService::class);
         $resultado = $service->gerarFluxoMensal($terrenoId, $viabilidadeId);
 
-        $this->assertIsArray($resultado);
         $this->assertArrayHasKey('fluxo_mensal', $resultado);
         $this->assertArrayHasKey('dre_itens', $resultado);
         $this->assertArrayHasKey('dre_caixa', $resultado);
@@ -294,7 +294,6 @@ class ViabilidadeRealOutputTest extends TestCase
         );
         fwrite(STDOUT, 'Planilha Excel gerada em: '.$arquivoExcel.PHP_EOL.PHP_EOL);
 
-        $this->assertIsArray($resultado);
         $this->assertArrayHasKey('dre_itens', $resultado);
         $this->assertGreaterThan(0, $dre['receita_total_vendas'] ?? 0, 'Receita total deve ser > 0');
         $this->assertFileExists($arquivoExcel);
@@ -599,14 +598,10 @@ class ViabilidadeRealOutputTest extends TestCase
         fwrite(STDOUT, str_repeat('-', 90).PHP_EOL);
 
         foreach ($planilha as $key => $valPlanilha) {
-            $valSistema = $sistema[$key] ?? 'N/A';
-            if (is_string($valSistema)) {
-                fwrite(STDOUT, sprintf("%-45s %15.1f %15s %15s\n", $key, $valPlanilha, $valSistema, '---'));
-            } else {
-                $diff = $valPlanilha - $valSistema;
-                $pct = $valPlanilha != 0 ? round(($diff / abs($valPlanilha)) * 100, 1) : 0;
-                fwrite(STDOUT, sprintf("%-45s %15.1f %15.1f %15.1f (%5.1f%%)\n", $key, $valPlanilha, $valSistema, $diff, $pct));
-            }
+            $valSistema = $sistema[$key];
+            $diff = $valPlanilha - $valSistema;
+            $pct = $valPlanilha != 0 ? round(($diff / abs($valPlanilha)) * 100, 1) : 0;
+            fwrite(STDOUT, sprintf("%-45s %15.1f %15.1f %15.1f (%5.1f%%)\n", $key, $valPlanilha, $valSistema, $diff, $pct));
         }
 
         // TOTAIS agregados do fluxo mensal para validação
@@ -689,7 +684,6 @@ class ViabilidadeRealOutputTest extends TestCase
         $this->assertGreaterThan(15, $ind['margem_liquida_percentual'], 'Margem Líquida > 15%');
         $this->assertLessThan(20, $ind['margem_liquida_percentual'], 'Margem Líquida < 20%');
 
-        $this->assertIsArray($resultado);
         $this->assertArrayHasKey('dre_itens', $resultado);
         $this->assertGreaterThan(0, $dre['receita_total_vendas'] ?? 0, 'Receita total deve ser > 0');
     }
@@ -766,7 +760,10 @@ class ViabilidadeRealOutputTest extends TestCase
         $this->preencherAbaTabular($spreadsheet->createSheet(), $titulo, $linhas);
     }
 
-    private function preencherAbaTabular($sheet, string $titulo, array $linhas): void
+    /**
+     * @param  list<array<string, scalar|null>>  $linhas
+     */
+    private function preencherAbaTabular(Worksheet $sheet, string $titulo, array $linhas): void
     {
         $sheet->setTitle($this->sanitizarTituloAba($titulo));
 
@@ -807,6 +804,10 @@ class ViabilidadeRealOutputTest extends TestCase
         $this->ajustarLarguraColunas($sheet, count($cabecalhos));
     }
 
+    /**
+     * @param  array<array-key, array<array-key, mixed>>  $fluxoMensal
+     * @return list<array<string, scalar|null>>
+     */
     private function montarLinhasFluxoMensal(array $fluxoMensal): array
     {
         $linhas = [];
@@ -824,6 +825,10 @@ class ViabilidadeRealOutputTest extends TestCase
         return $linhas;
     }
 
+    /**
+     * @param  array<array-key, mixed>  $dados
+     * @return array<string, mixed>
+     */
     private function achatarArray(array $dados, string $prefixo = ''): array
     {
         if ($dados === []) {
@@ -877,14 +882,14 @@ class ViabilidadeRealOutputTest extends TestCase
         foreach ($detalhes as $chave => $valor) {
             if (is_array($valor)) {
                 $this->logDetalhesNested($valor, $prefixo, $ident.$chave.'.');
-            } elseif (is_numeric($valor) && abs($valor) > 0.01) {
+            } elseif (is_numeric($valor) && abs((float) $valor) > 0.01) {
                 $caminho = $ident.$chave;
-                fwrite(STDOUT, str_pad('', 26)."  {$prefixo}: {$caminho}: ".number_format($valor, 0, ',', '.').PHP_EOL);
+                fwrite(STDOUT, str_pad('', 26)."  {$prefixo}: {$caminho}: ".number_format((float) $valor, 0, ',', '.').PHP_EOL);
             }
         }
     }
 
-    private function ajustarLarguraColunas($sheet, int $totalColunas): void
+    private function ajustarLarguraColunas(Worksheet $sheet, int $totalColunas): void
     {
         for ($indice = 1; $indice <= $totalColunas; $indice++) {
             $sheet->getColumnDimension(Coordinate::stringFromColumnIndex($indice))->setAutoSize(true);

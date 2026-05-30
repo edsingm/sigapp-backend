@@ -44,11 +44,11 @@ class AiTaskController extends Controller
 
         return new JsonResponse([
             'data' => [
-                'id' => $task->id,
-                'title' => $task->title,
-                'status' => $task->status,
-                'priority' => $task->priority,
-                'due_date' => $task->due_date?->toDateString(),
+                'id' => $task->getKey(),
+                'title' => $task->getAttribute('title'),
+                'status' => $task->getAttribute('status'),
+                'priority' => $task->getAttribute('priority'),
+                'due_date' => $task->getAttribute('due_date')?->toDateString(),
             ],
         ], 201);
     }
@@ -63,8 +63,9 @@ class AiTaskController extends Controller
             return new JsonResponse(['message' => 'Tarefa não encontrada.'], 404);
         }
 
-        $terreno = $this->terrenoRepository->findOrFail($task->terreno_id);
-        if (! $terreno || Gate::denies('update', $terreno)) {
+        $terrenoId = $task->getAttribute('terreno_id');
+        $terreno = $this->terrenoRepository->findOrFail((int) $terrenoId);
+        if (Gate::denies('update', $terreno)) {
             return new JsonResponse(['message' => 'Acesso negado ao terreno.'], 403);
         }
 
@@ -73,15 +74,15 @@ class AiTaskController extends Controller
         $updates = ['updated_by' => auth()->id()];
 
         if (isset($validated['status'])) {
-            $changes['status'] = [$task->status, $validated['status']];
+            $changes['status'] = [(string) $task->getAttribute('status'), $validated['status']];
             $updates['status'] = $validated['status'];
             if (in_array($validated['status'], ['concluded', 'cancelled'], true)) {
                 $updates['completed_at'] = now();
             }
         }
 
-        if (isset($validated['assigned_to']) && $task->assigned_to !== $validated['assigned_to']) {
-            $changes['assigned_to'] = [$task->assigned_to, $validated['assigned_to']];
+        if (isset($validated['assigned_to']) && $task->getAttribute('assigned_to') !== $validated['assigned_to']) {
+            $changes['assigned_to'] = [$task->getAttribute('assigned_to'), $validated['assigned_to']];
             $updates['assigned_to'] = $validated['assigned_to'];
         }
 
@@ -93,10 +94,10 @@ class AiTaskController extends Controller
 
         return new JsonResponse([
             'data' => [
-                'id' => $task->id,
-                'title' => $task->title,
-                'status' => $task->status,
-                'assigned_to' => $task->assigned_to,
+                'id' => $task->getKey(),
+                'title' => $task->getAttribute('title'),
+                'status' => $task->getAttribute('status'),
+                'assigned_to' => $task->getAttribute('assigned_to'),
                 'changes' => $changes,
             ],
         ]);

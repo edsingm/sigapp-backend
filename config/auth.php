@@ -16,8 +16,8 @@ return [
     */
 
     'defaults' => [
-        'guard' => env('AUTH_GUARD', 'web'),
-        'passwords' => env('AUTH_PASSWORD_BROKER', 'users'),
+        'guard' => env('AUTH_GUARD', 'central_web'),
+        'passwords' => env('AUTH_PASSWORD_BROKER', 'central_users'),
     ],
 
     /*
@@ -38,9 +38,20 @@ return [
     */
 
     'guards' => [
+        'central_web' => [
+            'driver' => 'session',
+            'provider' => 'central_users',
+        ],
+
+        'tenant_web' => [
+            'driver' => 'session',
+            'provider' => 'tenant_users',
+        ],
+
+        // Backward-compatible alias while routes/middleware migrate to explicit contexts.
         'web' => [
             'driver' => 'session',
-            'provider' => 'users',
+            'provider' => 'central_users',
         ],
     ],
 
@@ -62,7 +73,7 @@ return [
     */
 
     'providers' => [
-        'users' => [
+        'central_users' => [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', User::class),
         ],
@@ -72,7 +83,7 @@ return [
             'model' => App\Models\Tenant\User::class,
         ],
 
-        // 'users' => [
+        // 'central_users' => [
         //     'driver' => 'database',
         //     'table' => 'users',
         // ],
@@ -98,8 +109,8 @@ return [
     */
 
     'passwords' => [
-        'users' => [
-            'provider' => 'users',
+        'central_users' => [
+            'provider' => 'central_users',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
             'expire' => 60,
             'throttle' => 60,

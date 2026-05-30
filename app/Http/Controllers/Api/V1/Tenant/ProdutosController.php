@@ -14,6 +14,8 @@ use App\Http\Requests\Tenant\UpdateProdutoRequest;
 use App\Http\Resources\Tenant\ProdutoResource;
 use App\Services\ApiResponseService;
 use App\Services\Tenant\ProdutoService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class ProdutosController extends Controller
 {
@@ -21,7 +23,7 @@ class ProdutosController extends Controller
         private readonly ProdutoService $produtoService,
     ) {}
 
-    public function index(ListProdutosRequest $request)
+    public function index(ListProdutosRequest $request): AnonymousResourceCollection
     {
         $perPage = $request->integer('per_page', 10);
         $produtos = $this->produtoService->list($perPage);
@@ -36,7 +38,7 @@ class ProdutosController extends Controller
             ]);
     }
 
-    public function forSelect(ListProdutosRequest $request)
+    public function forSelect(ListProdutosRequest $request): JsonResponse
     {
         $search = $request->string('search')->toString();
         $produtos = $this->produtoService->searchForSelect($search);
@@ -44,7 +46,7 @@ class ProdutosController extends Controller
         return ApiResponseService::success($produtos, 'Produtos recuperados com sucesso');
     }
 
-    public function show(ShowProdutoRequest $request, int $id)
+    public function show(ShowProdutoRequest $request, int $id): JsonResponse
     {
         $produto = $this->produtoService->findById($id);
 
@@ -58,7 +60,7 @@ class ProdutosController extends Controller
         );
     }
 
-    public function store(StoreProdutoRequest $request)
+    public function store(StoreProdutoRequest $request): JsonResponse
     {
         $validated = $request->validated();
         $validated['created_by'] = $request->user()->id;
@@ -71,7 +73,7 @@ class ProdutosController extends Controller
         );
     }
 
-    public function update(UpdateProdutoRequest $request, int $id)
+    public function update(UpdateProdutoRequest $request, int $id): JsonResponse
     {
         $produto = $this->produtoService->findById($id);
 
@@ -90,7 +92,7 @@ class ProdutosController extends Controller
         );
     }
 
-    public function destroy(DestroyProdutoRequest $request, int $id)
+    public function destroy(DestroyProdutoRequest $request, int $id): JsonResponse
     {
         $produto = $this->produtoService->findById($id);
 
@@ -103,7 +105,7 @@ class ProdutosController extends Controller
         return ApiResponseService::success(null, 'Produto excluído com sucesso');
     }
 
-    public function restore(RestoreProdutoRequest $request, int $id)
+    public function restore(RestoreProdutoRequest $request, int $id): JsonResponse
     {
         $produto = $this->produtoService->findById($id, withTrashed: true);
 

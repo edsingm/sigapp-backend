@@ -2,9 +2,9 @@
 
 ## Visão Geral
 
-SIGAPP é uma plataforma SaaS multi-tenant para análise de viabilidade de terrenos e gestão imobiliária.
+SIGAPP é uma plataforma SaaS multi-tenant voltada para prospecção, análise de viabilidade de terrenos e gestão imobiliária.
 
-**Stack:** Laravel 12 + PHP 8.2, PostgreSQL, Redis, Sanctum, Stancl/Tenancy, Spatie/Permission, Stripe, OpenRouter (IA)
+**Stack:** Laravel 13 + PHP 8.2+, PostgreSQL, Redis, Sanctum, Stancl/Tenancy, Spatie/Permission, Stripe (Cashier), Scramble (API Docs), Resend, OpenRouter (IA), Spatie Browsershot/PDF, Maatwebsite Excel
 
 ---
 
@@ -21,17 +21,32 @@ sigapp/
 │   │   ├── Models/
 │   │   │   ├── Central/         # Models do domínio central (User, Tenant, Plan, etc.)
 │   │   │   └── Tenant/          # Models do domínio tenant (Terreno, Produto, Viabilidade, etc.)
-│   │   ├── Services/Tenant/     # Serviços de negócio por tenant
-│   │   │   ├── Viabilidade/     # Motor de cálculo financeiro
-│   │   │   ├── Legalizacao/     # Gestão de legalização
+│   │   ├── Services/            # Serviços de negócio (central + tenant)
+│   │   │   ├── Tenant/          # Serviços específicos por tenant
+│   │   │   │   ├── Viabilidade/ # Motor de cálculo financeiro
+│   │   │   │   ├── Legalizacao/ # Gestão de legalização
+│   │   │   │   └── ...
+│   │   │   ├── Ai/              # Serviços de IA (scoring, embeddings, insights, etc.)
 │   │   │   └── ...
+│   │   ├── Repositories/        # Acesso ao banco (com Contracts/)
+│   │   │   ├── Tenant/          # Repositories de tenant
+│   │   │   └── Contracts/       # Interfaces dos repositories
 │   │   ├── Ai/Agents/           # Agentes de IA (SIG_IA)
-│   │   └── Http/Controllers/    # Controllers (HTTP apenas)
+│   │   │   └── Tools/           # Tools/Functions para o agente
+│   │   ├── Enums/               # PHP Enums tipados
+│   │   ├── Http/Controllers/    # Controllers (HTTP apenas)
+│   │   │   └── Api/V1/          # Controllers versionados
+│   │   ├── Http/Requests/       # FormRequests (validação + autorização)
+│   │   ├── Http/Resources/      # API Resources
+│   │   ├── Http/Middleware/     # Middlewares customizados
+│   │   ├── Policies/            # Policies de autorização
+│   │   └── ...
 │   ├── config/
 │   │   ├── tenancy.php          # Configuração multi-tenant
 │   │   ├── plans.php            # Matriz de features/limites por plano
+│   │   ├── entitlements.php     # Sistema granular de entitlements
 │   │   ├── viabilidade.php      # Defaults de parâmetros de viabilidade
-│   │   ├── ai.php              # Provedores de IA
+│   │   ├── ai.php               # Provedores de IA
 │   │   └── permission.php       # Spatie Permission
 │   ├── database/
 │   │   ├── migrations/          # Migrations centrais
@@ -39,7 +54,7 @@ sigapp/
 │   │   ├── seeders/             # Seeders
 │   │   └── factories/           # Factories de testes
 │   ├── routes/
-│   │   ├── api.php              # Rotas centrais (auth, admin, webhook)
+│   │   ├── api.php              # Rotas centrais (auth, admin, webhook, blog)
 │   │   └── tenant.php           # Rotas de tenant (viabilidade, terrenos, etc.)
 │   ├── tests/
 │   │   ├── Feature/             # Testes de integração
@@ -62,8 +77,8 @@ O sistema roda em 3 composições Docker separadas:
 
 ### 1. Database (`database/docker-compose.yml`)
 
-| Serviço | Container | Descrição |
-|---------|-----------|-----------|
+| Serviço     | Container    | Descrição               |
+| ------------ | ------------ | ------------------------- |
 | `database` | `database` | PostgreSQL 17, porta 5432 |
 
 - Rede `sigapp` (bridge)
@@ -72,10 +87,10 @@ O sistema roda em 3 composições Docker separadas:
 
 ### 2. Backend (`backend/docker-compose.yml`)
 
-| Serviço | Container | Descrição |
-|---------|-----------|-----------|
-| `back` | `sigapp-backend` | Laravel + PHP-FPM, porta 8000 |
-| `redis` | `sigapp-redis` | Redis 7, porta 6379 |
+| Serviço  | Container          | Descrição                   |
+| --------- | ------------------ | ----------------------------- |
+| `back`  | `sigapp-backend` | Laravel + PHP-FPM, porta 8000 |
+| `redis` | `sigapp-redis`   | Redis 7, porta 6379           |
 
 - Conecta à rede `database_sigapp` (externa, criada pelo compose do database)
 - Volume bind-mount de `.` para `/var/www` (development)
@@ -83,8 +98,8 @@ O sistema roda em 3 composições Docker separadas:
 
 ### 3. Frontend (`frontend/docker-compose.yml`)
 
-| Serviço | Descrição |
-|---------|-----------|
+| Serviço  | Descrição                       |
+| --------- | --------------------------------- |
 | `front` | Aplicação frontend (Hono/React) |
 
 ---
@@ -106,13 +121,13 @@ O sistema roda em 3 composições Docker separadas:
 
 ### Planos e Feature Gating
 
-| Plano | Uso |
-|-------|-----|
-| `broker` | Prospecção básica |
-| `basico` | Prospecção + viabilidade |
+| Plano      | Uso                                         |
+| ---------- | ------------------------------------------- |
+| `broker` | Prospecção básica                        |
+| `basico` | Prospecção + viabilidade                  |
 | `master` | Tudo + comitê, legalização, projetos, IA |
 
-Features são checadas via middleware `check.feature:nome_feature`. A matriz completa está em `config/plans.php`.
+Features são checadas via middleware `CheckFeature`. O sistema de entitlements é mais granular e gerenciado por `EntitlementService` e `TenantPlanService`. A matriz completa está em `config/plans.php` e o sistema de entitlements em `database/seeders/EntitlementSeeder.php`.
 
 ---
 
@@ -162,20 +177,51 @@ docker compose exec back ./vendor/bin/phpstan analyse app  # Análise estática
 
 ## Módulos do Domínio
 
-### Terrenos (Prospection)
-Gestão de terrenos, topografia, documentação, workflow de prospecção.
+#### Terrenos (Prospection)
 
-### Viabilidade
+Gestão de terrenos, topografia, documentação, workflow de prospecção, corretores externos, regionais.
+
+#### Workflow
+
+Sistema de workflow com versões, aprovações e histórico de status para terrenos.
+
+#### Viabilidade
+
 Motor financeiro que calcula fluxo de caixa, DRE e indicadores (TIR, ROI, VPL, payback) para projetos imobiliários. As curvas de vendas e obra vêm diretamente da tabela `produtos` como arrays JSON. Documentação detalhada em `docs/calculo_viabilidade.md`.
 
-### Legalização
+#### Legalização
+
 Gestão de etapas de regularização fundiária com dependências, custos e prazos.
 
-### Comitê
+#### Projetos
+
+Gestão de projetos imobiliários com aprovações.
+
+#### Comitê
+
 Reuniões e decisões de aprovação para projetos.
 
-### IA (SIG_IA)
-Assistente de IA que responde perguntas sobre terrenos e viabilidades usando 3 ferramentas (listar terrenos, detalhes de terreno, viabilidades). Provider via OpenRouter.
+#### IA (SIG_IA)
+
+Assistente de IA que responde perguntas sobre terrenos e viabilidades usando múltiplas tools. Provider via OpenRouter (Laravel AI SDK). Inclui:
+
+- Agent conversations com histórico
+- AI scoring e embeddings para documentos
+- Predictive analysis
+- Anomaly detection
+- Workflow automation via AI tools
+
+#### Mobile
+
+Notificações push mobile e instalações de dispositivos.
+
+#### Billing (Stripe)
+
+Gestão de planos, subscriptions e pagamentos via Stripe Cashier.
+
+#### Blog/Posts
+
+Sistema de posts central para landing page/marketing.
 
 ---
 
@@ -183,10 +229,10 @@ Assistente de IA que responde perguntas sobre terrenos e viabilidades usando 3 f
 
 Localização e status dos testes de viabilidade:
 
-| Arquivo | Tipo | Qtd |
-|---------|------|-----|
-| `tests/Unit/Services/Viabilidade/ViabilidadeUnificadoServiceTest.php` | Unit | 25 testes |
-| `tests/Feature/Tenant/ViabilidadeRealOutputTest.php` | Feature | 3 testes |
+| Arquivo                                                                 | Tipo    | Qtd       |
+| ----------------------------------------------------------------------- | ------- | --------- |
+| `tests/Unit/Services/Viabilidade/ViabilidadeUnificadoServiceTest.php` | Unit    | 25 testes |
+| `tests/Feature/Tenant/ViabilidadeRealOutputTest.php`                  | Feature | 3 testes  |
 
 Todos passando (28 testes, 94 assertions).
 
@@ -195,3 +241,9 @@ Comando para rodar apenas os testes de viabilidade:
 ```bash
 docker compose exec back php artisan test --filter=Viabilidade
 ```
+
+**Total de testes no projeto:** 89 arquivos de teste.
+
+---
+
+**Última atualização:** 03 de Junho de 2026

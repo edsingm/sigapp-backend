@@ -7,6 +7,8 @@ use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
 use App\Services\Billing\TenantBillingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Log;
+use RuntimeException;
 use Tests\TestCase;
 
 class CleanupPendingTenantsJobTest extends TestCase
@@ -95,5 +97,30 @@ class CleanupPendingTenantsJobTest extends TestCase
         $job->handle($billingService);
 
         $this->assertDatabaseHas('tenants', ['id' => $tenantId]);
+    }
+
+    public function test_failed_loga_erro_sem_lancar_excecao(): void
+    {
+        Log::spy();
+
+        $job = new CleanupPendingTenantsJob;
+        $job->failed(new RuntimeException('Stripe API timeout'));
+
+        Log::shouldHaveReceived('error')
+            ->once()
+            ->withArgs(function (string $message, array $context): bool {
+                return $message === 'CleanupPendingTenantsJob falhou definitivamente'
+                    && $context['error'] === 'Stripe API timeout'
+                    && $context['exception_class'] === RuntimeException::class;
+            });
+    }
+
+    public function test_job_tem_tries_timeout_e_backoff_configurados(): void
+    {
+        $job = new CleanupPendingTenantsJob;
+
+        $this->assertSame(3, $job->tries);
+        $this->assertSame(300, $job->timeout);
+        $this->assertSame([60, 300, 900], $job->backoff);
     }
 }

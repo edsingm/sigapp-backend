@@ -7,6 +7,9 @@ use App\Models\Tenant\LegalizacaoEtapa;
 use App\Models\Tenant\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
+/**
+ * @phpstan-extends Factory<LegalizacaoEtapa>
+ */
 class LegalizacaoEtapaFactory extends Factory
 {
     protected $model = LegalizacaoEtapa::class;

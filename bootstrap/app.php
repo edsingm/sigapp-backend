@@ -103,6 +103,11 @@ return Application::configure(basePath: dirname(__DIR__))
             ], 429);
         });
 
+        // Handle DomainException for API
+        $exceptions->renderable(function (DomainException $e, Request $request) {
+            return response()->json($e->toResponsePayload(), $e->statusCode());
+        });
+
         // Handle HttpException for API
         $exceptions->renderable(function (HttpException $e, Request $request) {
             if ($request->expectsJson()) {

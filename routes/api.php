@@ -17,13 +17,14 @@ use App\Http\Controllers\Api\V1\LanguageController;
 use App\Http\Controllers\Api\V1\PlanController;
 use App\Http\Controllers\Api\V1\PublicTenantController;
 use App\Http\Controllers\Api\V1\SignupController;
-use App\Http\Controllers\Api\V1\TenantStatusController;
 use App\Http\Controllers\Api\V1\TenantAuthController;
 use App\Http\Controllers\Api\V1\TenantPasswordResetController;
+use App\Http\Controllers\Api\V1\TenantStatusController;
 use App\Http\Controllers\Api\V1\WebhookController;
 use App\Http\Middleware\ForceJsonResponse;
 use App\Http\Middleware\SetUserLocale;
 use App\Services\ApiResponseService;
+use App\Services\HealthCheckService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -138,6 +139,14 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
         // Universal routes (accessible on any domain)
         Route::middleware('throttle:api-public')->group(function () {
             Route::get('/tenant/subdomain-availability/{subdomain}', [PublicTenantController::class, 'subdomainAvailability']);
+
+            // Public central health check (comprehensive: DB, cache, storage, queue, Stripe, OpenRouter)
+            Route::get('/health', function (HealthCheckService $health) {
+                $report = $health->check();
+                $statusCode = $report['status'] === 'down' ? 503 : 200;
+
+                return response()->json($report, $statusCode);
+            });
         });
 
         // Central Only Routes

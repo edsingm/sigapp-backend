@@ -12,10 +12,18 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
+use Throwable;
 
 class CleanupPendingTenantsJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public int $tries = 3;
+
+    public int $timeout = 300;
+
+    /** @var array<int, int> */
+    public array $backoff = [60, 300, 900];
 
     /**
      * Executa o job.
@@ -130,5 +138,16 @@ class CleanupPendingTenantsJob implements ShouldQueue
         }
 
         Log::info('CleanupPendingTenantsJob concluído', ['removed_count' => $count]);
+    }
+
+    /**
+     * Trata falha definitiva do job após esgotar tentativas.
+     */
+    public function failed(Throwable $exception): void
+    {
+        Log::error('CleanupPendingTenantsJob falhou definitivamente', [
+            'error' => $exception->getMessage(),
+            'exception_class' => $exception::class,
+        ]);
     }
 }

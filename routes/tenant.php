@@ -1,10 +1,7 @@
 <?php
 
-use App\Models\Central\Tenant as CentralTenant;
 use App\Http\Controllers\Api\V1\CidadesController;
 use App\Http\Controllers\Api\V1\LanguageController;
-use App\Http\Controllers\Api\V1\TenantAuthController;
-use App\Http\Controllers\Api\V1\TenantPasswordResetController;
 use App\Http\Controllers\Api\V1\Tenant\Admin\DepartmentController as AdminDepartmentController;
 use App\Http\Controllers\Api\V1\Tenant\Admin\PermissionController as AdminPermissionController;
 use App\Http\Controllers\Api\V1\Tenant\Admin\PositionController as AdminPositionController;
@@ -43,11 +40,15 @@ use App\Http\Controllers\Api\V1\Tenant\TerrenosExportController;
 use App\Http\Controllers\Api\V1\Tenant\TerrenoWorkflowController;
 use App\Http\Controllers\Api\V1\Tenant\UserController;
 use App\Http\Controllers\Api\V1\Tenant\ViabilidadeController;
+use App\Http\Controllers\Api\V1\TenantAuthController;
+use App\Http\Controllers\Api\V1\TenantPasswordResetController;
 use App\Http\Middleware\AddTenantContextToLogs;
 use App\Http\Middleware\ApiRequestLogger;
 use App\Http\Middleware\CheckSubscriptionStatus;
 use App\Http\Middleware\ForceJsonResponse;
 use App\Http\Middleware\SetUserLocale;
+use App\Models\Central\Tenant as CentralTenant;
+use App\Services\HealthCheckService;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -388,7 +389,7 @@ Route::middleware([
     });
 
     // Tenant health check (requer autenticação para não vazar dados do tenant)
-    Route::middleware(['auth:sanctum'])->get('/api/health', function () {
+    Route::middleware(['auth:sanctum'])->get('/api/health', function (HealthCheckService $health) {
         $tenant = tenancy()->tenant;
 
         if (! $tenant instanceof CentralTenant) {
@@ -399,14 +400,15 @@ Route::middleware([
             ], 503);
         }
 
-        return response()->json([
-            'status' => 'ok',
-            'timestamp' => now()->toIso8601String(),
-            'tenant' => [
-                'id' => $tenant->id,
-                'name' => (string) $tenant->getAttribute('name'),
-                'status' => (string) $tenant->getAttribute('status'),
-            ],
-        ]);
+        $report = $health->check();
+        $report['tenant'] = [
+            'id' => $tenant->id,
+            'name' => (string) $tenant->getAttribute('name'),
+            'status' => (string) $tenant->getAttribute('status'),
+        ];
+
+        $statusCode = $report['status'] === 'down' ? 503 : 200;
+
+        return response()->json($report, $statusCode);
     });
 });

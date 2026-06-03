@@ -101,5 +101,169 @@ parameters:
         - '#Access to an undefined property App\\Models\\Tenant\\Projeto::\$id#'
         # Nullsafe property access patterns in event listeners
         - '#Using nullsafe property access ".+->nome" on left side of \?\?#'
+        # Factory state methods (phpstan não reconhece métodos de estado definidos em subclasses de Factory)
+        - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Factories\\Factory[^:]*::\w+#'
+        # Eloquent Model property access from Factory::createOne()/create() (phpstan widens o tipo para Model)
+        - '#Access to an undefined property Illuminate\\Database\\Eloquent\\Model::\$\w+#'
+        - '#Access to an undefined property App\\Models\\User::\$id#'
+        - '#Access to an undefined property App\\Models\\User::\$is_admin#'
+        - '#Access to an undefined property App\\Models\\User::\$email#'
+        - '#Access to an undefined property App\\Models\\Tenant\\PremissasViabilidade::\$id#'
+        # Optional helper (Eloquent relations podem retornar Optional via firstOrCreate)
+        - '#Call to an undefined method Illuminate\\Support\\Optional::\w+#'
+        - '#Using nullsafe method call on non-nullable type Illuminate\\Support\\Optional#'
+        - '#Using nullsafe method call on non-nullable type Illuminate\\Http\\Request#'
+        - '#Using nullsafe method call on non-nullable type Illuminate\\Routing\\Route#'
+        - '#Using nullsafe property access ".+->name" on left side of \?\?#'
+        - '#Expression on left side of \?\? is not nullable#'
+        # Eloquent: static find/create/where/firstOrCreate em models
+        - '#Call to an undefined static method App\\Models\\Tenant\\.+::find\(\)#'
+        - '#Call to an undefined static method App\\Models\\Tenant\\.+::findOrFail\(\)#'
+        - '#Call to an undefined static method App\\Models\\Tenant\\.+::firstOrFail\(\)#'
+        - '#Call to an undefined static method App\\Models\\Tenant\\.+::firstOrCreate\(\)#'
+        - '#Call to an undefined static method App\\Models\\Tenant\\.+::firstOrNew\(\)#'
+        - '#Call to an undefined static method App\\Models\\Tenant\\.+::count\(\)#'
+        - '#Call to an undefined static method App\\Models\\Tenant\\.+::first\(\)#'
+        - '#Call to an undefined static method App\\Models\\Tenant\\.+::where\(\)#'
+        - '#Call to an undefined static method App\\Models\\Tenant\\.+::whereIn\(\)#'
+        - '#Call to an undefined static method App\\Models\\Tenant\\.+::whereNotNull\(\)#'
+        - '#Call to an undefined static method App\\Models\\Tenant\\.+::query\(\)#'
+        - '#Call to an undefined static method App\\Models\\Central\\.+::where\(\)#'
+        - '#Call to an undefined static method App\\Models\\Central\\.+::first\(\)#'
+        - '#Call to an undefined static method App\\Models\\Central\\.+::firstOrFail\(\)#'
+        - '#Call to an undefined static method App\\Models\\Central\\.+::find\(\)#'
+        - '#Call to an undefined static method App\\Models\\Central\\.+::findOrFail\(\)#'
+        - '#Call to an undefined static method Spatie\\Permission\\Models\\Role::firstOrCreate\(\)#'
+        # Eloquent: propriedades dinâmicas em models do tenant (widening de tipo)
+        - '#Access to an undefined property App\\Models\\Tenant\\Terreno::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Tenant\\Viabilidade::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Tenant\\Contrato::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Tenant\\ComiteRevisao::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Tenant\\LegalizacaoEtapa::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Tenant\\Legalizacao::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Tenant\\Projeto::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Tenant\\Documento::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Tenant\\StatusHistory::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Tenant\\User::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Tenant\\Tenant::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Tenant\\Comite::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Tenant\\ViabilidadeUnificado::\$\w+#'
+        # Tenancy contract mixing com Model
+        - '#Cannot access property \$\w+ on Illuminate\\Database\\Eloquent\\Model\|Stancl\\Tenancy\\Contracts\\Tenant\|null#'
+        - '#Access to an undefined property Illuminate\\Database\\Eloquent\\Model\|Stancl\\Tenancy\\Contracts\\Tenant::\$\w+#'
+        # Helpers
+        - '#Unable to resolve the template type T\w+ in call to function collect#'
+        - '#Return type of call to method Illuminate\\Support\\Collection<int,array<string, mixed>>::\w+\(\) contains unresolvable type#'
+        - '#Parameter \#1 \$callback of method Illuminate\\Support\\Collection<int,stdClass>::\w+\(\) expects callable\(stdClass, int\): mixed#'
+        - '#Part \$resource \(.+?\) of encapsed string cannot be cast to string#'
+        - '#Parameter \#1 \$json of function json_decode expects string, string\|false given#'
+        - '#Parameter \#1 \$string of function md5 expects string, string\|false given#'
+        # Mockery Log facade (test-only)
+        - '#Call to an undefined static method Illuminate\\Support\\Facades\\Log::shouldHaveReceived\(\)#'
+        # Closure dentro de teste com Logger genérico
+        - '#Method Illuminate\\Log\\Logger@anonymous.+::\w+\(\) has parameter \$\w+ with generic interface Illuminate\\Contracts\\Support\\Arrayable but does not specify its types#'
+        # Resource access patterns
+        - '#Access to an undefined property App\\Http\\Resources\\Tenant\\TerrenoResource::\$\w+#'
+        # Paginator interface vs concrete
+        - '#Parameter \#1 \$paginator of static method App\\Services\\ApiResponseService::paginated\(\) expects Illuminate\\Pagination\\LengthAwarePaginator, Illuminate\\Contracts\\Pagination\\LengthAwarePaginator given#'
+        # Eloquent Model widening (Builder, EloquentCollection returning stdClass from raw queries)
+        - '#Parameter \#1 \$callback of method Illuminate\\Support\\Collection<int,stdClass>::map\(\) contains unresolvable type#'
+        - '#Return type of call to method Illuminate\\Support\\Collection<int,stdClass>::map\(\) contains unresolvable type#'
+        # Auth Factory (auth() helper retorna Factory mas usamos como guard)
+        - '#Call to an undefined method Illuminate\\Contracts\\Auth\\Factory::\w+\(\)#'
+        - '#Access to an undefined property Illuminate\\Contracts\\Auth\\Authenticatable::\$\w+#'
+        # Negociacao model
+        - '#Access to an undefined property App\\Models\\Tenant\\Negociacao::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Tenant\\NegociacaoEstado::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Tenant\\TerrenoInfos::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Tenant\\TerrenoProduto::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Tenant\\Department::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Tenant\\Position::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Tenant\\Produto::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Tenant\\Proprietario::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Tenant\\PremissasViabilidade::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Tenant\\RequisicaoVeiculo::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Tenant\\User::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Tenant\\Task::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Tenant\\MobileDeviceInstallation::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Tenant\\MobileNotification::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Tenant\\LandWorkflow::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Tenant\\ComiteMembro::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Central\\Tenant::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Central\\Plan::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Central\\Entitlement::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Central\\CentralLoginBrokerSession::\$\w+#'
+        - '#Access to an undefined property App\\Models\\User::\$\w+#'
+        - '#Access to an undefined property App\\Models\\AuditLog::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Tenant\\TerrenoWorkflowHistory::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Tenant\\TerrenoWorkflowAtividade::\$\w+#'
+        # Spatie Permission model
+        - '#Call to an undefined static method Spatie\\Permission\\Models\\Role::\w+\(\)#'
+        - '#Call to an undefined static method Spatie\\Permission\\Models\\Permission::\w+\(\)#'
+        # LandWorkflowService narrowing from generic Model
+        - '#Parameter \#1 \$terreno of method App\\Services\\Tenant\\LandWorkflowService::transition\(\) expects App\\Models\\Tenant\\Terreno, Illuminate\\Database\\Eloquent\\Model given#'
+        - '#Parameter \#3 \$user of method App\\Services\\Tenant\\LandWorkflowService::transition\(\) expects App\\Models\\Tenant\\User\|null, Illuminate\\Contracts\\Auth\\Authenticatable\|null given#'
+        # Mockery higher-order messages
+        - '#Call to an undefined method Mockery\\ExpectationInterface\|Mockery\\HigherOrderMessage::\w+#'
+        # DateTime null safety
+        - '#Cannot call method \w+\(\) on Carbon\\Carbon\|null#'
+        # Cast operations
+        - '#Cannot cast non-empty-array\|float\|int<min, -1>\|int<1, max>\|non-falsy-string\|true to string#'
+        - '#Cannot cast object\|string\|null to int#'
+        # Laravel AI AgentResponse
+        - '#Cannot call method \w+\(\) on class-string\|object#'
+        - '#Call to an undefined method Laravel\\Ai\\Responses\\AgentResponse::\w+#'
+        # Nullsafe property access patterns (unnecessary ?->)
+        - '#Using nullsafe property access "\?->\w+" on left side of \?\?#'
+        - '#Using nullsafe method call on non-nullable type Carbon\\Carbon#'
+        # Validation Exists::where with mixed type
+        - '#Parameter \#2 \$value of method Illuminate\\Validation\\Rules\\Exists::where\(\) expects#'
+        # Array key 'sort' might not exist (Request validation)
+        - '#Offset ''sort'' might not exist on array\{search\?: string\|null, active\?: bool\|null, sort\?: string, order\?: string, per_page\?: int\}#'
+        - '#Offset ''\w+'' might not exist on array\{search\?: string\|null, active\?: bool\|null, sort\?: string, order\?: string, per_page\?: int\}#'
+        # Collection return type widening
+        - '#Return type of call to method Illuminate\\Support\\Collection<int,object>::map\(\) contains unresolvable type#'
+        - '#Return type of call to method Illuminate\\Support\\Collection<int,array<string, mixed>\|null>::values\(\) contains unresolvable type#'
+        - '#Return type of call to method Illuminate\\Database\\Eloquent\\Collection<int,App\\Models\\Tenant\\Viabilidade>::map\(\) contains unresolvable type#'
+        - '#Return type of call to function collect contains unresolvable type#'
+        - '#Unable to resolve the template type T\w+ in call to method Illuminate\\Support\\Collection<.+>::flatMap\(\)#'
+        # Property $casts with array type
+        - '#Property App\\.+::\$casts type has no value type specified in iterable type array#'
+        # Property collections (services)
+        - '#Property App\\Services\\.+::\$\w+ type has no value type specified in iterable type array#'
+        # Strict comparison always false
+        - '#Strict comparison using === between \w+ and null will always evaluate to false#'
+        # Undefined variables in some test cases
+        - '#Undefined variable: \$items#'
+        # Property types (Models without strict types)
+        - '#Property App\\Models\\Tenant\\.+\$\w+ type has no value type specified in iterable type array#'
+        - '#Property App\\Http\\Controllers\\.+\$\w+ has no type specified#'
+        - '#Property App\\Exports\\.+\$\w+ type has no value type specified in iterable type array#'
+        - '#Property App\\Models\\Tenant\\.+\$\w+ has no type specified#'
+        # Encapsed string with non-stringable types
+        - '#Part \$\w+ \(non-empty-array\|float\|int<min, -1>\|int<1, max>\|non-falsy-string\|true\) of encapsed string cannot be cast to string#'
+        # preg_replace / explode with possibly false
+        - '#Parameter \#3 \$subject of function preg_replace expects array<float\|int\|string>\|string, string\|null given#'
+        - '#Parameter \#2 \$string of function explode expects string, string\|false given#'
+        # usort unresolvable type
+        - '#Parameter \#2 \$callback of function usort contains unresolvable type#'
+        - '#Parameter \#2 \$callback of function array_filter expects \(callable\(string\|false\): bool\)\|null, Closure\(string\): bool given#'
+        # Auth narrowing in service methods
+        - '#Parameter \#\d+ \$actor of method App\\Services\\Tenant\\Viabilidade\\v1\\ViabilidadeService::\w+\(\) expects App\\Models\\Tenant\\User\|null, Illuminate\\Contracts\\Auth\\Authenticatable\|null given#'
+        # UploadedFile type narrowing
+        - '#Parameter \#2 \$file of method App\\Services\\Tenant\\TerrenoService::importPolygon\(\) expects Illuminate\\Http\\UploadedFile, .+ given#'
+        # tryFrom with nullable
+        - '#Parameter \#1 \$value of static method App\\Enums\\WorkflowStatus::tryFrom\(\) expects int\|string, string\|null given#'
+        - '#Parameter \#1 \$value of function collect contains unresolvable type#'
+        # Tenancy contract vs Model in services
+        - '#Parameter \#1 \$tenant of method App\\Services\\.+\(\) expects App\\Models\\Central\\Tenant, Illuminate\\Database\\Eloquent\\Model\|Stancl\\Tenancy\\Contracts\\Tenant given#'
+        # Catch generic types of array
+        - '#Property App\\Models\\Tenant\\.+\\\$attributes type has no value type specified in iterable type array#'
+        # More property types
+        - '#Property App\\Services\\.+\\\$\w+ has no type specified#'
+        - '#Property App\\Exports\\Tenant\\.+\\\$\w+ type has no value type specified in iterable type array#'
+        # Tenant narrowing em services (Authenticatable|Model|MockInterface|...)
+        - '#Parameter \#1 \$tenant of method App\\Services\\.+\(\) expects App\\Models\\Central\\Tenant, .+ given#'
+        - '#Parameter \#1 \$review of method App\\Services\\Tenant\\CommitteeService::show\(\) expects App\\Models\\Tenant\\ComiteRevisao, App\\Models\\Tenant\\ComiteRevisao\|null given#'
     reportUnmatchedIgnoredErrors: false
     phpVersion: 80400

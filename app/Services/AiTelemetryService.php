@@ -1,8 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\Tenant\AiRequestLog;
+use App\Repositories\Contracts\AiTelemetryRepositoryInterface;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -13,8 +16,9 @@ class AiTelemetryService
      */
     protected array $priceMap = [];
 
-    public function __construct()
-    {
+    public function __construct(
+        private readonly AiTelemetryRepositoryInterface $repository
+    ) {
         $this->priceMap = [
             'openrouter' => [
                 'input' => (float) env('AI_OPENROUTER_INPUT_PRICE_PER_M', 0.00),
@@ -36,7 +40,7 @@ class AiTelemetryService
      */
     public function logRequest(array $data): AiRequestLog
     {
-        return AiRequestLog::create([
+        return $this->repository->create([
             'user_id' => $data['user_id'] ?? null,
             'conversation_id' => $data['conversation_id'] ?? null,
             'provider' => $data['provider'] ?? null,
@@ -77,11 +81,7 @@ class AiTelemetryService
      */
     public function getCostByUser(int $userId, Carbon $from, ?Carbon $to = null): float
     {
-        $to ??= now();
-
-        return (float) AiRequestLog::where('user_id', $userId)
-            ->whereBetween('created_at', [$from, $to])
-            ->sum('estimated_cost_usd');
+        return $this->repository->getCostByUser($userId, $from, $to);
     }
 
     /**
@@ -93,12 +93,7 @@ class AiTelemetryService
             return 0;
         }
 
-        $tenant = tenancy()->tenant;
-
-        return (float) AiRequestLog::query()
-            ->whereMonth('created_at', now()->month)
-            ->whereYear('created_at', now()->year)
-            ->sum('estimated_cost_usd');
+        return $this->repository->getCurrentMonthCost();
     }
 
     /**
@@ -106,11 +101,7 @@ class AiTelemetryService
      */
     public function getUsageStats(Carbon $from, ?Carbon $to = null): array
     {
-        $to ??= now();
-
-        $logs = AiRequestLog::query()
-            ->whereBetween('created_at', [$from, $to])
-            ->get();
+        $logs = $this->repository->getLogsBetween($from, $to);
 
         $durations = $logs->pluck('duration_ms')->sort()->values();
         $tokens = $logs->pluck('total_tokens')->sort()->values();

@@ -19,11 +19,20 @@ use App\Models\Tenant\TerrenoProduto;
 use App\Models\Tenant\Viabilidade;
 use App\Observers\Tenant\TerrenoObserver;
 use App\Policies\Tenant\TenantPolicy;
+use App\Repositories\AiAnomalyRepository;
+use App\Repositories\AiPredictiveRepository;
+use App\Repositories\AiTelemetryRepository;
 use App\Repositories\CentralUserRepository;
+use App\Repositories\Contracts\AiAnomalyRepositoryInterface;
+use App\Repositories\Contracts\AiPredictiveRepositoryInterface;
+use App\Repositories\Contracts\AiTelemetryRepositoryInterface;
 use App\Repositories\Contracts\CentralUserRepositoryInterface;
 use App\Repositories\Contracts\DashboardRepositoryInterface;
 use App\Repositories\Contracts\DomainRepositoryInterface;
 use App\Repositories\Contracts\EntitlementRepositoryInterface;
+use App\Repositories\Contracts\LandWorkflowRepositoryInterface;
+use App\Repositories\Contracts\MobileDeviceInstallationRepositoryInterface;
+use App\Repositories\Contracts\MobileNotificationRepositoryInterface;
 use App\Repositories\Contracts\PermissionRepositoryInterface;
 use App\Repositories\Contracts\PlanRepositoryInterface;
 use App\Repositories\Contracts\PlanRolePermissionTemplateRepositoryInterface;
@@ -36,11 +45,16 @@ use App\Repositories\Contracts\RegionalRepositoryInterface;
 use App\Repositories\Contracts\RoleRepositoryInterface;
 use App\Repositories\Contracts\TenantRepositoryInterface;
 use App\Repositories\Contracts\TerrenoExportRepositoryInterface;
+use App\Repositories\Contracts\TerrenoFilterRepositoryInterface;
 use App\Repositories\Contracts\TerrenoProdutoRepositoryInterface;
+use App\Repositories\Contracts\TerrenoRepositoryInterface;
+use App\Repositories\Contracts\ViabilidadeRepositoryInterface;
 use App\Repositories\Contracts\WebhookEventRepositoryInterface;
 use App\Repositories\DashboardRepository;
 use App\Repositories\DomainRepository;
 use App\Repositories\EntitlementRepository;
+use App\Repositories\MobileDeviceInstallationRepository;
+use App\Repositories\MobileNotificationRepository;
 use App\Repositories\PermissionRepository;
 use App\Repositories\PlanRepository;
 use App\Repositories\PlanRolePermissionTemplateRepository;
@@ -51,6 +65,10 @@ use App\Repositories\ProjetoRepository;
 use App\Repositories\ProprietarioRepository;
 use App\Repositories\RegionalRepository;
 use App\Repositories\RoleRepository;
+use App\Repositories\Tenant\LandWorkflowRepository;
+use App\Repositories\Tenant\TerrenoFilterRepository;
+use App\Repositories\Tenant\TerrenoRepository;
+use App\Repositories\Tenant\ViabilidadeRepository;
 use App\Repositories\TenantRepository;
 use App\Repositories\TerrenoExportRepository;
 use App\Repositories\TerrenoProdutoRepository;
@@ -71,6 +89,9 @@ class AppServiceProvider extends ServiceProvider
     {
         Cashier::ignoreRoutes();
 
+        $this->app->bind(AiAnomalyRepositoryInterface::class, AiAnomalyRepository::class);
+        $this->app->bind(AiPredictiveRepositoryInterface::class, AiPredictiveRepository::class);
+        $this->app->bind(AiTelemetryRepositoryInterface::class, AiTelemetryRepository::class);
         $this->app->bind(CentralUserRepositoryInterface::class, CentralUserRepository::class);
         $this->app->bind(EntitlementRepositoryInterface::class, EntitlementRepository::class);
         $this->app->bind(PostRepositoryInterface::class, PostRepository::class);
@@ -89,6 +110,12 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(PremissasViabilidadeRepositoryInterface::class, PremissasViabilidadeRepository::class);
         $this->app->bind(DomainRepositoryInterface::class, DomainRepository::class);
         $this->app->bind(WebhookEventRepositoryInterface::class, WebhookEventRepository::class);
+        $this->app->bind(TerrenoRepositoryInterface::class, TerrenoRepository::class);
+        $this->app->bind(ViabilidadeRepositoryInterface::class, ViabilidadeRepository::class);
+        $this->app->bind(TerrenoFilterRepositoryInterface::class, TerrenoFilterRepository::class);
+        $this->app->bind(MobileDeviceInstallationRepositoryInterface::class, MobileDeviceInstallationRepository::class);
+        $this->app->bind(MobileNotificationRepositoryInterface::class, MobileNotificationRepository::class);
+        $this->app->bind(LandWorkflowRepositoryInterface::class, LandWorkflowRepository::class);
     }
 
     /**

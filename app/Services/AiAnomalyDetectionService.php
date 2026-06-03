@@ -1,9 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\Tenant\Terreno;
-use App\Models\Tenant\Viabilidade;
+use App\Repositories\Contracts\AiAnomalyRepositoryInterface;
 use Illuminate\Support\Collection;
 
 /**
@@ -19,6 +21,10 @@ use Illuminate\Support\Collection;
 class AiAnomalyDetectionService
 {
     public const VERSION = '1.0.0';
+
+    public function __construct(
+        private readonly AiAnomalyRepositoryInterface $repository
+    ) {}
 
     /**
      * Escaneia o portfólio e retorna todas as anomalias detectadas.
@@ -73,12 +79,8 @@ class AiAnomalyDetectionService
     {
         $anomalies = collect();
 
-        Terreno::query()
-            ->whereNotIn('workflow_status_code', ['descartado', 'arquivado'])
-            ->with(['viabilidadeAtual', 'comiteAtual', 'contratoAtual', 'legalizacao'])
-            ->limit($limit)
-            ->get()
-            ->each(function (Terreno $t) use ($anomalies) {
+        $this->repository->getActiveForWorkflowCheck($limit)->each(
+            function (Terreno $t) use ($anomalies): void {
                 // Stage viabilidade mas sem viabilidade aprovada
                 if ($t->workflow_stage === 'viabilidade' &&
                     $t->viabilidadeAtual &&
@@ -155,7 +157,8 @@ class AiAnomalyDetectionService
                         'recommended_action' => 'Concluir legalização ou revisar status do terreno.',
                     ]);
                 }
-            });
+            }
+        );
 
         return $anomalies;
     }
@@ -169,18 +172,9 @@ class AiAnomalyDetectionService
     {
         $anomalies = collect();
 
-        // Analisar todos os terrenos com viabilidade e valor
-        Terreno::query()
-            ->whereNotNull('valor')
-            ->where('valor', '>', 0)
-            ->with(['viabilidades' => function ($q) {
-                $q->withTrashed()->whereNotNull('approval_status');
-            }])
-            ->limit($limit)
-            ->get()
-            ->each(function (Terreno $t) use ($anomalies) {
+        $this->repository->getWithViabilidadesForFinancialCheck($limit)->each(
+            function (Terreno $t) use ($anomalies): void {
                 $terrenoValue = (float) $t->valor;
-                $avgRatio = 0;
                 $ratios = [];
 
                 foreach ($t->viabilidades as $v) {
@@ -188,8 +182,7 @@ class AiAnomalyDetectionService
                     $vgv = $dre['indicadores']['vgv'] ?? $dre['totais']['vgv_geral'] ?? null;
 
                     if ($vgv && (float) $vgv > 0) {
-                        $ratio = (float) $vgv / $terrenoValue;
-                        $ratios[] = $ratio;
+                        $ratios[] = (float) $vgv / $terrenoValue;
                     }
                 }
 
@@ -199,11 +192,11 @@ class AiAnomalyDetectionService
 
                 $avgRatio = array_sum($ratios) / count($ratios);
                 $maxRatio = max($ratios);
+                $minRatio = min($ratios);
+                $minAcceptable = 1.5;
 
-                // Se em alguma viabilidade o VGV é < 2x o valor do terreno, é anomalia
-                $minAcceptable = 1.5; // VGV deve ser ao menos 1.5x valor do terreno
-
-                if ($min($ratios) < $minAcceptable) {
+                // Se em alguma viabilidade o VGV é < 1.5x o valor do terreno, é anomalia
+                if ($minRatio < $minAcceptable) {
                     $anomalies->push([
                         'category' => 'financial_anomalies',
                         'type' => 'low_vgv_to_land_ratio',
@@ -211,11 +204,11 @@ class AiAnomalyDetectionService
                         'severity_score' => 75,
                         'terrain_id' => $t->id,
                         'terrain_name' => $t->nome,
-                        'message' => 'VGV muito próximo do valor do terreno. Menor ratio: '.round($min($ratios), 2)."x (mínimo aceitável: {$minAcceptable}x).",
+                        'message' => 'VGV muito próximo do valor do terreno. Menor ratio: '.round($minRatio, 2)."x (mínimo aceitável: {$minAcceptable}x).",
                         'recommended_action' => 'Revisar viabilidade — margem de lucro pode ser insuficiente.',
                         'details' => [
                             'valor_terreno' => 'R$ '.number_format($terrenoValue, 0, ',', '.'),
-                            'menor_vgv' => 'R$ '.number_format($min($ratios) * $terrenoValue, 0, ',', '.'),
+                            'menor_vgv' => 'R$ '.number_format($minRatio * $terrenoValue, 0, ',', '.'),
                             'ratio_medio' => round($avgRatio, 2).'x',
                         ],
                     ]);
@@ -234,7 +227,8 @@ class AiAnomalyDetectionService
                         'recommended_action' => 'Validar dados de viabilidade — pode haver erro de digitação.',
                     ]);
                 }
-            });
+            }
+        );
 
         return $anomalies;
     }
@@ -249,22 +243,14 @@ class AiAnomalyDetectionService
         $anomalies = collect();
         $checked = [];
 
-        Terreno::query()
-            ->whereNotIn('workflow_status_code', ['descartado', 'arquivado'])
-            ->orderBy('id')
-            ->limit(200)
-            ->get()
-            ->each(function (Terreno $t) use ($anomalies, &$checked) {
+        $this->repository->getAllActiveForDuplicateCheck(200)->each(
+            function (Terreno $t) use ($anomalies, &$checked): void {
                 if (in_array($t->id, $checked, true)) {
                     return;
                 }
 
-                Terreno::query()
-                    ->whereNotIn('workflow_status_code', ['descartado', 'arquivado'])
-                    ->where('id', '>', $t->id)
-                    ->limit(100)
-                    ->get()
-                    ->each(function (Terreno $other) use ($t, $anomalies, &$checked) {
+                $this->repository->getActiveAfterId($t->id, 100)->each(
+                    function (Terreno $other) use ($t, $anomalies, &$checked): void {
                         $matchType = $this->matchType($t, $other);
 
                         if ($matchType === null) {
@@ -286,8 +272,10 @@ class AiAnomalyDetectionService
                             'related_terrain_name' => $other->nome,
                             'match_details' => $matchType,
                         ]);
-                    });
-            });
+                    }
+                );
+            }
+        );
 
         return $anomalies->take((int) ($limit / 2));
     }
@@ -302,12 +290,8 @@ class AiAnomalyDetectionService
         $anomalies = collect();
 
         // Terrenos com valor zerado
-        Terreno::query()
-            ->whereNotIn('workflow_status_code', ['descartado', 'arquivado', 'legalizado_finalizado'])
-            ->where('valor', 0)
-            ->limit($limit)
-            ->get(['id', 'nome', 'area_terreno', 'updated_at'])
-            ->each(function ($t) use ($anomalies) {
+        $this->repository->getZeroValue($limit)->each(
+            function ($t) use ($anomalies): void {
                 $anomalies->push([
                     'category' => 'data_quality',
                     'type' => 'zero_value',
@@ -318,18 +302,12 @@ class AiAnomalyDetectionService
                     'message' => 'Terreno com valor zerado.',
                     'recommended_action' => 'Atualizar valor do terreno.',
                 ]);
-            });
+            }
+        );
 
         // Terrenos com área zerada
-        Terreno::query()
-            ->whereNotIn('workflow_status_code', ['descartado', 'arquivado', 'legalizado_finalizado'])
-            ->where(function ($q) {
-                $q->where('area_terreno', 0)
-                    ->orWhereNull('area_terreno');
-            })
-            ->limit($limit)
-            ->get(['id', 'nome', 'updated_at'])
-            ->each(function ($t) use ($anomalies) {
+        $this->repository->getMissingArea($limit)->each(
+            function ($t) use ($anomalies): void {
                 $anomalies->push([
                     'category' => 'data_quality',
                     'type' => 'missing_area',
@@ -340,7 +318,8 @@ class AiAnomalyDetectionService
                     'message' => 'Terreno sem área registrada.',
                     'recommended_action' => 'Cadastrar área do terreno.',
                 ]);
-            });
+            }
+        );
 
         return $anomalies;
     }

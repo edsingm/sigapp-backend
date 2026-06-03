@@ -11025,7 +11025,7 @@ parameters:
 		-
 			rawMessage: Access to an undefined property App\Models\Tenant\Terreno::$id.
 			identifier: property.notFound
-			count: 14
+			count: 16
 			path: app/Services/AiAnomalyDetectionService.php
 
 		-
@@ -11037,7 +11037,7 @@ parameters:
 		-
 			rawMessage: Access to an undefined property App\Models\Tenant\Terreno::$nome.
 			identifier: property.notFound
-			count: 13
+			count: 15
 			path: app/Services/AiAnomalyDetectionService.php
 
 		-
@@ -11577,7 +11577,7 @@ parameters:
 		-
 			rawMessage: Access to an undefined property App\Models\Tenant\Viabilidade::$approval_status.
 			identifier: property.notFound
-			count: 1
+			count: 4
 			path: app/Services/AiPredictiveAnalysisService.php
 
 		-

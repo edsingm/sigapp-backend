@@ -1,11 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
-use App\Models\Tenant\ComiteRevisao;
-use App\Models\Tenant\StatusHistory;
 use App\Models\Tenant\Terreno;
-use App\Models\Tenant\Viabilidade;
+use App\Repositories\Contracts\AiPredictiveRepositoryInterface;
 use Illuminate\Support\Collection;
 
 /**
@@ -20,6 +20,10 @@ use Illuminate\Support\Collection;
 class AiPredictiveAnalysisService
 {
     public const VERSION = '1.0.0';
+
+    public function __construct(
+        private readonly AiPredictiveRepositoryInterface $repository
+    ) {}
 
     /**
      * Calcula probabilidade de aprovação para um terreno novo.
@@ -57,7 +61,7 @@ class AiPredictiveAnalysisService
             'risk_factors' => $riskFactors,
             'similar_terrenos' => [
                 'total' => $similarViabilities->count(),
-                'avg_vgv' => $this->formatCurrency($similarViabilities->avg('vgv') ?: 0),
+                'avg_vgv' => $this->formatCurrency((float) ($similarViabilities->avg('vgv') ?: 0)),
                 'approval_rate' => round($this->getApprovalRate($similarViabilities), 2),
             ],
         ];
@@ -70,10 +74,7 @@ class AiPredictiveAnalysisService
      */
     public function getTenantApprovalStats(): array
     {
-        $viabilidades = Viabilidade::withTrashed()
-            ->whereNotNull('approval_status')
-            ->where('approval_status', '!=', '')
-            ->get();
+        $viabilidades = $this->repository->getDecidedViabilities();
 
         $aprovadas = $viabilidades->filter(fn ($v) => $v->approval_status === 'aprovada');
         $reprovadas = $viabilidades->filter(fn ($v) => in_array($v->approval_status, ['reprovada', 'reprovada_comite']));
@@ -86,7 +87,7 @@ class AiPredictiveAnalysisService
         )->map(fn ($v) => $v->approval_requested_at->diffInDays($v->approval_decided_at));
 
         $avgDaysApproval = $approvalDurations->isNotEmpty()
-            ? round($approvalDurations->avg(), 1)
+            ? round((float) $approvalDurations->avg(), 1)
             : 0;
 
         // Tempo médio de reprovação
@@ -95,16 +96,13 @@ class AiPredictiveAnalysisService
         )->map(fn ($v) => $v->approval_requested_at->diffInDays($v->approval_decided_at));
 
         $avgDaysRejection = $rejectionDurations->isNotEmpty()
-            ? round($rejectionDurations->avg(), 1)
+            ? round((float) $rejectionDurations->avg(), 1)
             : 0;
 
         // Motivos comuns de reprovação
         $rejectionReasons = collect();
-        $comiteReviews = ComiteRevisao::whereNotNull('parecer')
-            ->where('parecer', '!=', '')
-            ->get();
 
-        foreach ($comiteReviews as $review) {
+        foreach ($this->repository->getComiteReviewsWithParecer() as $review) {
             $parecer = strtolower($review->parecer);
             if (str_contains($parecer, 'zona') || str_contains($parecer, 'zoneamento')) {
                 $rejectionReasons->push('zoneamento');
@@ -137,43 +135,33 @@ class AiPredictiveAnalysisService
 
     /**
      * Encontra terrenos similares por produto, cidade ou faixa de área.
+     *
+     * @return Collection<int, array{terreno_id: int, approval_status: string, vgv: float|null, created_at: mixed}>
      */
     public function getSimilarViabilities(Terreno $terreno): Collection
     {
         $products = $terreno->terrenoProdutos()->pluck('produto_id')->all();
 
-        $query = Viabilidade::query()
-            ->withTrashed()
-            ->whereNotNull('approval_status')
-            ->where('id', '!=', $terreno->viabilidadeAtual?->id);
+        $excludeId = $terreno->viabilidadeAtual?->id;
 
-        $query->whereHas('terreno', function ($q) use ($terreno, $products) {
-            $q->where('id', '!=', $terreno->id)
-                ->where(function ($subQ) use ($terreno, $products) {
-                    // Mesmos produtos
-                    if (! empty($products)) {
-                        $subQ->whereHas('terrenoProdutos', function ($prodQ) use ($products) {
-                            $prodQ->whereIn('produto_id', $products);
-                        });
-                    }
+        $viabilidades = $this->repository->getSimilarViabilities($terreno, $products, $excludeId);
 
-                    // Mesma cidade
-                    if ($terreno->cidade_code) {
-                        $subQ->orWhere('cidade_code', $terreno->cidade_code);
-                    }
-                });
-        });
-
-        return $query->limit(50)->get()->map(function (Viabilidade $v) {
+        $result = collect();
+        foreach ($viabilidades as $v) {
             $dre = $v->resultados_dre;
-
-            return [
+            $vgv = $dre['indicadores']['vgv'] ?? $dre['totais']['vgv_geral'] ?? null;
+            if ($vgv === null) {
+                continue;
+            }
+            $result->push([
                 'terreno_id' => $v->terreno_id,
                 'approval_status' => $v->approval_status,
-                'vgv' => $dre['indicadores']['vgv'] ?? $dre['totais']['vgv_geral'] ?? null,
+                'vgv' => (float) $vgv,
                 'created_at' => $v->created_at,
-            ];
-        })->filter(fn ($v) => $v['vgv'] !== null);
+            ]);
+        }
+
+        return $result;
     }
 
     /**
@@ -226,6 +214,8 @@ class AiPredictiveAnalysisService
 
     /**
      * Calcula probabilidade final (0-100%).
+     *
+     * @param  Collection<int, array{terreno_id: int, approval_status: string, vgv: float|null, created_at: mixed}>  $similarViabilities
      */
     protected function calculateProbability(Terreno $terreno, array $stats, Collection $similarViabilities): float
     {
@@ -239,7 +229,6 @@ class AiPredictiveAnalysisService
         }
 
         // Ajuste por readiness do terreno
-        $readinessScore = 0;
         $criteria = [
             $terreno->proprietarios()->exists(),
             filled($terreno->corretor_id),
@@ -265,17 +254,11 @@ class AiPredictiveAnalysisService
 
         if ($dataPoints >= 50) {
             return 85;
-        }
-
-        if ($dataPoints >= 20) {
+        } elseif ($dataPoints >= 20) {
             return 70;
-        }
-
-        if ($dataPoints >= 10) {
+        } elseif ($dataPoints >= 10) {
             return 55;
-        }
-
-        if ($dataPoints >= 5) {
+        } elseif ($dataPoints >= 5) {
             return 40;
         }
 
@@ -325,17 +308,17 @@ class AiPredictiveAnalysisService
 
         return [
             'available' => true,
-            'min' => round($values->first(), 2),
-            'max' => round($values->last(), 2),
+            'min' => round((float) $values->first(), 2),
+            'max' => round((float) $values->last(), 2),
             'avg' => round($avg, 2),
-            'median' => round($values->get((int) ($count / 2)) ?: 0, 2),
-            'p25' => round($values->get((int) ($count * 0.25)) ?: 0, 2),
-            'p75' => round($values->get((int) ($count * 0.75)) ?: 0, 2),
+            'median' => round((float) $values->get((int) ($count / 2)) ?: 0, 2),
+            'p25' => round((float) $values->get((int) ($count * 0.25)) ?: 0, 2),
+            'p75' => round((float) $values->get((int) ($count * 0.75)) ?: 0, 2),
             'count' => $count,
             'std_dev' => round($this->standardDeviation($values), 2),
             'currency_formatted' => [
-                'min' => $this->formatCurrency($values->first()),
-                'max' => $this->formatCurrency($values->last()),
+                'min' => $this->formatCurrency((float) $values->first()),
+                'max' => $this->formatCurrency((float) $values->last()),
                 'avg' => $this->formatCurrency($avg),
             ],
         ];
@@ -344,26 +327,20 @@ class AiPredictiveAnalysisService
     /**
      * Estatísticas de stalling do tenant.
      *
-     * @return array{total_stalled: int, avg_stall_days: float, most_common_stage: string|null, stalling_rate: float}
+     * @return array{total_stalled: int, avg_stall_days: float, most_common_stalling_stage: int|string|null, stalling_rate: float}
      */
     public function getStallingForecast(): array
     {
         $threshold = now()->subDays(60);
 
-        $stalled = Terreno::query()
-            ->whereNotIn('workflow_status_code', ['descartado', 'arquivado', 'legalizado_finalizado'])
-            ->where('updated_at', '<', $threshold)
-            ->get(['id', 'nome', 'workflow_stage', 'workflow_status_code', 'updated_at', 'created_at']);
-
-        $totalActive = Terreno::query()
-            ->whereNotIn('workflow_status_code', ['descartado', 'arquivado', 'legalizado_finalizado'])
-            ->count();
+        $stalled = $this->repository->getStalledTerrains($threshold);
+        $totalActive = $this->repository->getActiveTerrainsCount();
 
         $stageCounts = $stalled->countBy('workflow_stage')->sortDesc();
         $mostCommonStage = $stageCounts->isNotEmpty() ? $stageCounts->keys()->first() : null;
 
         $avgStallDays = $stalled->isNotEmpty()
-            ? round($stalled->map(fn ($t) => $t->updated_at->diffInDays(now()))->avg(), 1)
+            ? round((float) $stalled->map(fn ($t) => $t->updated_at->diffInDays(now()))->avg(), 1)
             : 0;
 
         // Identificar terrenos em risco
@@ -389,20 +366,13 @@ class AiPredictiveAnalysisService
     {
         $atRiskTerrains = collect();
 
-        Terreno::query()
-            ->whereNotIn('workflow_status_code', ['descartado', 'arquivado', 'legalizado_finalizado'])
-            ->limit(200)
-            ->get()
-            ->each(function (Terreno $t) use ($atRiskTerrains) {
+        $this->repository->getActiveTerrainsForRiskAnalysis(200)->each(
+            function (Terreno $t) use ($atRiskTerrains): void {
                 $riskScore = 0;
                 $reasons = [];
 
                 // Tempo no stage atual
-                $stageChange = StatusHistory::query()
-                    ->where('terreno_id', $t->id)
-                    ->whereNotNull('created_at')
-                    ->latest('created_at')
-                    ->first();
+                $stageChange = $this->repository->getLatestStageChange($t->id);
 
                 $daysInStage = $t->workflow_status_changed_at
                     ? $t->workflow_status_changed_at->diffInDays(now())
@@ -452,7 +422,8 @@ class AiPredictiveAnalysisService
                         'reason' => implode('; ', $reasons),
                     ]);
                 }
-            });
+            }
+        );
 
         return $atRiskTerrains
             ->sortByDesc('risk_score')
@@ -471,14 +442,16 @@ class AiPredictiveAnalysisService
             return 0;
         }
 
-        $mean = $values->sum() / $count;
-        $sumSquares = $values->sum(fn ($v) => pow($v - $mean, 2));
+        $mean = (float) $values->sum() / $count;
+        $sumSquares = (float) $values->sum(fn ($v) => pow($v - $mean, 2));
 
         return sqrt($sumSquares / ($count - 1));
     }
 
     /**
      * Calcula taxa de aprovação de uma coleção de viabilidades.
+     *
+     * @param  Collection<int, array{terreno_id: int, approval_status: string, vgv: float|null, created_at: mixed}>  $viabilities
      */
     protected function getApprovalRate(Collection $viabilities): float
     {

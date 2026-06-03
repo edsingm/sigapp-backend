@@ -1,13 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Repositories\Tenant;
 
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\TerrenoInfos;
+use App\Repositories\Contracts\TerrenoRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 
-class TerrenoRepository
+class TerrenoRepository implements TerrenoRepositoryInterface
 {
     public function findById(int|string $id): ?Terreno
     {

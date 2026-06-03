@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Tenant;
 
 use App\Enums\LegalizacaoEtapaStatus;
@@ -7,9 +9,12 @@ use App\Models\Tenant\LegalizacaoEtapa;
 use App\Models\Tenant\MobileDeviceInstallation;
 use App\Models\Tenant\MobileNotification;
 use App\Models\Tenant\User;
+use App\Repositories\Contracts\MobileDeviceInstallationRepositoryInterface;
+use App\Repositories\Contracts\MobileNotificationRepositoryInterface;
+use App\Repositories\Tenant\LegalizacaoEtapaRepository;
+use App\Repositories\Tenant\UserRepository;
 use App\Services\Acl\PermissionNameResolver;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -18,6 +23,10 @@ class MobilePushService
 {
     public function __construct(
         private readonly PermissionNameResolver $permissions,
+        private readonly MobileDeviceInstallationRepositoryInterface $deviceRepository,
+        private readonly MobileNotificationRepositoryInterface $notificationRepository,
+        private readonly UserRepository $userRepository,
+        private readonly LegalizacaoEtapaRepository $legalizacaoEtapaRepository,
     ) {}
 
     /**
@@ -25,8 +34,8 @@ class MobilePushService
      */
     public function registerDevice(User $user, array $attributes): MobileDeviceInstallation
     {
-        $device = MobileDeviceInstallation::query()->updateOrCreate(
-            ['installation_id' => (string) $attributes['installation_id']],
+        $device = $this->deviceRepository->updateOrCreateByInstallationId(
+            (string) $attributes['installation_id'],
             [
                 'user_id' => $user->id,
                 'platform' => (string) ($attributes['platform'] ?? 'ios'),
@@ -34,14 +43,14 @@ class MobilePushService
                 'app_version' => $attributes['app_version'] ?? null,
                 'expo_push_token' => $attributes['expo_push_token'] ?? null,
                 'last_seen_at' => now(),
-            ]
+            ],
         );
 
         if ($device->user_id !== $user->id) {
-            $device->forceFill(['user_id' => $user->id])->save();
+            $device = $this->deviceRepository->reassignToUser($device, $user->id);
         }
 
-        return $device->fresh();
+        return $device;
     }
 
     /**
@@ -49,10 +58,7 @@ class MobilePushService
      */
     public function unregisterDevice(User $user, string $installationId): void
     {
-        MobileDeviceInstallation::query()
-            ->where('user_id', $user->id)
-            ->where('installation_id', $installationId)
-            ->delete();
+        $this->deviceRepository->deleteForUser($user->id, $installationId);
     }
 
     /**
@@ -60,10 +66,7 @@ class MobilePushService
      */
     public function paginateNotifications(User $user, int $perPage = 20): LengthAwarePaginator
     {
-        return MobileNotification::query()
-            ->where('user_id', $user->id)
-            ->latest()
-            ->paginate($perPage);
+        return $this->notificationRepository->paginateForUser($user->id, $perPage);
     }
 
     /**
@@ -71,15 +74,9 @@ class MobilePushService
      */
     public function markAsRead(User $user, string $notificationId): MobileNotification
     {
-        $notification = MobileNotification::query()
-            ->where('user_id', $user->id)
-            ->findOrFail($notificationId);
+        $notification = $this->notificationRepository->findForUser($user->id, $notificationId);
 
-        if (! $notification->read_at) {
-            $notification->forceFill(['read_at' => now()])->save();
-        }
-
-        return $notification->fresh();
+        return $this->notificationRepository->markAsRead($notification);
     }
 
     /**
@@ -97,10 +94,7 @@ class MobilePushService
             $resolvedDedupeKey = $dedupeKey ? "{$dedupeKey}:user:{$user->id}" : null;
 
             if ($resolvedDedupeKey) {
-                $existing = MobileNotification::query()
-                    ->where('user_id', $user->id)
-                    ->where('dedupe_key', $resolvedDedupeKey)
-                    ->first();
+                $existing = $this->notificationRepository->findByDedupeKey($user->id, $resolvedDedupeKey);
 
                 if ($existing) {
                     $notifications->push($existing);
@@ -109,7 +103,7 @@ class MobilePushService
                 }
             }
 
-            $notification = MobileNotification::query()->create([
+            $notification = $this->notificationRepository->create([
                 'user_id' => $user->id,
                 'title' => (string) $payload['title'],
                 'body' => (string) $payload['body'],
@@ -139,9 +133,7 @@ class MobilePushService
         ?User $exclude = null,
         ?string $dedupeKey = null
     ): Collection {
-        $users = User::query()
-            ->with(['roles.permissions', 'permissions'])
-            ->get()
+        $users = $this->userRepository->getAllWithRolesAndPermissions()
             ->filter(fn (User $user) => $this->permissions->userCan($user, $permission))
             ->when($exclude, fn (Collection $users) => $users->reject(fn (User $user) => $user->is($exclude)))
             ->values();
@@ -154,9 +146,7 @@ class MobilePushService
      */
     public function notifyAllUsers(array $payload, ?User $exclude = null, ?string $dedupeKey = null): Collection
     {
-        $users = User::query()
-            ->when($exclude, fn (Builder $query) => $query->whereKeyNot($exclude->getKey()))
-            ->get();
+        $users = $this->userRepository->getAllExcept($exclude?->getKey());
 
         return $this->notifyUsers($users, $payload, $dedupeKey);
     }
@@ -169,17 +159,13 @@ class MobilePushService
         $today = now()->startOfDay();
         $tenantSlug = (string) tenant('slug');
 
-        $overdue = LegalizacaoEtapa::query()
-            ->with(['legalizacao.terreno', 'responsavel'])
-            ->whereNotIn('status', [
-                LegalizacaoEtapaStatus::CONCLUIDA,
-                LegalizacaoEtapaStatus::BLOQUEADA,
-            ])
-            ->where(function (Builder $query) use ($today) {
-                $query->whereDate('data_prevista', '<', $today)
-                    ->orWhereDate('fim_planejado', '<', $today);
-            })
-            ->get();
+        $overdue = $this->legalizacaoEtapaRepository->findOverdue(
+            [
+                LegalizacaoEtapaStatus::CONCLUIDA->value,
+                LegalizacaoEtapaStatus::BLOQUEADA->value,
+            ],
+            $today,
+        );
 
         $count = 0;
 
@@ -187,7 +173,7 @@ class MobilePushService
             $dedupeKey = sprintf(
                 'legalizacao-etapa-atrasada:%s:%s',
                 $etapa->id,
-                $today->format('Y-m-d')
+                $today->format('Y-m-d'),
             );
 
             $payload = [
@@ -195,7 +181,7 @@ class MobilePushService
                 'body' => sprintf(
                     '%s em %s está atrasada.',
                     $etapa->nome,
-                    $etapa->legalizacao?->terreno?->nome ?? 'terreno sem nome'
+                    $etapa->legalizacao?->terreno?->nome ?? 'terreno sem nome',
                 ),
                 'type' => 'legalizacao.etapa.atrasada',
                 'entity_type' => 'legalizacao_etapa',
@@ -221,7 +207,7 @@ class MobilePushService
                 (string) $this->permissions->forModel(LegalizacaoEtapa::class, 'update'),
                 $payload,
                 null,
-                $dedupeKey
+                $dedupeKey,
             );
             $count++;
         }
@@ -234,13 +220,7 @@ class MobilePushService
      */
     protected function dispatchExpoPush(User $user, MobileNotification $notification): void
     {
-        $tokens = MobileDeviceInstallation::query()
-            ->where('user_id', $user->id)
-            ->whereNotNull('expo_push_token')
-            ->pluck('expo_push_token')
-            ->filter()
-            ->unique()
-            ->values();
+        $tokens = $this->deviceRepository->getTokensForUser($user->id);
 
         if ($tokens->isEmpty()) {
             return;
@@ -249,18 +229,21 @@ class MobilePushService
         $endpoint = (string) config('services.expo.push_url', 'https://exp.host/--/api/v2/push/send');
         $accessToken = (string) config('services.expo.access_token', '');
 
-        $messages = $tokens->map(fn (string $token) => [
-            'to' => $token,
-            'sound' => 'default',
-            'title' => $notification->title,
-            'body' => $notification->body,
-            'data' => [
-                'type' => $notification->type,
-                'entity_id' => $notification->entity_id,
-                'tenant_slug' => $notification->tenant_slug,
-                'target_route' => $notification->target_route,
-            ],
-        ])->all();
+        $messages = [];
+        foreach ($tokens as $token) {
+            $messages[] = [
+                'to' => $token,
+                'sound' => 'default',
+                'title' => $notification->title,
+                'body' => $notification->body,
+                'data' => [
+                    'type' => $notification->type,
+                    'entity_id' => $notification->entity_id,
+                    'tenant_slug' => $notification->tenant_slug,
+                    'target_route' => $notification->target_route,
+                ],
+            ];
+        }
 
         try {
             $request = Http::timeout(10)
@@ -274,9 +257,7 @@ class MobilePushService
             $response = $request->post($endpoint, $messages);
 
             if (! $response->successful()) {
-                $notification->forceFill([
-                    'delivery_error' => $response->body(),
-                ])->save();
+                $this->notificationRepository->recordDeliveryError($notification, $response->body());
 
                 Log::warning('Expo push delivery failed', [
                     'notification_id' => $notification->id,
@@ -285,9 +266,7 @@ class MobilePushService
                 ]);
             }
         } catch (\Throwable $exception) {
-            $notification->forceFill([
-                'delivery_error' => $exception->getMessage(),
-            ])->save();
+            $this->notificationRepository->recordDeliveryError($notification, $exception->getMessage());
 
             Log::warning('Expo push dispatch exception', [
                 'notification_id' => $notification->id,

@@ -2,20 +2,20 @@
 
 namespace App\Services\Tenant;
 
-use App\Enums\ProjetoStatus;
 use App\Enums\WorkflowStatus;
 use App\Models\Tenant\Contrato;
-use App\Models\Tenant\EntityActivity;
-use App\Models\Tenant\Projeto;
-use App\Models\Tenant\StatusHistory;
-use App\Models\Tenant\Task;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\User;
+use App\Repositories\Contracts\LandWorkflowRepositoryInterface;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 class LandWorkflowService
 {
+    public function __construct(
+        private readonly LandWorkflowRepositoryInterface $repository,
+    ) {}
+
     public const STAGE_CAPTACAO = 'captacao';
 
     public const STAGE_VIABILIDADE = 'viabilidade';
@@ -97,20 +97,7 @@ class LandWorkflowService
         $this->assertPrerequisites($terreno, $targetStatus, $context);
 
         return DB::transaction(function () use ($terreno, $targetStatus, $user, $reasonCode, $reasonNotes, $context, $currentStatus) {
-            $freshTerreno = Terreno::query()
-                ->with([
-                    'proprietarios',
-                    'terrenoProdutos',
-                    'viabilidadeAtual',
-                    'viabilidades',
-                    'comiteAtual.pareceresDepartamento',
-                    'comiteAtual.pendencias',
-                    'negociacaoAtual',
-                    'contratoAtual.partes',
-                    'legalizacao.etapas',
-                    'legalizacao.pendencias',
-                ])
-                ->findOrFail($terreno->id);
+            $freshTerreno = $this->repository->loadTerrenoForTransition($terreno->id);
 
             $this->applyWorkflowState($freshTerreno, $targetStatus, $user, $reasonCode, $reasonNotes, $currentStatus);
             $this->applySideEffects($freshTerreno, $user, $targetStatus, $context);
@@ -388,7 +375,7 @@ class LandWorkflowService
             'updated_by' => $user?->id ?? $terreno->updated_by,
         ]);
 
-        StatusHistory::create([
+        $this->repository->recordStatusHistory([
             'terreno_id' => $terreno->id,
             'old_stage' => $previousStage,
             'old_status_code' => $previousStatus,
@@ -403,7 +390,7 @@ class LandWorkflowService
             'created_at' => now(),
         ]);
 
-        EntityActivity::create([
+        $this->repository->recordActivity([
             'terreno_id' => $terreno->id,
             'entity_type' => Terreno::class,
             'entity_id' => $terreno->id,
@@ -433,7 +420,7 @@ class LandWorkflowService
             $pendencias = $terreno->comiteAtual?->pendencias()->count() ?? 0;
 
             if ($pendencias === 0) {
-                Task::create([
+                $this->repository->createCommitteeObservationTask([
                     'terreno_id' => $terreno->id,
                     'related_type' => 'committee',
                     'related_id' => $terreno->comiteAtual?->id,
@@ -449,30 +436,15 @@ class LandWorkflowService
         }
 
         if ($targetStatus === WorkflowStatus::LEGALIZANDO->value) {
-            Projeto::where('terreno_id', $terreno->id)
-                ->where('status', ProjetoStatus::EM_VIABILIDADE)
-                ->update([
-                    'status' => ProjetoStatus::EM_LEGALIZACAO,
-                    'updated_by' => $user?->id,
-                ]);
+            $this->repository->transitionProjetosToLegalizacao($terreno->id, $user?->id);
         }
 
         if ($targetStatus === WorkflowStatus::LEGALIZADO_FINALIZADO->value) {
-            Projeto::where('terreno_id', $terreno->id)
-                ->whereNotIn('status', [ProjetoStatus::CANCELADO, ProjetoStatus::FINALIZADO])
-                ->update([
-                    'status' => ProjetoStatus::FINALIZADO,
-                    'updated_by' => $user?->id,
-                ]);
+            $this->repository->transitionProjetosToFinalizado($terreno->id, $user?->id);
         }
 
         if (in_array($targetStatus, WorkflowStatus::closure(), true)) {
-            Projeto::where('terreno_id', $terreno->id)
-                ->whereNotIn('status', [ProjetoStatus::CANCELADO, ProjetoStatus::FINALIZADO])
-                ->update([
-                    'status' => ProjetoStatus::CANCELADO,
-                    'updated_by' => $user?->id,
-                ]);
+            $this->repository->transitionProjetosToCancelado($terreno->id, $user?->id);
         }
     }
 

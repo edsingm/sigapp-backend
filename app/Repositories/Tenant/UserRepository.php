@@ -60,4 +60,34 @@ class UserRepository
             })
             ->count();
     }
+
+    /**
+     * @return Collection<int, User>
+     */
+    public function getAllWithRolesAndPermissions(): Collection
+    {
+        /** @var Collection<int, User> $users */
+        $users = User::query()
+            ->with(['roles.permissions', 'permissions'])
+            ->get();
+
+        return $users;
+    }
+
+    /**
+     * @return Collection<int, User>
+     */
+    public function getAllExcept(?int $excludeUserId = null): Collection
+    {
+        $query = User::query();
+
+        if ($excludeUserId !== null) {
+            $query->whereKeyNot($excludeUserId);
+        }
+
+        /** @var Collection<int, User> $users */
+        $users = $query->get();
+
+        return $users;
+    }
 }

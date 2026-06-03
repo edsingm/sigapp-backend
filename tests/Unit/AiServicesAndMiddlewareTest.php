@@ -125,7 +125,7 @@ class AiServicesAndMiddlewareTest extends TestCase
 
     public function test_estimate_cost_openrouter_free(): void
     {
-        $service = new AiTelemetryService;
+        $service = app(AiTelemetryService::class);
         $cost = $service->estimateCost('openrouter', 'glm-4-air', 1000, 500);
 
         $this->assertIsFloat($cost);
@@ -134,7 +134,7 @@ class AiServicesAndMiddlewareTest extends TestCase
 
     public function test_estimate_cost_unknown_provider(): void
     {
-        $service = new AiTelemetryService;
+        $service = app(AiTelemetryService::class);
         $cost = $service->estimateCost('unknown', 'model', 1000000, 1000000);
 
         $this->assertEquals(0.0, $cost, '', 0.0001);
@@ -142,7 +142,7 @@ class AiServicesAndMiddlewareTest extends TestCase
 
     public function test_estimate_cost_anthropic(): void
     {
-        $service = new AiTelemetryService;
+        $service = app(AiTelemetryService::class);
         $cost = $service->estimateCost('anthropic', 'claude-sonnet-4-6', 1000000, 500000);
 
         // Expected: 3.00 + 7.50 = 10.50
@@ -151,7 +151,7 @@ class AiServicesAndMiddlewareTest extends TestCase
 
     public function test_get_tenant_monthly_cost_returns_zero(): void
     {
-        $service = new AiTelemetryService;
+        $service = app(AiTelemetryService::class);
         $cost = $service->getTenantMonthlyCost();
 
         // Returns 0 when tenancy is not initialized
@@ -160,7 +160,7 @@ class AiServicesAndMiddlewareTest extends TestCase
 
     public function test_budget_status_has_default(): void
     {
-        $service = new AiTelemetryService;
+        $service = app(AiTelemetryService::class);
         $status = $service->getBudgetStatus();
 
         $this->assertArrayHasKey('budget_usd', $status);
@@ -172,12 +172,12 @@ class AiServicesAndMiddlewareTest extends TestCase
 
     public function test_budget_not_exceeded_when_empty(): void
     {
-        $service = new AiTelemetryService;
+        $service = app(AiTelemetryService::class);
 
         $this->assertFalse($service->hasExceededBudget(100.0));
     }
 
-    public function tearDown(): void
+    protected function tearDown(): void
     {
         Mockery::close();
         parent::tearDown();

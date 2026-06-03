@@ -78,7 +78,7 @@ class LegalizacaoEtapaRepository
     }
 
     /**
-     * @param array<int, array{id: int|string, ordem: int}> $ordens
+     * @param  array<int, array{id: int|string, ordem: int}>  $ordens
      */
     public function reorder(Legalizacao $legalizacao, array $ordens, int $updatedBy): void
     {
@@ -97,7 +97,7 @@ class LegalizacaoEtapaRepository
     }
 
     /**
-     * @param array<int, int|string> $etapaIds
+     * @param  array<int, int|string>  $etapaIds
      */
     public function deleteMany(array $etapaIds, int $legalizacaoId): int
     {
@@ -163,12 +163,32 @@ class LegalizacaoEtapaRepository
     }
 
     /**
-     * @param array<int, int|string> $dependenciaIds
+     * @param  array<int, int|string>  $dependenciaIds
      */
     public function deleteDependencies(array $dependenciaIds, int $legalizacaoId): int
     {
         return LegalizacaoDependencia::query()->where('legalizacao_id', $legalizacaoId)
             ->whereIn('id', $dependenciaIds)
             ->delete();
+    }
+
+    /**
+     * @param  array<int, string>  $excludeStatuses
+     * @return Collection<int, LegalizacaoEtapa>
+     */
+    public function findOverdue(array $excludeStatuses, \DateTimeInterface $referenceDate): Collection
+    {
+        $query = LegalizacaoEtapa::query()
+            ->with(['legalizacao.terreno', 'responsavel'])
+            ->whereNotIn('status', $excludeStatuses)
+            ->where(function ($query) use ($referenceDate) {
+                $query->whereDate('data_prevista', '<', $referenceDate)
+                    ->orWhereDate('fim_planejado', '<', $referenceDate);
+            });
+
+        /** @var Collection<int, LegalizacaoEtapa> $etapas */
+        $etapas = $query->get();
+
+        return $etapas;
     }
 }

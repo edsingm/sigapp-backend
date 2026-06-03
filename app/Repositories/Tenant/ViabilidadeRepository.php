@@ -1,14 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Repositories\Tenant;
 
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\Viabilidade;
 use App\Models\Tenant\ViabilidadeAprovacao;
+use App\Repositories\Contracts\ViabilidadeRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 
-class ViabilidadeRepository
+class ViabilidadeRepository implements ViabilidadeRepositoryInterface
 {
     /**
      * @var list<string>

@@ -17,15 +17,18 @@ use App\Models\Tenant\Regional;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\TerrenoProduto;
 use App\Models\Tenant\Viabilidade;
+use App\Observers\Tenant\TerrenoObserver;
 use App\Policies\Tenant\TenantPolicy;
 use App\Repositories\CentralUserRepository;
 use App\Repositories\Contracts\CentralUserRepositoryInterface;
 use App\Repositories\Contracts\DashboardRepositoryInterface;
+use App\Repositories\Contracts\DomainRepositoryInterface;
 use App\Repositories\Contracts\EntitlementRepositoryInterface;
 use App\Repositories\Contracts\PermissionRepositoryInterface;
 use App\Repositories\Contracts\PlanRepositoryInterface;
 use App\Repositories\Contracts\PlanRolePermissionTemplateRepositoryInterface;
 use App\Repositories\Contracts\PostRepositoryInterface;
+use App\Repositories\Contracts\PremissasViabilidadeRepositoryInterface;
 use App\Repositories\Contracts\ProdutoRepositoryInterface;
 use App\Repositories\Contracts\ProjetoRepositoryInterface;
 use App\Repositories\Contracts\ProprietarioRepositoryInterface;
@@ -34,12 +37,15 @@ use App\Repositories\Contracts\RoleRepositoryInterface;
 use App\Repositories\Contracts\TenantRepositoryInterface;
 use App\Repositories\Contracts\TerrenoExportRepositoryInterface;
 use App\Repositories\Contracts\TerrenoProdutoRepositoryInterface;
+use App\Repositories\Contracts\WebhookEventRepositoryInterface;
 use App\Repositories\DashboardRepository;
+use App\Repositories\DomainRepository;
 use App\Repositories\EntitlementRepository;
 use App\Repositories\PermissionRepository;
 use App\Repositories\PlanRepository;
 use App\Repositories\PlanRolePermissionTemplateRepository;
 use App\Repositories\PostRepository;
+use App\Repositories\PremissasViabilidadeRepository;
 use App\Repositories\ProdutoRepository;
 use App\Repositories\ProjetoRepository;
 use App\Repositories\ProprietarioRepository;
@@ -48,13 +54,13 @@ use App\Repositories\RoleRepository;
 use App\Repositories\TenantRepository;
 use App\Repositories\TerrenoExportRepository;
 use App\Repositories\TerrenoProdutoRepository;
-use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\ServiceProvider;
-use Laravel\Cashier\Cashier;
-use App\Observers\Tenant\TerrenoObserver;
+use App\Repositories\WebhookEventRepository;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
 use Dedoc\Scramble\Support\Generator\SecurityScheme;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\ServiceProvider;
+use Laravel\Cashier\Cashier;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -80,6 +86,9 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(TerrenoExportRepositoryInterface::class, TerrenoExportRepository::class);
         $this->app->bind(PlanRolePermissionTemplateRepositoryInterface::class, PlanRolePermissionTemplateRepository::class);
         $this->app->bind(ProjetoRepositoryInterface::class, ProjetoRepository::class);
+        $this->app->bind(PremissasViabilidadeRepositoryInterface::class, PremissasViabilidadeRepository::class);
+        $this->app->bind(DomainRepositoryInterface::class, DomainRepository::class);
+        $this->app->bind(WebhookEventRepositoryInterface::class, WebhookEventRepository::class);
     }
 
     /**
@@ -115,8 +124,7 @@ class AppServiceProvider extends ServiceProvider
         // Observer para cálculo automático de área útil
         Terreno::observe(TerrenoObserver::class);
 
-        Gate::define('viewApiDocs', fn() => app()->environment('local'));
-
+        Gate::define('viewApiDocs', fn () => app()->environment('local'));
 
         Scramble::afterOpenApiGenerated(function (OpenApi $openApi) {
             $openApi->secure(

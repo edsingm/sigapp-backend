@@ -1,18 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\Central\Tenant;
-use App\Repositories\Contracts\TenantRepositoryInterface;
 use App\Services\ApiResponseService;
-use Illuminate\Support\Str;
-use Stancl\Tenancy\Database\Models\Domain;
+use App\Services\Tenant\SubdomainAvailabilityService;
 
 class PublicTenantController extends Controller
 {
     public function __construct(
-        private readonly TenantRepositoryInterface $tenantRepository,
+        private readonly SubdomainAvailabilityService $subdomainAvailability,
     ) {}
 
     /**
@@ -20,35 +19,11 @@ class PublicTenantController extends Controller
      */
     public function subdomainAvailability(string $subdomain)
     {
-        $normalizedSubdomain = Str::slug($subdomain);
-
-        $tenant = $this->tenantRepository->findBySlug($normalizedSubdomain);
-        $domain = Domain::query()->where('domain', $normalizedSubdomain)->first();
-        $tenantStatus = $tenant instanceof Tenant ? (string) $tenant->getAttribute('status') : null;
-
-        $expiredPending = $tenant
-            && $tenantStatus === Tenant::STATUS_PENDING
-            && $tenant->created_at->lt(now()->subDay());
-
-        $tenantReserved = $tenant ? ! $expiredPending : false;
-
-        $domainReserved = false;
-        if ($domain) {
-            $domainReserved = ! ($expiredPending && $tenant && (string) $domain->tenant_id === (string) $tenant->id);
-        }
-
-        $exists = $tenantReserved || $domainReserved;
-
-        $messageKey = 'SUBDOMAIN_AVAILABLE';
-        if ($exists) {
-            $messageKey = ($tenant && $tenantStatus === Tenant::STATUS_PENDING && ! $expiredPending)
-                ? 'SUBDOMAIN_RESERVED'
-                : 'SUBDOMAIN_UNVAVAILABLE';
-        }
+        $result = $this->subdomainAvailability->check($subdomain);
 
         return ApiResponseService::success([
-            'available' => ! $exists,
-            'normalized_subdomain' => $normalizedSubdomain,
-        ], $messageKey);
+            'available' => $result['available'],
+            'normalized_subdomain' => $result['normalized_subdomain'],
+        ], $result['message_key']);
     }
 }

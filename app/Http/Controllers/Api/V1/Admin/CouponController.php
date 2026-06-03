@@ -24,9 +24,7 @@ class CouponController extends Controller
      */
     public function index(): JsonResponse
     {
-        $coupons = Coupon::withTrashed()
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
+        $coupons = $this->couponService->list(20);
 
         return ApiResponseService::paginated(
             $coupons->through(function ($coupon) {

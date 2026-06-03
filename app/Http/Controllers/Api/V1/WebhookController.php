@@ -5,12 +5,12 @@ namespace App\Http\Controllers\Api\V1;
 use App\Enums\TenantStatus;
 use App\Jobs\CreateFullTenantJob;
 use App\Models\Central\Tenant;
-use App\Models\Central\WebhookEvent;
 use App\Notifications\PaymentRetryNotification;
 use App\Notifications\TrialEndingNotification;
 use App\Repositories\Contracts\TenantRepositoryInterface;
 use App\Services\Billing\CouponService;
 use App\Services\Billing\TenantBillingService;
+use App\Services\Billing\WebhookEventService;
 use App\Traits\LogsAudit;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -29,6 +29,7 @@ class WebhookController extends CashierController
         protected TenantBillingService $billingService,
         protected TenantRepositoryInterface $tenantRepository,
         protected CouponService $couponService,
+        protected WebhookEventService $webhookEventService,
     ) {
         if ($this->requiresSignedWebhook() && $this->hasWebhookSecret()) {
             $this->middleware(VerifyWebhookSignature::class);
@@ -56,12 +57,10 @@ class WebhookController extends CashierController
         }
 
         return Cache::lock('stripe-webhook:'.$eventId, 30)->block(5, function () use ($eventId, $payload, $request) {
-            $event = WebhookEvent::query()->firstOrCreate(
-                ['event_id' => $eventId],
-                [
-                    'type' => $payload['type'] ?? 'unknown',
-                    'payload' => $payload,
-                ]
+            $event = $this->webhookEventService->findOrCreate(
+                $eventId,
+                $payload['type'] ?? 'unknown',
+                $payload,
             );
 
             if ($event->processed_at) {
@@ -73,17 +72,18 @@ class WebhookController extends CashierController
                 return $this->successMethod();
             }
 
-            $event->forceFill([
-                'type' => $payload['type'] ?? 'unknown',
-                'payload' => $payload,
-            ])->save();
+            $this->webhookEventService->update(
+                $event,
+                $payload['type'] ?? 'unknown',
+                $payload,
+            );
 
             $response = parent::handleWebhook($request);
 
             if ($response instanceof Response
                 && $response->isSuccessful()
                 && $response->headers->get('X-Webhook-Processed', '1') !== '0') {
-                $event->markAsProcessed();
+                $this->webhookEventService->markAsProcessed($event);
             }
 
             return $response;

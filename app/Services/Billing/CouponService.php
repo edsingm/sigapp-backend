@@ -6,6 +6,7 @@ use App\Models\Central\Coupon;
 use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
 use App\Traits\LogsAudit;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Laravel\Cashier\Cashier;
 use Stripe\StripeClient;
 
@@ -97,6 +98,18 @@ class CouponService
         ]);
 
         return $coupon;
+    }
+
+    /**
+     * Lista coupons (incluindo soft-deleteds) com paginação.
+     *
+     * @return LengthAwarePaginator<int, Coupon>
+     */
+    public function list(int $perPage = 20): LengthAwarePaginator
+    {
+        return Coupon::withTrashed()
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage);
     }
 
     /**

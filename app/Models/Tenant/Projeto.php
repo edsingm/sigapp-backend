@@ -4,6 +4,7 @@ namespace App\Models\Tenant;
 
 use App\Enums\ProjetoStatus;
 use App\Traits\HasDashboardCache;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Table('projetos')]
+#[Fillable(['nome', 'terreno_id', 'responsavel_id', 'status', 'pronto_para_registro_em', 'pronto_para_registro_por', 'created_by', 'updated_by'])]
 class Projeto extends Model
 {
     use HasDashboardCache, HasFactory, SoftDeletes;

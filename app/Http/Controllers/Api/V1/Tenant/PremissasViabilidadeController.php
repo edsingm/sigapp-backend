@@ -8,29 +8,24 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\StorePremissasViabilidadeRequest;
 use App\Http\Requests\Tenant\UpdatePremissasViabilidadeRequest;
 use App\Http\Resources\Tenant\PremissasViabilidadeResource;
-use App\Models\Tenant\PremissasViabilidade;
 use App\Services\ApiResponseService;
+use App\Services\Tenant\PremissasViabilidadeCrudService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class PremissasViabilidadeController extends Controller
 {
+    public function __construct(
+        private readonly PremissasViabilidadeCrudService $service,
+    ) {}
+
     public function index(Request $request): AnonymousResourceCollection
     {
         $perPage = $request->integer('per_page', 10);
-        $perfil = $request->string('perfil_financiamento')->toString();
+        $perfil = $request->string('perfil_financiamento')->toString() ?: null;
 
-        $query = PremissasViabilidade::query();
-
-        if ($perfil !== '') {
-            $query->where('perfil_financiamento', $perfil);
-        }
-
-        $premissas = $query
-            ->orderBy('perfil_financiamento')
-            ->orderBy('versao', 'desc')
-            ->paginate($perPage);
+        $premissas = $this->service->list($perfil, $perPage);
 
         return PremissasViabilidadeResource::collection($premissas)
             ->additional([
@@ -44,14 +39,14 @@ class PremissasViabilidadeController extends Controller
 
     public function show(int $id): JsonResponse
     {
-        $premissas = PremissasViabilidade::query()->find($id);
+        $premissa = $this->service->findById($id);
 
-        if (! $premissas) {
+        if (! $premissa) {
             return ApiResponseService::notFound('Premissas não encontradas');
         }
 
         return ApiResponseService::success(
-            new PremissasViabilidadeResource($premissas),
+            new PremissasViabilidadeResource($premissa),
             'Premissas recuperadas com sucesso'
         );
     }
@@ -61,42 +56,42 @@ class PremissasViabilidadeController extends Controller
         $validated = $request->validated();
         $validated['created_by'] = $request->user()->id;
 
-        $premissas = PremissasViabilidade::query()->create($validated);
+        $premissa = $this->service->create($validated);
 
         return ApiResponseService::created(
-            new PremissasViabilidadeResource($premissas),
+            new PremissasViabilidadeResource($premissa),
             'Premissas criadas com sucesso'
         );
     }
 
     public function update(UpdatePremissasViabilidadeRequest $request, int $id): JsonResponse
     {
-        $premissas = PremissasViabilidade::query()->find($id);
+        $premissa = $this->service->findById($id);
 
-        if (! $premissas) {
+        if (! $premissa) {
             return ApiResponseService::notFound('Premissas não encontradas');
         }
 
         $validated = $request->validated();
         $validated['updated_by'] = $request->user()->id;
 
-        $premissas->update($validated);
+        $premissa = $this->service->update($premissa, $validated);
 
         return ApiResponseService::success(
-            new PremissasViabilidadeResource($premissas),
+            new PremissasViabilidadeResource($premissa),
             'Premissas atualizadas com sucesso'
         );
     }
 
     public function destroy(int $id): JsonResponse
     {
-        $premissas = PremissasViabilidade::query()->find($id);
+        $premissa = $this->service->findById($id);
 
-        if (! $premissas) {
+        if (! $premissa) {
             return ApiResponseService::notFound('Premissas não encontradas');
         }
 
-        $premissas->delete();
+        $this->service->delete($premissa);
 
         return ApiResponseService::success(null, 'Premissas excluídas com sucesso');
     }

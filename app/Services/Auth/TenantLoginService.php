@@ -20,6 +20,7 @@ class TenantLoginService
     public function attempt(array $credentials, ?string $deviceName = null): array
     {
         $user = User::query()
+            ->with(['roles.permissions', 'department', 'position'])
             ->where('email', $credentials['email'])
             ->first();
 

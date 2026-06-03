@@ -5,10 +5,13 @@ namespace App\Enums\Common;
 use App\Models\Tenant\ComiteRevisao;
 use App\Models\Tenant\Contrato;
 use App\Models\Tenant\CorretorExterno;
+use App\Models\Tenant\Department;
 use App\Models\Tenant\Documento;
 use App\Models\Tenant\Legalizacao;
 use App\Models\Tenant\LegalizacaoEtapa;
 use App\Models\Tenant\Negociacao;
+use App\Models\Tenant\Position;
+use App\Models\Tenant\PremissasViabilidade;
 use App\Models\Tenant\Produto;
 use App\Models\Tenant\Projeto;
 use App\Models\Tenant\Proprietario;
@@ -154,6 +157,13 @@ enum ModulesEnum: string
             ],
             self::VIABILITY => [
                 Viabilidade::class => null,
+            ],
+            self::CONFIGURATIONS => [
+                PremissasViabilidade::class => null,
+            ],
+            self::ADMIN => [
+                Position::class => null,
+                Department::class => null,
             ],
             self::AI => [],
             default => [],

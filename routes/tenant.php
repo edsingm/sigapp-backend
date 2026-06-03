@@ -148,18 +148,22 @@ Route::middleware([
                             ->name('tenant-admin.users.module-permissions');
                         Route::get('roles/select', [AdminRoleController::class, 'forSelect'])
                             ->name('tenant-admin.roles.select');
-                        Route::apiResource('roles', AdminRoleController::class);
-                        Route::apiResource('permissions', AdminPermissionController::class);
+                        Route::apiResource('roles', AdminRoleController::class)
+                            ->middleware('permission.gate:admin');
+                        Route::apiResource('permissions', AdminPermissionController::class)
+                            ->middleware('permission.gate:admin');
 
                         // Departments
                         Route::get('departments/select', [AdminDepartmentController::class, 'forSelect'])
                             ->name('tenant-admin.departments.select');
-                        Route::apiResource('departments', AdminDepartmentController::class);
+                        Route::apiResource('departments', AdminDepartmentController::class)
+                            ->middleware('permission.gate:admin');
 
                         // Positions
                         Route::get('positions/select', [AdminPositionController::class, 'forSelect'])
                             ->name('tenant-admin.positions.select');
-                        Route::apiResource('positions', AdminPositionController::class);
+                        Route::apiResource('positions', AdminPositionController::class)
+                            ->middleware('permission.gate:admin');
                     });
 
                 // Terrenos (with plan limit enforcement)
@@ -258,7 +262,7 @@ Route::middleware([
                 });
 
                 // Premissas de Viabilidade
-                Route::middleware('check.feature:viabilities.enabled')->group(function () {
+                Route::middleware(['check.feature:viabilities.enabled', 'permission.gate:configurations'])->group(function () {
                     Route::apiResource('premissas-viabilidade', PremissasViabilidadeController::class);
                 });
 

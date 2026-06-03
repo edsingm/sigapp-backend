@@ -2,6 +2,9 @@
 
 namespace App\Http\Resources\Tenant;
 
+use App\Enums\PerfilFinanciamento;
+use App\Models\Tenant\Terreno;
+use App\Models\Tenant\User;
 use App\Models\Tenant\Viabilidade;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -85,7 +88,7 @@ class ViabilidadeResource extends JsonResource
             'devolucao_aporte_percentual' => (float) $this->devolucao_aporte_percentual,
             'distribuicao_lucros_percentual_obra' => (float) $this->distribuicao_lucros_percentual_obra,
             'taxa_exposicao_aplicada' => (float) $this->taxa_exposicao_aplicada,
-            'perfil_financiamento' => $perfilFinanciamento instanceof \App\Enums\PerfilFinanciamento
+            'perfil_financiamento' => $perfilFinanciamento instanceof PerfilFinanciamento
                 ? $perfilFinanciamento->value
                 : 'cef',
             'status' => $this->status,
@@ -98,7 +101,8 @@ class ViabilidadeResource extends JsonResource
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
             'deleted_at' => $this->deleted_at?->format('Y-m-d H:i:s'),
-            'terreno' => $terreno instanceof \App\Models\Tenant\Terreno ? [
+            'resultados_dre' => $this->getAttribute('resultados_dre'),
+            'terreno' => $terreno instanceof Terreno ? [
                 'id' => $terreno->id,
                 'nome' => $terreno->getAttribute('nome'),
                 'area' => $terreno->getAttribute('area_calculada'),
@@ -111,7 +115,7 @@ class ViabilidadeResource extends JsonResource
                     'id' => $this->createdBy->id,
                     'name' => $this->createdBy->name,
                 ] : null,
-                'updated_by_user' => $updatedBy instanceof \App\Models\Tenant\User ? [
+                'updated_by_user' => $updatedBy instanceof User ? [
                     'id' => $updatedBy->id,
                     'name' => $updatedBy->name,
                 ] : null,

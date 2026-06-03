@@ -3,6 +3,7 @@
 namespace App\Services\Tenant;
 
 use App\Enums\WorkflowStatus;
+use App\Events\Tenant\ContratoSigned;
 use App\Models\Tenant\Contrato;
 use App\Models\Tenant\Negociacao;
 use App\Models\Tenant\NegociacaoEvento;
@@ -189,8 +190,10 @@ class NegotiationService
             'updated_by' => $user?->id,
         ]);
 
+        $terreno = $contract->terreno()->firstOrFail();
+
         $workflowService->transition(
-            $contract->terreno()->firstOrFail(),
+            $terreno,
             WorkflowStatus::CONTRATO_ASSINADO->value,
             $user,
             'contract_signed',
@@ -198,19 +201,7 @@ class NegotiationService
             ['contract' => $contract->fresh('partes')],
         );
 
-        $this->contractRepository->createActivity([
-            'terreno_id' => $contract->terreno_id,
-            'entity_type' => Contrato::class,
-            'entity_id' => $contract->id,
-            'action' => 'contract.signed',
-            'user_id' => $user?->id,
-            'summary' => 'Contrato assinado.',
-            'payload_json' => [
-                'contract_type' => $contract->contract_type,
-                'signed_at' => $contract->signed_at,
-            ],
-            'happened_at' => now(),
-        ]);
+        ContratoSigned::dispatch($contract, $terreno, $user);
 
         return $this->contractRepository->loadDetail($contract);
     }

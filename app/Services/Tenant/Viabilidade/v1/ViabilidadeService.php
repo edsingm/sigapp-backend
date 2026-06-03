@@ -3,13 +3,13 @@
 namespace App\Services\Tenant\Viabilidade\v1;
 
 use App\Enums\WorkflowStatus;
+use App\Events\Tenant\ViabilidadeDecided;
+use App\Events\Tenant\ViabilidadeSubmitted;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\User;
 use App\Models\Tenant\Viabilidade;
 use App\Repositories\Tenant\ViabilidadeRepository;
-use App\Services\Acl\PermissionNameResolver;
 use App\Services\Tenant\LandWorkflowService;
-use App\Services\Tenant\MobilePushService;
 use Exception;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -23,8 +23,6 @@ class ViabilidadeService
     public function __construct(
         private readonly ViabilidadeUnificadoService $unificadoService,
         private readonly LandWorkflowService $workflowService,
-        private readonly MobilePushService $mobilePushService,
-        private readonly PermissionNameResolver $permissions,
         private readonly ViabilidadeRepository $repository,
     ) {}
 
@@ -360,23 +358,7 @@ class ViabilidadeService
             $approvalNotes,
         );
 
-        $this->mobilePushService->notifyUsersWithPermission(
-            (string) $this->permissions->forModel(Viabilidade::class, 'approve'),
-            [
-                'title' => 'Viabilidade aguardando aprovação',
-                'body' => "A viabilidade do terreno {$terreno->nome} aguarda decisão.",
-                'type' => 'viabilidade.solicitar_aprovacao',
-                'entity_type' => 'viabilidade',
-                'entity_id' => (string) $viabilidade->id,
-                'target_route' => "/terrenos/{$viabilidade->terreno_id}",
-                'payload' => [
-                    'tenant_slug' => tenant('slug'),
-                    'viabilidade_id' => $viabilidade->id,
-                    'terreno_id' => $viabilidade->terreno_id,
-                ],
-            ],
-            $actor
-        );
+        ViabilidadeSubmitted::dispatch($viabilidade, $terreno, $actor);
 
         return $this->repository->loadDefaultRelations($viabilidade);
     }
@@ -425,28 +407,7 @@ class ViabilidadeService
             $approvalNotes,
         );
 
-        $this->mobilePushService->notifyAllUsers(
-            [
-                'title' => $decision === 'aprovada'
-                    ? 'Viabilidade aprovada'
-                    : 'Viabilidade reprovada',
-                'body' => $decision === 'aprovada'
-                    ? "A viabilidade do terreno {$terreno->nome} foi aprovada."
-                    : "A viabilidade do terreno {$terreno->nome} foi reprovada.",
-                'type' => $decision === 'aprovada'
-                    ? 'viabilidade.aprovada'
-                    : 'viabilidade.reprovada',
-                'entity_type' => 'viabilidade',
-                'entity_id' => (string) $viabilidade->id,
-                'target_route' => "/terrenos/{$viabilidade->terreno_id}",
-                'payload' => [
-                    'tenant_slug' => tenant('slug'),
-                    'viabilidade_id' => $viabilidade->id,
-                    'terreno_id' => $viabilidade->terreno_id,
-                ],
-            ],
-            $actor
-        );
+        ViabilidadeDecided::dispatch($viabilidade, $terreno, $decision, $actor);
 
         return $this->repository->loadDefaultRelations($viabilidade);
     }

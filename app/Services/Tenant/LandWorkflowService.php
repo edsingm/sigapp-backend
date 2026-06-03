@@ -3,6 +3,7 @@
 namespace App\Services\Tenant;
 
 use App\Enums\WorkflowStatus;
+use App\Events\Tenant\WorkflowTransitioned;
 use App\Models\Tenant\Contrato;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\User;
@@ -96,11 +97,10 @@ class LandWorkflowService
 
         $this->assertPrerequisites($terreno, $targetStatus, $context);
 
-        return DB::transaction(function () use ($terreno, $targetStatus, $user, $reasonCode, $reasonNotes, $context, $currentStatus) {
+        return DB::transaction(function () use ($terreno, $targetStatus, $user, $reasonCode, $reasonNotes, $currentStatus) {
             $freshTerreno = $this->repository->loadTerrenoForTransition($terreno->id);
 
             $this->applyWorkflowState($freshTerreno, $targetStatus, $user, $reasonCode, $reasonNotes, $currentStatus);
-            $this->applySideEffects($freshTerreno, $user, $targetStatus, $context);
 
             return $freshTerreno->fresh([
                 'responsavel',
@@ -346,7 +346,7 @@ class LandWorkflowService
     }
 
     /**
-     * Aplica o novo estado de workflow ao terreno e registra no histórico.
+     * Aplica o novo estado de workflow ao terreno e dispara o evento de transição.
      */
     protected function applyWorkflowState(
         Terreno $terreno,
@@ -363,7 +363,7 @@ class LandWorkflowService
             throw new RuntimeException("Status de workflow desconhecido: {$targetStatus}");
         }
 
-        $previousStage = $terreno->workflow_stage;
+        $previousStage = $terreno->workflow_stage ?? '';
         $previousStatus = $this->normalizeStatus($previousStatus ?? $terreno->workflow_status_code);
 
         $terreno->update([
@@ -375,77 +375,17 @@ class LandWorkflowService
             'updated_by' => $user?->id ?? $terreno->updated_by,
         ]);
 
-        $this->repository->recordStatusHistory([
-            'terreno_id' => $terreno->id,
-            'old_stage' => $previousStage,
-            'old_status_code' => $previousStatus,
-            'new_stage' => $statusMeta['stage'],
-            'new_status_code' => $targetStatus,
-            'changed_by' => $user?->id,
-            'reason_code' => $reasonCode,
-            'reason' => $reasonNotes,
-            'metadata_json' => [
-                'label' => $statusMeta['label'],
-            ],
-            'created_at' => now(),
-        ]);
-
-        $this->repository->recordActivity([
-            'terreno_id' => $terreno->id,
-            'entity_type' => Terreno::class,
-            'entity_id' => $terreno->id,
-            'action' => 'workflow.transition',
-            'user_id' => $user?->id,
-            'summary' => "Workflow alterado para {$statusMeta['label']}",
-            'payload_json' => [
-                'old_stage' => $previousStage,
-                'old_status_code' => $previousStatus,
-                'new_stage' => $statusMeta['stage'],
-                'new_status_code' => $targetStatus,
-                'reason_code' => $reasonCode,
-                'reason_notes' => $reasonNotes,
-            ],
-            'happened_at' => now(),
-        ]);
-    }
-
-    /**
-     * Executa efeitos colaterais após uma transição de status bem-sucedida.
-     *
-     * @param  array<string, mixed>  $context
-     */
-    protected function applySideEffects(Terreno $terreno, ?User $user, string $targetStatus, array $context = []): void
-    {
-        if ($targetStatus === WorkflowStatus::NEGOCIACAO_MINUTA->value && ($terreno->comiteAtual?->final_decision === 'aprovado_com_ressalvas')) {
-            $pendencias = $terreno->comiteAtual?->pendencias()->count() ?? 0;
-
-            if ($pendencias === 0) {
-                $this->repository->createCommitteeObservationTask([
-                    'terreno_id' => $terreno->id,
-                    'related_type' => 'committee',
-                    'related_id' => $terreno->comiteAtual?->id,
-                    'title' => 'Resolver ressalvas do comitê',
-                    'description' => 'A aprovação com ressalvas exige tratativa e acompanhamento.',
-                    'assigned_to' => $terreno->responsavel_id,
-                    'status' => 'open',
-                    'priority' => 'high',
-                    'created_by' => $user?->id,
-                    'updated_by' => $user?->id,
-                ]);
-            }
-        }
-
-        if ($targetStatus === WorkflowStatus::LEGALIZANDO->value) {
-            $this->repository->transitionProjetosToLegalizacao($terreno->id, $user?->id);
-        }
-
-        if ($targetStatus === WorkflowStatus::LEGALIZADO_FINALIZADO->value) {
-            $this->repository->transitionProjetosToFinalizado($terreno->id, $user?->id);
-        }
-
-        if (in_array($targetStatus, WorkflowStatus::closure(), true)) {
-            $this->repository->transitionProjetosToCancelado($terreno->id, $user?->id);
-        }
+        WorkflowTransitioned::dispatch(
+            terreno: $terreno,
+            previousStatus: $previousStatus,
+            previousStage: $previousStage,
+            newStatus: $targetStatus,
+            newStage: $statusMeta['stage'],
+            newLabel: $statusMeta['label'],
+            user: $user,
+            reasonCode: $reasonCode,
+            reasonNotes: $reasonNotes,
+        );
     }
 
     /**

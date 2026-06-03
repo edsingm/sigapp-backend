@@ -33,7 +33,7 @@ O SIGAPP é uma plataforma **SaaS multi-tenant** para análise de viabilidade de
 | **Repository Contracts**            |      14 |                        27 |         +13 |
 | **Jobs**                            |       4 |                         5 |          +1 |
 | **Enums (PHP files)**               |      13 |                        14 |          +1 |
-| **Test files**                      |      82 |                        90 |          +8 |
+| **Test files**                      |      82 |                        91 |          +9 |
 | **Rotas API (api.php)**             |     n/d |                        50 |          — |
 | **Rotas tenant (tenant.php)**       |     n/d |                       179 |          — |
 | **Rotas web (web.php)**             |     n/d |                         3 |          — |
@@ -43,8 +43,8 @@ O SIGAPP é uma plataforma **SaaS multi-tenant** para análise de viabilidade de
 | **Migrations — total**             |     n/d |                        96 |          — |
 | **Factories**                       |       2 |                         2 |           = |
 | **Custom Exceptions**               |       1 |                         1 |           = |
-| **Eventos customizados**            |       0 |                         0 |           = |
-| **Listeners**                       |       0 |                         0 |           = |
+| **Eventos customizados**            |       0 |                         7 |          +7 |
+| **Listeners**                       |       0 |                        10 |         +10 |
 | **Cobertura de Contracts (Repo)**   |    ~52% |                       64% |         +17 |
 | **phpstan.baseline.neon (linhas)**  |  609 kB |                    609 kB |           = |
 | **Working tree (uncommitted)**      |     n/d | limpo (HEAD =`b04a497`) |          — |
@@ -424,16 +424,16 @@ Services mais críticos ainda sem contract:
 
 ### FASE 3 — Desacoplamento via Events (2-3 semanas)
 
-| #   | Tarefa                                                                                                   | Esforço | Impacto                          |
-| --- | -------------------------------------------------------------------------------------------------------- | -------- | -------------------------------- |
-| 3.1 | Criar estrutura `app/Events/Tenant/` e `app/Listeners/Tenant/`                                       | 0.5 dia  | Setup                            |
-| 3.2 | Implementar `TerrenoStatusChanged` + Listeners (criar Task, EntityActivity, StatusHistory, MobilePush) | 2 dias   | Resolve item 6 do plano anterior |
-| 3.3 | Implementar `ViabilidadeApproved` + Listeners (atualizar Terreno, criar EntityActivity, push)          | 1 dia    | —                               |
-| 3.4 | Implementar `ContratoSigned` + Listener de transição de workflow                                     | 0.5 dia  | —                               |
-| 3.5 | Implementar `LegalizacaoEtapaOverdue` + Listener (push notification)                                   | 0.5 dia  | Notificação proativa           |
-| 3.6 | Adicionar testes para cada Event/Listener                                                                | 1 dia    | Confiabilidade                   |
+| #   | Tarefa                                                                                                   | Esforço | Impacto                          | Status                                  |
+| --- | -------------------------------------------------------------------------------------------------------- | -------- | -------------------------------- | --------------------------------------- |
+| 3.1 | Criar estrutura `app/Events/Tenant/` e `app/Listeners/Tenant/`                                       | 0.5 dia  | Setup                            | ✅**REALIZADO** (ver Apêndice D) |
+| 3.2 | Implementar `WorkflowTransitioned` + 4 Listeners (StatusHistory, Activity, Task, Projetos)             | 2 dias   | Resolve item 6 do plano anterior | ✅**REALIZADO** (ver Apêndice D) |
+| 3.3 | Implementar `ViabilidadeSubmitted/Decided` + Listeners (push notification)                              | 1 dia    | Desacopla push do service        | ✅**REALIZADO** (ver Apêndice D) |
+| 3.4 | Implementar `ContratoSigned` + Listener (EntityActivity)                                               | 0.5 dia  | Desacopla activity do service    | ✅**REALIZADO** (ver Apêndice D) |
+| 3.5 | Implementar `LegalizacaoEtapaOverdue` + Listener (push notification)                                   | 0.5 dia  | Notificação proativa           | ✅**REALIZADO** (ver Apêndice D) |
+| 3.6 | Adicionar testes para cada Event/Listener                                                                | 1 dia    | Confiabilidade                   | ✅**REALIZADO** (ver Apêndice D) |
 
-**Total estimado: 5-6 dias úteis.**
+**Total estimado: 5-6 dias úteis · 6/6 itens REALIZADOS em 2026-06-03.**
 
 ### FASE 4 — Testes & Documentação (1-2 semanas)
 
@@ -499,12 +499,14 @@ A **ordem das prioridades para o próximo ciclo** deve ser:
 > **Atualização 2026-06-03:** Fase 1 (saneamento arquitetural) foi integralmente concluída — ver Apêndice B. As 4 violações de camada em controllers, o `#[Fillable]` do `Projeto`, a migration vazia e o `composer.json:setup` estão resolvidos. PHPStan nível 8 passa sem erros e 516 testes continuam verdes.
 >
 > **Atualização 2026-06-03 (continuação):** **Fase 2 (Repository Pattern Completo)** também foi integralmente concluída neste mesmo dia — ver Apêndice C. Os 7 itens (2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7) foram entregues: 9 novos Repository Contracts, 7 novos repositórios concretos, 6 services migrados (MobilePush, LandWorkflow, AiAnomaly, AiPredictive, AiTelemetry, TerrenoFilter), 2 repositories existentes ganharam interface, e o teste de arquitetura `ServicesArchitectureTest` agora rejeita `Model::query()` (e 10 outros métodos proibidos) em `app/Services`. Cobertura de Contracts subiu de 47% para **64%** (+17 p.p.), ocorrências de Eloquent em Services caíram de 63 para 47, e a suite agora roda com **517 testes verdes**.
+>
+> **Atualização 2026-06-03 (Fase 3):** **Fase 3 (Desacoplamento via Events)** também foi integralmente concluída — ver Apêndice D. 7 eventos de domínio (`WorkflowTransitioned`, `ViabilidadeSubmitted`, `ViabilidadeDecided`, `ContratoSigned`, `LegalizacaoEtapaStatusUpdated`, `ProjetoFinalizado`, `LegalizacaoEtapaOverdue`) e 10 listeners foram criados. O `LandWorkflowService` foi reduzido de 468 para ~380 linhas (side-effects extraídos para listeners). Push notifications foram removidos de 2 controllers (`LegalizacaoEtapaController`, `ProjetoController`) e de 2 services (`ViabilidadeService`, `NegotiationService`). `EventServiceProvider` dedicado criado e registrado. 16 novos testes de eventos/listeners adicionados. Suite total: **533 testes verdes**.
 
 **Métricas-alvo para o próximo review (alinhadas em 3 semanas):**
 
 - ~~0 ocorrências de `::query()` em `app/Services`~~ → **47 ocorrências restantes** em 14 services (Fase 2 reduziu de 63 → 47; faltam `AiEmbeddingService` 5, `AiInsightGeneratorService` 12, `AiScoringService` 2, `Tenant/AiMonitorService` 3, `Auth/*` 4 services ~9, `Billing/*` 2, `Dashboard/DashboardQueryService` 1, `Modules/ModulesService` 1, `Signup/TenantSignupService` ~3, `Tenant/ProjetoService` ~2, `TenantAclSyncService` ~2, `TenantPlanService` ~2, `TenantStatusService` ~2, `UsageMetricsService` ~1) — escopo para Fase 2.5
 - ≥ 80% de repositories com contract → **64% atual** (Fase 2 subiu de 47% → 64%; faltam 7 repos sem contract dos 20 services acima)
-- ≥ 5 events customizados implementados
+- ~~≥ 5 events customizados implementados~~ → **7 events + 10 listeners** ✅ **atingido** (Fase 3)
 - ≥ 10 models com factory
 - `phpstan.baseline.neon` ≤ 7.500 linhas
 - Working tree limpo (0 modificações não commitadas)
@@ -772,8 +774,111 @@ M  tests/Unit/AiServicesAndMiddlewareTest.php
 ?? tests/Architecture/ServicesArchitectureTest.php
 ```
 
-> **Commitado - :** deletar `phpstan.neon.bak` e `phpstan.baseline-test.neon` (artefatos de debug, não fazem parte da entrega).
+> **Commitado - 8a9151ce :** [refactor: move data access to repositories](https://gitlab.com/sigapp/backend/-/commit/8a9151cef1cb82cc6437f28fd3a20c4a50ce3b99)
 
 ---
 
 *Fim do Apêndice C.*
+
+---
+
+## Apêndice D — Implementação da Fase 3 (2026-06-03)
+
+Em **3 de junho de 2026**, no mesmo dia das Fases 1 e 2, a **Fase 3 (Desacoplamento via Events)** foi integralmente implementada. Este apêndice documenta o que foi feito, o que foi criado e a verificação de qualidade.
+
+### D.1 Itens executados
+
+| #   | Item                                                              | Arquivos criados / alterados                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Verificação                            |
+| --- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| 3.1 | Estrutura `app/Events/Tenant/` e `app/Listeners/Tenant/`          | **+** 7 eventos em `app/Events/Tenant/`: `WorkflowTransitioned`, `ViabilidadeSubmitted`, `ViabilidadeDecided`, `ContratoSigned`, `LegalizacaoEtapaStatusUpdated`, `ProjetoFinalizado`, `LegalizacaoEtapaOverdue`<br>**+** 10 listeners em `app/Listeners/Tenant/`: `RecordWorkflowStatusHistory`, `RecordWorkflowActivity`, `CreateCommitteeObservationTask`, `TransitionRelatedProjetos`, `NotifyViabilidadeSubmission`, `NotifyViabilidadeDecision`, `RecordContractSignedActivity`, `NotifyLegalizacaoEtapaUpdate`, `NotifyProjetoFinalizado`, `NotifyOverdueLegalizacaoEtapa`<br>**+** `app/Providers/EventServiceProvider.php`<br>**~** `bootstrap/providers.php` (registro do EventServiceProvider) | `php -l` ✓, phpstan ✓, tests ✓ |
+| 3.2 | `WorkflowTransitioned` + 4 Listeners                              | **~** `app/Services/Tenant/LandWorkflowService.php` — `applyWorkflowState()` agora dispara `WorkflowTransitioned::dispatch()` em vez de chamar `$this->repository->recordStatusHistory()` e `recordActivity()` inline. `applySideEffects()` foi **removido** — os 4 side-effects (StatusHistory, Activity, CommitteeObservationTask, Projeto transitions) agora são listeners. Service reduziu de 468 para ~380 linhas.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | `php -l` ✓, phpstan ✓, tests ✓ |
+| 3.3 | `ViabilidadeSubmitted/Decided` + Listeners                        | **~** `app/Services/Tenant/Viabilidade/v1/ViabilidadeService.php` — `solicitarAprovacao()` agora dispara `ViabilidadeSubmitted::dispatch()` em vez de `$this->mobilePushService->notifyUsersWithPermission()`. `decidirAprovacao()` agora dispara `ViabilidadeDecided::dispatch()` em vez de `$this->mobilePushService->notifyAllUsers()`. Dependências `MobilePushService` e `PermissionNameResolver` **removidas** do construtor.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | `php -l` ✓, phpstan ✓, tests ✓ |
+| 3.4 | `ContratoSigned` + Listener                                       | **~** `app/Services/Tenant/NegotiationService.php` — `signContract()` agora dispara `ContratoSigned::dispatch()` em vez de `$this->contractRepository->createActivity()` inline.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | `php -l` ✓, phpstan ✓, tests ✓ |
+| 3.5 | `LegalizacaoEtapaOverdue` + Listener + outros push extractions    | **~** `app/Http/Controllers/Api/V1/Tenant/LegalizacaoEtapaController.php` — `updateStatus()` agora dispara `LegalizacaoEtapaStatusUpdated::dispatch()` em vez de `$this->mobilePushService->notifyAllUsers()`. `MobilePushService` **removido** do construtor.<br>**~** `app/Http/Controllers/Api/V1/Tenant/ProjetoController.php` — `markReady()` agora dispara `ProjetoFinalizado::dispatch()` em vez de `$this->mobilePushService->notifyAllUsers()`. `MobilePushService` **removido** do construtor.<br>**~** `app/Console/Commands/NotifyOverdueLegalizacaoEtapasCommand.php` — agora itera overdue etapas e dispara `LegalizacaoEtapaOverdue::dispatch()` para cada uma, em vez de chamar `$mobilePushService->notifyOverdueLegalizacaoEtapasForCurrentTenant()` diretamente. | `php -l` ✓, phpstan ✓, tests ✓ |
+| 3.6 | Testes para Events/Listeners                                      | **+** `tests/Feature/Tenant/Events/WorkflowEventsTest.php` — 16 testes cobrindo: registro do EventServiceProvider, propriedades de todos os 7 eventos, comportamento de 7 listeners (com mocks de repositórios e push service).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | `phpunit` ✓ (16 tests, 62 assertions) |
+
+**Total: 18 novos arquivos (7 eventos + 10 listeners + 1 provider + 1 teste), 6 alterados.**
+
+### D.2 Event-Listener mappings no `EventServiceProvider`
+
+```php
+protected $listen = [
+    WorkflowTransitioned::class => [
+        RecordWorkflowStatusHistory::class,
+        RecordWorkflowActivity::class,
+        CreateCommitteeObservationTask::class,
+        TransitionRelatedProjetos::class,
+    ],
+    ViabilidadeSubmitted::class       => [NotifyViabilidadeSubmission::class],
+    ViabilidadeDecided::class         => [NotifyViabilidadeDecision::class],
+    ContratoSigned::class             => [RecordContractSignedActivity::class],
+    LegalizacaoEtapaStatusUpdated::class => [NotifyLegalizacaoEtapaUpdate::class],
+    ProjetoFinalizado::class          => [NotifyProjetoFinalizado::class],
+    LegalizacaoEtapaOverdue::class    => [NotifyOverdueLegalizacaoEtapa::class],
+];
+```
+
+### D.3 Verificações de qualidade executadas
+
+| Verificação         | Comando                                                                                  | Resultado                                |
+| --------------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------- |
+| Sintaxe               | `php -l` em todos os arquivos novos/alterados                                          | ✓ No syntax errors                      |
+| Análise estática    | `./vendor/bin/phpstan analyse` (nível 8)                                              | ✓**No errors**                    |
+| Testes                | `php artisan test` (suite completa)                                                    | ✓**533 passed (1820 assertions)** |
+| Arquitetura           | `phpunit --testsuite=Architecture`                                                       | ✓**20 tests, 141 assertions**      |
+| Eventos               | `phpunit tests/Feature/Tenant/Events/WorkflowEventsTest.php`                             | ✓**16 tests, 62 assertions**       |
+
+### D.4 Decisões e trade-offs
+
+1. **Listeners síncronos dentro da transação**: os 4 listeners de `WorkflowTransitioned` rodam **dentro** do `DB::transaction()` do `LandWorkflowService::transition()`. Isso garante atomicidade — se um listener falhar, a transição inteira é revertida. Para push notifications (que são fire-and-forget), os listeners também rodam sincronamente; a extração para `ShouldHandleEventsAfterCommit` ou jobs assíncronos fica como escopo futuro.
+2. **`EventServiceProvider` dedicado**: em vez de registrar eventos no `AppServiceProvider` (que já tem 33 bindings), criou-se um `EventServiceProvider` próprio, registrado em `bootstrap/providers.php`. Isso mantém o `AppServiceProvider` focado em bindings de repositório.
+3. **`WorkflowTransitioned` carrega contexto completo**: o evento carrega `previousStatus`, `previousStage`, `newStatus`, `newStage`, `newLabel`, `user`, `reasonCode`, `reasonNotes` e `context`. Isso permite que listeners futuros (ex: analytics, webhooks, logs estruturados) acessem todos os dados da transição sem precisar recarregar o modelo.
+4. **`previousStage` default vazio**: quando um terreno é inicializado sem `workflow_stage`, o valor é normalizado para string vazia (`''`) para casar com o tipo `string` do evento.
+5. **Push notifications extraídos de controllers**: `LegalizacaoEtapaController` e `ProjetoController` não dependem mais de `MobilePushService`. Isso elimina a violação de camada (controllers não devem conter lógica de negócio) e torna os controllers mais testáveis.
+6. **`NotifyOverdueLegalizacaoEtapa` preserva lógica original**: o listener mantém a lógica de "se há responsável, notifica só ele; senão, notifica usuários com permissão `legalizacao.update`" — idêntica ao código original em `MobilePushService::notifyOverdueLegalizacaoEtapasForCurrentTenant()`.
+
+### D.5 Métricas de impacto
+
+| Métrica                                              | Antes da Fase 3 | Após Fase 3 | Δ      |
+| ----------------------------------------------------- | --------------- | ------------ | ------ |
+| Eventos customizados                                | 0               | **7**        | +7     |
+| Listeners                                            | 0               | **10**       | +10    |
+| Linhas no `LandWorkflowService`                    | 468             | **~380**     | -88    |
+| Controllers com `MobilePushService` dependência    | 2               | **0**        | -2     |
+| Services com `MobilePushService` dependência        | 2               | **0**        | -2     |
+| Test files                                          | 90              | **91**       | +1     |
+| Testes (suite)                                       | 517             | **533**      | +16    |
+| Testes de eventos                                    | 0               | **16**       | +16    |
+
+### D.6 Estado do que NÃO foi tocado (escopo futuro)
+
+- **Push notifications ainda acoplados em `MobilePushService::notifyOverdueLegalizacaoEtapasForCurrentTenant()`** — o método original foi substituído pelo command que dispara eventos, mas o método em si ainda existe no service (agora não é mais chamado pelo command). Pode ser removido em cleanup futuro.
+- **Cache invalidation em `model booted()`** — os models `Terreno`, `Projeto`, `Viabilidade`, `LegalizacaoEtapa`, `User` ainda têm cache clearing inline em `booted()`. Poderiam ser extraídos para listeners de model events, mas isso é baixo impacto e ficou fora do escopo.
+- **`TerrenoObserver`** — continua dispatchando `CalculateUsableAreaJob` diretamente. Poderia ser convertido para um event `TerrenoPolygonChanged`, mas o observer já é um padrão implícito de event e não viola a arquitetura.
+- **14 services ainda com Eloquent direto** (47 ocorrências) — escopo da Fase 2.5, não tocado
+- **0 events para `CommitteeCreated`, `CommitteeDepartmentReviewed`** — estes side-effects estão em `CommitteeService` mas não foram extraídos para events porque o volume é baixo e a complexidade não justifica. Ficam como escopo futuro.
+- **2/54 models com factory** — escopo da Fase 4, não tocado
+- **Health check superficial** — escopo da Fase 4 item 4.3, não tocado
+- **1 custom exception** — escopo da Fase 4 item 4.5, não tocado
+
+### D.7 Working tree pós-implementação
+
+```
+M  app/Console/Commands/NotifyOverdueLegalizacaoEtapasCommand.php
+M  app/Http/Controllers/Api/V1/Tenant/LegalizacaoEtapaController.php
+M  app/Http/Controllers/Api/V1/Tenant/ProjetoController.php
+M  app/Services/Tenant/LandWorkflowService.php
+M  app/Services/Tenant/NegotiationService.php
+M  app/Services/Tenant/Viabilidade/v1/ViabilidadeService.php
+M  bootstrap/providers.php
+M  docs/2026-06-03-review-completo-backend.md
+M  phpstan.neon
+?? app/Events/Tenant/{ContratoSigned,LegalizacaoEtapaOverdue,LegalizacaoEtapaStatusUpdated,ProjetoFinalizado,ViabilidadeDecided,ViabilidadeSubmitted,WorkflowTransitioned}.php
+?? app/Listeners/Tenant/{CreateCommitteeObservationTask,NotifyLegalizacaoEtapaUpdate,NotifyOverdueLegalizacaoEtapa,NotifyProjetoFinalizado,NotifyViabilidadeDecision,NotifyViabilidadeSubmission,RecordContractSignedActivity,RecordWorkflowActivity,RecordWorkflowStatusHistory,TransitionRelatedProjetos}.php
+?? app/Providers/EventServiceProvider.php
+?? tests/Feature/Tenant/Events/WorkflowEventsTest.php
+```
+
+---
+
+*Fim do Apêndice D.*

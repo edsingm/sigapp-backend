@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Tenant;
 
+use App\Events\Tenant\ProjetoFinalizado;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\MarkProjetoReadyRequest;
 use App\Http\Requests\Tenant\StoreProjetoRequest;
@@ -11,7 +12,6 @@ use App\Http\Resources\Tenant\TerrenoResource;
 use App\Models\Tenant\Projeto;
 use App\Models\Tenant\Terreno;
 use App\Services\ApiResponseService;
-use App\Services\Tenant\MobilePushService;
 use App\Services\Tenant\ProjetoService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
@@ -23,7 +23,6 @@ class ProjetoController extends Controller
 {
     public function __construct(
         protected ProjetoService $service,
-        protected MobilePushService $mobilePushService
     ) {}
 
     /**
@@ -173,18 +172,8 @@ class ProjetoController extends Controller
 
             $projeto = $this->service->marcarProntoParaRegistro($projeto);
             $this->flushProjetoCaches();
-            $this->mobilePushService->notifyAllUsers([
-                'title' => 'Projeto finalizado',
-                'body' => "O projeto {$projeto->nome} foi finalizado após a legalização.",
-                'type' => 'projeto.finalizado',
-                'entity_type' => 'projeto',
-                'entity_id' => (string) $projeto->id,
-                'target_route' => "/projetos/{$projeto->id}",
-                'payload' => [
-                    'tenant_slug' => tenant('slug'),
-                    'project_id' => $projeto->id,
-                ],
-            ], $request->user());
+
+            ProjetoFinalizado::dispatch($projeto, $request->user());
 
             return ApiResponseService::success(
                 $this->service->workspacePayload($projeto, $request->user()),

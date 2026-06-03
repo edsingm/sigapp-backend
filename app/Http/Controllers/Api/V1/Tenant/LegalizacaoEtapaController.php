@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Tenant;
 
+use App\Events\Tenant\LegalizacaoEtapaStatusUpdated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\DestroyLegalizacaoEtapaRequest;
 use App\Http\Requests\Tenant\ListLegalizacaoEtapasRequest;
@@ -14,7 +15,6 @@ use App\Http\Resources\Tenant\LegalizacaoEtapaResource;
 use App\Repositories\Tenant\LegalizacaoEtapaRepository;
 use App\Services\ApiResponseService;
 use App\Services\Tenant\LegalizacaoService;
-use App\Services\Tenant\MobilePushService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -24,7 +24,6 @@ class LegalizacaoEtapaController extends Controller
     public function __construct(
         protected LegalizacaoService $legalizacaoService,
         protected LegalizacaoEtapaRepository $etapaRepository,
-        protected MobilePushService $mobilePushService,
     ) {}
 
     /**
@@ -172,24 +171,7 @@ class LegalizacaoEtapaController extends Controller
             $status = $this->normalizarStatus($request->validated()['status']);
             $etapa = $this->legalizacaoService->atualizarStatusEtapa($etapa, $status);
 
-            $this->mobilePushService->notifyAllUsers(
-                [
-                    'title' => 'Etapa de legalização atualizada',
-                    'body' => "A etapa {$etapa->titulo} foi atualizada para {$status}.",
-                    'type' => 'legalizacao.etapa.status_atualizado',
-                    'entity_type' => 'legalizacao_etapa',
-                    'entity_id' => (string) $etapa->id,
-                    'target_route' => $etapa->legalizacao?->terreno_id
-                        ? "/terrenos/{$etapa->legalizacao->terreno_id}"
-                        : '/notifications',
-                    'payload' => [
-                        'tenant_slug' => tenant('slug'),
-                        'legalizacao_id' => $etapa->legalizacao_id,
-                        'etapa_id' => $etapa->id,
-                    ],
-                ],
-                $request->user()
-            );
+            LegalizacaoEtapaStatusUpdated::dispatch($etapa, $status, $request->user());
 
             return ApiResponseService::success(
                 new LegalizacaoEtapaResource($etapa),

@@ -186,6 +186,7 @@ Route::middleware([
                     Route::put('/terrenos/{id}/qualificacao', [TerrenoWorkflowController::class, 'updateQualification']);
                     Route::post('/terrenos/{id}/import-kmz', [TerrenoController::class, 'importKmz']);
                     Route::post('/terrenos/{id}/recalculate-area', [TerrenoController::class, 'recalculateArea']);
+                    Route::get('/terrenos/{id}/timeline', [TimelineController::class, 'index']);
                     Route::apiResource('terrenos', TerrenoController::class)->except(['store']);
                 });
 

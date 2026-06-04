@@ -490,15 +490,14 @@ Services mais críticos ainda sem contract (escopo da Fase 2.5):
 
 ### FASE 5 — Features de Produto (4-8 semanas)
 
-Mantém o plano original de 26/05 (timeline unificada, comparador, import em massa, kanban, sandbox, notificações configuráveis, webhooks). A ordem de prioridade sugerida:
+Os planos originais de 26/05 foram reavaliados: webhooks de saída foram descartados (não fazem sentido no contexto atual do sistema). Mantém-se o restante do plano original:
 
-1. **Notificações email para transições de workflow** (vinculado ao FASE 3 — aproveita estrutura de Events)
-2. **API de webhooks para integrações externas** (alto valor para ERPs/CRMs)
-3. **Timeline unificada por terreno** (combina `EntityActivity` + `StatusHistory` + tasks + comments)
-4. **Kanban board API** (baixo esforço, alto valor visual)
-5. **Importação em massa CSV/Excel** (essencial para migração de clientes)
-6. **Modo sandbox para viabilidade** (cenários what-if)
-7. **Comparador side-by-side de terrenos**
+1. ✅ **Notificações email para transições de workflow** (implementado em 03/06)
+2. **Timeline unificada por terreno** (combina `EntityActivity` + `StatusHistory` + tasks + comments)
+3. **Kanban board API** (baixo esforço, alto valor visual)
+4. **Importação em massa CSV/Excel** (essencial para migração de clientes)
+5. **Modo sandbox para viabilidade** (cenários what-if)
+6. **Comparador side-by-side de terrenos**
 
 ---
 
@@ -537,7 +536,7 @@ O backend SIGAPP permanece como uma plataforma **enterprise-grade** com multi-te
 **A ordem das prioridades para o próximo ciclo (2026-06-24) deve ser:**
 
 1. **Fase 2.5 — Repository Pattern nos services restantes** (14 services, 47 ocorrências) — destrava a meta de 80% de cobertura
-2. **Fase 5 — Features de produto** (paralelo à Fase 2.5 se houver time): notificações email para workflow, API de webhooks, timeline unificada, kanban, import CSV/Excel, sandbox, comparador side-by-side
+2. **Fase 5 — Features de produto** (paralelo à Fase 2.5 se houver time): notificações email para workflow (✅ implementado), timeline unificada, kanban, import CSV/Excel, sandbox, comparador side-by-side
 3. **Migração de `RuntimeException` → `DomainException`** em `LandWorkflowService`, `ViabilidadeService`, `CommitteeService` (mecânico, baixo risco — pode ser PR dedicado)
 4. **Proteção de `/docs/api*` em produção** com middleware `auth:admin` ou `signed`
 5. **Configurar CI** para rodar `phpstan analyse` + `phpunit` + testes de arquitetura em cada PR

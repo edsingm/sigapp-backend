@@ -154,7 +154,7 @@ parameters:
         # Helpers
         - '#Unable to resolve the template type T\w+ in call to function collect#'
         - '#Return type of call to method Illuminate\\Support\\Collection<int,array<string, mixed>>::\w+\(\) contains unresolvable type#'
-        - '#Parameter \#1 \$callback of method Illuminate\\Support\\Collection<int,stdClass>::\w+\(\) expects callable\(stdClass, int\): mixed#'
+        - '#Parameter \#1 \$callback of method Illuminate\\Support\\Collection<int,stdClass>::\w+\(\) expects callable\(stdClass, int\): .+#'
         - '#Part \$resource \(.+?\) of encapsed string cannot be cast to string#'
         - '#Parameter \#1 \$json of function json_decode expects string, string\|false given#'
         - '#Parameter \#1 \$string of function md5 expects string, string\|false given#'
@@ -189,6 +189,8 @@ parameters:
         - '#Access to an undefined property App\\Models\\Tenant\\MobileNotification::\$\w+#'
         - '#Access to an undefined property App\\Models\\Tenant\\LandWorkflow::\$\w+#'
         - '#Access to an undefined property App\\Models\\Tenant\\ComiteMembro::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Tenant\\EntityActivity::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Tenant\\Comment::\$\w+#'
         - '#Access to an undefined property App\\Models\\Central\\Tenant::\$\w+#'
         - '#Access to an undefined property App\\Models\\Central\\Plan::\$\w+#'
         - '#Access to an undefined property App\\Models\\Central\\Entitlement::\$\w+#'

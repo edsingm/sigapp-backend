@@ -10,6 +10,7 @@ use App\Services\ApiResponseService;
 use App\Services\Modules\ModulesService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use App\Http\Resources\UserResource;
 
 class ModulesController extends Controller
 {
@@ -28,10 +29,7 @@ class ModulesController extends Controller
 
         return ApiResponseService::success([
             'tenant' => $tenant ? new TenantResource($tenant) : null,
-            'user' => [
-                'roles' => $user?->getRoleNames()->values()->all() ?? [],
-                'permissions' => $user?->getAllPermissions()->pluck('name')->values()->all() ?? [],
-            ],
+            'user' => $user ? new UserResource($user) : null,
             'modules' => $this->serializedModules($request),
         ]);
     }

@@ -129,6 +129,7 @@ class TerrenoRepository implements TerrenoRepositoryInterface
             'legalizacao.etapas',
             'legalizacao.pendencias',
             'tasks.assignedUser',
+            'comments.user',
             'statusHistories',
             'activities',
         ]);

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Tenant;
 
+use App\Enums\DeclividadeClassificacao;
 use App\Models\Tenant\Terreno;
 use App\Services\Tenant\LandWorkflowService;
 use Illuminate\Http\Request;
@@ -40,8 +41,8 @@ class TerrenoResource extends JsonResource
             'percentual_aproveitamento' => $this->percentual_aproveitamento ? (float) $this->percentual_aproveitamento : null,
             'area_calculada_em' => $this->area_calculada_em?->toIso8601String(),
             'area_calculo_status' => $this->area_calculo_status,
-            'declividade_classificacao' => $declividadeClassificacao instanceof \App\Enums\DeclividadeClassificacao ? $declividadeClassificacao->value : null,
-            'declividade_classificacao_label' => $declividadeClassificacao instanceof \App\Enums\DeclividadeClassificacao ? $declividadeClassificacao->label() : null,
+            'declividade_classificacao' => $declividadeClassificacao instanceof DeclividadeClassificacao ? $declividadeClassificacao->value : null,
+            'declividade_classificacao_label' => $declividadeClassificacao instanceof DeclividadeClassificacao ? $declividadeClassificacao->label() : null,
             'declividade_avaliacao' => $this->resource->getAttribute('declividade_avaliacao'),
             'declividade_impacto_custo' => $this->resource->getAttribute('declividade_impacto_custo'),
             'declividade_percentual_maximo' => $this->resource->getAttribute('declividade_percentual_maximo') !== null ? (float) $this->resource->getAttribute('declividade_percentual_maximo') : null,
@@ -122,6 +123,7 @@ class TerrenoResource extends JsonResource
             'contrato_atual' => new ContratoResource($this->whenLoaded('contratoAtual')),
             'legalizacao' => new LegalizacaoResource($this->whenLoaded('legalizacao')),
             'tasks' => TaskResource::collection($this->whenLoaded('tasks')),
+            'comments' => CommentResource::collection($this->whenLoaded('comments')),
             'status_history' => StatusHistoryResource::collection($this->whenLoaded('statusHistories')),
             'activities' => EntityActivityResource::collection($this->whenLoaded('activities')),
         ];

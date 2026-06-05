@@ -96,7 +96,7 @@ class DashboardController extends Controller
     {
         $this->authorizeDashboardAccess();
 
-        $data = $this->cacheDashboardMethod('statusChart', $request, fn () => $this->dashboard->statusChart($request->input('ano')));
+        $data = $this->cacheDashboardMethod('statusChart', $request, fn () => $this->dashboard->statusChart($request->input('ano'), $request->input('data_inicio')));
 
         return response()->json([
             'success' => true,

@@ -79,11 +79,9 @@ class PremissasViabilidadeSeeder extends Seeder
             'devolucao_aporte_percentual'    => $d['devolucao_aporte_percentual'] ?? 20.0,
             'distribuicao_lucros_percentual_obra' => $d['distribuicao_lucros_percentual_obra'] ?? 100.0,
             'taxa_exposicao_aplicada'        => $d['taxa_exposicao_aplicada'] ?? 12.5,
-            'avaliacao_lotes_cef'            => $d['avaliacao_lotes_cef'] ?? null,
             'inadimplencia'                  => $d['inadimplencia'] ?? 0.10,
             'atraso_meses'                   => $d['atraso_meses'] ?? 2,
             'taxa_perda'                     => $d['taxa_perda'] ?? 0.02,
-
             'meses_incorporacao'             => $p['meses_incorporacao'] ?? 18,
             'meses_lancamento'               => $p['meses_lancamento'] ?? 6,
             'meses_entrega'                  => $p['meses_entrega'] ?? 1,

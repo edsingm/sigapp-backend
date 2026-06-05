@@ -50,39 +50,27 @@ class DashboardQueryService
     {
         $totalTerrenos = Terreno::count();
 
-        $totalOpcao = Terreno::whereIn('workflow_status_code', $this->negotiationStatuses())->count();
+        $totalContratoAssinado = Terreno::where('workflow_status_code', WorkflowStatus::CONTRATO_ASSINADO->value)->count();
 
-        $totalUnidadesOpcao = TerrenoProduto::join('terrenos', 'terreno_produtos.terreno_id', '=', 'terrenos.id')
-            ->whereIn('terrenos.workflow_status_code', $this->negotiationStatuses())
+        $totalLegalizando = Terreno::where('workflow_status_code', WorkflowStatus::LEGALIZANDO->value)->count();
+
+        $vgvContratoAssinado = Terreno::where('workflow_status_code', WorkflowStatus::CONTRATO_ASSINADO->value)
+            ->join('terreno_produtos', 'terreno_produtos.terreno_id', '=', 'terrenos.id')
             ->whereNull('terrenos.deleted_at')
-            ->sum('terreno_produtos.unidades');
-
-        $porCidade = Terreno::select('cidade_code', DB::raw('COUNT(*) as total'))
-            ->with('cidade:code,city,state_code')
-            ->whereNotNull('cidade_code')
-            ->where('cidade_code', '!=', '')
-            ->groupBy('cidade_code')
-            ->orderByDesc('total')
-            ->limit(20)
-            ->get()
-            ->map(fn ($item) => [
-                'cidade' => $item->cidade?->city ?? 'Não Informada',
-                'estado' => $item->cidade?->state_code ?? '-',
-                'total' => $item->total,
-            ]);
+            ->sum(DB::raw('COALESCE(terreno_produtos.valor, 0) * COALESCE(terreno_produtos.unidades, 0)'));
 
         return [
             'total_terrenos' => $totalTerrenos,
-            'total_opcao' => $totalOpcao,
-            'total_unidades_opcao' => (int) $totalUnidadesOpcao,
-            'distribuicao_cidades' => $porCidade,
+            'total_contrato_assinado' => $totalContratoAssinado,
+            'total_legalizando' => $totalLegalizando,
+            'vgv_contrato_assinado' => (float) $vgvContratoAssinado,
         ];
     }
 
     /**
      * @return array{status_data: mixed, anos_disponiveis: array}
      */
-    public function statusChart(?string $ano): array
+    public function statusChart(?string $ano, ?string $dataInicio = null): array
     {
         $anosDisponiveis = Terreno::select(DB::raw('DISTINCT '.SqlDateParts::year('created_at').' as ano'))
             ->whereNotNull('created_at')
@@ -92,7 +80,9 @@ class DashboardQueryService
 
         $query = Terreno::select('workflow_status_code', DB::raw('COUNT(*) as total'));
 
-        if ($ano) {
+        if ($dataInicio) {
+            $query->where('created_at', '>=', Carbon::parse($dataInicio)->startOfDay());
+        } elseif ($ano) {
             $query->whereYear('created_at', $ano);
         }
 

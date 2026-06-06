@@ -1,0 +1,2501 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="pt" lang="pt" xmlns:fb="http://www.facebook.com/2008/fbml">
+
+<head>
+	<title>Hiperdados Tecnologia - 2.22</title>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="description" content="Software para incorporadora imobiliária e construção civil. Veja o passado, monitore o presente e projete o futuro">
+	<meta name="author" content="Diego Raphael <diegoraphael.php@gmail.com>">
+	<meta name="keywords" content="software para incorporadora imobiliária e construção civil.">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<!-- Font Awesome -->
+	<link rel="stylesheet" href="https://comproterreno.com.br/login/assets/css/font-awesome.min.css">
+	<!-- Ionicons -->
+	<link rel="stylesheet" href="https://comproterreno.com.br/login/assets/css/ionicons.min.css">
+	<!-- Theme style -->
+	<link rel="stylesheet" href="https://comproterreno.com.br/login/assets/css/AdminLTE.min.css">
+	<!-- AdminLTE Skins. Choose a skin from the css/skins folder instead of downloading all of them to reduce the load. -->
+	<link rel="stylesheet" href="https://comproterreno.com.br/login/assets/css/skins/_all-skins.min.css">
+	<link rel="stylesheet" href="https://comproterreno.com.br/login/assets/plugins/iCheck/flat/blue.css">
+	<link rel="stylesheet" href="https://comproterreno.com.br/login/assets/plugins/morris/morris.css">
+	<link rel="stylesheet" href="https://comproterreno.com.br/login/assets/plugins/jvectormap/jquery-jvectormap-1.2.2.css">
+	<!-- Date Picker -->
+	<link rel="stylesheet" href="https://comproterreno.com.br/login/assets/plugins/datepicker/datepicker3.css">
+	<!-- Daterange picker -->
+	<link rel="stylesheet" href="https://comproterreno.com.br/login/assets/plugins/daterangepicker/daterangepicker.css">
+	<!-- bootstrap wysihtml5 - text editor -->
+	<link rel="stylesheet" href="https://comproterreno.com.br/login/assets/css/bootstrap/bootstrap-dialog.min.css">
+	<!-- Bootstrap 3.3.6 -->
+	<link rel="stylesheet" href="https://comproterreno.com.br/login/assets/css/bootstrap/bootstrap.min.css">
+	<!-- DataTables -->
+	<link rel="stylesheet" href="https://comproterreno.com.br/login/assets/plugins/datatables.net-bs/css/dataTables.bootstrap.min.css">
+	<!-- Select2 -->
+	<link href="https://comproterreno.com.br/login/assets/plugins/select2/custom.css" />
+	<!-- bootstrap wysihtml5 - text editor -->
+	<link rel="stylesheet" href="https://comproterreno.com.br/login/assets/plugins/bootstrap-wysihtml5/bootstrap3-wysihtml5.min.css">
+	<link rel="stylesheet" href="https://comproterreno.com.br/login/assets/plugins/select2/bootstrap-select.css">
+	<link rel="stylesheet" href="https://comproterreno.com.br/login/assets/css/images.css">
+	<!-- Ckeditor -->
+	<script src="https://comproterreno.com.br/login/assets/plugins/ckeditor/ckeditor.js"></script>
+	<!-- Chosen -->
+	<link rel="stylesheet" href="https://comproterreno.com.br/login/assets/plugins/chosen/prism.css">
+	<link rel="stylesheet" href="https://comproterreno.com.br/login/assets/plugins/chosen/chosen.css">
+	<link rel="shortcut icon" href="https://comproterreno.com.br/login/assets/images/favicon.ico" />
+	<!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+	<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+	<!--[if lt IE 9]>
+  <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+  <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+  <![endif]-->
+	<!-- jQuery 2.2.3 -->
+	<script src="https://comproterreno.com.br/login/assets/plugins/jQuery/jquery-2.2.3.min.js"></script>
+	<!-- jQuery UI 1.11.4 -->
+	<script src="https://comproterreno.com.br/login/assets/js/jquery-ui.min.js"></script>
+
+	<!-- Bootstrap 3.3.6 -->
+	<script src="https://comproterreno.com.br/login/assets/js/bootstrap/bootstrap.min.js"></script>
+
+	<link type="text/css" rel="stylesheet" href="https://comproterreno.com.br/login/assets/css/styles.css?id=20260605125751" />
+	<!-- BlockUI -->
+	<script src="https://comproterreno.com.br/login/assets/js/jquery-blockUI.js"></script>
+	<!-- Multiselect checkbox -->
+	<link type="text/css" rel="stylesheet" href="https://comproterreno.com.br/login/assets/css/bootstrap/bootstrap-multiselect.css">
+	<script type="text/javascript" src="https://comproterreno.com.br/login/assets/js/bootstrap/bootstrap-multiselect.js"></script>
+	<script type="text/javascript" src="https://comproterreno.com.br/login/assets/js/jquery-validate.bootstrap-tooltip.js"></script>
+
+	<!-- Highcharts.js charts
+	<script src="https://comproterreno.com.br/login/assets/js/highcharts/highcharts.js"></script>
+	<script src="https://comproterreno.com.br/login/assets/js/highcharts/exporting.js"></script>
+	-->
+	<!-- Morris.js charts
+	<script src="https://comproterreno.com.br/login/assets/js/raphael-min.js"></script>
+	<script src="https://comproterreno.com.br/login/assets/plugins/morris/morris.min.js"></script>
+	-->
+	<!-- Sparkline -->
+	<script src="https://comproterreno.com.br/login/assets/plugins/sparkline/jquery.sparkline.min.js"></script>
+	<!-- jvectormap -->
+	<script src="https://comproterreno.com.br/login/assets/plugins/jvectormap/jquery-jvectormap-1.2.2.min.js"></script>
+	<script src="https://comproterreno.com.br/login/assets/plugins/jvectormap/jquery-jvectormap-world-mill-en.js"></script>
+	<!-- jQuery Knob Chart -->
+	<script src="https://comproterreno.com.br/login/assets/plugins/knob/jquery.knob.js"></script>
+	<!-- daterangepicker -->
+	<script src="https://comproterreno.com.br/login/assets/js/moment.min.js"></script>
+	<script src="https://comproterreno.com.br/login/assets/plugins/daterangepicker/daterangepicker.js"></script>
+	<!-- datepicker -->
+	<script src="https://comproterreno.com.br/login/assets/plugins/datepicker/bootstrap-datepicker.js"></script>
+	<!-- Bootstrap WYSIHTML5 -->
+	<script src="https://comproterreno.com.br/login/assets/plugins/bootstrap-wysihtml5/bootstrap3-wysihtml5.all.min.js"></script>
+	<!-- Slimscroll -->
+	<script src="https://comproterreno.com.br/login/assets/plugins/slimScroll/jquery.slimscroll.min.js"></script>
+	<!-- FastClick -->
+	<script src="https://comproterreno.com.br/login/assets/plugins/fastclick/fastclick.js"></script>
+	<!-- AdminLTE App -->
+	<script src="https://comproterreno.com.br/login/assets/js/app.min.js"></script>
+	<!-- Dialog Bootstrap -->
+	<script src="https://comproterreno.com.br/login/assets/js/bootstrap/bootstrap-dialog.min.js"></script>
+	<!-- DataTables -->
+	<script src="https://comproterreno.com.br/login/assets/plugins/datatables.net/js/jquery.dataTables.min.js"></script>
+	<script src="https://comproterreno.com.br/login/assets/plugins/datatables.net-bs/js/dataTables.bootstrap.min.js"></script>
+	<!-- Bootbox -->
+	<script src="https://comproterreno.com.br/login/assets/plugins/bootbox/bootbox.js"></script>
+	<!-- jQuery Validate -->
+	<!--<script src="https://comproterreno.com.br/login/assets/plugins/jquery-validate/jquery.validate.min.js"></script>
+	<script src="https://comproterreno.com.br/login/assets/plugins/jquery-validate/jquery.validate.messages.js"></script>-->
+	<!-- Mask Edit Input -->
+	<script src="https://comproterreno.com.br/login/assets/js/jquery.maskedinput.2015.js"></script>
+	<!-- Mask Edit Input -->
+	<script src="https://comproterreno.com.br/login/assets/js/jquery.maskMoney.js"></script>
+
+	<!-- CDN INPUTMASK -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.inputmask/5.0.6/jquery.inputmask.min.js"></script>
+
+	<!-- jquery DoubleScroll -->
+	<script src="https://comproterreno.com.br/login/assets/plugins/jQuery-doubleScroll/jquery.doubleScroll.js"></script>
+	<!-- Select2 -->
+	<script src="https://comproterreno.com.br/login/assets/plugins/select2/bootstrap-select.js"></script>
+	<!-- ION Range -->
+	<script src="https://comproterreno.com.br/login/assets/plugins/gentallela/js/ion_range/ion.rangeSlider.min.js"></script>
+	<link rel="stylesheet" href="https://comproterreno.com.br/login/assets/plugins/gentallela/css/ion.rangeSlider.css" />
+	<link rel="stylesheet" href="https://comproterreno.com.br/login/assets/plugins/gentallela/css/ion.rangeSlider.skinFlat.css" />
+	<!-- Bootstrap Notify -->
+	<script type="text/javascript" src="https://comproterreno.com.br/login/assets/plugins/bootstrap.notify/notify.js"></script>
+	<script type="text/javascript" src="https://comproterreno.com.br/login/assets/plugins/bootstrap.notify/notify.min.js"></script>
+	<!-- DataTables Buttons, Exports etc -->
+	<script src="https://comproterreno.com.br/login/assets/plugins/datatables.net/js/dataTables.buttons.min.js"></script>
+	<script src="https://comproterreno.com.br/login/assets/plugins/datatables.net/js/jszip.min.js"></script>
+	<script src="https://comproterreno.com.br/login/assets/plugins/datatables.net/js/pdfmake.min.js"></script>
+	<script src="https://comproterreno.com.br/login/assets/plugins/datatables.net/js/vfs_fonts.js"></script>
+	<script src="https://comproterreno.com.br/login/assets/plugins/datatables.net/js/buttons.html5.min.js"></script>
+	<!-- Chosen -->
+	<script type="text/javascript" src="https://comproterreno.com.br/login/assets/plugins/chosen/chosen.jquery.js"></script>
+	<script type="text/javascript" src="https://comproterreno.com.br/login/assets/plugins/chosen/prism.js"></script>
+	<script type="text/javascript" src="https://comproterreno.com.br/login/assets/plugins/chosen/init.js"></script>
+	<script type="text/javascript" src="https://comproterreno.com.br/login/assets/js/jquery.mask.js"></script>
+	<script src="https://comproterreno.com.br/login/assets/js/initSecundario.js"></script>
+	<!-- Exportar Table to CSV -->
+	<script src="https://comproterreno.com.br/login/assets/plugins/jQuery-Plugin-To-Export-Table-Data-To-CSV-File/src/table2csv.js"></script>
+	<!-- Pull the Wootric Snippet -->
+	<script type="text/javascript" src="https://cdn.wootric.com/wootric-sdk.js"></script>
+	<!-- begin Wootric code -->
+	<script type="text/javascript">
+		window.wootricSettings = {
+			email: 'edson@lrgconstrutora.com.br',
+			created_at: 1234567890,
+			account_token: 'NPS-6c1db9ac'
+		};
+
+		// Request a survey
+		window.wootric('run');
+	</script>
+</head>
+
+<body class="skin-blue fixed sidebar-mini">
+	<input type="hidden" id="hddCarregando" value="<i class='fa fa-refresh fa-spin'></i> Carregando..." />
+	<input type="hidden" id="hddCarregandoCor" value="<font style='color:#FFFFFF;'><i class='fa fa-refresh fa-spin'></i> Carregando...</font>" />
+	<input type="hidden" id="hddSelecione" value="-- SELECIONE --" />
+	<input type="hidden" id="hddTodosLabel" value="-- TODOS --" />
+	<input type="hidden" id="hddNovo" value="-- NOVO --" />
+	<input type="hidden" id="hddEnviando" value="Enviando..." />
+	<input type="hidden" id="hddHome" value="https://comproterreno.com.br/login/home" />
+	<input type="hidden" id="hddEnviarMensagem" value="https://comproterreno.com.br/login/mensagens_internas_salvar" />
+	<input type="hidden" id="hddMensagensInternasDados" value="https://comproterreno.com.br/login/mensagens_internas_consultar_dados" />
+	<input type="hidden" id="hddCarregarFormularios" value="https://comproterreno.com.br/login/rotas_carregar" />
+	<input type="hidden" id="hddFadeOut" value="7000" />
+	<input type="hidden" id="hddInfoAlert" value="Informação" />
+	<input type="hidden" id="hddInfoError" value="Atenção!" />
+	<input type="hidden" id="hddSetTimeOut" value="15000" />
+	<input type="hidden" id="hddSetInterval" value="10000" />
+	<input type="hidden" id="hddTituloPagina" value="Hiperdados Tecnologia" />
+	<input type="hidden" id="hddPaginacao" value="10, 20, 50, 100, 200, 500" />
+	<input type="hidden" id="hddPaginacaoIni" value="50" />
+	<input type="hidden" id="hddPaginacaoIniSessao" value="10" />
+	<input type="hidden" id="hddSelecioneNoMinino" value="Selecione no mínomo uma opção." />
+	<input type="hidden" id="hddTodasOpcoes" value="Todos as opções deve ser selecionadas." />
+	<input type="hidden" id="hddFile" value="https://comproterreno.com.br/login/assets/plugins/datatables.net/Portuguese-Brasil.json" />
+	<input type="hidden" id="hddLabelEnderecoNaoLocalizado" value="Endereço não localizado." />
+	<input type="hidden" id="hddTimeOutID" value="" />
+	<input type="hidden" id="hddFormularioSelecionado" value="" />
+	<input type="hidden" id="hddFormularioID" value="" />
+	<input type="hidden" id="hddNomeEmpresa" value="LRG. CONSTRUÇÕES E EMPREENDIMENTOS LTDA" />
+	<input type="hidden" id="hddDiretorioUsuarios" value="https://comproterreno.com.br/login/assets/images/uploads/usuarios/" />
+	<input type="hidden" id="hddExcluir" value="" />
+	<input type="hidden" id="hddSim" value="S" />
+	<input type="hidden" id="hddNao" value="N" />
+	<input type="hidden" id="hddLabelSim" value="Sim" />
+	<input type="hidden" id="hddLabelNao" value="Não" />
+	<input type="hidden" id="hddCodigoSelecionado" value="" />
+	<input type="hidden" id="hddNomeSelecionado" value="" />
+	<input type="hidden" id="hddTipoGraficoColunasBasico" value="C" />
+	<input type="hidden" id="hddTipoGraficoColunasColocacao" value="L" />
+	<input type="hidden" id="hddTipoGraficoColunasLinhasPizza" value="P" />
+	<input type="hidden" id="hddExecutar" value="" />
+	<input type="hidden" id="hddCarregar" value="" />
+	<input type="hidden" id="hddAnoAtual" value="2026" />
+	<input type="hidden" id="hddMesAtual" value="06" />
+	<input type="hidden" id="hddDiaAtual" value="05" />
+	<input type="hidden" id="hddSigla" value="HD" />
+	<input type="hidden" id="hddFlagPessoaFisica" value="F" />
+	<input type="hidden" id="hddFlagPessoaJuridica" value="J" />
+	<input type="hidden" id="hddFlagPessoaPassaporte" value="P" />
+	<input type="hidden" id="hddLabelCPF" value="CPF" />
+	<input type="hidden" id="hddLabelCNPJ" value="CNPJ" />
+	<input type="hidden" id="hddLabelGraficoUsuarios" value="Gráfico Usuários Cadastrados" />
+	<input type="hidden" id="hddAcaoConsultarDados" value="https://comproterreno.com.br/login/acoes_consultar_dados" />
+	<input type="hidden" id="hddAdicionarRemoverFormularioAcao" value="https://comproterreno.com.br/login/rotas_acoes_adicionar_remover" />
+	<input type="hidden" id="hddAdicionarRemoverFormulariosModulos" value="https://comproterreno.com.br/login/modulos_rotas_adicionar_remover" />
+	<input type="hidden" id="hddConsultarModulosRota" value="https://comproterreno.com.br/login/modulos_rotas_consultar" />
+	<input type="hidden" id="hddAcaoPermissoes" value="https://comproterreno.com.br/login/perfis_permissoes_consultar" />
+	<input type="hidden" id="hddAcaoPermissoesSalvar" value="https://comproterreno.com.br/login/perfis_permissoes_salvar" />
+	<input type="hidden" id="hddCarregarGraficoUsuarios" value="https://comproterreno.com.br/login/usuarios_carregar_grafico" />
+	<input type="hidden" id="hddPesquisarCEP" value="https://comproterreno.com.br/login/pesquisar_cep" />
+	<input type="hidden" id="enderecos_pesquisar_cep" value="https://comproterreno.com.br/login/enderecos_pesquisar_cep" />
+	<input type="hidden" id="enderecos_pesquisar_cidades" value="https://comproterreno.com.br/login/enderecos_pesquisar_cidades" />
+	<input type="hidden" id="enderecos_pesquisar_bairros" value="https://comproterreno.com.br/login/enderecos_pesquisar_bairros" />
+	<input type="hidden" id="hddPesquisarCidades" value="https://comproterreno.com.br/login/pesquisar_cidades" />
+	<input type="hidden" id="hddPesquisarBairros" value="https://comproterreno.com.br/login/pesquisar_bairros" />
+	<input type="hidden" id="hddPesquisarCidadesPorCodigos" value="https://comproterreno.com.br/login/pesquisar_cidades_codigos" />
+	<input type="hidden" id="hddPesquisarBairrosPorCodigos" value="https://comproterreno.com.br/login/pesquisar_bairros_codigos" />
+	<input type="hidden" id="hddValidarCPFCNPJ" value="https://comproterreno.com.br/login/validar_cpfcpnj" />
+	<input type="hidden" id="hddValidarEmail" value="https://comproterreno.com.br/login/validar_email" />
+	<input type="hidden" id="hddConfirmarOK" value="Ok" />
+	<input type="hidden" id="hddMethodSeparator" value="/" />
+	<input type="hidden" id="hddLogSeparator" value="|" />
+	<input type="hidden" id="hddLabelAcaoFormulario" value="Adicionar/Remover Ação da Rota" />
+	<input type="hidden" id="hddLabelConfirmarNome" value="Nome: " />
+	<input type="hidden" id="hddTituloExcluir" value="Excluir" />
+	<input type="hidden" id="hddTamanhoRegra" value="15" />
+	<input type="hidden" id="hddLabelTamanho" value="..." />
+	<input type="hidden" id="hddConsultar" value="Consultar" />
+	<input type="hidden" id="hddBootstrapCodigoDefault" value="1" />
+	<input type="hidden" id="hddBootstrapCodigoInfo" value="2" />
+	<input type="hidden" id="hddBootstrapCodigoPrimary" value="3" />
+	<input type="hidden" id="hddBootstrapCodigoSuccess" value="4" />
+	<input type="hidden" id="hddBootstrapCodigoWarning" value="5" />
+	<input type="hidden" id="hddBootstrapCodigoDanger" value="6" />
+	<input type="hidden" id="hddCarregandoIcone" value="<i class='fa fa-refresh fa-spin'></i>" />
+	<input type="hidden" id="hddAcaoConsultarRegrasCampos" value="https://comproterreno.com.br/login/regras_campos_tabelas_consultar" />
+	<input type="hidden" id="hddAcaoSalvarRegrasCampos" value="https://comproterreno.com.br/login/regras_campos_tabelas_salvar" />
+	<input type="hidden" id="hddConsultarDadosCamposTabela" value="https://comproterreno.com.br/login/regras_campos_tabelas_consultar_dados" />
+	<input type="hidden" id="hddConsultarDados" value="https://comproterreno.com.br/login/usuarios_consultar_dados" />
+	<input type="hidden" id="hddAcaoCamposTabelaEditar" value="https://comproterreno.com.br/login/regras_campos_tabelas_editar" />
+	<input type="hidden" id="hddAcaoCamposTabelaExcluir" value="https://comproterreno.com.br/login/regras_campos_tabelas_excluir" />
+	<input type="hidden" id="hddAcaoSalvarTerrenos" value="https://comproterreno.com.br/login/terrenos_salvar" />
+	<input type="hidden" id="hddTerrenosEstudosConsultar" value="https://comproterreno.com.br/login/terrenos_estudos_consultar" />
+	<input type="hidden" id="hddTerrenosEstudoNovoConsultar" value="https://comproterreno.com.br/login/Terrenos/ConsultarTerrenosEstudoNovo" />
+	<input type="hidden" id="hddTerrenosTerrenosFormulario" value="https://comproterreno.com.br/login/terrenos_terrenos_formulario" />
+	<input type="hidden" id="terrenos_terrenos_formulario_ordem" value="https://comproterreno.com.br/login/terrenos_terrenos_formulario_ordem" />
+	<input type="hidden" id="hddViabilidadesTerrenosConsultar" value="https://comproterreno.com.br/login/terrenos_viabilidades_consultar" />
+
+	<input type="hidden" id="hddQuadroAreas" value="https://comproterreno.com.br/login/terrenos_quadro_areas" />
+	<input type="hidden" id="hddQuadroAreasSalvar" value="https://comproterreno.com.br/login/terrenos_quadro_areas_salvar" />
+	<input type="hidden" id="hddQuadroAreasAtualizar" value="https://comproterreno.com.br/login/terrenos_quadro_areas_atualizar" />
+	<input type="hidden" id="hddQuadroAreasExcluirEstrutura" value="https://comproterreno.com.br/login/terrenos_excluir_estrutura" />
+
+	<input type="hidden" id="corretor_verifica_existencia" value="https://comproterreno.com.br/login/corretor_verifica_existencia" />
+	<input type="hidden" id="corretores_salvar" value="https://comproterreno.com.br/login/corretores_salvar" />
+
+	<input type="hidden" id="hddTerrenoAtualizarPoligono" value="https://comproterreno.com.br/login/terrenos_atualizar_poligono" />
+
+	<input type="hidden" id="corretores_novo" value="https://comproterreno.com.br/login/corretores_novo" />
+	<input type="hidden" id="hddVerificaCorretorExiste" value="https://comproterreno.com.br/login/corretores_verificar" />
+	<input type="hidden" id="hddSalvarTerrenosCorretores" value="https://comproterreno.com.br/login/terrenos_corretores_salvar" />
+	<input type="hidden" id="hddConsultarTerrenosCorretores" value="https://comproterreno.com.br/login/terrenos_corretores_consultar" />
+	<input type="hidden" id="hddEditarTerrenosCorretores" value="https://comproterreno.com.br/login/terrenos_corretores_editar" />
+	<input type="hidden" id="hddExcluirTerrenosCorretores" value="https://comproterreno.com.br/login/terrenos_corretores_excluir" />
+	<input type="hidden" id="hddSalvarTerrenosProprietarios" value="https://comproterreno.com.br/login/terrenos_proprietarios_salvar" />
+	<input type="hidden" id="hddConsultarTerrenosProprietarios" value="https://comproterreno.com.br/login/terrenos_proprietarios_consultar" />
+	<input type="hidden" id="hddEditarTerrenosProprietarios" value="https://comproterreno.com.br/login/terrenos_proprietarios_editar" />
+	<input type="hidden" id="hddExcluirTerrenosProprietarios" value="https://comproterreno.com.br/login/terrenos_proprietarios_excluir" />
+	<input type="hidden" id="hddSalvarTerrenosDocumentos" value="https://comproterreno.com.br/login/terrenos_documentos_salvar" />
+	<input type="hidden" id="hddConsultarTerrenosDocumentos" value="https://comproterreno.com.br/login/terrenos_documentos_consultar" />
+	<input type="hidden" id="hddEditarTerrenosDocumentos" value="https://comproterreno.com.br/login/terrenos_documentos_editar" />
+	<input type="hidden" id="hddExcluirTerrenosDocumentos" value="https://comproterreno.com.br/login/terrenos_documentos_excluir" />
+	<input type="hidden" id="hddSalvarTerrenosObservacoes" value="https://comproterreno.com.br/login/terrenos_observacoes_salvar" />
+	<input type="hidden" id="hddConsultarTerrenosObservacoes" value="https://comproterreno.com.br/login/terrenos_observacoes_consultar" />
+	<input type="hidden" id="hddEditarTerrenosObservacoes" value="https://comproterreno.com.br/login/terrenos_observacoes_editar" />
+	<input type="hidden" id="hddExcluirTerrenosObservacoes" value="https://comproterreno.com.br/login/terrenos_observacoes_excluir" />
+	<input type="hidden" id="hddUploadDocumentos" value="https://comproterreno.com.br/login/terrenos_documentos_upload" />
+	<input type="hidden" id="hddPathProject" value="https://comproterreno.com.br/login/" />
+	<input type="hidden" id="hddLabelBtnAdicionar" value="Adicionar" />
+	<input type="hidden" id="hddLabelBtnAtualizar" value="Atualizar" />
+	<input type="hidden" id="hddLabelBtnAlterar" value="Alterar" />
+	<input type="hidden" id="hddChecked" value="checked" />
+	<input type="hidden" id="hddSelected" value="selected" />
+	<input type="hidden" id="hddRulesList" value="required - Campos obrigatório<br>min_length[7] - Tamanho mínimo 7 caracteres.<br>valid_email - Verifica se e-mail é válido.<br>" />
+	<input type="hidden" id="hddLabelBtnCadastrar" value="Salvar" />
+	<input type="hidden" id="hddLabelBtnCancelar" value="Cancelar" />
+	<input type="hidden" id="hddAtivo" value="QQ==" />
+	<input type="hidden" id="hddInativo" value="SQ==" />
+	<input type="hidden" id="hddSemDados" value="Não há dados para visualização." />
+	<input type="hidden" id="hddDirDocs" value="https://hiperdadosarm.blob.core.windows.net/comproterreno/assets/images/uploads/documentosterrenos/" />
+	<input type="hidden" id="hddAcaoMapa" value="https://comproterreno.com.br/login/estudos_mapa" />
+	<input type="hidden" id="hddPais" value="Brasil" />
+	<input type="hidden" id="hddExcluirParametros" value="" />
+	<input type="hidden" id="hddClassPedidos" value="Pedidos" />
+	<input type="hidden" id="hddClassContratos" value="Contratos" />
+	<input type="hidden" id="hddAcaoVisualizar" value="Visualizar" />
+	<input type="hidden" id="hddConsultarDocumentosEstudo" value="https://comproterreno.com.br/login/estudos_documentos_consultar" />
+	<input type="hidden" id="hddEmpreendimentosPesquisarMapa" value="https://comproterreno.com.br/login/empreendimentos_pesquisar_mapa" />
+	<input type="hidden" id="hddEmpreendimentosMontarTabela" value="https://comproterreno.com.br/login/empreendimentos_montar_tabela" />
+	<input type="hidden" id="hddProdutosConsultar" value="https://comproterreno.com.br/login/estudos_produtos_consultar" />
+	<input type="hidden" id="hddEstudoFinalizar" value="https://comproterreno.com.br/login/estudos_finalizar" />
+	<input type="hidden" id="hddEntidadeObgEndereco" value="N" />
+	<input type="hidden" id="hddConsultarViabilidadesTerrenos" value="https://comproterreno.com.br/login/viabilidades_terrenos_consultar" />
+	<input type="hidden" id="hddSalvarViabilidadesTerrenos" value="https://comproterreno.com.br/login/viabilidades_terrenos_salvar" />
+	<input type="hidden" id="hddExcluirViabilidadesTerrenos" value="https://comproterreno.com.br/login/viabilidades_terrenos_excluir" />
+	<input type="hidden" id="hddConsultarViabilidadesVendas" value="https://comproterreno.com.br/login/viabilidades_vendas_consultar" />
+	<input type="hidden" id="hddSalvarViabilidadesVendas" value="https://comproterreno.com.br/login/viabilidades_vendas_salvar" />
+	<input type="hidden" id="hddExcluirViabilidadesVendas" value="https://comproterreno.com.br/login/viabilidades_vendas_excluir" />
+	<input type="hidden" id="hddConsultarViabilidadesCurvas" value="https://comproterreno.com.br/login/viabilidades_curvas_consultar" />
+	<input type="hidden" id="hddCalcularViabilidadesCurvas" value="https://comproterreno.com.br/login/viabilidades_curvas_calcular" />
+	<input type="hidden" id="hddTerrenosConsultar" value="https://comproterreno.com.br/login/terrenos_resultado" />
+
+	<input type="hidden" id="terrenos_atualizar_status" value="https://comproterreno.com.br/login/terrenos_atualizar_status" />
+
+	<input type="hidden" id="terrenos_preencher_informacoes" value="https://comproterreno.com.br/login/terrenos_preencher_informacoes" />
+
+	<input type="hidden" id="terrenos_visualizar_ordenar_secoes" value="https://comproterreno.com.br/login/terrenos_visualizar_ordenar_secoes" />
+	<input type="hidden" id="terrenos_visualizar_ordenar_secoes_salvar" value="https://comproterreno.com.br/login/terrenos_visualizar_ordenar_secoes_salvar" />
+
+	<input type="hidden" id="hddVisualizarViabilidadesCurvas" value="https://comproterreno.com.br/login/viabilidades_curvas_visualizar" />
+	<input type="hidden" id="hddExcluirViabilidadesCurvas" value="https://comproterreno.com.br/login/viabilidades_curvas_excluir" />
+	<input type="hidden" id="hddEditarrViabilidadesCurvas" value="https://comproterreno.com.br/login/viabilidades_curvas_editar" />
+	<input type="hidden" id="hddConsultarViabilidadesPeriodicos" value="https://comproterreno.com.br/login/viabilidades_periodicos_consultar" />
+	<input type="hidden" id="hddSalvarViabilidadesPeriodicos" value="https://comproterreno.com.br/login/viabilidades_periodicos_salvar" />
+	<input type="hidden" id="hddExcluirViabilidadesPeriodicos" value="https://comproterreno.com.br/login/viabilidades_periodicos_excluir" />
+	<input type="hidden" id="hddVisualizarViabilidadesPeriodicos" value="https://comproterreno.com.br/login/viabilidades_periodicos_visualizar" />
+	<input type="hidden" id="hddEditarViabilidadesPeriodicos" value="https://comproterreno.com.br/login/viabilidades_periodicos_editar" />
+	<input type="hidden" id="hddConsultarViabilidadesProporcionais" value="https://comproterreno.com.br/login/viabilidades_proporcionais_consultar" />
+	<input type="hidden" id="hddFinanceiroEntidadesOperacao" value="https://comproterreno.com.br/login/movimentacoes_entidades_operacao" />
+	<input type="hidden" id="hddSalvarViabilidadesProporcionais" value="https://comproterreno.com.br/login/viabilidades_proporcionais_salvar" />
+	<input type="hidden" id="hddExcluirViabilidadesProporcionais" value="https://comproterreno.com.br/login/viabilidades_proporcionais_excluir" />
+	<input type="hidden" id="hddEditarViabilidadesProporcionais" value="https://comproterreno.com.br/login/viabilidades_proporcionais_editar" />
+	<input type="hidden" id="hddVisualizarViabilidadesProporcionais" value="https://comproterreno.com.br/login/viabilidades_proporcionais_visualizar" />
+	<input type="hidden" id="hddLabelConfirmarSelecionados" value="Selecionado(s): " />
+	<input type="hidden" id="hddVisualizarViabilidadesTabelasVendas" value="https://comproterreno.com.br/login/viabilidades_tabelas_vendas_visualizar" />
+	<input type="hidden" id="hddSalvarViabilidadesCurvasObras" value="https://comproterreno.com.br/login/viabilidades_curvas_obras_salvar" />
+	<input type="hidden" id="hddVisualizarViabilidadesCurvasObras" value="https://comproterreno.com.br/login/viabilidades_curvas_obras_visualizar" />
+	<input type="hidden" id="hddEditarRapido" value="https://comproterreno.com.br/login/usuarios_editar_rapido" />
+	<input type="hidden" id="hddSalvarRapido" value="https://comproterreno.com.br/login/usuarios_salvar_rapido" />
+	<input type="hidden" id="usuarios_salvar" value="https://comproterreno.com.br/login/usuarios_salvar" />
+	<input type="hidden" id="hddLabelFinalizado" value="Finalizado" />
+	<input type="hidden" id="hddSalvarViabilidadesFinanceiro" value="https://comproterreno.com.br/login/viabilidades_financeiro_salvar" />
+	<input type="hidden" id="hddConsultarViabilidadesLog" value="https://comproterreno.com.br/login/viabilidades_log_consultar" />
+	<input type="hidden" id="hddEstudosVisualizar" value="https://comproterreno.com.br/login/estudos_visualizar" />
+	<input type="hidden" id="hddCalcularValorTerreno" value="https://comproterreno.com.br/login/viabilidades_terrenos_calcular" />
+	<input type="hidden" id="hddCalcularPeriodicos" value="https://comproterreno.com.br/login/viabilidades_periodicos_calcular" />
+	<input type="hidden" id="cadastros_auxiliares_carregar" value="https://comproterreno.com.br/login/cadastros_auxiliares_carregar" />
+	<input type="hidden" id="cadastros_auxiliares_consultar" value="https://comproterreno.com.br/login/cadastros_auxiliares_consultar" />
+	<input type="hidden" id="hddClcularTerrenosCorretores" value="https://comproterreno.com.br/login/terrenos_corretores_calcular" />
+	<input type="hidden" id="hddClcularTerrenosProprietarios" value="https://comproterreno.com.br/login/terrenos_proprietarios_calcular" />
+	<input type="hidden" id="hddUsuariosFiltrar" value="https://comproterreno.com.br/login/usuarios_filtrar2" />
+	<input type="hidden" id="usuarios_pesquisar_atalho_consultar" value="https://comproterreno.com.br/login/usuarios_pesquisar_atalho_consultar" />
+	<input type="hidden" id="hddBancosExcluir" value="https://comproterreno.com.br/login/bancos_excluir" />
+	<input type="hidden" id="hddConsultarPerfilGruposEmpresas" value="https://comproterreno.com.br/login/usuarios_perfis_grupos_empresas" />
+	<input type="hidden" id="hddNovoEstruturaBloco" value="https://comproterreno.com.br/login/estruturas_blocos_novo" />
+	<input type="hidden" id="hddSalvarEstruturaBloco" value="https://comproterreno.com.br/login/estruturas_blocos_salvar" />
+	<input type="hidden" id="hddConsultarEstruturaBloco" value="https://comproterreno.com.br/login/estruturas_blocos_consultar" />
+	<input type="hidden" id="hddNovoEstruturaUnidade" value="https://comproterreno.com.br/login/estruturas_unidades_novo" />
+	<input type="hidden" id="hddSalvarEstruturaUnidade" value="https://comproterreno.com.br/login/estruturas_unidades_salvar" />
+	<input type="hidden" id="hddConsultarEstruturaUnidade" value="https://comproterreno.com.br/login/estruturas_unidades_consultar" />
+	<input type="hidden" id="hddFormularioPaiFilho" value="https://comproterreno.com.br/login/plano_financeiro_pai_filho" />
+	<input type="hidden" id="hddPlanoFinanceiroAdicionar" value="https://comproterreno.com.br/login/plano_financeiro_adicionar" />
+	<input type="hidden" id="hddIndexNovoItem" value="https://comproterreno.com.br/login/indexadores_novo_item" />
+	<input type="hidden" id="hddLabelItemSelecionado" value="Item selecionado: " />
+	<input type="hidden" id="hddLabelFiltroPesquisarItensContratos" value="Pesquisar Item Contrato" />
+	<input type="hidden" id="hddIndexConsultarItem" value="https://comproterreno.com.br/login/indexadores_consultar_item" />
+	<input type="hidden" id="hddIndexEditarItem" value="https://comproterreno.com.br/login/indexadores_editar_item" />
+	<input type="hidden" id="hddIndexCalcularPercentualItem" value="https://comproterreno.com.br/login/indexadores_calcular_percentual_item" />
+	<input type="hidden" id="hddIndexCalcularValorItem" value="https://comproterreno.com.br/login/indexadores_calcular_valor_item" />
+	<input type="hidden" id="hddConsultarCorretoresTerrenos" value="https://comproterreno.com.br/login/corretores_terrenos_consultar" />
+	<input type="hidden" id="hddUsuariosInfo" value="https://comproterreno.com.br/login/usuarios_informacoes" />
+	<input type="hidden" id="hddAcessosInfo" value="https://comproterreno.com.br/login/usuarios_informacoes_acessos" />
+	<input type="hidden" id="hddModulosInfo" value="https://comproterreno.com.br/login/usuarios_informacoes_modulos" />
+	<input type="hidden" id="hddGruposEmpresasInfo" value="https://comproterreno.com.br/login/usuarios_informacoes_grupos_empresas" />
+	<input type="hidden" id="empresas_consultar" value="https://comproterreno.com.br/login/empresas_consultar" />
+	<input type="hidden" id="empresas_filtrar_rapido" value="https://comproterreno.com.br/login/empresas_filtrar_rapido" />
+	<input type="hidden" id="hddEmpresasFiltrar2" value="https://comproterreno.com.br/login/empresas_filtrar2" />
+	<input type="hidden" id="hddEmpresasFiltrar22" value="https://comproterreno.com.br/login/empresas_filtrar22" />
+	<input type="hidden" id="empresas_filtrar_consultar" value="https://comproterreno.com.br/login/empresas_filtrar_consultar" />
+	<input type="hidden" id="hddEmpresasDados" value="https://comproterreno.com.br/login/empresas_dados" />
+	<input type="hidden" id="empresas_carregar" value="https://comproterreno.com.br/login/empresas_carregar" />
+	<input type="hidden" id="hddInsumosFiltrar" value="https://comproterreno.com.br/login/insumos_filtrar" />
+	<input type="hidden" id="hddInsumosConsultar" value="https://comproterreno.com.br/login/insumos_filtrar_consultar" />
+	<input type="hidden" id="hddInsumosDados" value="https://comproterreno.com.br/login/insumos_dados" />
+	<input type="hidden" id="insumos_filtrar_dados" value="https://comproterreno.com.br/login/insumos_filtrar_dados" />
+	<input type="hidden" id="hddProjetosFiltrar" value="https://comproterreno.com.br/login/projetos_filtrar" />
+	<input type="hidden" id="hddProjetosConsultar" value="https://comproterreno.com.br/login/projetos_filtrar_consultar" />
+	<input type="hidden" id="hddProjetosDados" value="https://comproterreno.com.br/login/projetos_dados" />
+	<input type="hidden" id="hddConsultarItensOrcamentos" value="https://comproterreno.com.br/login/itens_orcamentos_consultar" />
+	<input type="hidden" id="orcamentos_consultar" value="https://comproterreno.com.br/login/orcamentos_consultar" />
+	<input type="hidden" id="hddSalvarItensOrcamentos" value="https://comproterreno.com.br/login/itens_orcamentos_salvar" />
+	<input type="hidden" id="hddAtualizarItensOrcamentos" value="https://comproterreno.com.br/login/itens_orcamentos_atualizar" />
+	<input type="hidden" id="hddEditarItensOrcamentos" value="https://comproterreno.com.br/login/editar_itens_orcamentos" />
+	<input type="hidden" id="hddEditarEtapasOrcamentos" value="https://comproterreno.com.br/login/edicao_etapas_orcamentos" />
+	<input type="hidden" id="hddEditarSolicitacoes2" value="https://comproterreno.com.br/login/solicitacoes_editar2" />
+	<input type="hidden" id="hddSalvarSolicitacoes2" value="https://comproterreno.com.br/login/solicitacoes_salvar2" />
+	<input type="hidden" id="hddConsultarItensSolicitacoes" value="https://comproterreno.com.br/login/itens_solicitacoes_consultar" />
+	<input type="hidden" id="hddSalvarItensSolicitacoes" value="https://comproterreno.com.br/login/itens_solicitacoes_salvar" />
+	<input type="hidden" id="hddNovoItensSolicitacoes" value="https://comproterreno.com.br/login/itens_solicitacoes_novo" />
+	<input type="hidden" id="hddViabilidadesVendasVisualizar" value="https://comproterreno.com.br/login/viabilidades_vendas_detalhe" />
+	<input type="hidden" id="hddConfirmarConferencia" value="Confirma a conferência?" />
+	<input type="hidden" id="hddConfirmarDesconferencia" value="Confirma a desconferência?" />
+	<input type="hidden" id="hddLabelConferir" value="Conferir" />
+	<input type="hidden" id="hddLabelDesconferir" value="Desconferir" />
+	<input type="hidden" id="hddAgenteComprador" value="D" />
+	<input type="hidden" id="hddAgenteImpostos" value="I" />
+	<input type="hidden" id="hddApropriacoesNovo" value="https://comproterreno.com.br/login/itens_apropriacoes_novo" />
+	<input type="hidden" id="hddApropriacoesDados" value="https://comproterreno.com.br/login/itens_apropriacoes_dados" />
+	<input type="hidden" id="hddApropriacoesSalvar" value="https://comproterreno.com.br/login/itens_apropriacoes_salvar" />
+	<input type="hidden" id="solicitacoes_consultar" value="https://comproterreno.com.br/login/solicitacoes_consultar" />
+	<input type="hidden" id="hddApropriacoesAtualizar" value="https://comproterreno.com.br/login/itens_apropriacoes_atualizar" />
+	<input type="hidden" id="hddApropriacoesCalcular" value="https://comproterreno.com.br/login/itens_apropriacoes_calcular" />
+	<input type="hidden" id="hddAtualizarItensSolicitacoes" value="https://comproterreno.com.br/login/itens_solicitacoes_atualizar" />
+	<input type="hidden" id="hddAtualizarItensInsumosSolicitacoes" value="https://comproterreno.com.br/login/itens_solicitacoes_atualizar_insumo" />
+	<input type="hidden" id="hddConsultarApropriacoes" value="https://comproterreno.com.br/login/itens_apropriacoes_consultar" />
+	<input type="hidden" id="hddDadosItemApropriacoes" value="https://comproterreno.com.br/login/itens_apropriacoes_dados_item" />
+	<input type="hidden" id="hddExibirDetalheItemSolicitacoes" value="https://comproterreno.com.br/login/itens_solicitacoes_exibir_detalhe" />
+	<input type="hidden" id="hddSalvarDetalheItemSolicitacoes" value="https://comproterreno.com.br/login/itens_solicitacoes_salvar_detalhe" />
+	<input type="hidden" id="cotacoes_consultar" value="https://comproterreno.com.br/login/cotacoes_consultar" />
+	<input type="hidden" id="hddRemoverItensCotacoes" value="https://comproterreno.com.br/login/itens_cotacoes_remover_itens" />
+	<input type="hidden" id="hddCalcularItensCotacoes" value="https://comproterreno.com.br/login/itens_cotacoes_fornecedores_calcular" />
+	<input type="hidden" id="hddSelecionarItensCotacoes" value="https://comproterreno.com.br/login/itens_cotacoes_fornecedores_selecionar" />
+	<input type="hidden" id="hddConfirmarCotacao" value="https://comproterreno.com.br/login/cotacoes_confirmar" />
+	<input type="hidden" id="hddFinalizarCotacao" value="https://comproterreno.com.br/login/cotacoes_finalizar" />
+	<input type="hidden" id="hddFornecedoresFiltrar" value="https://comproterreno.com.br/login/entidades_filtrar" />
+	<input type="hidden" id="entidades_beneficiarios_filtrar" value="https://comproterreno.com.br/login/entidades_beneficiarios_filtrar" />
+	<input type="hidden" id="entidades_beneficiarios_filtrar_consultar" value="https://comproterreno.com.br/login/entidades_beneficiarios_filtrar_consultar" />
+	<input type="hidden" id="entidades_beneficiarios_dados" value="https://comproterreno.com.br/login/entidades_beneficiarios_dados" />
+	<input type="hidden" id="hddPesquisarUsuariosAtalho" value="https://comproterreno.com.br/login/usuarios_pesquisar_atalho" />
+	<input type="hidden" id="hddFornecedoresConsultar" value="https://comproterreno.com.br/login/entidades_filtrar_consultar" />
+	<input type="hidden" id="hddComproTerrenoCorretorTermo" value="https://comproterreno.com.br/login/grupos_empresas_termo" />
+	<input type="hidden" id="hddComproTerrenoCorretorTermoSalvar" value="https://comproterreno.com.br/login/grupos_empresas_termo_salvar" />
+	<input type="hidden" id="hddFornecedoresDados" value="https://comproterreno.com.br/login/entidades_dados" />
+	<input type="hidden" id="hddConsultarPedidos" value="https://comproterreno.com.br/login/pedidos_consultar" />
+	<input type="hidden" id="hddConsultarItensPedidos" value="https://comproterreno.com.br/login/itens_pedidos_consultar" />
+	<input type="hidden" id="hddLabelDocumentosItemPedidoSelecionado" value="Item Pedido selecionado: " />
+	<input type="hidden" id="hddLabelDocumentosItemMedicaoSelecionado" value="Item Medição selecionado: " />
+	<input type="hidden" id="hddNovoItensPedidos" value="https://comproterreno.com.br/login/itens_pedidos_novo" />
+	<input type="hidden" id="hddCalcularItensPedidos" value="https://comproterreno.com.br/login/itens_pedidos_calcular" />
+	<input type="hidden" id="hddItensPedidosSalvar" value="https://comproterreno.com.br/login/itens_pedidos_salvar" />
+	<input type="hidden" id="hddPedidosSalvar" value="https://comproterreno.com.br/login/pedidos_salvar" />
+	<input type="hidden" id="itens_pedidos_salvar_detalhe" value="https://comproterreno.com.br/login/itens_pedidos_salvar_detalhe" />
+	<input type="hidden" id="hddItensPedidosAtualizar" value="https://comproterreno.com.br/login/itens_pedidos_atualizar" />
+	<input type="hidden" id="itens_pedidos_apropriacoes_novo" value="https://comproterreno.com.br/login/itens_pedidos_apropriacoes_novo" />
+	<input type="hidden" id="hddApropriacoesItemSalvar" value="https://comproterreno.com.br/login/itens_pedidos_apropriacoes_salvar" />
+	<input type="hidden" id="itens_pedidos_apropriacoes_calcular" value="https://comproterreno.com.br/login/itens_pedidos_apropriacoes_calcular" />
+	<input type="hidden" id="itens_pedidos_apropriacoes_consultar" value="https://comproterreno.com.br/login/itens_pedidos_apropriacoes_consultar" />
+	<input type="hidden" id="hddCorretoresProprietariosConsultar" value="https://comproterreno.com.br/login/corretores_terrenos_proprietarios_consultar" />
+	<input type="hidden" id="hddCorretoresProprietariosSalvar" value="https://comproterreno.com.br/login/corretores_terrenos_proprietarios_salvar" />
+	<input type="hidden" id="hddCorretoresProprietariosEditar" value="https://comproterreno.com.br/login/corretores_terrenos_proprietarios_editar" />
+	<input type="hidden" id="hddCorretoresAtualizarComprado" value="https://comproterreno.com.br/login/terrenos_corretores_atualizar_comprado" />
+	<input type="hidden" id="hddPedidosAprovar" value="https://comproterreno.com.br/login/pedidos_aprovar" />
+	<input type="hidden" id="hddPedidosConfirmar" value="https://comproterreno.com.br/login/pedidos_confirmar" />
+	<input type="hidden" id="hddPedidosReprovar" value="https://comproterreno.com.br/login/pedidos_reprovar" />
+	<input type="hidden" id="hddPedidosConfirmarReprovar" value="https://comproterreno.com.br/login/pedidos_confirmar_reprovar" />
+	<input type="hidden" id="hddTerrenosTarefasConsultar" value="https://comproterreno.com.br/login/terrenos_tarefas_consultar" />
+	<input type="hidden" id="hddTerrenosTarefasConsultarVisualizar" value="https://comproterreno.com.br/login/terrenos_tarefas_consultar_visualizar" />
+	<input type="hidden" id="hddTerrenosTarefasNovo" value="https://comproterreno.com.br/login/terrenos_tarefas_novo" />
+	<input type="hidden" id="hddTerrenosTarefasSalvar" value="https://comproterreno.com.br/login/terrenos_tarefas_salvar" />
+	<input type="hidden" id="hddTerrenosTarefasEditar" value="https://comproterreno.com.br/login/terrenos_tarefas_editar" />
+	<input type="hidden" id="hddTerrenosTarefasSubEtapa" value="https://comproterreno.com.br/login/terrenos_tarefas_subetapa" />
+	<input type="hidden" id="hddTerrenosTarefasNovoItem" value="https://comproterreno.com.br/login/terrenos_tarefas_novo_item" />
+	<input type="hidden" id="hddTerrenosTarefasSalvarItem" value="https://comproterreno.com.br/login/terrenos_tarefas_salvar_item" />
+	<input type="hidden" id="hddContratosConsultar" value="https://comproterreno.com.br/login/contratos_consultar" />
+	<input type="hidden" id="hddContratosConsultarItem" value="https://comproterreno.com.br/login/contratos_consultar_item" />
+	<input type="hidden" id="hddContratosCalcularItem" value="https://comproterreno.com.br/login/contratos_calcular_item" />
+	<input type="hidden" id="hddContratosSalvarItem" value="https://comproterreno.com.br/login/contratos_salvar_item" />
+	<input type="hidden" id="hddContratosAtualizarItem" value="https://comproterreno.com.br/login/contratos_atualizar_item" />
+	<input type="hidden" id="hddContratosExibirDetalheItem" value="https://comproterreno.com.br/login/contratos_exibir_detalhe_item" />
+	<input type="hidden" id="hddContratosSalvarDetalheItem" value="https://comproterreno.com.br/login/contratos_salvar_detalhe_item" />
+	<input type="hidden" id="contratos_apropriacoes_consultar" value="https://comproterreno.com.br/login/contratos_apropriacoes_consultar" />
+	<input type="hidden" id="hddContratosNovoApropriacoes" value="https://comproterreno.com.br/login/contratos_apropriacoes_novo" />
+	<input type="hidden" id="contratos_apropriacoes_calcular" value="https://comproterreno.com.br/login/contratos_apropriacoes_calcular" />
+	<input type="hidden" id="contratos_apropriacoes_salvar" value="https://comproterreno.com.br/login/contratos_apropriacoes_salvar" />
+	<input type="hidden" id="hddMedicoesConsultar" value="https://comproterreno.com.br/login/contratos_medicoes_consultar" />
+	<input type="hidden" id="hddMedicoesSalvar" value="https://comproterreno.com.br/login/contratos_medicoes_salvar" />
+	<input type="hidden" id="hddGestoresDetalhes" value="https://comproterreno.com.br/login/gestores_detalhes" />
+	<input type="hidden" id="hddGestoresSalvar" value="https://comproterreno.com.br/login/gestores_salvar" />
+	<input type="hidden" id="hddTerrenosCidades" value="https://comproterreno.com.br/login/terrenos_cidades" />
+	<input type="hidden" id="hddContratosFiltrar" value="https://comproterreno.com.br/login/contratos_filtrar" />
+	<input type="hidden" id="hddContratosConsultarFiltro" value="https://comproterreno.com.br/login/contratos_consultar_filtro" />
+	<input type="hidden" id="hddMedicoesItensCalcular" value="https://comproterreno.com.br/login/contratos_itens_medicoes_calcular" />
+	<input type="hidden" id="hddMedicoesItensConsultar" value="https://comproterreno.com.br/login/contratos_itens_medicoes_consultar" />
+	<input type="hidden" id="hddMedicoesItensSalvar" value="https://comproterreno.com.br/login/contratos_itens_medicoes_salvar" />
+	<input type="hidden" id="hddDocumentosConsultar" value="https://comproterreno.com.br/login/documentos_consultar" />
+	<input type="hidden" id="hddDocumentosItensConsultar" value="https://comproterreno.com.br/login/documentos_consultar_item" />
+	<input type="hidden" id="hddDocumentosItensNovo" value="https://comproterreno.com.br/login/documentos_novo_item" />
+	<input type="hidden" id="hddDocumentosItensExcluir" value="https://comproterreno.com.br/login/documentos_item_excluir" />
+	<input type="hidden" id="hddDocumentosItensEditar" value="https://comproterreno.com.br/login/documentos_editar_item" />
+	<input type="hidden" id="hddDocumentosFiltrar" value="https://comproterreno.com.br/login/documentos_filtrar" />
+	<input type="hidden" id="hddDocumentosConsultarFiltro" value="https://comproterreno.com.br/login/documentos_consultar_filtro" />
+	<input type="hidden" id="hddItensOrcamentosCalcular" value="https://comproterreno.com.br/login/itens_orcamentos_calcular_valores" />
+	<input type="hidden" id="hddDocumentosConsultarFiltroMediacoes" value="https://comproterreno.com.br/login/documentos_consultar_filtro_medicoes" />
+	<input type="hidden" id="hddDocumentosSelecionarMediacao" value="https://comproterreno.com.br/login/documentos_item_mediacao_selecionar" />
+	<input type="hidden" id="hddDocumentosSelecionarPedido" value="https://comproterreno.com.br/login/documentos_item_pedido_selecionar" />
+	<input type="hidden" id="hddDocumentosFiltrarMedicoes" value="https://comproterreno.com.br/login/documentos_filtrar_medicoes" />
+	<input type="hidden" id="hddDocumentosSelecionarMedicao" value="https://comproterreno.com.br/login/documentos_item_medicao_selecionar" />
+	<input type="hidden" id="hddDocumentosItensSalvar" value="https://comproterreno.com.br/login/documentos_salvar_item" />
+	<input type="hidden" id="hddDocumentosItemCalcular" value="https://comproterreno.com.br/login/documentos_item_calcular" />
+	<input type="hidden" id="hddPedidosEditar2" value="https://comproterreno.com.br/login/pedidos_editar2" />
+	<input type="hidden" id="hddContasPagarConsultar" value="https://comproterreno.com.br/login/contas_pagar_consultar" />
+	<input type="hidden" id="hddItensMedicoesVisualizar" value="https://comproterreno.com.br/login/contratos_itens_medicoes_visualizar" />
+	<input type="hidden" id="hddCotacoesEditar2" value="https://comproterreno.com.br/login/cotacoes_editar2" />
+	<input type="hidden" id="hddDocumentosSalvar" value="https://comproterreno.com.br/login/documentos_salvar" />
+	<input type="hidden" id="hddMedicoesExibirDetalhes" value="https://comproterreno.com.br/login/contratos_medicoes_exibir_detalhe" />
+	<input type="hidden" id="hddMedicoesSalvarDetalhes" value="https://comproterreno.com.br/login/contratos_medicoes_salvar_detalhe" />
+	<input type="hidden" id="hddContratosAnexoSalvar" value="https://comproterreno.com.br/login/contratos_anexos_salvar" />
+	<input type="hidden" id="hddContratosSalvar" value="https://comproterreno.com.br/login/contratos_salvar" />
+	<input type="hidden" id="hddCondicoesTabelasConsultar" value="https://comproterreno.com.br/login/condicoes_consultar" />
+	<input type="hidden" id="condicoes_salvar" value="https://comproterreno.com.br/login/condicoes_salvar" />
+	<input type="hidden" id="hddTabelasVendasComercialDetalhes" value="https://comproterreno.com.br/login/condicoes_tabelas_vendas_detalhes" />
+	<input type="hidden" id="hddTabelasVendasComercialCoeficiente" value="https://comproterreno.com.br/login/condicoes_tabelas_vendas_coeficiente" />
+	<input type="hidden" id="condicoes_tabelas_vendas_preco_unidade" value="https://comproterreno.com.br/login/condicoes_tabelas_vendas_preco_unidade" />
+	<input type="hidden" id="hddStylesFiltro" value="https://comproterreno.com.br/login/styles_item_menu_filtro_pesquisa" />
+	<input type="hidden" id="hddStylesConsultar" value="https://comproterreno.com.br/login/styles_item_menu_filtro_consultar" />
+	<input type="hidden" id="hddStylesSelecionar" value="https://comproterreno.com.br/login/styles_item_menu_filtro_selecionar" />
+	<input type="hidden" id="hddProdutosUnidadesConsultar" value="https://comproterreno.com.br/login/produtos_unidades_consultar" />
+	<input type="hidden" id="hddProdutosUnidadesSalvar" value="https://comproterreno.com.br/login/produtos_unidades_salvar" />
+	<input type="hidden" id="hddProdutosUnidadesEditar" value="https://comproterreno.com.br/login/produtos_unidades_editar" />
+	<input type="hidden" id="hddProdutosTabelasConsultar" value="https://comproterreno.com.br/login/produtos_tabelas_consultar" />
+	<input type="hidden" id="hddProdutosUnidadesAtualizar" value="https://comproterreno.com.br/login/produtos_unidades_atualizar" />
+	<input type="hidden" id="hddProdutosUnidadesAtualizar2" value="https://comproterreno.com.br/login/produtos_unidades_atualizar2" />
+	<input type="hidden" id="hddProdutosUnidadesCalcular" value="https://comproterreno.com.br/login/produtos_unidades_calcular" />
+	<input type="hidden" id="hddProdutoConfirmarConferir" value="https://comproterreno.com.br/login/produtos_confirmar_conferir" />
+	<input type="hidden" id="hddProdutoConferido" value="https://comproterreno.com.br/login/produtos_conferido" />
+	<input type="hidden" id="hddProdutosUnidadesConfirmarConferir" value="https://comproterreno.com.br/login/produtos_unidades_confirmar_conferir" />
+	<input type="hidden" id="hddProdutosUnidadesConferir" value="https://comproterreno.com.br/login/produtos_unidades_conferido" />
+	<input type="hidden" id="hddProdutosTabelasConfirmarConferir" value="https://comproterreno.com.br/login/produtos_tabelas_confirmar_conferir" />
+	<input type="hidden" id="hddProdutosTabelasConferir" value="https://comproterreno.com.br/login/produtos_tabelas_conferido" />
+	<input type="hidden" id="hddCondicoesSerieExcluir" value="https://comproterreno.com.br/login/condicoes_serie_excluir" />
+	<input type="hidden" id="hddCondicoesTabelasEditarObservacoes" value="https://comproterreno.com.br/login/condicoes_tabelas_vendas_editar_observacoes" />
+	<input type="hidden" id="hddCondicoesTabelasSalvarObservacoes" value="https://comproterreno.com.br/login/condicoes_tabelas_vendas_salvar_observacoes" />
+	<input type="hidden" id="hddEspelhoVendasConsultar" value="https://comproterreno.com.br/login/espelho_vendas_consultar" />
+	<input type="hidden" id="hddEspelhoVendasUnidades" value="https://comproterreno.com.br/login/espelho_vendas_unidades" />
+	<input type="hidden" id="hddEspelhoVendasBlocos" value="https://comproterreno.com.br/login/espelho_vendas_blocos" />
+	<input type="hidden" id="hddEspelhoVendasConfirmar" value="https://comproterreno.com.br/login/espelho_vendas_confirmar" />
+	<input type="hidden" id="hddEspelhoVendasProposta" value="https://comproterreno.com.br/login/espelho_vendas_proposta" />
+	<input type="hidden" id="hddUnidadesFiltroPesquisar" value="https://comproterreno.com.br/login/estruturas_unidades_filtro_pesquisa" />
+	<input type="hidden" id="hddUnidadesFiltroConsultar" value="https://comproterreno.com.br/login/estruturas_unidades_filtro_consultar" />
+	<input type="hidden" id="hddUnidadesFiltroSelecionar" value="https://comproterreno.com.br/login/estruturas_unidades_filtro_selecionar" />
+	<input type="hidden" id="hddUnidadesFiltroDados" value="https://comproterreno.com.br/login/estruturas_unidades_filtro_dados" />
+	<input type="hidden" id="hddCondicoesFiltroPesquisar" value="https://comproterreno.com.br/login/condicoes_filtro_pesquisa" />
+	<input type="hidden" id="hddCondicoesFiltroConsultar" value="https://comproterreno.com.br/login/condicoes_filtro_consultar" />
+	<input type="hidden" id="hddCondicoesFiltroSelecionar" value="https://comproterreno.com.br/login/condicoes_filtro_selecionar" />
+	<input type="hidden" id="hddCondicoesFiltroDados" value="https://comproterreno.com.br/login/condicoes_filtro_dados" />
+	<input type="hidden" id="hddCarregarCondicoesUnidades" value="https://comproterreno.com.br/login/condicoes_consultar_condicoes_unidades" />
+	<input type="hidden" id="hddClientesFiltroPesquisa" value="https://comproterreno.com.br/login/entidades_clientes_filtro_pesquisa" />
+	<input type="hidden" id="hddClientesFiltroConsultar" value="https://comproterreno.com.br/login/entidades_clientes_filtro_consultar" />
+	<input type="hidden" id="hddClientesFiltroDados" value="https://comproterreno.com.br/login/entidades_clientes_filtro_dados" />
+	<input type="hidden" id="condicoes_calcular_series" value="https://comproterreno.com.br/login/condicoes_calcular_series" />
+	<input type="hidden" id="hddClientesNovoRapido" value="https://comproterreno.com.br/login/entidades_novo_rapido" />
+	<input type="hidden" id="hddClientesSalvarRapido" value="https://comproterreno.com.br/login/entidades_salvar_rapido" />
+	<input type="hidden" id="entidades_salvar" value="https://comproterreno.com.br/login/entidades_salvar" />
+	<input type="hidden" id="hddTabelaVendasFiltrar" value="https://comproterreno.com.br/login/condicoes_tabelas_vendas_filtro_pesquisa" />
+	<input type="hidden" id="hddTabelaVendasConsultar" value="https://comproterreno.com.br/login/condicoes_tabelas_vendas_filtro_consultar" />
+	<input type="hidden" id="hddAcaoChecarNivel" value="https://comproterreno.com.br/login/rotas_checar_nivel" />
+	<input type="hidden" id="hddTabelaVendasConsultarUnidadesCondicoes" value="https://comproterreno.com.br/login/condicoes_tabelas_vendas_unidades_condicoes" />
+	<input type="hidden" id="hddPropostaGerarLinha" value="https://comproterreno.com.br/login/propostas_gerar_linha" />
+	<input type="hidden" id="hddComercialCorretorChecarEmail" value="https://comproterreno.com.br/login/comercial_corretores_checar_email" />
+	<input type="hidden" id="hddPropostaSalvar" value="https://comproterreno.com.br/login/propostas_salvar" />
+	<input type="hidden" id="hddComercialCorretorID" value="https://comproterreno.com.br/login/comercial_corretores_id" />
+	<input type="hidden" id="hddCorretorGerarLinha" value="https://comproterreno.com.br/login/comercial_corretores_gerar_linha" />
+	<input type="hidden" id="hddAtualizarVisualizarObservacoes" value="https://comproterreno.com.br/login/terrenos_observacoes_atualizar_visualizar" />
+	<input type="hidden" id="hddTerrenosEstudosConsultar2" value="https://comproterreno.com.br/login/terrenos_estudos_consultar2" />
+	<input type="hidden" id="hddTerrenosEstudosNovoConsultar" value="https://comproterreno.com.br/login/terreno_estudos_novo_consultar" />
+	<input type="hidden" id="hddTerrenosEstudosAtualizar" value="https://comproterreno.com.br/login/terrenos_estudos_atualizar" />
+
+	<input type="hidden" id="hddTerrenosEstudosNovoAtualizar" value="https://comproterreno.com.br/login/terrenos_estudos_novo_atualizar" />
+	<input type="hidden" id="hddViabilidadesTerrenosConsultar2" value="https://comproterreno.com.br/login/terrenos_viabilidades_consultar2" />
+	<input type="hidden" id="hddViabilidadesTerrenosAtualizar" value="https://comproterreno.com.br/login/terrenos_viabilidades_atualizar" />
+	<input type="hidden" id="hddConsultarPropostas" value="https://comproterreno.com.br/login/propostas_consultar" />
+	<input type="hidden" id="hddCalcularValoresTabelasVendas" value="https://comproterreno.com.br/login/condicoes_tabelas_vendas_calcular_valores" />
+	<input type="hidden" id="hddPropostasAprovar" value="https://comproterreno.com.br/login/propostas_aprovar" />
+	<input type="hidden" id="hddPropostasReprovar" value="https://comproterreno.com.br/login/propostas_reprovar" />
+	<input type="hidden" id="hddPropostasAprovarCredito" value="https://comproterreno.com.br/login/propostas_aprovar_credito" />
+	<input type="hidden" id="hddPropostasReprovarCredito" value="https://comproterreno.com.br/login/propostas_reprovar_credito" />
+	<input type="hidden" id="hddCarteirasContratosConsultar" value="https://comproterreno.com.br/login/carteiras_contratos_consultar" />
+	<input type="hidden" id="hddCarteirasContratosSerieExcluir" value="https://comproterreno.com.br/login/carteiras_contratos_series_excluir" />
+	<input type="hidden" id="hddCarteirasContratosApropriacaoExcluir" value="https://comproterreno.com.br/login/carteiras_contratos_apropriacoes" />
+	<input type="hidden" id="carteiras_contratos_parcelas" value="https://comproterreno.com.br/login/carteiras_contratos_parcelas" />
+	<input type="hidden" id="hddPropostasCondicoesExcluir" value="https://comproterreno.com.br/login/propostas_excluir_condicoes" />
+	<input type="hidden" id="hddPropostasCondicoesExcluir2" value="https://comproterreno.com.br/login/propostas_excluir_condicoes2" />
+	<input type="hidden" id="hddPropostasCalcularComissoes" value="https://comproterreno.com.br/login/propostas_calcular_comissoes" />
+	<input type="hidden" id="propostas_calcular_total_comissoes" value="https://comproterreno.com.br/login/propostas_calcular_total_comissoes" />
+	<input type="hidden" id="hddCondicoesGerarTabelaSelecionar" value="https://comproterreno.com.br/login/condicoes_selecionar_estrutura" />
+	<input type="hidden" id="hddCondicoesGerarTabelaFluxoSelecionar" value="https://comproterreno.com.br/login/condicoes_selecionar_estrutura_fluxo" />
+	<input type="hidden" id="hddCarteirasContratosLogs" value="https://comproterreno.com.br/login/carteiras_contratos_log" />
+	<input type="hidden" id="hddCarteirasContratosParcelasBaixaConsultar" value="https://comproterreno.com.br/login/carteiras_contratos_parcelas_baixas_consultar" />
+	<input type="hidden" id="hddCarteirasContratosFiltrarPesquisa" value="https://comproterreno.com.br/login/carteiras_contratos_filtro_pesquisa" />
+	<input type="hidden" id="hddCarteirasContratosConsultarPesquisa" value="https://comproterreno.com.br/login/carteiras_contratos_filtro_consultar" />
+	<input type="hidden" id="hddCarteirasContratosDadosPesquisa" value="https://comproterreno.com.br/login/carteiras_contratos_filtro_dados" />
+	<input type="hidden" id="hddEstruturaAnexosPortalCliente" value="C" />
+	<input type="hidden" id="hddCarteirasContratosAprovar" value="https://comproterreno.com.br/login/carteiras_contratos_aprovar" />
+	<input type="hidden" id="hddCarteirasContratosReprovar" value="https://comproterreno.com.br/login/carteiras_contratos_reprovar" />
+	<input type="hidden" id="hddCarteirasContratosConfirmarBaixa" value="https://comproterreno.com.br/login/carteiras_contratos_parcelas_baixas_confirmar" />
+	<input type="hidden" id="hddCarteirasContratosBaixarParcela" value="https://comproterreno.com.br/login/carteiras_contratos_parcelas_baixas_baixar" />
+	<input type="hidden" id="hddCarteirasContratosEstruturasPorEmpresa" value="https://comproterreno.com.br/login/estruturas_empresas_consultar" />
+	<input type="hidden" id="contas_pagar_parcelas" value="https://comproterreno.com.br/login/contas_pagar_parcelas" />
+	<input type="hidden" id="hddFinanceiroParcelasContasPagarExcluir" value="https://comproterreno.com.br/login/contas_pagar_parcelas_excluir" />
+	<input type="hidden" id="hddFinanceiroApropriacoesContasPagarAdicionar" value="https://comproterreno.com.br/login/contas_pagar_apropriacoes_adicionar" />
+	<input type="hidden" id="contas_pagar_apropriacoes" value="https://comproterreno.com.br/login/contas_pagar_apropriacoes" />
+	<input type="hidden" id="hddFinanceiroApropriacoesContasPagarCalcular" value="https://comproterreno.com.br/login/contas_pagar_apropriacoes_calcular" />
+	<input type="hidden" id="contas_pagar_apropriacoes_salvar" value="https://comproterreno.com.br/login/contas_pagar_apropriacoes_salvar" />
+	<input type="hidden" id="hddFinanceiroApropriacoesContasPagarEditar" value="https://comproterreno.com.br/login/contas_pagar_apropriacoes_editar" />
+	<input type="hidden" id="hddFinanceiroContasAprovar" value="https://comproterreno.com.br/login/contas_pagar_aprovar" />
+	<input type="hidden" id="hddFinanceiroContasReprovar" value="https://comproterreno.com.br/login/contas_pagar_reprovar" />
+	<input type="hidden" id="contas_pagar_baixa_consultar" value="https://comproterreno.com.br/login/contas_pagar_baixa_consultar" />
+	<input type="hidden" id="hddFinanceiroFiltrarContasPagar" value="https://comproterreno.com.br/login/contas_pagar_filtro_pesquisa" />
+	<input type="hidden" id="hddFinanceiroConsultarContasPagar" value="https://comproterreno.com.br/login/contas_pagar_filtro_consultar" />
+	<input type="hidden" id="financeiro_lotes_pesquisar" value="https://comproterreno.com.br/login/financeiro_lotes_pesquisar" />
+	<input type="hidden" id="hddFinanceiroDadosContasPagar" value="https://comproterreno.com.br/login/contas_pagar_filtro_dados" />
+	<input type="hidden" id="hddFinanceiroParcelaBaixar" value="https://comproterreno.com.br/login/contas_pagar_baixa_baixar" />
+	<input type="hidden" id="hddMovimentacoesConsultar" value="https://comproterreno.com.br/login/movimentacoes_consultar" />
+	<input type="hidden" id="movimentacoes_apropriacoes_adicionar" value="https://comproterreno.com.br/login/movimentacoes_apropriacoes_adicionar" />
+	<input type="hidden" id="movimentacoes_apropriacoes" value="https://comproterreno.com.br/login/movimentacoes_apropriacoes" />
+	<input type="hidden" id="movimentacoes_apropriacoes_calcular" value="https://comproterreno.com.br/login/movimentacoes_apropriacoes_calcular" />
+	<input type="hidden" id="movimentacoes_apropriacoes_salvar" value="https://comproterreno.com.br/login/movimentacoes_apropriacoes_salvar" />
+	<input type="hidden" id="movimentacoes_apropriacoes_editar" value="https://comproterreno.com.br/login/movimentacoes_apropriacoes_editar" />
+	<input type="hidden" id="hddFinanceiroParcelaBaixaCalcular" value="https://comproterreno.com.br/login/contas_pagar_baixa_calcuar_baixa" />
+	<input type="hidden" id="hddExtratosConsultar" value="https://comproterreno.com.br/login/extratos_consultar" />
+	<input type="hidden" id="hddFinanceiroExtratosConciliar" value="https://comproterreno.com.br/login/extratos_conciliar" />
+	<input type="hidden" id="hddFinanceiroExtratosDesconciliar" value="https://comproterreno.com.br/login/extratos_desconciliar" />
+	<input type="hidden" id="hddContratosImpressao" value="https://comproterreno.com.br/login/contratos_imprimir" />
+	<input type="hidden" id="hddDocumentosCancelarTituloFinanceiro" value="https://comproterreno.com.br/login/documentos_cancelar_gerar_titulo" />
+	<input type="hidden" id="hddCarteirasAditivosSalvar" value="https://comproterreno.com.br/login/carteiras_aditivos_salvar" />
+	<input type="hidden" id="carteiras_aditivos_consultar" value="https://comproterreno.com.br/login/carteiras_aditivos_consultar" />
+	<input type="hidden" id="hddCarteirasRenegociacaoConfirmar" value="https://comproterreno.com.br/login/carteiras_renegociacoes_confirmar" />
+	<input type="hidden" id="hddCarteirasRenegociacaoParcelas" value="https://comproterreno.com.br/login/carteiras_renegociacoes_parcelas" />
+	<input type="hidden" id="hddCarteirasRenegociacaoRenegociar" value="https://comproterreno.com.br/login/carteiras_renegociacoes_renegociar" />
+	<input type="hidden" id="hddCarteirasRenegociacaoCalcular" value="https://comproterreno.com.br/login/carteiras_renegociacoes_calcular" />
+	<input type="hidden" id="contas_pagar_parcelas_vencimento" value="https://comproterreno.com.br/login/contas_pagar_parcelas_vencimento" />
+	<input type="hidden" id="contas_pagar_parcelas_valor" value="https://comproterreno.com.br/login/contas_pagar_parcelas_valor" />
+	<input type="hidden" id="hddCarteiraAditivosDetalhes" value="https://comproterreno.com.br/login/carteiras_aditivos_detalhes" />
+	<input type="hidden" id="hddComprasDocumentosConsultarAnexos" value="https://comproterreno.com.br/login/documentos_consultar_anexo" />
+	<input type="hidden" id="hddFinanceiroContasPagarConsultarAnexos" value="https://comproterreno.com.br/login/contas_pagar_consultar_anexo" />
+	<input type="hidden" id="hddCarteirasContratosConsultarAnexos" value="https://comproterreno.com.br/login/carteiras_contratos_consultar_anexo" />
+	<input type="hidden" id="hddSalvarCadastrosAuxiliaresRapido" value="https://comproterreno.com.br/login/cadastros_auxiliares_salvar_rapido" />
+	<input type="hidden" id="cadastros_auxiliares_salvar" value="https://comproterreno.com.br/login/cadastros_auxiliares_salvar" />
+	<input type="hidden" id="hddCarteiraCalcularValoresParcelas" value="https://comproterreno.com.br/login/carteiras_contratos_calcular" />
+	<input type="hidden" id="hddComercialPropostaGerarContrato" value="https://comproterreno.com.br/login/propostas_gerar_contrato" />
+	<input type="hidden" id="hddViabilidadesAprovar" value="https://comproterreno.com.br/login/viabilidades_aprovar" />
+	<input type="hidden" id="hddViabilidadesReprovar" value="https://comproterreno.com.br/login/viabilidades_reprovar" />
+	<input type="hidden" id="hddCarteiraParcelaBaixaCancelar" value="https://comproterreno.com.br/login/carteiras_contratos_parcelas_cancelar_baixa" />
+	<input type="hidden" id="hddFinanceiroContasPagarImpostosAdicionar" value="https://comproterreno.com.br/login/contas_pagar_impostos_adicionar" />
+	<input type="hidden" id="hddFinanceiroContasPagarImpostosConsultar" value="https://comproterreno.com.br/login/contas_pagar_impostos_consultar" />
+	<input type="hidden" id="hddFinanceiroContasPagarImpostosSalvar" value="https://comproterreno.com.br/login/contas_pagar_impostos_salvar" />
+	<input type="hidden" id="hddFinanceiroContasPagarImpostosEditar" value="https://comproterreno.com.br/login/contas_pagar_impostos_editar" />
+	<input type="hidden" id="hddFinanceiroContasPagarImpostosExcluir" value="https://comproterreno.com.br/login/contas_pagar_impostos_excluir" />
+	<input type="hidden" id="hddPropostasCorretoresConsultar" value="https://comproterreno.com.br/login/propostas_corretores_consultar" />
+	<input type="hidden" id="propostas_minutas_consultar" value="https://comproterreno.com.br/login/propostas_minutas_consultar" />
+	<input type="hidden" id="hddEstruturasViabilidadesConsultar" value="https://comproterreno.com.br/login/estruturas_consultar_viabilidades" />
+	<input type="hidden" id="hddEstruturasViabilidadesVincular" value="https://comproterreno.com.br/login/estruturas_viabilidades_vincular" />
+	<input type="hidden" id="hddEstruturasViabilidadesDesvincular" value="https://comproterreno.com.br/login/estruturas_viabilidades_desvincular" />
+	<input type="hidden" id="hddFinanceiroOFXCriarMovimentos" value="https://comproterreno.com.br/login/financeiro_criar_movimentos" />
+	<input type="hidden" id="hddFinanceiroOFXSalvarMovimentos" value="https://comproterreno.com.br/login/financeiro_salvar_movimentos" />
+	<input type="hidden" id="hddFinanceiroOFXAtualizarConciliadoMovimentacoes" value="https://comproterreno.com.br/login/financeiro_ofx_atualizar_conciliado" />
+	<input type="hidden" id="hddComercialPropostaEquipeVendasNovo" value="https://comproterreno.com.br/login/propostas_equipe_vendas_novo" />
+	<input type="hidden" id="propostas_equipe_vendas_atualizar" value="https://comproterreno.com.br/login/propostas_equipe_vendas_atualizar" />
+	<input type="hidden" id="hddTerrenosConsultarLog" value="https://comproterreno.com.br/login/terrenos_log_consultar" />
+	<input type="hidden" id="hddTerrenosApoioTarefasNovoItem" value="https://comproterreno.com.br/login/apoio_terrenos_tarefas_novo_item" />
+	<input type="hidden" id="hddTerrenosApoioTarefasSalvarItem" value="https://comproterreno.com.br/login/apoio_terrenos_tarefas_salvar_item" />
+	<input type="hidden" id="hddTerrenosApoioTarefasExcluir" value="https://comproterreno.com.br/login/apoio_terrenos_tarefas_excluir" />
+	<input type="hidden" id="hddHiperdadosEmpreendimentosCidades" value="https://comproterreno.com.br/login/hiperdados_empreendimentos_cidades" />
+	<input type="hidden" id="hddHiperdadosEmpreendimentosBairros" value="https://comproterreno.com.br/login/hiperdados_empreendimentos_bairros" />
+	<input type="hidden" id="hddHiperdadosEmpreendimentosUnidadesSalvar" value="https://comproterreno.com.br/login/hiperdados_empreendimentos_unidades_salvar" />
+	<input type="hidden" id="hddHiperdadosEmpreendimentosUnidadesConsultar" value="https://comproterreno.com.br/login/hiperdados_empreendimentos_unidades_consultar" />
+	<input type="hidden" id="hddHiperdadosEmpreendimentosUnidadesConferir" value="https://comproterreno.com.br/login/hiperdados_empreendimentos_unidades_conferir" />
+	<input type="hidden" id="hddHiperdadosEmpreendimentosUnidadesCalcular" value="https://comproterreno.com.br/login/hiperdados_empreendimentos_unidades_calcular" />
+	<input type="hidden" id="hddHiperdadosEmpreendimentosUnidadesEditar" value="https://comproterreno.com.br/login/hiperdados_empreendimentos_unidades_editar" />
+	<input type="hidden" id="hddHiperdadosEmpreendimentosIncorporadorasConsultar" value="https://comproterreno.com.br/login/hiperdados_empreendimentos_incorporadoras" />
+	<input type="hidden" id="hddHiperdadosEmpreendimentosIncorporadorasSalvar" value="https://comproterreno.com.br/login/hiperdados_empreendimentos_incorporadoras_salvar" />
+	<input type="hidden" id="hiperdados_empreendimentos_tabelas_salvar" value="https://comproterreno.com.br/login/hiperdados_empreendimentos_tabelas_salvar" />
+	<input type="hidden" id="hddHiperdadosEmpreendimentosConstrutorasConsultar" value="https://comproterreno.com.br/login/hiperdados_empreendimentos_construtoras" />
+	<input type="hidden" id="hddHiperdadosEmpreendimentosConstrutorasSalvar" value="https://comproterreno.com.br/login/hiperdados_empreendimentos_construtoras_salvar" />
+	<input type="hidden" id="hddHiperdadosEmpreendimentosVendedoresConsultar" value="https://comproterreno.com.br/login/hiperdados_empreendimentos_vendedores" />
+	<input type="hidden" id="hddHiperdadosEmpreendimentosVendedoresSalvar" value="https://comproterreno.com.br/login/hiperdados_empreendimentos_vendedores_salvar" />
+	<input type="hidden" id="hddComercialPropostasEquipeVendasCalcularComissao" value="https://comproterreno.com.br/login/propostas_equipe_vendas_calcular" />
+	<input type="hidden" id="hddPlanejamentoOrcamentosCopiar" value="https://comproterreno.com.br/login/orcamentos_copiar" />
+	<input type="hidden" id="hddTerrenosConcorrenciasEditar" value="https://comproterreno.com.br/login/estudos_concorrencia_editar" />
+	<input type="hidden" id="hddTerrenosConcorrenciasSalvar" value="https://comproterreno.com.br/login/estudos_concorrencia_salvar" />
+	<input type="hidden" id="hddHiperdadosEmpreendimentoConferir" value="https://comproterreno.com.br/login/hiperdados_empreendimentos_conferir" />
+	<input type="hidden" id="hddHiperdadosEmpreendimentoPlantasConsultar" value="https://comproterreno.com.br/login/hiperdados_empreendimentos_plantas" />
+	<input type="hidden" id="hddHiperdadosEmpreendimentoPlantasConferir" value="https://comproterreno.com.br/login/hiperdados_empreendimentos_plantas_conferir" />
+	<input type="hidden" id="hiperdados_empreendimentos_tabelas" value="https://comproterreno.com.br/login/hiperdados_empreendimentos_tabelas" />
+	<input type="hidden" id="hddFinanceiroContasPagarCalcularIncidencia" value="https://comproterreno.com.br/login/contas_pagar_impostos_calcular_incidencia" />
+	<input type="hidden" id="hddFinanceiroContasPagarCalcularImpostos" value="https://comproterreno.com.br/login/contas_pagar_impostos_calcular_impostos" />
+	<input type="hidden" id="hddCapturarDocumentoCorretor" value="https://comproterreno.com.br/login/corretores_capturar_documento" />
+	<input type="hidden" id="hddPropostasExcluirDocumento" value="https://comproterreno.com.br/login/propostas_documento_excluir" />
+	<input type="hidden" id="hddCarteirasReajustesExibir" value="https://comproterreno.com.br/login/carteiras_reajustes_exibir" />
+	<input type="hidden" id="hddCarteirasReajustesSalvar" value="https://comproterreno.com.br/login/carteiras_reajustes_salvar" />
+	<input type="hidden" id="hddHiperdadosEmpreendimentoAtualizarPonto" value="https://comproterreno.com.br/login/hiperdados_empreendimentos_atualizar_ponto" />
+	<input type="hidden" id="hddHiperdadosEmpreendimentoConsultar" value="https://comproterreno.com.br/login/hiperdados_empreendimentos_consultar" />
+	<input type="hidden" id="hddCarregarOrcamentosEmpresas" value="https://comproterreno.com.br/login/relatorios_financeiro_carregar_orcamentos_empresas" />
+	<input type="hidden" id="hddCarregarBlocosEstruturas" value="https://comproterreno.com.br/login/relatorios_carteira_carregar_blocos_estruturas" />
+	<input type="hidden" id="hddCarregarUnidadesBlocos" value="https://comproterreno.com.br/login/relatorios_carteira_carregar_unidades_blocos" />
+	<input type="hidden" id="hddCarregarEstruturasEmpresas" value="https://comproterreno.com.br/login/relatorios_carteira_carregar_estruturas_empresas" />
+	<input type="hidden" id="hddCarregarUnidadesEstruturas" value="https://comproterreno.com.br/login/relatorios_carteira_carregar_unidades_estruturas" />
+	<input type="hidden" id="hddCarregarContasBancariasEmpresas" value="https://comproterreno.com.br/login/relatorios_financeiro_carregar_contas_bancarias" />
+	<input type="hidden" id="hddInsumosNovoRapido" value="https://comproterreno.com.br/login/insumos_novo_rapido" />
+	<input type="hidden" id="insumos_salvar_rapido" value="https://comproterreno.com.br/login/insumos_salvar_rapido" />
+	<input type="hidden" id="insumos_salvar" value="https://comproterreno.com.br/login/insumos_salvar" />
+	<input type="hidden" id="hddProdutosUnidadesHistoricosConsultar" value="https://comproterreno.com.br/login/produtos_unidades_historicos" />
+	<input type="hidden" id="hddViabilidadesVendasEditar" value="https://comproterreno.com.br/login/viabilidades_vendas_editar" />
+	<input type="hidden" id="hddCarteirasContratosParcelasEditar" value="https://comproterreno.com.br/login/carteiras_contratos_parcelas_editar" />
+	<input type="hidden" id="hddCarteirasContratosParcelasSalvar" value="https://comproterreno.com.br/login/carteiras_contratos_parcelas_salvar" />
+	<input type="hidden" id="hddHiperdadosEmpreendimentosConsultar" value="https://comproterreno.com.br/login/hiperdados_empreendimentos_anexos_consultar" />
+	<input type="hidden" id="hddCarteirasReajustesConsultar" value="https://comproterreno.com.br/login/carteiras_reajustes_consultar" />
+	<input type="hidden" id="hddGruposEmpresasAdicionarRapido" value="https://comproterreno.com.br/login/grupos_empresas_adicionar_rapido" />
+	<input type="hidden" id="hddGruposEmpresasSalvarRapido" value="https://comproterreno.com.br/login/grupos_empresas_adicionar_salvar" />
+	<input type="hidden" id="empreendimentos_reportar_enviar" value="https://comproterreno.com.br/login/empreendimentos_reportar_enviar" />
+	<input type="hidden" id="rotas_adicionar_rapido" value="https://comproterreno.com.br/login/rotas_adicionar_rapido" />
+	<input type="hidden" id="rotas_adicionar_salvar" value="https://comproterreno.com.br/login/rotas_adicionar_salvar" />
+	<input type="hidden" id="hddCNPJHiperdados" value="08344134000131" />
+	<input type="hidden" id="hddURLGerarBoletos" value="https://plugboleto.com.br/api/v1/boletos/lote" />
+	<input type="hidden" id="hddTipoAPI" value="application/json" />
+	<input type="hidden" id="hddTokenHiperdados" value="fe65d087409e2281d5089e284cb3edd4" />
+	<input type="hidden" id="entidades_exibir_conjuge_vendas" value="https://comproterreno.com.br/login/entidades_exibir_conjuge" />
+	<input type="hidden" id="entidades_exibir_conjuge" value="https://comproterreno.com.br/login/entidades_exibir_conjuge" />
+	<input type="hidden" id="carteiras_contratos_consultar_compradores" value="https://comproterreno.com.br/login/carteiras_contratos_consultar_compradores" />
+	<input type="hidden" id="carteiras_contratos_salvar_compradores" value="https://comproterreno.com.br/login/carteiras_contratos_salvar_compradores" />
+	<input type="hidden" id="carteiras_contratos_excluir_compradores" value="https://comproterreno.com.br/login/carteiras_contratos_excluir_compradores" />
+	<input type="hidden" id="mensagens_adicionar_rapido" value="https://comproterreno.com.br/login/mensagens_adicionar_rapido" />
+	<input type="hidden" id="mensagens_salvar_rapido" value="https://comproterreno.com.br/login/mensagens_salvar_rapido" />
+	<input type="hidden" id="versoes_sistema_adicionar" value="https://comproterreno.com.br/login/versoes_sistema_adicionar" />
+	<input type="hidden" id="versoes_sistema_consultar" value="https://comproterreno.com.br/login/versoes_sistema_consultar" />
+	<input type="hidden" id="versoes_sistema_salvar" value="https://comproterreno.com.br/login/versoes_sistema_salvar" />
+	<input type="hidden" id="versoes_sistema_visualizar" value="https://comproterreno.com.br/login/versoes_sistema_visualizar" />
+	<input type="hidden" id="versoes_sistema_editar" value="https://comproterreno.com.br/login/versoes_sistema_editar" />
+	<input type="hidden" id="versoes_sistema_excluir" value="https://comproterreno.com.br/login/versoes_sistema_excluir" />
+	<input type="hidden" id="atalhos_consultar" value="https://comproterreno.com.br/login/atalhos_consultar" />
+	<input type="hidden" id="corretores_terrenos_status" value="https://comproterreno.com.br/login/corretores_terrenos_status" />
+	<input type="hidden" id="cotacoes_observacoes_fornecedor_editar" value="https://comproterreno.com.br/login/cotacoes_observacoes_fornecedor_editar" />
+	<input type="hidden" id="cotacoes_observacoes_fornecedor_salvar" value="https://comproterreno.com.br/login/cotacoes_observacoes_fornecedor_salvar" />
+	<input type="hidden" id="pedidos_atualiza_estoque" value="https://comproterreno.com.br/login/pedidos_atualiza_estoque" />
+	<input type="hidden" id="contratos_medicoes_atualizar_estoque" value="https://comproterreno.com.br/login/contratos_medicoes_atualizar_estoque" />
+	<input type="hidden" id="compras_estoques_consultar" value="https://comproterreno.com.br/login/compras_estoques_consultar" />
+	<input type="hidden" id="compras_estoques_novo" value="https://comproterreno.com.br/login/compras_estoques_novo" />
+	<input type="hidden" id="compras_estoques_saldo" value="https://comproterreno.com.br/login/compras_estoques_saldo" />
+	<input type="hidden" id="compras_estoques_consultar_item" value="https://comproterreno.com.br/login/compras_estoques_consultar_item" />
+	<input type="hidden" id="compras_estoques_salvar" value="https://comproterreno.com.br/login/compras_estoques_salvar" />
+	<input type="hidden" id="compras_aprovacoes_consultar" value="https://comproterreno.com.br/login/compras_aprovacoes_consultar" />
+	<input type="hidden" id="compro_terreno_workflow_consultar" value="https://comproterreno.com.br/login/compro_terreno_workflow_consultar" />
+	<input type="hidden" id="compro_terreno_workflow_detalhes" value="https://comproterreno.com.br/login/compro_terreno_workflow_detalhes" />
+	<input type="hidden" id="propostas_vagas_gerar_linha" value="https://comproterreno.com.br/login/propostas_vagas_gerar_linha" />
+	<input type="hidden" id="itens_pedidos_impostos_novo" value="https://comproterreno.com.br/login/itens_pedidos_impostos_novo" />
+	<input type="hidden" id="itens_pedidos_impostos_salvar" value="https://comproterreno.com.br/login/itens_pedidos_impostos_salvar" />
+	<input type="hidden" id="contas_pagar_formas_pagamentos" value="https://comproterreno.com.br/login/contas_pagar_formas_pagamentos" />
+	<input type="hidden" id="contas_pagar_formas_pagamentos_salvar" value="https://comproterreno.com.br/login/contas_pagar_formas_pagamentos_salvar" />
+	<input type="hidden" id="contas_pagar_formas_pagamentos_campos" value="https://comproterreno.com.br/login/contas_pagar_formas_pagamentos_campos" />
+	<input type="hidden" id="contas_pagar_impostos_gerar_titulo_novo" value="https://comproterreno.com.br/login/contas_pagar_impostos_gerar_titulo_novo" />
+	<input type="hidden" id="contas_pagar_impostos_gerar_titulo_salvar" value="https://comproterreno.com.br/login/contas_pagar_impostos_gerar_titulo_salvar" />
+	<input type="hidden" id="carteiras_contratos_consultar_agentes" value="https://comproterreno.com.br/login/carteiras_contratos_consultar_agentes" />
+	<input type="hidden" id="carteiras_contratos_consultar_filtrar" value="https://comproterreno.com.br/login/carteiras_contratos_consultar_filtrar" />
+	<input type="hidden" id="acoes_consultar2" value="https://comproterreno.com.br/login/acoes_consultar2" />
+	<input type="hidden" id="financeiro_lotes_salvar" value="https://comproterreno.com.br/login/financeiro_lotes_salvar" />
+	<input type="hidden" id="contas_bancarias_empresas" value="https://comproterreno.com.br/login/contas_bancarias_empresas" />
+	<input type="hidden" id="financeiro_lotes_consultar" value="https://comproterreno.com.br/login/financeiro_lotes_consultar" />
+	<input type="hidden" id="perfis_permissoes_adicionar" value="https://comproterreno.com.br/login/perfis_permissoes_adicionar" />
+	<input type="hidden" id="perfis_permissoes_incluir" value="https://comproterreno.com.br/login/perfis_permissoes_incluir" />
+	<input type="hidden" id="hddPropostasVagasEmpreendimentos" value="https://comproterreno.com.br/login/propostas_vagas_empreendimentos" />
+	<input type="hidden" id="propostas_vagas_empreendimentos_salvar" value="https://comproterreno.com.br/login/propostas_vagas_empreendimentos_salvar" />
+	<input type="hidden" id="carteiras_contratos_propostas_vagas" value="https://comproterreno.com.br/login/carteiras_contratos_propostas_vagas" />
+	<input type="hidden" id="carteiras_contratos_novas_vagas" value="https://comproterreno.com.br/login/carteiras_contratos_novas_vagas" />
+	<input type="hidden" id="carteiras_contratos_salvar_vagas" value="https://comproterreno.com.br/login/carteiras_contratos_salvar_vagas" />
+	<input type="hidden" id="contas_pagar_log_consultar" value="https://comproterreno.com.br/login/contas_pagar_log_consultar" />
+	<input type="hidden" id="carteiras_remessas_consultar" value="https://comproterreno.com.br/login/carteiras_remessas_consultar" />
+	<input type="hidden" id="carteiras_remessas_adicionar" value="https://comproterreno.com.br/login/carteiras_remessas_adicionar" />
+	<input type="hidden" id="carteiras_remessas_consultar_dados" value="https://comproterreno.com.br/login/carteiras_remessas_consultar_dados" />
+	<input type="hidden" id="carteiras_arquivo_retorno_salvar" value="https://comproterreno.com.br/login/carteiras_arquivo_retorno_salvar" />
+	<input type="hidden" id="carteiras_arquivo_retorno_consultar" value="https://comproterreno.com.br/login/carteiras_arquivo_retorno_consultar" />
+	<input type="hidden" id="contratos_fluxos_salvar" value="https://comproterreno.com.br/login/contratos_fluxos_salvar" />
+	<input type="hidden" id="cadastros_auxiliares_adicionar_ordem" value="https://comproterreno.com.br/login/cadastros_auxiliares_adicionar_ordem" />
+	<input type="hidden" id="cadastros_auxiliares_salvar_ordem" value="https://comproterreno.com.br/login/cadastros_auxiliares_salvar_ordem" />
+	<input type="hidden" id="orcamentos_plano_financeiro_por_item_orcamento" value="https://comproterreno.com.br/login/orcamentos_plano_financeiro_por_item_orcamento" />
+	<input type="hidden" id="contas_pagar_parcelas_atualizar" value="https://comproterreno.com.br/login/contas_pagar_parcelas_atualizar" />
+	<input type="hidden" id="propostas_em_tempo_adicionar" value="https://comproterreno.com.br/login/propostas_em_tempo_adicionar" />
+	<input type="hidden" id="propostas_em_tempo_salvar" value="https://comproterreno.com.br/login/propostas_em_tempo_salvar" />
+	<input type="hidden" id="carteiras_contratos_distrato_salvar" value="https://comproterreno.com.br/login/carteiras_contratos_distrato_salvar" />
+	<input type="hidden" id="insumos_historico" value="https://comproterreno.com.br/login/insumos_historico" />
+	<input type="hidden" id="entidades_contas_bancarias_consultar" value="https://comproterreno.com.br/login/entidades_contas_bancarias_consultar" />
+	<input type="hidden" id="entidades_contas_bancarias_editar" value="https://comproterreno.com.br/login/entidades_contas_bancarias_editar" />
+	<input type="hidden" id="hddFlagFinanceiroFormaPagamentoDARF" value="5" />
+	<input type="hidden" id="hddFlagFinanceiroFormaPagamentoCNPJRET" value="15" />
+	<input type="hidden" id="hddFlagFinanceiroFormaPagamentoDARFSem" value="11" />
+	<input type="hidden" id="hddFlagFinanceiroFormaPagamentoFGTS" value="9" />
+	<input type="hidden" id="hddFlagFinanceiroFormaPagamentoPIX" value="16" />
+	<input type="hidden" id="carteiras_contratos_consultar_associativo" value="https://comproterreno.com.br/login/carteiras_contratos_consultar_associativo" />
+	<input type="hidden" id="mensagens_notificacoes_consultar" value="https://comproterreno.com.br/login/mensagens_notificacoes_consultar" />
+	<input type="hidden" id="carteiras_contratos_atualizar_associativo" value="https://comproterreno.com.br/login/carteiras_contratos_atualizar_associativo" />
+	<input type="hidden" id="carteiras_contratos_upload_consultar" value="https://comproterreno.com.br/login/carteiras_contratos_upload_consultar" />
+	<input type="hidden" id="hiperdados_empreendimentos_campos_anexos" value="https://comproterreno.com.br/login/hiperdados_empreendimentos_campos_anexos" />
+	<input type="hidden" id="contas_pagar_agrupamentos_pagamentos_novo" value="https://comproterreno.com.br/login/contas_pagar_agrupamentos_pagamentos_novo" />
+	<input type="hidden" id="contas_pagar_agrupamentos_pagamentos_salvar" value="https://comproterreno.com.br/login/contas_pagar_agrupamentos_pagamentos_salvar" />
+	<input type="hidden" id="contas_pagar_agrupamentos_pagamentos_consultar" value="https://comproterreno.com.br/login/contas_pagar_agrupamentos_pagamentos_consultar" />
+	<input type="hidden" id="contas_pagar_agrupamentos_pagamentos_gerar" value="https://comproterreno.com.br/login/contas_pagar_agrupamentos_pagamentos_gerar" />
+	<input type="hidden" id="documentos_upload_xml" value="https://comproterreno.com.br/login/documentos_upload_xml" />
+	<input type="hidden" id="documentos_importar_xml" value="https://comproterreno.com.br/login/documentos_importar_xml" />
+	<input type="hidden" id="documentos_salvar_xml" value="https://comproterreno.com.br/login/documentos_salvar_xml" />
+	<input type="hidden" id="insumos_pesquisar_html" value="https://comproterreno.com.br/login/insumos_pesquisar_html" />
+	<input type="hidden" id="insumos_consultar_html" value="https://comproterreno.com.br/login/insumos_consultar_html" />
+	<input type="hidden" id="insumos_selecionar_html" value="https://comproterreno.com.br/login/insumos_selecionar_html" />
+	<input type="hidden" id="contas_pagar_upload_xml" value="https://comproterreno.com.br/login/contas_pagar_upload_xml" />
+	<input type="hidden" id="contas_pagar_importar_xml" value="https://comproterreno.com.br/login/contas_pagar_importar_xml" />
+	<input type="hidden" id="contas_pagar_salvar_xml" value="https://comproterreno.com.br/login/contas_pagar_salvar_xml" />
+	<input type="hidden" id="perfis_get_rotas_modulos" value="https://comproterreno.com.br/login/perfis_get_rotas_modulos" />
+	<input type="hidden" id="perfis_get_acoes_rotas_modulos" value="https://comproterreno.com.br/login/perfis_get_acoes_rotas_modulos" />
+	<input type="hidden" id="perfis_consultar" value="https://comproterreno.com.br/login/perfis_consultar" />
+	<input type="hidden" id="planejamentos_consultar" value="https://comproterreno.com.br/login/planejamentos_consultar" />
+	<input type="hidden" id="planejamentos_itens" value="https://comproterreno.com.br/login/planejamentos_itens" />
+	<input type="hidden" id="planejamentos_salvar" value="https://comproterreno.com.br/login/planejamentos_salvar" />
+	<input type="hidden" id="planejamentos_atualizar" value="https://comproterreno.com.br/login/planejamentos_atualizar" />
+	<input type="hidden" id="planejamentos_adicionar" value="https://comproterreno.com.br/login/planejamentos_adicionar" />
+	<input type="hidden" id="planejamentos_adicionar_grupo" value="https://comproterreno.com.br/login/planejamentos_adicionar_grupo" />
+	<input type="hidden" id="planejamentos_atualizar_grupo" value="https://comproterreno.com.br/login/planejamentos_atualizar_grupo" />
+	<input type="hidden" id="planejamentos_medicoes_consultar" value="https://comproterreno.com.br/login/planejamentos_medicoes_consultar" />
+	<input type="hidden" id="planejamentos_medicoes_salvar" value="https://comproterreno.com.br/login/planejamentos_medicoes_salvar" />
+	<input type="hidden" id="planejamentos_medicoes_itens" value="https://comproterreno.com.br/login/planejamentos_medicoes_itens" />
+	<input type="hidden" id="planejamentos_medicoes_adicionar" value="https://comproterreno.com.br/login/planejamentos_medicoes_adicionar" />
+	<input type="hidden" id="planejamentos_medicoes_atualizar" value="https://comproterreno.com.br/login/planejamentos_medicoes_atualizar" />
+	<input type="hidden" id="planejamentos_medicoes_adicionar_grupo" value="https://comproterreno.com.br/login/planejamentos_medicoes_adicionar_grupo" />
+	<input type="hidden" id="planejamentos_medicoes_atualizar_grupo" value="https://comproterreno.com.br/login/planejamentos_medicoes_atualizar_grupo" />
+	<input type="hidden" id="financeiro_arquivo_retorno_consultar" value="https://comproterreno.com.br/login/financeiro_arquivo_retorno_consultar" />
+	<input type="hidden" id="financeiro_arquivo_retorno_salvar" value="https://comproterreno.com.br/login/financeiro_arquivo_retorno_salvar" />
+	<input type="hidden" id="contas_pagar_parcelas_multiplos" value="https://comproterreno.com.br/login/contas_pagar_parcelas_multiplos" />
+	<input type="hidden" id="carteiras_contratos_parcelas_filtrar_baixas" value="https://comproterreno.com.br/login/carteiras_contratos_parcelas_filtrar_baixas" />
+	<input type="hidden" id="estudos_gerar_imagens" value="https://comproterreno.com.br/login/estudos_gerar_imagens" />
+	<input type="hidden" id="contas_pagar_parcelas_calcular" value="https://comproterreno.com.br/login/contas_pagar_parcelas_calcular" />
+	<input type="hidden" id="documentos_gerar_titulo_salvar" value="https://comproterreno.com.br/login/documentos_gerar_titulo_salvar" />
+	<input type="hidden" id="documentos_gerar_titulo_visualizar_parcelas" value="https://comproterreno.com.br/login/documentos_gerar_titulo_visualizar_parcelas" />
+	<input type="hidden" id="documentos_gerar_titulo_forma_pagamento" value="https://comproterreno.com.br/login/documentos_gerar_titulo_forma_pagamento" />
+	<input type="hidden" id="carteiras_contratos_atualizar_observacoes" value="https://comproterreno.com.br/login/carteiras_contratos_atualizar_observacoes" />
+	<input type="hidden" id="carteiras_contratos_calcular_juros_multas" value="https://comproterreno.com.br/login/carteiras_contratos_calcular_juros_multas" />
+	<input type="hidden" id="terrenos_zoneamento" value="https://comproterreno.com.br/login/terrenos_zoneamento" />
+	<input type="hidden" id="terrenos_zoneamento_poligono" value="https://comproterreno.com.br/login/terrenos_zoneamento_poligono" />
+	<input type="hidden" id="terrenos_poligono_converter" value="https://comproterreno.com.br/login/terrenos_poligono_converter" />
+	<input type="hidden" id="condicoes_pagamentos_salvar" value="https://comproterreno.com.br/login/condicoes_pagamentos_salvar" />
+	<input type="hidden" id="condicoes_pagamentos_parcelas" value="https://comproterreno.com.br/login/condicoes_pagamentos_parcelas" />
+	<input type="hidden" id="solicitacoes_data_previsa_atualizar" value="https://comproterreno.com.br/login/solicitacoes_data_previsa_atualizar" />
+	<input type="hidden" id="itens_pedidos_data_entrega_atualizar" value="https://comproterreno.com.br/login/itens_pedidos_data_entrega_atualizar" />
+	<input type="hidden" id="contratos_data_previsao_atualizar" value="https://comproterreno.com.br/login/contratos_data_previsao_atualizar" />
+	<input type="hidden" id="contas_pagar_salvar" value="https://comproterreno.com.br/login/contas_pagar_salvar" />
+	<input type="hidden" id="terrenos_distritos" value="https://comproterreno.com.br/login/terrenos_distritos" />
+	<input type="hidden" id="enderecos_salvar" value="https://comproterreno.com.br/login/enderecos_salvar" />
+	<input type="hidden" id="enderecos_consultar" value="https://comproterreno.com.br/login/enderecos_consultar" />
+	<input type="hidden" id="enderecos_pesquisar" value="https://comproterreno.com.br/login/enderecos_pesquisar" />
+	<input type="hidden" id="enderecos_pesquisar_consultar" value="https://comproterreno.com.br/login/enderecos_pesquisar_consultar" />
+	<input type="hidden" id="entidades_empreendimentos" value="https://comproterreno.com.br/login/entidades_empreendimentos" />
+	<input type="hidden" id="propostas_entidades_multiplos" value="https://comproterreno.com.br/login/propostas_entidades_multiplos" />
+	<input type="hidden" id="propostas_entidades_multiplos_filtrar" value="https://comproterreno.com.br/login/propostas_entidades_multiplos_filtrar" />
+	<input type="hidden" id="propostas_entidades_multiplos_nova" value="https://comproterreno.com.br/login/propostas_entidades_multiplos_nova" />
+	<input type="hidden" id="propostas_entidades_multiplos_pesquisar" value="https://comproterreno.com.br/login/propostas_entidades_multiplos_pesquisar" />
+	<input type="hidden" id="propostas_entidades_multiplos_consultar" value="https://comproterreno.com.br/login/propostas_entidades_multiplos_consultar" />
+	<input type="hidden" id="propostas_entidades_multiplos_salvar" value="https://comproterreno.com.br/login/propostas_entidades_multiplos_salvar" />
+	<input type="hidden" id="grupos_empresas_parametros_gerais" value="https://comproterreno.com.br/login/grupos_empresas_parametros_gerais" />
+	<input type="hidden" id="grupos_empresas_parametros_financeiro" value="https://comproterreno.com.br/login/grupos_empresas_parametros_financeiro" />
+	<input type="hidden" id="grupos_empresas_parametros_carteira" value="https://comproterreno.com.br/login/grupos_empresas_parametros_carteira" />
+	<input type="hidden" id="grupos_empresas_parametros_compras" value="https://comproterreno.com.br/login/grupos_empresas_parametros_compras" />
+	<input type="hidden" id="hiperdados_empreendimentos_salvar" value="https://comproterreno.com.br/login/hiperdados_empreendimentos_salvar" />
+	<input type="hidden" id="hiperdados_empreendimentos_campos_tabelas" value="https://comproterreno.com.br/login/hiperdados_empreendimentos_campos_tabelas" />
+	<input type="hidden" id="hiperdados_empreendimentos_validar_datas" value="https://comproterreno.com.br/login/hiperdados_empreendimentos_validar_datas" />
+	<input type="hidden" id="relatorios_carteira_unidades_clientes" value="https://comproterreno.com.br/login/relatorios_carteira_unidades_clientes" />
+	<input type="hidden" id="entidades_anexos_consultar" value="https://comproterreno.com.br/login/entidades_anexos_consultar" />
+	<input type="hidden" id="orcamentos_itens" value="https://comproterreno.com.br/login/orcamentos_itens" />
+	<input type="hidden" id="solicitacoes_calcular_apropriacoes_percentual" value="https://comproterreno.com.br/login/solicitacoes_calcular_apropriacoes_percentual" />
+	<input type="hidden" id="solicitacoes_salvar_apropriacoes_multiplos" value="https://comproterreno.com.br/login/solicitacoes_salvar_apropriacoes_multiplos" />
+	<input type="hidden" id="perfis_salvar_alcadas_compras" value="https://comproterreno.com.br/login/perfis_salvar_alcadas_compras" />
+	<input type="hidden" id="perfis_salvar_alcadas_financeiro" value="https://comproterreno.com.br/login/perfis_salvar_alcadas_financeiro" />
+	<input type="hidden" id="relatorios_planejamento_visualizar_comparativo" value="https://comproterreno.com.br/login/relatorios_planejamento_visualizar_comparativo" />
+	<input type="hidden" id="compras_adiantamentos_salvar" value="https://comproterreno.com.br/login/compras_adiantamentos_salvar" />
+	<input type="hidden" id="compras_adiantamentos_anexos_salvar" value="https://comproterreno.com.br/login/compras_adiantamentos_anexos_salvar" />
+	<input type="hidden" id="compras_adiantamentos_anexos_consultar" value="https://comproterreno.com.br/login/compras_adiantamentos_anexos_consultar	" />
+	<input type="hidden" id="compras_adiantamentos_gerar_titulo_salvar" value="https://comproterreno.com.br/login/compras_adiantamentos_gerar_titulo_salvar" />
+	<input type="hidden" id="financeiro_previsoes_salvar" value="https://comproterreno.com.br/login/financeiro_previsoes_salvar" />
+	<input type="hidden" id="financeiro_previsoes_consultar" value="https://comproterreno.com.br/login/financeiro_previsoes_consultar" />
+	<input type="hidden" id="financeiro_previsoes_adicionar_apropriacoes" value="https://comproterreno.com.br/login/financeiro_previsoes_adicionar_apropriacoes" />
+	<input type="hidden" id="financeiro_previsoes_calcular_apropriacoes" value="https://comproterreno.com.br/login/financeiro_previsoes_calcular_apropriacoes" />
+	<input type="hidden" id="financeiro_previsoes_consultar_apropriacoes" value="https://comproterreno.com.br/login/financeiro_previsoes_consultar_apropriacoes" />
+	<input type="hidden" id="financeiro_previsoes_salvar_apropriacoes" value="https://comproterreno.com.br/login/financeiro_previsoes_salvar_apropriacoes" />
+	<input type="hidden" id="financeiro_previsoes_editar_apropriacoes" value="https://comproterreno.com.br/login/financeiro_previsoes_editar_apropriacoes" />
+	<input type="hidden" id="financeiro_previsoes_adicionar_anexos" value="https://comproterreno.com.br/login/financeiro_previsoes_adicionar_anexos" />
+	<input type="hidden" id="financeiro_previsoes_salvar_anexos" value="https://comproterreno.com.br/login/financeiro_previsoes_salvar_anexos" />
+	<input type="hidden" id="financeiro_previsoes_consultar_anexos" value="https://comproterreno.com.br/login/financeiro_previsoes_consultar_anexos" />
+	<input type="hidden" id="financeiro_previsoes_datas" value="https://comproterreno.com.br/login/financeiro_previsoes_datas" />
+	<input type="hidden" id="contas_pagar_adiantamentos_consultar" value="https://comproterreno.com.br/login/contas_pagar_adiantamentos_consultar" />
+	<input type="hidden" id="contas_pagar_filtrar_parcelas" value="https://comproterreno.com.br/login/contas_pagar_filtrar_parcelas" />
+	<input type="hidden" id="contas_pagar_consultar_parcelas" value="https://comproterreno.com.br/login/contas_pagar_consultar_parcelas" />
+	<input type="hidden" id="contas_pagar_selecionar_parcelas" value="https://comproterreno.com.br/login/contas_pagar_selecionar_parcelas" />
+	<input type="hidden" id="contas_pagar_adiantamentos_parcelas_salvar" value="https://comproterreno.com.br/login/contas_pagar_adiantamentos_parcelas_salvar" />
+	<input type="hidden" id="compras_contratos_aditivos_consultar" value="https://comproterreno.com.br/login/compras_contratos_aditivos_consultar" />
+	<input type="hidden" id="compras_contratos_aditivos_salvar" value="https://comproterreno.com.br/login/compras_contratos_aditivos_salvar" />
+	<input type="hidden" id="compras_contratos_aditivos_consultar_itens" value="https://comproterreno.com.br/login/compras_contratos_aditivos_consultar_itens" />
+	<input type="hidden" id="compras_contratos_aditivos_salvar_itens" value="https://comproterreno.com.br/login/compras_contratos_aditivos_salvar_itens" />
+	<input type="hidden" id="compras_contratos_aditivos_calcular_itens" value="https://comproterreno.com.br/login/compras_contratos_aditivos_calcular_itens" />
+	<input type="hidden" id="compras_contratos_aditivos_apropriacoes_consultar" value="https://comproterreno.com.br/login/compras_contratos_aditivos_apropriacoes_consultar" />
+	<input type="hidden" id="compras_contratos_aditivos_apropriacoes_calcular" value="https://comproterreno.com.br/login/compras_contratos_aditivos_apropriacoes_calcular" />
+	<input type="hidden" id="compras_contratos_aditivos_apropriacoes_salvar" value="https://comproterreno.com.br/login/compras_contratos_aditivos_apropriacoes_salvar" />
+	<input type="hidden" id="movimentacoes_anexos_salvar" value="https://comproterreno.com.br/login/movimentacoes_anexos_salvar" />
+	<input type="hidden" id="movimentacoes_anexos_consultar" value="https://comproterreno.com.br/login/movimentacoes_anexos_consultar" />
+	<input type="hidden" id="propostas_fluxos_previsao_consultar" value="https://comproterreno.com.br/login/propostas_fluxos_previsao_consultar" />
+	<input type="hidden" id="empreendimentos_planos_viabilidades_consultar" value="https://comproterreno.com.br/login/empreendimentos_planos_viabilidades_consultar" />
+	<input type="hidden" id="empreendimentos_planos_viabilidades_salvar" value="https://comproterreno.com.br/login/empreendimentos_planos_viabilidades_salvar" />
+	<input type="hidden" id="empreendimentos_planos_viabilidades_carregando_itens" value="https://comproterreno.com.br/login/empreendimentos_planos_viabilidades_carregando_itens" />
+	<input type="hidden" id="entidades_observacoes_consultar" value="https://comproterreno.com.br/login/entidades_observacoes_consultar" />
+	<input type="hidden" id="movimentacoes_copiar" value="https://comproterreno.com.br/login/movimentacoes_copiar" />
+	<input type="hidden" id="planejamento_composicoes_consultar" value="https://comproterreno.com.br/login/planejamento_composicoes_consultar" />
+	<input type="hidden" id="planejamento_composicoes_salvar" value="https://comproterreno.com.br/login/planejamento_composicoes_salvar" />
+	<input type="hidden" id="planejamento_composicoes_itens" value="https://comproterreno.com.br/login/planejamento_composicoes_itens" />
+	<input type="hidden" id="planejamento_composicoes_consultar_itens" value="https://comproterreno.com.br/login/planejamento_composicoes_consultar_itens" />
+	<input type="hidden" id="planejamento_composicoes_salvar_itens" value="https://comproterreno.com.br/login/planejamento_composicoes_salvar_itens" />
+	<input type="hidden" id="planejamento_composicoes_atualizar_itens" value="https://comproterreno.com.br/login/planejamento_composicoes_atualizar_itens" />
+	<input type="hidden" id="planejamento_composicoes_importar" value="https://comproterreno.com.br/login/planejamento_composicoes_importar" />
+	<input type="hidden" id="insumos_filtrar_novo" value="https://comproterreno.com.br/login/insumos_filtrar_novo" />
+	<input type="hidden" id="insumos_consultar_novo" value="https://comproterreno.com.br/login/insumos_consultar_novo" />
+	<input type="hidden" id="planejamento_composicoes_adicionar_insumos" value="https://comproterreno.com.br/login/planejamento_composicoes_adicionar_insumos" />
+	<input type="hidden" id="planejamento_composicoes_cancelar_insumos" value="https://comproterreno.com.br/login/planejamento_composicoes_cancelar_insumos" />
+	<input type="hidden" id="planejamento_composicoes_atualizar_itens_valores" value="https://comproterreno.com.br/login/planejamento_composicoes_atualizar_itens_valores" />
+	<input type="hidden" id="planejamento_composicoes_orcamentos_salvar" value="https://comproterreno.com.br/login/planejamento_composicoes_orcamentos_salvar" />
+	<input type="hidden" id="grupos_empresas_cidades_estados" value="https://comproterreno.com.br/login/grupos_empresas_cidades_estados" />
+	<input type="hidden" id="empresas_salvar_investidores" value="https://comproterreno.com.br/login/empresas_salvar_investidores" />
+	<input type="hidden" id="empresas_investidores_percentual" value="https://comproterreno.com.br/login/empresas_investidores_percentual" />
+	<input type="hidden" id="empresas_consultar_investidores" value="https://comproterreno.com.br/login/empresas_consultar_investidores" />
+	<input type="hidden" id="controladoria_resultado_consultar" value="https://comproterreno.com.br/login/controladoria_resultado_consultar" />
+	<input type="hidden" id="compras_adiantamentos_consultar" value="https://comproterreno.com.br/login/compras_adiantamentos_consultar" />
+	<input type="hidden" id="financeiro_contas_receber_consultar" value="https://comproterreno.com.br/login/financeiro_contas_receber_consultar" />
+	<input type="hidden" id="financeiro_contas_receber_adicionar_linha_item" value="https://comproterreno.com.br/login/financeiro_contas_receber_adicionar_linha_item" />
+	<input type="hidden" id="financeiro_contas_receber_calcular_linha_item" value="https://comproterreno.com.br/login/financeiro_contas_receber_calcular_linha_item" />
+	<input type="hidden" id="financeiro_contas_receber_quantidade_parcelas" value="https://comproterreno.com.br/login/financeiro_contas_receber_quantidade_parcelas" />
+	<input type="hidden" id="financeiro_contas_receber_adicionar_linha_apropriacoes" value="https://comproterreno.com.br/login/financeiro_contas_receber_adicionar_linha_apropriacoes" />
+	<input type="hidden" id="financeiro_contas_receber_calcular_linha_apropriacoes" value="https://comproterreno.com.br/login/financeiro_contas_receber_calcular_linha_apropriacoes" />
+	<input type="hidden" id="financeiro_contas_receber_salvar" value="https://comproterreno.com.br/login/financeiro_contas_receber_salvar" />
+	<input type="hidden" id="compras_adiantamentos_fornecedor_aberto" value="https://comproterreno.com.br/login/compras_adiantamentos_fornecedor_aberto" />
+	<input type="hidden" id="condicoes_pagamentos_novo_rapido" value="https://comproterreno.com.br/login/condicoes_pagamentos_novo_rapido" />
+	<input type="hidden" id="condicoes_pagamentos_salvar_rapido" value="https://comproterreno.com.br/login/condicoes_pagamentos_salvar_rapido" />
+	<input type="hidden" id="condicoes_pagamentos_atualizar" value="https://comproterreno.com.br/login/condicoes_pagamentos_atualizar" />
+	<input type="hidden" id="contas_pagar_gerar_parcelas_visualizar" value="https://comproterreno.com.br/login/contas_pagar_gerar_parcelas_visualizar" />
+	<input type="hidden" id="contas_pagar_gerar_parcelas_visualizar_devolucao" value="https://comproterreno.com.br/login/contas_pagar_gerar_parcelas_visualizar_devolucao" />
+	<input type="hidden" id="contas_pagar_gerar_parcelas_forma_pagamento" value="https://comproterreno.com.br/login/contas_pagar_gerar_parcelas_forma_pagamento" />
+	<input type="hidden" id="contas_pagar_gerar_titulo_salvar" value="https://comproterreno.com.br/login/contas_pagar_gerar_titulo_salvar" />
+	<input type="hidden" id="grupos_empresas_interativo" value="https://comproterreno.com.br/login/grupos_empresas_interativo" />
+	<input type="hidden" id="grupos_empresas_interativo_dados" value="https://comproterreno.com.br/login/grupos_empresas_interativo_dados" />
+	<input type="hidden" id="orcamentos_atualizar_resultado" value="https://comproterreno.com.br/login/orcamentos_atualizar_resultado" />
+	<input type="hidden" id="orcamentos_atualizar_viabilidades" value="https://comproterreno.com.br/login/orcamentos_atualizar_viabilidades" />
+	<input type="hidden" id="empreendimentos_velocidade_vendas_salvar" value="https://comproterreno.com.br/login/empreendimentos_velocidade_vendas_salvar" />
+	<input type="hidden" id="empreendimentos_velocidade_vendas_carregar" value="https://comproterreno.com.br/login/empreendimentos_velocidade_vendas_carregar" />
+	<input type="hidden" id="empreendimentos_velocidade_vendas_gerar" value="https://comproterreno.com.br/login/empreendimentos_velocidade_vendas_gerar" />
+	<input type="hidden" id="empreendimentos_velocidade_vendas_adicionar_data" value="https://comproterreno.com.br/login/empreendimentos_velocidade_vendas_adicionar_data" />
+	<input type="hidden" id="terrenos_formulario_modal_campo" value="https://comproterreno.com.br/login/terrenos_formulario_modal_campo" />
+	<input type="hidden" id="terrenos_formulario_salvar_campo" value="https://comproterreno.com.br/login/terrenos_formulario_salvar_campo" />
+	<input type="hidden" id="rotas_favoritos" value="https://comproterreno.com.br/login/rotas_favoritos" />
+	<input type="hidden" id="orcamentos_itens_por_codigo" value="https://comproterreno.com.br/login/orcamentos_itens_por_codigo" />
+	<input type="hidden" id="cotacoes_adicionar_salvar" value="https://comproterreno.com.br/login/cotacoes_adicionar_salvar" />
+	<input type="hidden" id="contabilidade_planos_financeiros_salvar" value="https://comproterreno.com.br/login/contabilidade_planos_financeiros_salvar" />
+	<input type="hidden" id="contabilidade_exportacao_consultar" value="https://comproterreno.com.br/login/contabilidade_exportacao_consultar" />
+	<input type="hidden" id="contabilidade_exportacao_contas_bancarias" value="https://comproterreno.com.br/login/contabilidade_exportacao_contas_bancarias" />
+	<input type="hidden" id="contabilidade_plano_contabil_consultar" value="https://comproterreno.com.br/login/contabilidade_plano_contabil_consultar" />
+	<input type="hidden" id="contabilidade_plano_contabil_salvar" value="https://comproterreno.com.br/login/contabilidade_plano_contabil_salvar" />
+	<input type="hidden" id="contabilidade_plano_contabil_salvar_filho" value="https://comproterreno.com.br/login/contabilidade_plano_contabil_salvar_filho" />
+	<input type="hidden" id="contabilidade_movimentacoes_consultar" value="https://comproterreno.com.br/login/contabilidade_movimentacoes_consultar" />
+	<input type="hidden" id="contabilidade_movimentacoes_salvar" value="https://comproterreno.com.br/login/contabilidade_movimentacoes_salvar" />
+	<input type="hidden" id="contabilidade_planos_financeiros_consultar" value="https://comproterreno.com.br/login/contabilidade_planos_financeiros_consultar" />
+	<input type="hidden" id="contabilidade_planos_financeiros_salvar2" value="https://comproterreno.com.br/login/contabilidade_planos_financeiros_salvar2" />
+	<input type="hidden" id="estruturas_planos_viabilidades_vinculos" value="https://comproterreno.com.br/login/estruturas_planos_viabilidades_vinculos" />
+	<input type="hidden" id="carteiras_contratos_cessao_direitos_salvar" value="https://comproterreno.com.br/login/carteiras_contratos_cessao_direitos_salvar" />
+	<input type="hidden" id="orcamentos_atualizar_plano_viabilidade" value="https://comproterreno.com.br/login/orcamentos_atualizar_plano_viabilidade" />
+	<input type="hidden" id="faq_perguntas_adicionar_respostas" value="https://comproterreno.com.br/login/faq_perguntas_adicionar_respostas" />
+	<input type="hidden" id="faq_perguntas_respostas_arquivos" value="https://comproterreno.com.br/login/faq_perguntas_respostas_arquivos" />
+	<input type="hidden" id="faq_perguntas_respostas_consultar" value="https://comproterreno.com.br/login/faq_perguntas_respostas_consultar" />
+	<input type="hidden" id="faq_perguntas_respostas_salvar" value="https://comproterreno.com.br/login/faq_perguntas_respostas_salvar" />
+	<input type="hidden" id="faq_perguntas_consultar" value="https://comproterreno.com.br/login/faq_perguntas_consultar" />
+	<input type="hidden" id="faq_perguntas_arquivos" value="https://comproterreno.com.br/login/faq_perguntas_arquivos" />
+	<input type="hidden" id="faq_perguntas_salvar" value="https://comproterreno.com.br/login/faq_perguntas_salvar" />
+	<input type="hidden" id="faq_perguntas_arquivos_consultar" value="https://comproterreno.com.br/login/faq_perguntas_arquivos_consultar" />
+	<input type="hidden" id="faq_perguntas_rotas_modulo" value="https://comproterreno.com.br/login/faq_perguntas_rotas_modulo" />
+	<input type="hidden" id="conta_contabil_integracao_adicionar" value="https://comproterreno.com.br/login/conta_contabil_integracao_adicionar" />
+	<input type="hidden" id="conta_contabil_integracao_salvar" value="https://comproterreno.com.br/login/conta_contabil_integracao_salvar" />
+	<input type="hidden" id="carteira_calculo_antecipacao_gerar" value="https://comproterreno.com.br/login/carteira_calculo_antecipacao_gerar" />
+	<input type="hidden" id="carteira_calculo_antecipacao_calcular" value="https://comproterreno.com.br/login/carteira_calculo_antecipacao_calcular" />
+	<input type="hidden" id="contas_pagar_salvar_anexo" value="https://comproterreno.com.br/login/contas_pagar_salvar_anexo" />
+	<input type="hidden" id="carteira_calculo_antecipacao_consultar" value="https://comproterreno.com.br/login/carteira_calculo_antecipacao_consultar" />
+	<input type="hidden" id="carteira_calculo_antecipacao_valores" value="https://comproterreno.com.br/login/carteira_calculo_antecipacao_valores" />
+	<input type="hidden" id="hiperdados_inconporadoras_consultar" value="https://comproterreno.com.br/login/hiperdados_inconporadoras_consultar" />
+	<input type="hidden" id="hiperdados_cidades_consultar" value="https://comproterreno.com.br/login/hiperdados_cidades_consultar" />
+	<input type="hidden" id="hiperdados_bairros_consultar" value="https://comproterreno.com.br/login/hiperdados_bairros_consultar" />
+	<input type="hidden" id="hiperdados_construtoras_consultar" value="https://comproterreno.com.br/login/hiperdados_construtoras_consultar" />
+	<input type="hidden" id="hiperdados_vendedores_consultar" value="https://comproterreno.com.br/login/hiperdados_vendedores_consultar" />
+	<input type="hidden" id="contas_pagar_baixa_exibir_arquivos" value="https://comproterreno.com.br/login/contas_pagar_baixa_exibir_arquivos" />
+	<input type="hidden" id="financeiro_contas_receber_parcelas" value="https://comproterreno.com.br/login/financeiro_contas_receber_parcelas" />
+	<input type="hidden" id="financeiro_contas_receber_calcular_baixa" value="https://comproterreno.com.br/login/financeiro_contas_receber_calcular_baixa" />
+	<input type="hidden" id="financeiro_contas_receber_baixar" value="https://comproterreno.com.br/login/financeiro_contas_receber_baixar" />
+	<input type="hidden" id="financeiro_contas_receber_gerar_parcelas_visualizar" value="https://comproterreno.com.br/login/financeiro_contas_receber_gerar_parcelas_visualizar" />
+	<input type="hidden" id="financeiro_contas_receber_gerar_titulo_salvar" value="https://comproterreno.com.br/login/financeiro_contas_receber_gerar_titulo_salvar" />
+	<input type="hidden" id="financeiro_contas_receber_adicionar_anexos" value="https://comproterreno.com.br/login/financeiro_contas_receber_adicionar_anexos" />
+	<input type="hidden" id="financeiro_contas_receber_salvar_anexos" value="https://comproterreno.com.br/login/financeiro_contas_receber_salvar_anexos" />
+	<input type="hidden" id="financeiro_contas_receber_consultar_anexos" value="https://comproterreno.com.br/login/financeiro_contas_receber_consultar_anexos" />
+	<input type="hidden" id="hiperdados_empreendimentos_pesquisar_cep" value="https://comproterreno.com.br/login/hiperdados_empreendimentos_pesquisar_cep" />
+	<input type="hidden" id="hiperdados_inconporadoras_carregar" value="https://comproterreno.com.br/login/hiperdados_inconporadoras_carregar" />
+	<input type="hidden" id="hiperdados_construtoras_carregar" value="https://comproterreno.com.br/login/hiperdados_construtoras_carregar" />
+	<input type="hidden" id="hiperdados_vendedores_carregar" value="https://comproterreno.com.br/login/hiperdados_vendedores_carregar" />
+	<input type="hidden" id="insumos_carregar" value="https://comproterreno.com.br/login/insumos_carregar" />
+	<input type="hidden" id="plano_financeiro_carregar" value="https://comproterreno.com.br/login/plano_financeiro_carregar" />
+	<input type="hidden" id="centro_custos_carregar" value="https://comproterreno.com.br/login/centro_custos_carregar" />
+	<input type="hidden" id="orcamentos_carregar" value="https://comproterreno.com.br/login/orcamentos_carregar" />
+	<input type="hidden" id="propostas_corretores_carregar" value="https://comproterreno.com.br/login/propostas_corretores_carregar" />
+	<input type="hidden" id="estruturas_carregar" value="https://comproterreno.com.br/login/estruturas_carregar" />
+	<input type="hidden" id="estruturas_unidades_carregar" value="https://comproterreno.com.br/login/estruturas_unidades_carregar" />
+	<input type="hidden" id="carteiras_contratos_carregar" value="https://comproterreno.com.br/login/carteiras_contratos_carregar" />
+	<input type="hidden" id="indexadores_carregar" value="https://comproterreno.com.br/login/indexadores_carregar" />
+	<input type="hidden" id="contas_bancarias_carregar" value="https://comproterreno.com.br/login/contas_bancarias_carregar" />
+	<input type="hidden" id="hiperdados_inconporadoras_uploads" value="https://comproterreno.com.br/login/hiperdados_inconporadoras_uploads" />
+	<input type="hidden" id="hiperdados_inconporadoras_consultar_upload" value="https://comproterreno.com.br/login/hiperdados_inconporadoras_consultar_upload" />
+	<input type="hidden" id="hiperdados_inconporadoras_exportar" value="https://comproterreno.com.br/login/hiperdados_inconporadoras_exportar" />
+	<input type="hidden" id="planejamentos_dashboard" value="https://comproterreno.com.br/login/planejamentos_dashboard" />
+	<input type="hidden" id="orcamentos_atualizar_descricao" value="https://comproterreno.com.br/login/orcamentos_atualizar_descricao" />
+	<input type="hidden" id="insumos_consultar" value="https://comproterreno.com.br/login/insumos_consultar" />
+	<input type="hidden" id="empresas_salvar_anexos" value="https://comproterreno.com.br/login/empresas_salvar_anexos" />
+	<input type="hidden" id="empresas_salvar" value="https://comproterreno.com.br/login/empresas_salvar" />
+	<input type="hidden" id="empresas_consultar_anexos" value="https://comproterreno.com.br/login/empresas_consultar_anexos" />
+	<input type="hidden" id="financeiro_contas_receber_calcular_parcelas" value="https://comproterreno.com.br/login/financeiro_contas_receber_calcular_parcelas" />
+	<input type="hidden" id="financeiro_contas_receber_atualizar_parcelas" value="https://comproterreno.com.br/login/financeiro_contas_receber_atualizar_parcelas" />
+	<input type="hidden" id="unidades_medidas_consultar" value="https://comproterreno.com.br/login/unidades_medidas_consultar" />
+	<input type="hidden" id="unidades_medidas_salvar" value="https://comproterreno.com.br/login/unidades_medidas_salvar" />
+	<input type="hidden" id="tipos_cadastros_auxiliares_consultar" value="https://comproterreno.com.br/login/tipos_cadastros_auxiliares_consultar" />
+	<input type="hidden" id="tipos_cadastros_auxiliares_salvar" value="https://comproterreno.com.br/login/tipos_cadastros_auxiliares_salvar" />
+	<input type="hidden" id="grupos_empresas_consultar" value="https://comproterreno.com.br/login/grupos_empresas_consultar" />
+	<input type="hidden" id="grupos_empresas_salvar" value="https://comproterreno.com.br/login/grupos_empresas_salvar" />
+	<input type="hidden" id="usuarios_grupos_empresas_perfis" value="https://comproterreno.com.br/login/usuarios_grupos_empresas_perfis" />
+	<input type="hidden" id="navegacoes_consultar" value="https://comproterreno.com.br/login/navegacoes_consultar" />
+	<input type="hidden" id="itens_apropriacoes_editar" value="https://comproterreno.com.br/login/itens_apropriacoes_editar" />
+	<input type="hidden" id="itens_pedidos_apropriacoes_editar" value="https://comproterreno.com.br/login/itens_pedidos_apropriacoes_editar" />
+	<input type="hidden" id="contratos_apropriacoes_editar" value="https://comproterreno.com.br/login/contratos_apropriacoes_editar" />
+	<input type="hidden" id="documentos_atualizar_observacoes" value="https://comproterreno.com.br/login/documentos_atualizar_observacoes" />
+	<input type="hidden" id="contas_pagar_recorrencia_salvar" value="https://comproterreno.com.br/login/contas_pagar_recorrencia_salvar" />
+	<input type="hidden" id="cadastros_auxiliares_globais_dados" value="https://comproterreno.com.br/login/cadastros_auxiliares_globais_dados" />
+	<input type="hidden" id="hddDataInvalida" value="Data inválida." />
+	<input type="hidden" id="hiperdados_empreendimentos_plantas_capa" value="https://comproterreno.com.br/login/hiperdados_empreendimentos_plantas_capa" />
+	<input type="hidden" id="sistemas_carregar_multiplos_anexos" value="https://comproterreno.com.br/login/sistemas_carregar_multiplos_anexos" />
+	<input type="hidden" id="sistemas_consultar_anexos" value="https://comproterreno.com.br/login/sistemas_consultar_anexos" />
+	<input type="hidden" id="sistemas_carregar_cidades_por_uf" value="https://comproterreno.com.br/login/sistemas_carregar_cidades_por_uf" />
+	<input type="hidden" id="empresas_x_estruturas" value="https://comproterreno.com.br/login/empresas_x_estruturas" />
+	<input type="hidden" id="verifica_terrenos_status" value="https://comproterreno.com.br/login/verifica_terrenos_status" />
+	<input type="hidden" id="terrenos_distratar" value="https://comproterreno.com.br/login/terrenos_distratar" />
+	<input type="hidden" id="modal_importar_planejamento" value="https://comproterreno.com.br/login/modal_importar_planejamento" />
+	<input type="hidden" id="carregar_tabela_grafico_status" value="https://comproterreno.com.br/login/carregar_tabela_grafico_status" />
+	<input type="hidden" id="exportar_tabela_grafico_status" value="https://comproterreno.com.br/login/exportar_tabela_grafico_status" />
+	<input type="hidden" id="condicoes_tabelas_vendas_valorm2_unidades_selecionadas" value="https://comproterreno.com.br/login/condicoes_tabelas_vendas_valorm2_unidades_selecionadas" />
+	<input type="hidden" id="terrenos_services" value="https://comproterreno.com.br/login/terrenos_services" />
+	<input type="hidden" id="terrenos_send_services" value="https://comproterreno.com.br/login/terrenos_send_services" />
+	<input type="hidden" id="hiperdados_empreendimentos_consultar_infraestrutura" value="https://comproterreno.com.br/login/hiperdados_empreendimentos_consultar_infraestrutura" />
+	<input type="hidden" id="hiperdados_empreendimentos_salvar_infraestrutura" value="https://comproterreno.com.br/login/hiperdados_empreendimentos_salvar_infraestrutura" />
+	<input type="hidden" id="pesquisar_lotes_terrenos" value="https://comproterreno.com.br/login/pesquisar_lotes_terrenos" />
+	<input type="hidden" id="novo_estudo_camadas" value="https://comproterreno.com.br/login/novo_estudo_camadas" />
+	<input type="hidden" id="carregar_tabela_grafico_terrenos_cadastrados" value="https://comproterreno.com.br/login/carregar_tabela_grafico_terrenos_cadastrados" />
+	<!-- cobrança fácil-->
+	<input type="hidden" id="cobranca_aderir_cobranca" value="https://comproterreno.com.br/login/cobranca_aderir_cobranca" />
+	<input type="hidden" id="cobranca_vincular_empresa" value="https://comproterreno.com.br/login/cobranca_vincular_empresa" />
+	<input type="hidden" id="cobranca_consulta_chave_pix_empresa" value="https://comproterreno.com.br/login/cobranca_consulta_chave_pix_empresa" />
+	<input type="hidden" id="cobranca_salvar_chave_pix_empresa" value="https://comproterreno.com.br/login/cobranca_salvar_chave_pix_empresa" />
+	<input type="hidden" id="cobranca_reenviar_boleto_email" value="https://comproterreno.com.br/login/cobranca_reenviar_boleto_email" />	
+
+	<input type="hidden" id="planejamentos_exportar_modelo" value="https://comproterreno.com.br/login/planejamentos_exportar_modelo" />
+	<input type="hidden" id="planejamentos_importar_modelo" value="https://comproterreno.com.br/login/planejamentos_importar_modelo" />
+	<input type="hidden" id="financeiro_contas_receber_calcular_imposto" value="https://comproterreno.com.br/login/financeiro_contas_receber_calcular_imposto" />
+	<input type="hidden" id="financeiro_contas_receber_verificar_valor_recebido" value="https://comproterreno.com.br/login/financeiro_contas_receber_verificar_valor_recebido" />
+	<input type="hidden" id="hiperdados_empreendimentos_unidades_historico" value="https://comproterreno.com.br/login/hiperdados_empreendimentos_unidades_historico" />
+	<input type="hidden" id="documentos_salvar_multiplos_itens" value="https://comproterreno.com.br/login/documentos_salvar_multiplos_itens" />
+	<input type="hidden" id="hiperdados_empreendimentos_vso" value="https://comproterreno.com.br/login/hiperdados_empreendimentos_vso" />
+	<input type="hidden" id="grupos_empresas_parametros_planejamento" value="https://comproterreno.com.br/login/grupos_empresas_parametros_planejamento" />
+	<input type="hidden" id="carregar_grafico_terrenos_comprados" value="https://comproterreno.com.br/login/carregar_grafico_terrenos_comprados" />
+	<input type="hidden" id="itens_pedidos_atualizar_entrega" value="https://comproterreno.com.br/login/itens_pedidos_atualizar_entrega" />
+	<input type="hidden" id="comercial_corretores_validar_dados" value="https://comproterreno.com.br/login/comercial_corretores_validar_dados" />
+	<input type="hidden" id="estruturas_mapa_empreendimento" value="https://comproterreno.com.br/login/estruturas_mapa_empreendimento" />
+	<input type="hidden" id="show_modal_cadastrar_mapa_empreendimento" value="https://comproterreno.com.br/login/show_modal_cadastrar_mapa_empreendimento" />
+	<input type="hidden" id="cadastrar_novo_mapa_empreendimento" value="https://comproterreno.com.br/login/cadastrar_novo_mapa_empreendimento" />
+	<input type="hidden" id="show_modal_exclusao_mapa_empreendimento" value="https://comproterreno.com.br/login/show_modal_exclusao_mapa_empreendimento" />
+	<input type="hidden" id="excluir_mapa_empreendimento" value="https://comproterreno.com.br/login/excluir_mapa_empreendimento" />
+	<input type="hidden" id="show_modal_editar_mapa_empreendimento" value="https://comproterreno.com.br/login/show_modal_editar_mapa_empreendimento" />
+	<input type="hidden" id="carregar_unidades_mapa_empreendimento" value="https://comproterreno.com.br/login/carregar_unidades_mapa_empreendimento" />
+	<input type="hidden" id="show_info_unidade_mapa_empreendimento" value="https://comproterreno.com.br/login/show_info_unidade_mapa_empreendimento" />
+	<input type="hidden" id="salvar_mapa_empreendimento" value="https://comproterreno.com.br/login/salvar_mapa_empreendimento" />
+	<input type="hidden" id="mapa_empreendimento_consultar" value="https://comproterreno.com.br/login/mapa_empreendimento_consultar" />
+	<input type="hidden" id="mapa_empreendimento_consultar_unidade" value="https://comproterreno.com.br/login/mapa_empreendimento_consultar_unidade" />
+	<input type="hidden" id="itens_cotacoes_fornecedores_estoque" value="https://comproterreno.com.br/login/itens_cotacoes_fornecedores_estoque" />
+	<input type="hidden" id="terrenos_show_complete_vendas" value="https://comproterreno.com.br/login/terrenos_show_complete_vendas" />
+	<input type="hidden" id="carteiras_boletos_cancelar" value="https://comproterreno.com.br/login/carteiras_boletos_cancelar" />
+	<!-- rotas novo estudo -->
+	<input type="hidden" id="novo_estudo_empreendimentos" value="https://comproterreno.com.br/login/novo_estudo_empreendimentos" />
+
+	<input type="hidden" id="integracao_cv_busca_reservas" value="https://comproterreno.com.br/login/integracao_cv_busca_reservas" />
+	<input type="hidden" id="integracao_cv_busca_reserva_individual" value="https://comproterreno.com.br/login/integracao_cv_busca_reserva_individual" />
+	<input type="hidden" id="integracao_cv_gerar_contrato" value="https://comproterreno.com.br/login/integracao_cv_gerar_contrato" />
+
+	<input type="hidden" id="integracao_d4s_gerenciar_credenciais" value="https://comproterreno.com.br/login/integracao_d4s_gerenciar_credenciais" />
+	<input type="hidden" id="integracao_d4s_cadastrar_credenciais" value="https://comproterreno.com.br/login/integracao_d4s_cadastrar_credenciais" />
+	<input type="hidden" id="integracao_d4s_salvar_credenciais" value="https://comproterreno.com.br/login/integracao_d4s_salvar_credenciais" />
+	<input type="hidden" id="integracao_d4s_excluir_credencial" value="https://comproterreno.com.br/login/integracao_d4s_excluir_credencial" />	
+
+	<input type="hidden" id="integracao_d4s_adicionar_signatario" value="https://comproterreno.com.br/login/integracao_d4s_adicionar_signatario" />	
+	<input type="hidden" id="integracao_d4s_remover_signatario" value="https://comproterreno.com.br/login/integracao_d4s_remover_signatario" />	
+	<input type="hidden" id="integracao_d4s_atualiza_act_signatario" value="https://comproterreno.com.br/login/integracao_d4s_atualiza_act_signatario" />		
+	<input type="hidden" id="integracao_d4s_enviar_para_assinatura" value="https://comproterreno.com.br/login/integracao_d4s_enviar_para_assinatura" />		
+
+	<input type="hidden" id="fator_calculo_terreno_cidades_importar" value="https://comproterreno.com.br/login/fator_calculo_terreno_cidades_importar" />			
+
+	<script src="https://comproterreno.com.br/login/assets/js/comum.js?id=20260605125751"></script>
+	<div style="z-index: 1000000;" class="modal fade" id="confirm-padrao" tabindex="-1" role="dialog" aria-labelledby="myModalLabel321" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+					<h4 class="modal-title" id="confirm-padrao-titulo"></h4>
+				</div>
+				<div class="modal-body">
+					<p id="confirm-padrao-descricao"></p>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-danger" data-dismiss="modal">Cancelar</button>
+					<button id="linkConfirmarPadraoReservada" style="display:none;" type="button" class="btn btn-warning" data-dismiss="modal">Reservar</button>
+					<button id="linkConfirmarPadrao" type="button" class="btn btn-primary" data-dismiss="modal">Ok</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div style="z-index: 1000000;" class="modal fade" id="filtrar-padrao" tabindex="-1" role="dialog" aria-labelledby="myModalLabel2" aria-hidden="true">
+		<div class="modal-dialog" style="width:70%;">
+			<div class="modal-content">
+				<div class="modal-header btn-primary">
+					<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+					<h4 class="modal-title" id="filtro-titulo"></h4>
+				</div>
+				<div class="modal-body">
+					<p id="filtro-conteudo"></p>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div style="z-index: 1000000;" class="modal fade" id="confirm-capturar" tabindex="-1" role="dialog" aria-labelledby="myModalLabel2" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+					<h4 class="modal-title" id="modal-titulo">Confirma a captura do terreno?</h4>
+				</div>
+				<div class="modal-body">
+					<p id="modal-descricao"></p>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-danger" data-dismiss="modal">Cancelar</button>
+					<button id="linkConfirmar" type="button" class="btn btn-primary" data-dismiss="modal" onClick="confirmarCaptura($.trim($('#hddExcluir').val()))">Ok</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="modal fade" style="z-index: 1000000;" id="modal-image" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-body">
+					<button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+					<img src="" class="imagepreview" style="width: 100%;">
+				</div>
+			</div>
+		</div>
+	</div>
+	<div style="z-index: 1000000;" class="modal fade" id="confirm-delete" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+					<h4 class="modal-title" id="myModalLabel">Confirma a exclusão?</h4>
+				</div>
+				<div class="modal-body">
+					<p id="descricaoExcluir"></p>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-danger" data-dismiss="modal">Cancelar</button>
+					<button id="linkExcluir" type="button" class="btn btn-primary" data-dismiss="modal" onClick="excluir($.trim($('#hddExcluir').val()))">Ok</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="wrapper">
+		<header class="main-header">
+			<a href="javascript: void('HD');" onClick="redir('https://comproterreno.com.br/login/home');" class="logo">
+				<span class="logo-mini"><b>L.R.G</b></span>
+				<span class="logo-lg"><b>L.R.G</b></span>
+			</a>
+			<nav class="navbar navbar-static-top">
+				<a id="menuTopo" href="javascript: void('HD');" class="sidebar-toggle" data-toggle="offcanvas" role="button">
+					<span class="sr-only">Toggle navigation</span>
+				</a>
+				<img src="https://comproterreno.com.br/login/assets/images/logohiperdadosbranco.png" style="height:45px;padding:3px">
+				<div class="navbar-custom-menu">
+					<ul class="nav navbar-nav">
+						<li class="dropdown busca-rapida-menu">
+							<a href="javascript: void('HD');" onclick="detalhes('https://comproterreno.com.br/login/sistemas_busca_rapida_exibir', 'Detalhes', '3');">
+								<i title="Clique aqui para exibir a busca rápida Hiperdados" data-toggle="tooltip" data-placement="bottom" class="fa fa-search-plus"></i>
+							</a>
+						</li>
+						<li class="dropdown notifications-menu">
+							<a href="javascript: void('HD');" class="dropdown-toggle" data-toggle="dropdown">
+								<i class="fa fa-bell-o"></i>
+							</a>
+							<ul class="dropdown-menu" id="ulNotifications">
+								<li class="header" id="liNotificationsHeaderTotal"></li>
+								<li>
+									<ul class="menu">
+										<li id="listNotifications">
+											<a href="javascript: void('HD');">
+												<i class="fa fa-users text-aqua"></i>
+											</a>
+										</li>
+									</ul>
+								</li>
+								<li class="footer">
+									<a href="javascript: void('HD');">Visualizar todas as notificações</a>
+								</li>
+							</ul>
+						</li>
+						<!--<li class="dropdown tasks-menu">
+            <a href="javascript: void('HD');" class="dropdown-toggle" data-toggle="dropdown" onClick="$.notify('Em desenvolvimento. Em Breve disponível.', 'info');">
+              <i class="fa fa-flag-o"></i>
+              <span class="label label-danger"></span>
+            </a>
+          </li>-->
+						<li class="dropdown user user-menu">
+							<a href="javascript: void('HD');" class="dropdown-toggle" data-toggle="dropdown">
+																	<img src="https://comproterreno.com.br/login/assets/images/uploads/usuarios/2025050111422920283741970412.jpg" class="user-image">
+																<span class="hidden-xs">Edson Maldonado</span>
+							</a>
+							<ul class="dropdown-menu">
+								<li class="user-header">
+																			<img src="https://comproterreno.com.br/login/assets/images/uploads/usuarios/2025050111422920283741970412.jpg" class="img-circle">
+																		<p>
+										Edson Maldonado										<small>Membro desde Jul/2023</small>
+									</p>
+								</li>
+								<li class="user-footer">
+									<div class="pull-left">
+										<a href="javascript: void('HD');" onClick="editarUsuario();" class="btn btn-default btn-flat">Meus Dados</a>
+									</div>
+									<div class="pull-right">
+										<a href="https://comproterreno.com.br/login/usuarios_logout" class="btn btn-default btn-flat">Sair</a>
+									</div>
+								</li>
+							</ul>
+						</li>
+						<li style="visibility:hidden;position:absolute;">
+							<a href="javascript: void('HD');" data-toggle="control-sidebar">
+								<i class="fa fa-gears"></i>
+							</a>
+						</li>
+					</ul>
+				</div>
+			</nav>
+		</header>
+		<aside class="main-sidebar">
+			<div class="slimScrollDiv">
+				<section class="sidebar">
+					<div class="user-panel">
+						<div class="pull-left image">
+							<img id='imgImagemGRE' src='https://comproterreno.com.br/login/assets/images/bios.png' class='img-circle'>						</div>
+						<div class="pull-left info">
+							<p>Edson</p>
+							<a href="javascript: void('HD');"><i class="fa fa-circle text-success"></i> Online</a>
+						</div>
+					</div>
+					<form method="get" class="sidebar-form" onSubmit="return false;">
+						<div class="input-group">
+							<input type="text" name="txtPesquisarFormularios" id="txtPesquisarFormularios" class="form-control" autocomplete="off" rel="txtTooltip" title="Pesquise aqui os formulários e consultar que você tem acesso." />
+							<span class="input-group-btn">
+								<button type="button" name="search" id="search-btn" class="btn btn-flat">
+									<i class="fa fa-search"></i>
+								</button>
+							</span>
+						</div>
+					</form>
+					<ul class="sidebar-menu" id="ulFormularios" style="position:sticky;position:-webkit-sticky;left:0px;border-collapse: collapse;"></ul>
+				</section>
+			</div>
+			<div class="slimScrollBar" style="background: yellow; opacity: 0.4; border-radius: 7px;"></div>
+			<div class="slimScrollRail" style=" border-radius: 7px; background: blue; opacity: 0.2; "></div>
+		</aside>
+		<div class="content-wrapper">
+			<section class="content-header">
+				<ol class="breadcrumb">
+					<li>
+						<a href="javascript: void('HD');" onClick="redir('https://comproterreno.com.br/login/home');">
+							<i class="fa fa-dashboard"></i> Início						</a>
+					</li>
+					<li class="active" id="nomeNavegacao">
+						 Terrenos    <span id="spnTotalRegistros2"></span>
+											</li>
+				</ol>
+				<h1 id="nomePagina">
+					<i class="glyphicon glyphicon-object-align-bottom"></i> Terrenos <a href="javascript: void('HD');" id='videoContainer' onClick="autoPlayVideo('https://player.vimeo.com/video/795385518?h=a0282b94ef');"><img src='https://comproterreno.com.br/login/assets/images/ajuda.png' title='Clique aqui para visualizar o vídeo sobre está página.' data-toggle='tooltip'></a> <fav><span id="spnFavoritos" data-toggle="tooltip" style="cursor:pointer;" title="Clique aqui para favoritar ou não esta aplicação." onClick="checarFavoritos('MzQ=');"><i class="fa fa-star-o"></i></span> </fav><span id="spnTotalRegistrosConsultar" data-toggle="tooltip" style="display:none;cursor:pointer;" onMouseOver="$('#spnTotalRegistrosConsultar').attr('title', 'Total de registro(s): '+$('#spnTotalRegistrosConsultar').html());" class='label label-primary'></span>				</h1>
+																<div id="div-success-delete" class="alert alert-success" style="display:none;"></div>
+			</section><script src="https://comproterreno.com.br/login/assets/js/comproterreno.js"></script>
+<style>
+	#stylerendab,
+	#styledistritosb,
+	#styledesenhopoligonob,
+	#styleplanodiretorb {
+		background-color: #fff;
+		border: 2px solid #fff;
+		border-radius: 3px;
+		box-shadow: 0 2px 6px rgba(0, 0, 0, .3);
+		cursor: pointer;
+		float: left;
+		margin-top: 3px;
+		text-align: center;
+	}
+
+	#stylerendat,
+	#styledistritost,
+	#styledesenhopoligonot,
+	#styleplanodiretort {
+		color: rgb(25, 25, 25);
+		font-family: Roboto, Arial, sans-serif;
+		font-size: 15px;
+		line-height: 25px;
+		padding-left: 5px;
+		padding-right: 5px;
+	}
+
+	#styledistritosb,
+	#styleplanodiretorb {
+		margin-left: 12px;
+	}
+</style>
+<link rel="stylesheet" href="https://comproterreno.com.br/login/assets/plugins/bootstrap-toggle/bootstrap-toggle.min.css">
+<script src="https://comproterreno.com.br/login/assets/plugins/bootstrap-toggle/bootstrap-toggle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<input type="hidden" id="hddVisualizarTerreno" value="1" />
+<input type="hidden" name="hddClick" id="hddClick" value="" />
+<input type="hidden" id="TER_Descricao_Servicos" value="Area Shobai">
+<input type="hidden" id="terrenos_atividades_visualizar" value="https://comproterreno.com.br/login/terrenos_atividades_visualizar" />
+
+<input type="hidden" id="ordem_secoes_terreno" value="">
+<section class="content">
+	<div class="row">
+		<div class="col-sm-12">
+									<div id="page-wrapper">
+									<div class="box box-primary">
+						<div class="box-body">
+							<div class="box-header with-border">
+								<h2 class="box-title"><i class="fa fa-list-ul"></i> Visualizar: Area Shobai</h2>
+									<div class="box-tools pull-right">
+										<a class="btn btn-sm btn-primary" href="https://comproterreno.com.br/login/Terrenos/Consultar">
+											<i class="fa fa-arrow-left"></i> Voltar										</a>
+
+										<button class="btn btn-sm btn-primary" onclick="abreModalOrdenarSecoesTerrenoVisualizar();">
+											<i class="fa fa-sort" aria-hidden="true"></i> Ordenar Seções
+										</button>
+
+																					<a class="btn btn-sm btn-primary" href="../Editar/34073">
+												<i class="fa fa-pencil"></i> Editar											</a>
+																				<a class="btn btn-sm bg-navy" target="_blank" href="../Imprimir/MzQwNzM=">
+											<i class="fa fa-print"></i> Imprimir										</a>
+									</div>
+							</div>
+							<div class="col-md-12 col-sm-12 col-xs-12">
+																<div class="x_content">
+									<div class="col-md-8 col-sm-4 col-xs-12">
+										<input type="hidden" name="TER_ID" id="TER_ID" value="MzQwNzM=" />
+										<div class="col-md-8 col-sm-8 col-xs-12">
+											<label class="control-label">Endereço</label>
+											<input name="TER_Endereco" id="TER_Endereco" readonly type="text" class="form-control " value="estr. bas-010 Parapua">
+										</div>
+										<div class="col-md-4 col-sm-4 col-xs-12">
+											<label class="control-label">Área Total (m²)</label>
+																						<input name="TER_AreaTotal" id="TER_AreaTotal" readonly type="text" class="form-control" value="14.746,96">
+										</div>
+										<div class="col-md-2 col-sm-4 col-xs-12">
+											<label class="control-label">Complemento</label>
+											<input name="TER_Complemento" id="TER_Complemento" readonly type="text" class="form-control" value="">
+										</div>
+										<div class="col-md-4 col-sm-2 col-xs-12">
+											<label class="control-label">Bairro</label>
+											<input name="TER_Bairro" id="TER_Bairro" type="text" readonly class="form-control " value="">
+										</div>
+										<div class="col-md-3 col-sm-5 col-xs-12">
+											<label class="control-label">Cidade</label>
+											<input name="TER_Cidade" id="TER_Cidade" readonly type="text" class="form-control " value="Bastos">
+										</div>
+										<div class="col-md-3 col-sm-2 col-xs-12">
+											<label class="control-label">Estado</label>
+											<select id='UF_ID' name='UF_ID' class='form-control chosen' required ><option value=''>-- SELECIONE --</option><option value='1'>AC - Acre</option><option value='2'>AL - Alagoas</option><option value='4'>AP - Amapá</option><option value='3'>AM - Amazonas</option><option value='5'>BA - Bahia</option><option value='6'>CE - Ceará</option><option value='7'>DF - Distrito Federal</option><option value='8'>ES - Espírito Santo</option><option value='9'>GO - Goiás</option><option value='10'>MA - Maranhão</option><option value='13'>MT - Mato Grosso</option><option value='12'>MS - Mato Grosso do Sul</option><option value='11'>MG - Minas Gerais</option><option value='14'>PA - Pará</option><option value='15'>PB - Paraíba</option><option value='18'>PR - Paraná</option><option value='16'>PE - Pernambuco</option><option value='17'>PI - Piauí</option><option value='19'>RJ - Rio de Janeiro</option><option value='20'>RN - Rio Grande do Norte</option><option value='23'>RS - Rio Grande do Sul</option><option value='21'>RO - Rondônia</option><option value='22'>RR - Roraima</option><option value='24'>SC - Santa Catarina</option><option  selected value='26'>SP - São Paulo</option><option value='25'>SE - Sergipe</option><option value='27'>TO - Tocantins</option></select>										</div>
+										<div class="col-md-3 col-sm-3 col-xs-12">
+											<label class="control-label">Gestor</label>
+											<select id='CAX_Gestor_ID' name='CAX_Gestor_ID' class='form-control chosen' required ><option value=''>-- SELECIONE --</option><option selected value='20142'>Edson Maldonado</option><option  value='20137'>Emerson Marinho</option><option  value='23258'>Luiz Felipe</option><option  value='23752'>Marcio Felipe</option></select>										</div>
+										<div class="col-md-3 col-sm-3 col-xs-12">
+											<label class="control-label">Zoneamento</label>
+											<input name="TER_Zoneamento" id="TER_Zoneamento" readonly type="text" class="form-control" value="">
+										</div>
+										<div class="col-md-3 col-sm-3 col-xs-12">
+											<label class="control-label">Zona</label>
+											<select id='CAX_Zona_ID' name='CAX_Zona_ID' class='form-control chosen' required><option value=''>-- SELECIONE --</option><option  value='20102'>Centro</option><option  value='20100'>Leste</option><option  value='20098'>Norte</option><option selected value='20101'>Oeste</option><option  value='20099'>Sul</option></select>										</div>
+										<div class="col-md-3 col-sm-3 col-xs-12">
+											<label class="control-label">Distrito</label>
+											<input name="TER_Distrito" id="TER_Distrito" type="text" readonly class="form-control" value="">
+										</div>
+										<div class="col-md-3 col-sm-3 col-xs-12">
+											<label class="control-label" for="TER_CA">CA </label>
+											<input name="TER_CA" id="TER_CA" type="text" readonly class="form-control inputMask_2" value="0,00">
+										</div>
+										<div class="col-md-3 col-sm-3 col-xs-12">
+											<label class="control-label" for="TER_CAMAX">CA MAX</label>
+											<input name="TER_CAMAX" id="TER_CAMAX" type="text" readonly class="form-control inputMask_2" value="0,00">
+										</div>
+										<div class="col-md-3 col-sm-3 col-xs-12">
+											<label class="control-label" for="TER_CA_HMP">CA HMP</label>
+											<input name="TER_CA_HMP" id="TER_CA_HMP" type="text" readonly class="form-control inputMask_2" value="0,00">
+										</div>
+										<div class="col-md-3 col-sm-3 col-xs-12">
+											<label class="control-label" for="TER_CAMAX_HMP">CA MAX HMP</label>
+											<input name="TER_CAMAX_HMP" id="TER_CAMAX_HMP" type="text" readonly class="form-control inputMask_2" value="0,00">
+										</div>
+										<div class="col-md-3 col-sm-3 col-xs-12">
+											<label class="control-label" for="TER_CA_HIS">CA HIS</label>
+											<input name="TER_CA_HIS" id="TER_CA_HIS" type="text" readonly class="form-control inputMask_2" value="0,00">
+										</div>
+										<div class="col-md-3 col-sm-3 col-xs-12">
+											<label class="control-label" for="TER_CA_MAX_HIS">CA MAX HIS</label>
+											<input name="TER_CA_MAX_HIS" id="TER_CA_MAX_HIS" type="text" readonly class="form-control inputMask_2" value="0,00">
+										</div>
+										<div class="col-md-3 col-sm-3 col-xs-12">
+											<label class="control-label" for="TER_OperacaoUrbana">Operação Urbana</label>
+											<input name="TER_OperacaoUrbana" id="TER_OperacaoUrbana" type="text" readonly class="form-control" maxlength="50" value="">
+										</div>
+										<div class="col-md-3 col-sm-3 col-xs-12">
+											<label class="control-label" for="TER_OutorgaCEPAC">Outorga CEPAC</label>
+											<input name="TER_OutorgaCEPAC" id="TER_OutorgaCEPAC" type="text" readonly class="form-control" maxlength="50" value="">
+										</div>
+										<div class="col-md-3 col-sm-3 col-xs-12">
+											<label class="control-label" for="TER_GabaritoAlturaPMSP">Gabarito Altura PMSP</label>
+											<input name="TER_GabaritoAlturaPMSP" id="TER_GabaritoAlturaPMSP" readonly type="text" class="form-control" maxlength="50" value="">
+										</div>
+										<div class="col-md-3 col-sm-3 col-xs-12">
+											<label class="control-label" for="TER_GabaritoAlturaCOMAR">Gabarito Altura COMAR</label>
+											<input name="TER_GabaritoAlturaCOMAR" id="TER_GabaritoAlturaCOMAR" readonly type="text" class="form-control" maxlength="50" value="">
+										</div>
+										<div class="col-md-3 col-sm-2 col-xs-12">
+											<label class="control-label">Status</label>
+											<select id='CAX_Status_ID' name='CAX_Status_ID' class='form-control chosen' required><option value=''>-- SELECIONE --</option><option  value='20168'>Análise</option><option selected value='20107'>Assinado</option><option  value='20356'>Descartado</option><option  value='20108'>Distratado</option><option  value='20105'>Estudo</option><option  value='20106'>Minuta</option><option  value='20140'>Negociação</option><option  value='20109'>StandBy</option></select>										</div>
+										<div class="col-md-3 col-sm-3 col-xs-12">
+											<label for="TER_DataCompra">Data Compra</label>
+											<div class="input-group">
+												<input type="text" name="TER_DataCompra" readonly id="TER_DataCompra" autocomplete="off" placeholder="Informa a data Expedição" value="07/08/2023" class="form-username form-control hasDatepicker" />
+											</div>
+										</div>
+									</div>
+									<div class="col-md-4 col-sm-4 col-xs-12">
+										<div id="map-canvas" style="width:100%; height:330px;"></div>
+									</div>
+								</div>
+								<div class="col-md-12 col-sm-12 col-xs-12"><br></div>
+								<div class='col-md-6 col-sm-6 col-xs-12'>
+									<small class='label label-primary labelCadastradoPor'><i class='fa fa-user-plus'></i> Cadastrado por Edson Maldonado (09/07/2023 18:53:09)</small>
+								</div>
+								<div class='col-md-6 col-sm-6 col-xs-12'>
+									<small class='label label-primary labelCadastradoPor'><i class='fa fa-user'></i> Atualizado por Emerson Marinho (29/09/2023 09:18:16)</small>
+								</div>
+								<div class="col-md-12 col-sm-12 col-xs-12"><br></div>
+							</div>
+						</div>
+					</div>
+
+					
+					<div class="box box-primary item-secao" id="boxCorretores" style="display: none;">
+						<div class="box-body">
+							<div class="col-md-12 col-sm-12 col-xs-12" id="divCorretores"></div>
+						</div>
+					</div>
+					<div class="box box-primary item-secao" id="boxTerrenosEstudos" style="display: none;">
+						<div class="box-body">
+							<div class="col-md-12 col-sm-12 col-xs-12" id="divTerrenosEstudos"></div>
+						</div>
+					</div>
+
+					<div class="box box-primary item-secao" id="boxTerrenosEstudoNovo" style="display: none;">
+						<div class="box-body">
+							<div class="col-md-12 col-sm-12 col-xs-12" id="divTerrenosEstudoNovo"></div>
+						</div>
+					</div>
+
+					<div class="box box-primary item-secao" id="boxProprietarios" style="display: none;">
+						<div class="box-body">
+							<div class="col-md-12 col-sm-12 col-xs-12" id="divProprietarios"></div>
+						</div>
+					</div>
+					<div class="box box-primary item-secao" id="boxViabilidades" style="display: none;">
+						<div class="box-body">
+							<div class="col-md-12 col-sm-12 col-xs-12" id="divTerrenosViabilidades"></div>
+						</div>
+					</div>
+					<div class="box box-primary item-secao" id="boxDocumentos" style="display: none;">
+						<div class="box-body">
+							<div class="col-md-12 col-sm-12 col-xs-12" id="divDocumentos"></div>
+						</div>
+					</div>
+					<div class="box box-success item-secao" id="boxAtividades" style="display:none;">
+						<div class="box-body">
+							<div class="col-md-12 col-sm-12 col-xs-12" id="divAtividades"></div>
+						</div>
+					</div>
+					<!--<div class="box box-primary" id="boxTarefas" style="display: none;">
+					<div class="box-body">
+						<div class="col-md-12 col-sm-12 col-xs-12" id="divTarefas"></div>
+					</div>
+				</div>-->
+					<div class="box box-primary item-secao" id="boxFormularios" style="display: none;">
+						<div class="box-body">
+							<div class="col-md-12 col-sm-12 col-xs-12" id="divTerrenosFormulario"></div>
+						</div>
+					</div>
+					<div class="box box-primary item-secao" id="boxObservacoes" style="display: none;">
+						<div class="box-body">
+							<div class="col-md-12 col-sm-12 col-xs-12" id="divObservacoes"></div>
+						</div>
+					</div>
+					<style>
+						#chart_div {
+							height: 400px;
+							overflow: scroll;
+						}
+					</style>
+					<!-- GRÁFICO DE GANTT TAREFAS -->
+										<!-- FIM GRÁFICO DE GANTT TAREFAS -->
+											<div class="box box-primary item-secao" id="boxAndamentoTerreno">
+							<div class="x_title text-center">
+								<h3>Gráfico de Andamento do Terreno</h3>
+							</div>
+							<div id="chart"></div>
+						</div>
+											</div>
+	</div>
+	</div>
+	<div class="container-modal">
+		<div class="modal fade" id="modal-acopla" tabindex="-1" aria-labelledby="modalAcopla" aria-hidden="true">
+		</div>
+</section>
+
+<!-- Modal Ordenar Seções -->
+<div class="modal fade" id="ordenar-secoes" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="ordernar-secoes-titulo">Ordenar Seções</h4>
+            </div>
+            <div class="modal-body" id="ordenar-secoes-corpo">                
+            </div>
+            <div class="modal-footer">
+                <button id="close-ordenar-secoes" type="button" class="btn btn-default" data-dismiss="modal">Fechar</button>
+				<button id="save-ordenar-secoes" type="button" class="btn btn-primary" onclick="salvarOrdemSecoes();">Salvar alterações</button>                
+            </div>
+        </div>
+  </div>
+</div>
+
+<!-- Modal Novo Corretor -->
+<div class="modal fade" id="novo-corretor" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="ordernar-secoes-titulo">Cadastrar novo corretor</h4>
+            </div>
+            <div class="modal-body" id="novo-corretor-corpo">                
+            </div>
+           
+        </div>
+  </div>
+</div>
+
+		<footer class="box-footer" style="position: absolute; bottom: 0;width:100%">
+
+			<b><b>Todos os direitos reservados &copy; 2026 <a target="_blank" href="https://hiperdados.com.br/">Hiperdados Tecnologia</a>.</b></b>
+			<b><font style='cursor:pointer;' onClick="versaoSGP();" data-toggle='tooltip' title='Clique aqui para visualizar dados da versão 2.22.'><i class='glyphicon glyphicon-globe'></i> 2.22</font></b>
+            <a href='https://www.linkedin.com/company/hiperdados' data-toggle='tooltip' title='Linkedin' target='_blank'><i style="font-size:2rem;" class="fa fa-linkedin-square"></i></a>&nbsp;<a href='https://www.facebook.com/hiperdados' data-toggle='tooltip' title='Facebook' target='_blank'><i style="font-size:2rem;" class="fa fa-facebook-square"></i></a>&nbsp;<a href='https://www.instagram.com/hiperdados' data-toggle='tooltip' title='Instagram' target='_blank'><i style="font-size:2rem;" class="fa fa-instagram"></i></a>&nbsp;<a href='https://twitter.com/hiperdados' data-toggle='tooltip' title='Twitter' target='_blank'><i style="font-size:2rem;" class="fa fa-twitter"></i></a>&nbsp;
+		</footer>
+	<div class="control-sidebar-bg"></div>
+	<!-- Resolve conflict in jQuery UI tooltip with Bootstrap tooltip -->
+	<script>
+	  $.widget.bridge('uibutton', $.ui.button);
+	</script>
+	<!-- AdminLTE for demo purposes -->
+	<script src="https://comproterreno.com.br/login/assets/js/demo.js"></script>
+	<script src="https://comproterreno.com.br/login/assets/js/init.js?id=20260605125751')?>"></script>
+	<!--<style>
+	.dt-buttons{
+		display: none;
+	}
+	</style>-->
+		<script type="text/javascript">
+		initialLoading();
+	</script>	
+	    <script type="text/javascript">
+        var Tawk_API=Tawk_API||{};
+		Tawk_API.visitor = {
+		name : 'Edson Maldonado',
+		email : 'edson@lrgconstrutora.com.br',
+		hash : '63f246f9e68d9c2f545cf8aab3de1614957eec2eaae8276e264dc127db200c06'
+		};
+		var Tawk_LoadStart=new Date();
+        (function(){
+        var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+        s1.async=true;
+        s1.src='https://embed.tawk.to/572bd753682457b010884b44/1i2jgb5qj';
+        s1.charset='UTF-8';
+        s1.setAttribute('crossorigin','*');
+        s0.parentNode.insertBefore(s1,s0);
+        })();
+    </script>
+	<script src="https://comproterreno.com.br/login/assets/js/jquery.mask.js"></script>
+</body>
+</html>
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<!--<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://code.highcharts.com/modules/xrange.js"></script>
+<script src="https://code.highcharts.com/modules/exporting.js"></script>
+<script src="https://code.highcharts.com/modules/accessibility.js"></script>-->
+
+<script type="text/javascript" src="https://comproterreno.com.br/login/assets/js/map/fancybox.umd.js"></script>
+<script type="text/javascript" src="https://comproterreno.com.br/login/assets/js/map/jquery.barrating.min.js"></script>
+<script type="text/javascript" src="https://comproterreno.com.br/login/assets/js/map/wicket.js"></script>
+<script type="text/javascript" src="https://comproterreno.com.br/login/assets/js/map/wicket-gmap3.js"></script>
+
+<script type="text/javascript">
+	$(document).ready(function() {
+
+		if($("#ordem_secoes_terreno").val() != ""){
+			var strOrdem = $("#ordem_secoes_terreno").val();
+			var arrayOrdem = strOrdem.split(',').map(item => item.trim());
+			alterarOrdenacao(...arrayOrdem);
+		}
+
+		$("#TCO_ValorTotal").maskMoney({
+			decimal: ",",
+			formatOnBlur: false,
+			allowZero: true,
+			thousands: "."
+		}).maskMoney('mask', this);
+
+		$("#TCO_ValorM2").maskMoney({
+			decimal: ",",
+			formatOnBlur: false,
+			allowZero: true,
+			thousands: "."
+		}).maskMoney('mask', this);
+
+		$("#TCO_ValorPermutaFinanceira").maskMoney({
+			decimal: ",",
+			formatOnBlur: false,
+			allowZero: true,
+			thousands: "."
+		}).maskMoney('mask', this);
+
+		$("#TCO_ValorPermutaFisica").maskMoney({
+			decimal: ",",
+			formatOnBlur: false,
+			allowZero: true,
+			thousands: "."
+		}).maskMoney('mask', this);
+
+		$("#AREA_MEDIDA").maskMoney({
+			decimal: ",",
+			formatOnBlur: false,
+			allowZero: true,
+			thousands: ""
+		}).maskMoney('mask', this);
+
+		$("#TER_AreaTotal").maskMoney({
+			decimal: ",",
+			formatOnBlur: false,
+			allowZero: true,
+			thousands: "."
+		}).maskMoney('mask', this);
+
+		if (window.location.href.includes('Terrenos/Editar')) {
+			
+			$('#CAX_Status_ID').on("change", function() {
+				
+				VerificaCadastro();
+			});	
+
+			var botaoSave = document.getElementById('btnSalvar');
+
+			botaoSave.addEventListener('click', function() {
+
+				if ($.trim($("#UF_ID").val()) == "") {
+					$.notify("Estado precisa ser informado.", "warn");
+					return;
+				} else if ($.trim($("#CAX_Zona_ID").val()) == "") {
+					$.notify("Zona precisa ser informada.", "warn");
+					return;
+				}
+
+			});
+
+			if (window.location.href.includes('?new=1')) {
+
+				VerificaCadastro(1);
+
+			}
+		}
+
+		$.post($.trim($('#hddTerrenosTarefasConsultarVisualizar').val()), {
+				TER_ID: $.trim($('#TER_ID').val()),
+				//visualizar: $('#hddVisualizarTerreno').val()
+			},
+			function(data) {
+				//alert(data); return;
+				//console.log(data);
+				if (data.sucesso == 'true') {
+					if (data.totalRegistros > 0) {
+						$('#divTarefas').html(data.strHtml);
+
+						var etapas = data.registros;
+						var dataCadastroTerreno = data.dataCadastroTerreno;
+						var nomeTerreno = data.nomeTerreno;
+						var dadosGantt = new Array;
+						var nomeTarefas = new Array;
+
+						if (etapas[0]['TAR_DataInicio'] == null) {
+							etapas[0]['TAR_DataInicio'] = dataCadastroTerreno;
+						}
+
+						if (etapas[etapas.length - 1]['TAR_DataFim'] == null) {
+							etapas[etapas.length - 1]['TAR_DataFim'] = dataCadastroTerreno;
+						}
+
+						var start = etapas[0]['TAR_DataInicio'];
+						var end = data.datalimitefinal;
+
+						var year = start.substring(0, 4);
+						var month = start.substring(5, 7);
+						var day = start.substring(8, 10);
+
+						var yearend = end.substring(0, 4);
+						var monthend = end.substring(5, 7);
+						var dayend = end.substring(8, 10);
+
+						let d1 = toDate(day + "/" + month + "/" + year),
+							d2 = toDate(dayend + "/" + monthend + "/" + yearend),
+							intervalos = [],
+							intervalosId = [];
+
+						intervalos.push(toString(d1));
+						intervalosId.push(toStringUnderline(d1));
+
+						while (d1 < d2) {
+							d1.setDate(d1.getDate() + 1);
+							intervalos.push(toString(d1));
+							intervalosId.push(toStringUnderline(d1));
+
+						}
+
+						function toDate(texto) {
+							let partes = texto.split('/');
+							return new Date(partes[2], partes[1] - 1, partes[0]);
+						}
+
+						function toString(date) {
+							return ('0' + date.getDate()).slice(-2) + '/' +
+								('0' + (date.getMonth() + 1)).slice(-2) + '/' +
+								date.getFullYear();
+						}
+
+						function toStringUnderline(date) {
+							return ('0' + date.getDate()).slice(-2) + '_' +
+								('0' + (date.getMonth() + 1)).slice(-2) + '_' +
+								date.getFullYear();
+						}
+
+
+						for (var i = 0; i < intervalos.length; i++) {
+							$("#x-datas").append("<th id='" + intervalosId[i] + "' style='margin:50px'>" + intervalos[i] + "</th>");
+						}
+
+						for (var i = 0; i < etapas.length; i++) {
+
+							if (etapas[i]['TAR_DataInicio'] == null) {
+								etapas[i]['TAR_DataInicio'] = dataCadastroTerreno;
+							}
+
+							if (etapas[i]['TAR_DataFim'] == null) {
+								etapas[i]['TAR_DataFim'] = dataCadastroTerreno;
+							}
+
+							var start = etapas[i]['TAR_DataInicio'];
+							var end = etapas[i]['TAR_DataFim'];
+
+							var year = start.substring(0, 4);
+							var month = start.substring(5, 7);
+							var day = start.substring(8, 10);
+
+							var yearend = end.substring(0, 4);
+							var monthend = end.substring(5, 7);
+							var dayend = end.substring(8, 10);
+
+							let d1 = toDate(day + "/" + month + "/" + year),
+								d2 = toDate(dayend + "/" + monthend + "/" + yearend);
+
+							var idDateMoving = toStringUnderline(d1);
+							var idDataMovingEnd = toStringUnderline(d2);
+
+							if (document.getElementById(idDateMoving) != null && document.getElementById(idDataMovingEnd) != null) {
+
+								var el = document.getElementById(idDateMoving);
+								var elCoordenadas = el.getBoundingClientRect();
+								var left = elCoordenadas.left - 261;
+
+								var el2 = document.getElementById(idDataMovingEnd);
+								var elCoordenadas2 = el2.getBoundingClientRect();
+								var right = elCoordenadas2.right - 275;
+
+								var width = right - left;
+
+								if (etapas[i]['TAR_Tipo'] == "E") {
+									var typePill = "pill-task";
+								} else {
+									var typePill = "pill-task-secondary";
+								}
+
+								var percentual_concluido = 0;
+								if (etapas[i]['TAR_Tipo'] == "E") {
+									percentual_concluido = etapas[i]['PercentualConcluido'];
+								} else {
+									percentual_concluido = etapas[i]['TAR_PercentualConcluido'];
+								}
+								
+								if (etapas[i]['TAR_PercentualConcluido'] > 0.00000000 && etapas[i]['TAR_PercentualConcluido'] < 100.00000000) {
+									if (etapas[i]['TAR_Tipo'] == "E") {
+										var pillWay = typePill;
+										var styleInline = "";
+									} else {
+										var pillWay = "pill-way";
+										var styleInline = "background: linear-gradient(to right, red " + percentual_concluido + "%, #fd7878 " + percentual_concluido + "%);";
+									}
+								} else {
+									var pillWay = typePill;
+									var styleInline = "";
+								}
+								if (percentual_concluido >= 100.00000000) {
+									var pillWay = "pill-conclusion";
+								}
+
+
+								$("#y-tasks").append("<tr><td class='headcol'>" + etapas[i]['TAR_Codigo'] + " - " + etapas[i]['TAR_Descricao'] + "</td><td><div id='pill_" + i + "' data-container='body' data-toggle='popover' data-placement='bottom' title='" + etapas[i]['TAR_Codigo'] + " - " + etapas[i]['TAR_Descricao'] + "' data-content='<b>Duração:</b> " + day + "/" + month + "/" + year + " - " + dayend + "/" + monthend + "/" + yearend + " <br> <b>% de conclusão:</b> " + formatarMoeda(parseFloat(percentual_concluido)) + "%' class='progress-bar " + typePill + " " + pillWay + "' style='left: " + left + "px; right: " + right + "px; width:" + width + "px; " + styleInline + "';' >" + formatarMoeda(parseFloat(percentual_concluido)) + "%</div></td></tr>");
+
+								$(function() {
+									$('[data-toggle="popover"]').popover({
+										trigger: "hover",
+										html: "true"
+									});
+								});
+
+							}
+
+						}
+
+					} else {
+						$('#boxTarefas').hide();
+						$('#divTarefas').html('');
+					}
+
+				} else {
+					$('#boxTarefas').hide();
+					$('#divTarefas').html('');
+				}
+
+				preLoadingClose();
+				return data;
+			}, 'json'
+		);
+	});
+
+	function VerificaCadastro(isNew = null) {
+		var id_selecionado = $('#CAX_Status_ID').val();
+		var id_atual = $('#status_atual').val();
+
+		$.ajax({
+			type: "POST",
+			url: $.trim($('#verifica_terrenos_status').val()),
+			data: {
+				CAX_Status_ID: id_selecionado,
+				status_atual: id_atual,
+				isNew: isNew
+
+			},
+			dataType: 'html',
+			cache: false,
+			success: function(data) {
+				if (data.length > 0) {
+					$('#modal-acopla').html(data);
+					showModal();
+				}
+			}
+		});
+	}
+</script>
+<script type="text/javascript" language="javascript" src="https://maps.googleapis.com/maps/api/js?v=3.37&key=AIzaSyAtuVibyDImbSSflIxl-Q8lhLz2ct4SQqE&sensor=false&libraries=geometry&language=pt-BR"></script>
+<script src="https://comproterreno.com.br/login/assets/js/map/terra-draw.umd.js"></script>
+<script src="https://comproterreno.com.br/login/assets/js/map/terra-draw-google-adapter.js"></script>
+
+
+	<script type="text/javascript" language="javascript">
+		var options = {
+			series: [{
+				data: [
+					{
+						x: 'Minuta',
+								y:[
+									1688939589000,
+									1695904749000
+								],
+							
+							},{
+						x: 'Assinado',
+								y:[
+									1695904749000,
+									1780675071000
+								],
+							
+							},				]
+			}],
+			chart: {
+				width: '98%',
+				height: 350,
+				type: 'rangeBar'
+			},
+			plotOptions: {
+				bar: {
+					horizontal: true,
+					distributed: true,
+					dataLabels: {
+						hideOverflowingLabels: false
+					}
+				}
+			},
+			colors: [
+				"#008FFB", "#00E396", "#FEB019", "#FF4560", "#775DD0",
+				"#3F51B5", "#546E7A", "#D4526E", "#8D5B4C", "#F86624",
+				"#D7263D", "#1B998B", "#2E294E", "#F46036", "#E2C044"
+			],
+			dataLabels: {
+				enabled: true,
+				formatter: function(val, opts) {
+					var label = opts.w.globals.labels[opts.dataPointIndex]
+					var a = moment(val[0])
+					var b = moment(val[1])
+					var diff = b.diff(a, 'days')
+					return diff + (diff > 1 ? ' dias' : ' dia')
+				},
+				style: {
+					colors: ['#f3f4f5', '#fff']
+				}
+			},
+			xaxis: {
+				type: 'datetime'
+			},
+			yaxis: {
+				show: true
+			},
+			grid: {
+				row: {
+					colors: ['#f3f4f5', '#fff'],
+					opacity: 1
+				}
+			}
+		};
+
+		var chart = new ApexCharts(document.querySelector("#chart"), options);
+		chart.render();
+		//if ($('#hddVisualizar').val() !== undefined){
+		var map; // Global declaration of the map
+		var markers = [];
+		var bounds = new google.maps.LatLngBounds();
+		var polygons = [];
+		let polygonsDistrito = [];
+		let polygonsDistritoInMap = [];
+		let distritoAtivo = false;
+
+		function limparDistrito() {
+			for (let i = 0; i < polygonsDistrito.length; i++) {
+				polygonsDistrito[i].setMap(null);
+			}
+
+			polygonsDistrito = [];
+			polygonsDistritoInMap = [];
+
+			distritoAtivo = false;
+		}
+
+		function desenharDistrito() {
+			distritoAtivo = true;
+
+			$.ajax({
+				url: $.trim($('#terrenos_distritos').val()),
+				dataType: 'json',
+				cache: false,
+				type: 'POST',
+			}).success(function(data) {
+				if (data.error) {
+					$('#styledistritost').html('Distritos');
+					$('#styledistritosb').prop('disabled', true);
+					dialogAlert(strInformacao, data.error.msg, 6);
+					return;
+				}
+
+				let distritoCoords = [];
+				let distrito = [];
+
+				limparDistrito();
+				distritoAtivo = true;
+
+				for (let i = 0; i < data.arrDistritos.length; i++) {
+
+					polygonsDistritoInMap.push(data.arrDistritos[i]);
+
+					distritoCoords[i] = [];
+
+					for (let j = 0; j < data.arrDistritos[i].poligono.length; j++) {
+						let poly = data.arrDistritos[i].poligono[j].split(",");
+						distritoCoords[i].push(new google.maps.LatLng(parseFloat(poly[0]), parseFloat(poly[1])));
+					}
+
+					distrito[i] = new google.maps.Polygon({
+						paths: distritoCoords[i],
+						id: data.arrDistritos[i].id,
+						map: map
+					});
+
+					polygonsDistrito.push(distrito[i]);
+				}
+
+				for (let j = 0; j < polygonsDistrito.length; j++) {
+					polygonsDistrito[j].setMap(map);
+
+					google.maps.event.addListener(polygonsDistrito[j], 'click', function(event) {
+						for (let k = 0; k < polygonsDistritoInMap.length; k++) {
+							if (polygonsDistritoInMap[k].id === this.id) {
+								mostrarInformacoesDistrito(polygonsDistritoInMap[k], event);
+							}
+						}
+					});
+
+					infoWindow = new google.maps.InfoWindow;
+				}
+
+				$('#styledistritost').html('Distritos');
+				$('#styledistritosb').prop('disabled', true);
+
+			}).fail(function(data) {
+				//alert(data); return;
+				$('#styledistritost').html('Distritos');
+				$('#styledistritosb').prop('disabled', true);
+				dialogAlert(strAtencao, data.responseText, 6);
+			});
+		}
+
+		function mostrarInformacoesDistrito(poly, event) {
+			let contentString = "<b>" + poly.nome + "</b><br>";
+
+			infoWindow.setContent(contentString);
+			infoWindow.setPosition(event.latLng);
+
+			infoWindow.open(map);
+		}
+
+		function CenterControl(controlDiv, map, center) {
+			// We set up a variable for this since we're adding event listeners
+			// later.
+			var control = this;
+
+			// Set the center property upon construction
+			control.center_ = center;
+			controlDiv.style.clear = 'none';
+
+			//LAYER PLANO DIRETOR
+			var BotaoPlanoDiretor = document.createElement('div');
+			BotaoPlanoDiretor.id = 'styleplanodiretorb';
+			BotaoPlanoDiretor.title = 'Mostrar/Esconder Zoneamento';
+			controlDiv.appendChild(BotaoPlanoDiretor);
+
+			//LAYER PLANO DIRETOR
+			var TextoPlanoDistritos = document.createElement('div');
+			TextoPlanoDistritos.id = 'styleplanodiretort';
+			TextoPlanoDistritos.innerHTML = 'Zoneamento';
+			BotaoPlanoDiretor.appendChild(TextoPlanoDistritos);
+
+			//ACAO ZONEAMENTO
+			BotaoPlanoDiretor.addEventListener('click', function() {
+				limparDistrito();
+				if ($.trim($('#hddClick').val()) == '') {
+					$('#hddClick').val('S');
+					$('#styleplanodiretort').prop('disabled', true);
+					$('#styleplanodiretort').html('Carregando...');
+					montarZoneamento(getVisibleArea());
+				} else {
+					$('#hddClick').val('');
+					limparZoneamento();
+				}
+			});
+
+			//AÇÃO DISTRITOS	
+			var BotaoPlanoDistritos = document.createElement('div');
+			BotaoPlanoDistritos.id = 'styledistritosb';
+			BotaoPlanoDistritos.title = 'Mostrar/Esconder Distrito';
+			controlDiv.appendChild(BotaoPlanoDistritos);
+
+			var TextoPlanoDistritos = document.createElement('div');
+			TextoPlanoDistritos.id = 'styledistritost';
+			TextoPlanoDistritos.innerHTML = 'Distritos';
+			BotaoPlanoDistritos.appendChild(TextoPlanoDistritos);
+
+			BotaoPlanoDistritos.addEventListener('click', function() {
+				$('#styledistritosb').prop('disabled', true);
+				$('#styledistritost').html('Carregando...');
+
+				limparZoneamento();
+
+				var newCenter = map.getCenter();
+				if (distritoAtivo === false) {
+					montarDistrito();
+				} else {
+					limparPoligonos();
+					$('#styledistritost').html('Distritos');
+					$('#styledistritosb').prop('disabled', true);
+				}
+			});
+		}
+
+		/**
+		 * Define a property to hold the center state.
+		 * @private
+		 */
+		CenterControl.prototype.center_ = null;
+
+		/**
+		 * Gets the map center.
+		 * @return {?google.maps.LatLng}
+		 */
+		CenterControl.prototype.getCenter = function() {
+			return this.center_;
+		};
+
+		/**
+		 * Sets the map center.
+		 * @param {?google.maps.LatLng} center
+		 */
+		CenterControl.prototype.setCenter = function(center) {
+			this.center_ = center;
+		};
+
+		function initialize_map() {
+			bounds.extend({lat:-21.907348573564025,lng:-50.737019406278755},{lat:-21.907945817695893,lng:-50.73711596580329},{lat:-21.90815485255055,lng:-50.736987219770576},{lat:-21.90861273735095,lng:-50.73556028457465},{lat:-21.907876139342846,lng:-50.73535643668952},);
+
+			map = new google.maps.Map(document.getElementById('map-canvas'), {
+				zoom: 9,
+				center: new google.maps.LatLng(0, 0)
+			});
+
+			// Create the DIV to hold the control and call the CenterControl()
+			// constructor passing in this DIV.
+			var centerControlDiv = document.createElement('div');
+			var centerControl = new CenterControl(centerControlDiv, map);
+
+			centerControlDiv.index = 1;
+			map.controls[google.maps.ControlPosition.TOP_CENTER].push(centerControlDiv);
+
+			var MeuPoligonoCoords = [
+				{lat:-21.907348573564025,lng:-50.737019406278755},{lat:-21.907945817695893,lng:-50.73711596580329},{lat:-21.90815485255055,lng:-50.736987219770576},{lat:-21.90861273735095,lng:-50.73556028457465},{lat:-21.907876139342846,lng:-50.73535643668952},			];
+
+			var MeuPoligono = new google.maps.Polygon({
+				paths: MeuPoligonoCoords,
+				strokeColor: '#FF0000',
+				strokeOpacity: 0.8,
+				strokeWeight: 3,
+				fillColor: '#FF0000',
+				fillOpacity: 0.35,
+				map: map
+			});
+
+			MeuPoligono.setMap(map);
+			MeuPoligono.getPath().forEach(function(path, index) {
+				bounds.extend(path);
+			});
+
+			map.fitBounds(bounds);
+		}
+
+		google.maps.event.addDomListener(window, "load", initialize_map);
+
+		var mapTemp;
+
+		function toggleLayer(layer) {
+			if (layer.getMap()) {
+				mapTemp = layer.getMap();
+				layer.setMap(null);
+			} else {
+				layer.setMap(mapTemp);
+			}
+		}
+
+		$('#CAX_Gestor_ID, #CAX_Status_ID, #UF_ID, #CAX_Zona_ID').prop('disabled', true);
+
+		consultarTerrenosCorretores();
+		consultarTerrenosEstudos();
+		consultarTerrenosEstudoNovo();
+		consultarTerrenosProprietarios();
+		consultarTerrenosViabilidades();
+		consultarTerrenosDocumentos();
+		consultarTerrenosTarefasVisualizar();
+		consultarTerrenosFormulario();
+		consultarTerrenosObservacoes();
+		comproterrenoTerrenosAtividadesVisualizar();
+	</script>
+
+<script defer>
+	function callLayer(target, param = null, envelopamento = null, lotesid = null) {
+
+		var layer = layers.filter(function(x) {
+			return x.layer == target
+		})[0];
+		layer.visible = param;
+
+		if (layer.visible) {
+
+			var bounds = map.getBounds();
+
+			if (envelopamento != null) {
+				var envelope = {
+					xmin: envelopamento.xmin,
+					xmax: envelopamento.xmax,
+					ymin: envelopamento.ymin,
+					ymax: envelopamento.ymax
+				}
+
+			} else {
+				var envelope = {
+					xmin: bounds.getSouthWest().lng(),
+					xmax: bounds.getNorthEast().lng(),
+					ymin: bounds.getSouthWest().lat(),
+					ymax: bounds.getNorthEast().lat()
+				}
+			}
+
+
+
+			var param = {
+				camada: layer.layer,
+				envelope: envelope,
+				campos: layer.fields,
+				datainicio: null,
+				datafim: null,
+				tipologia: null,
+				areamin: null,
+				areamax: null,
+				dormmin: null,
+				dormmax: null,
+				valormin: null,
+				valormax: null,
+				cidade: null
+			}
+
+			$.ajax({
+				type: "POST",
+				url: $.trim($('#pesquisar_lotes_terrenos').val()),
+				dataType: 'json',
+				cache: false,
+				data: {
+					Cidade: $("#CID_ID option:selected").text(),
+					TER_Setor: $('#TER_Setor').val(),
+					TER_Quadra: $('#TER_Quadra').val()
+				},
+				success: ((data) => {
+
+					if (data.status == "error") {
+						$.notify('Sem informações', 'warn');
+					} else {
+
+						map.setCenter({
+							lat: parseFloat(data.lotes[0].lat),
+							lng: parseFloat(data.lotes[0].lng)
+						})
+
+						map.setZoom(18);
+
+						drawLayers(layer, data, target, lotesid)
+					}
+
+
+				})
+			});
+		} else {
+			if (target == 'lotes') {
+				loteid_ativos = [];
+				if (instanceCircle != null) {
+					instanceCircle.setMap(null)
+					instanceCircle = null
+				}
+			}
+
+
+			var i;
+			for (i in layer.features) {
+				if (layer.features.hasOwnProperty(i)) {
+					layer.features[i].setMap(null);
+				}
+			}
+		}
+
+
+	}
+
+	function clearLayer(_features) {
+		var i;
+
+		for (i in _features) {
+			if (_features.hasOwnProperty(i)) {
+				_features[i].setMap(null);
+			}
+		}
+		_features.length = 0;
+	}
+
+	function drawLayers(layer, data, target, lotesid = null) {
+		clearLayer(layer.features);
+
+		if (data.lotes) {
+			var id_empreendimentos = new Array;
+			var id_terrenos = new Array;
+			for (var i = 0; i < data.lotes.length; i++) {
+				id_empreendimentos.push(data.lotes[i].chd_id);
+				var el, obj, wkt;
+
+				el = data.lotes[i].wkt;
+				wkt = new Wkt.Wkt();
+				wkt.read(data.lotes[i].wkt);
+
+				if (layer.style.hasOwnProperty('render')) {
+
+
+					var fieldRender = layer.style.render.field.replace('${', "").replace("}", "");
+
+					var valor = data.lotes[i][fieldRender];
+
+					var gotStyle = false;
+
+					for (var r in layer.style.render.rules) {
+						var rules = layer.style.render.rules[r].between;
+
+						if (rules != null) {
+							if (valor > rules[0] && valor < rules[1]) {
+								gotStyle = true;
+
+								obj = wkt.toObject(layer.style.render.rules[r].style);
+							}
+						}
+
+					}
+
+					if (!gotStyle) {
+						obj = wkt.toObject(layer.style.render.default);
+					}
+
+				} else {
+					if (target == 'terreno') {
+						id_terrenos.push(data.lotes[i].ter_id);
+
+						var color = '#993399';
+						if (ColorTerreno(data.lotes[i]['cax_status_id'])) {
+							color = ColorTerreno(data.lotes[i]['cax_status_id']);
+						}
+						layer.style.strokeColor = color;
+						layer.style.fillColor = color;
+
+					} else if (target == 'lotes') {
+						if (lotesid != null) {
+							loteid_ativos = lotesid;
+
+							if (lotesid.indexOf(data[i]['loteid']) > -1) {
+								var color = '#f50000';
+								layer.style.strokeColor = '#000000';
+								layer.style.strokeWeight = 3;
+								layer.style.fillColor = color;
+							} else {
+								var color = '#000000';
+								layer.style.strokeColor = color;
+								layer.style.fillColor = color;
+								layer.style.strokeWeight = 1;
+							}
+
+						} else {
+							var color = '#000000';
+							layer.style.strokeColor = color;
+							layer.style.fillColor = color;
+							layer.style.strokeWeight = 1;
+						}
+
+					} else {
+						if (layer.style.hasOwnProperty('strokeColor')) {
+							var color = data[i]['cor'];
+							layer.style.strokeColor = color;
+							layer.style.fillColor = color;
+
+						}
+					}
+
+					layer.style.zIndex = 50;
+					obj = wkt.toObject(layer.style);
+				}
+
+				obj.properties = {}
+
+				for (prop in data.lotes[i]) {
+					if (prop != 'wkt') {
+						obj.properties[prop] = data.lotes[i][prop]
+					}
+				}
+
+				obj.setMap(map);
+
+				obj.addListener('click', function() {
+
+					if (target == 'lotes') {
+
+						if (this.fillColor == "#000000") {
+
+							var style = {
+								fillColor: "#f50000",
+								strokeColor: "#000000",
+								strokeWeight: 3
+							};
+
+							let valor_area = parseFloat($('#AREA_MEDIDA').val().replace(',', '.'));
+
+							area = valor_area + parseFloat(this.properties.area);
+
+							var formatado = area.toFixed(2).replace(".", ",");
+
+							$('#AREA_MEDIDA').val(formatado);
+
+							loteid_ativos.push(this.properties.loteid);
+							setores_ativos.push(this.properties.setor);
+							quadras_ativos.push(this.properties.quadra);
+							lotes_ativos.push(this.properties.lote);
+							areas_ativos.push(this.properties.area);
+
+						} else {
+
+							var style = {
+								fillColor: "#000000",
+								strokeColor: "#000000",
+								strokeWeight: 1
+							}
+
+							let valor_area = parseFloat($('#AREA_MEDIDA').val().replace(',', '.'));
+
+							area = valor_area - parseFloat(this.properties.area);
+
+							if (area < 0) {
+								area = 0;
+							}
+
+							var formatado = area.toFixed(2).replace(".", ",");
+
+							$('#AREA_MEDIDA').val(formatado);
+
+
+							var loteid_remove = this.properties.loteid;
+							const index = loteid_ativos.indexOf(loteid_remove);
+							if (index > -1) {
+								loteid_ativos.splice(index, 1);
+								setores_ativos.splice(index, 1);
+								quadras_ativos.splice(index, 1);
+								lotes_ativos.splice(index, 1);
+								areas_ativos.splice(index, 1);
+							}
+						}
+						this.setOptions(style);
+						$('#loteid').val(loteid_ativos)
+						$('#setores').val(setores_ativos)
+						$('#quadras').val(quadras_ativos)
+						$('#lotes').val(lotes_ativos)
+						$('#areas').val(areas_ativos)
+					}
+
+				})
+
+				layer.features.push(obj);
+			}
+
+
+		} else {
+			//alert('sem dados');
+		}
+	}
+</script>

@@ -2207,7 +2207,7 @@
         "id": "36021",
         "nome": "DNN36021 - Area do Jardim",
         "gestor": "Edson Maldonado",
-        "status": "StandBy",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -22.22742522712254,
@@ -11595,7 +11595,7 @@
         "id": "43680",
         "nome": "DNN43680 - Lafaiete Jardim Goiás",
         "gestor": "Emerson Marinho",
-        "status": "Análise",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -16.54237973004916,
@@ -16339,7 +16339,7 @@
         "id": "46046",
         "nome": "DNN46046 - Area M Leite",
         "gestor": "Edson Maldonado",
-        "status": "Análise",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -20.6902453937452,
@@ -19595,7 +19595,7 @@
         "id": "47005",
         "nome": "DNN47005 - Area Vila Paulista",
         "gestor": "Marcio Felipe",
-        "status": "Assinado",
+        "status": "Distratado",
         "poligono": [
             {
                 "lat": -16.472432898145176,
@@ -19909,9 +19909,9 @@
     },
     {
         "id": "47041",
-        "nome": "DNN47041 - Area Paraguai",
+        "nome": "DNN47041 - Área Anel Viário Ponta Porã",
         "gestor": "Luiz Felipe",
-        "status": "Análise",
+        "status": "Negociação",
         "poligono": [
             {
                 "lat": -22.466698917531083,
@@ -20331,7 +20331,7 @@
         "id": "47053",
         "nome": "DNN47053 - Terras Sinop",
         "gestor": "Marcio Felipe",
-        "status": "StandBy",
+        "status": "Análise",
         "poligono": [
             {
                 "lat": -16.423758577182646,
@@ -21623,7 +21623,7 @@
         "id": "47698",
         "nome": "DNN47698 - Vila paulista 2 (Ny Casa blanca)",
         "gestor": "Marcio Felipe",
-        "status": "StandBy",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -16.47142600125854,
@@ -22495,7 +22495,7 @@
         "id": "47758",
         "nome": "DNN47758 - Area Santa Gertrudes",
         "gestor": "Edson Maldonado",
-        "status": "Análise",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -22.18785499431182,
@@ -23427,7 +23427,7 @@
         "id": "48103",
         "nome": "DNN48103 - Portal do Cerrado",
         "gestor": "Emerson Marinho",
-        "status": "Negociação",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -16.797575047453815,
@@ -24155,7 +24155,7 @@
         "id": "48368",
         "nome": "DNN48368 - Area Alvaro - Verana",
         "gestor": "Edson Maldonado",
-        "status": "Análise",
+        "status": "Minuta",
         "poligono": [
             {
                 "lat": -22.258159377426132,
@@ -24431,7 +24431,7 @@
         "id": "48372",
         "nome": "DNN48372 - Família Lasso",
         "gestor": "Emerson Marinho",
-        "status": "Minuta",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -20.445301788815645,
@@ -24767,7 +24767,7 @@
         "id": "48506",
         "nome": "DNN48506 - Area Rod dos Imigrantes 122 ha My broker CBA",
         "gestor": "Marcio Felipe",
-        "status": "StandBy",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -15.693677411145774,
@@ -25495,7 +25495,7 @@
         "id": "48664",
         "nome": "DNN48664 - Loteamento Itaipu",
         "gestor": "Emerson Marinho",
-        "status": "Negociação",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -16.787095295227584,
@@ -25883,7 +25883,7 @@
         "id": "48806",
         "nome": "DNN48806 - Area Gleba D Bosco",
         "gestor": "Marcio Felipe",
-        "status": "Minuta",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -16.49662687191526,
@@ -25915,7 +25915,7 @@
         "id": "48821",
         "nome": "DNN48821 - Área Alta vista",
         "gestor": "Marcio Felipe",
-        "status": "StandBy",
+        "status": "Negociação",
         "poligono": [
             {
                 "lat": -16.41331762665124,
@@ -26115,7 +26115,7 @@
         "id": "48937",
         "nome": "DNN48937 - Sitio Talismã",
         "gestor": "Emerson Marinho",
-        "status": "Análise",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -19.704910476671394,
@@ -27931,7 +27931,7 @@
         "id": "49209",
         "nome": "DNN49209 - Area Mr - Paysandu",
         "gestor": "Edson Maldonado",
-        "status": "Análise",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -23.47368563486806,
@@ -28023,7 +28023,7 @@
         "id": "49222",
         "nome": "DNN49222 - Veredas di Itália",
         "gestor": "Emerson Marinho",
-        "status": "Análise",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -16.491901198825254,
@@ -28147,7 +28147,7 @@
         "id": "49230",
         "nome": "DNN49230 - PM Cristalina Setor Oeste",
         "gestor": "Emerson Marinho",
-        "status": "Análise",
+        "status": "StandBy",
         "poligono": [
             {
                 "lat": -16.77486731574923,
@@ -28415,7 +28415,7 @@
         "id": "49298",
         "nome": "DNN49298 - Area Familia Maluf",
         "gestor": "Marcio Felipe",
-        "status": "Análise",
+        "status": "StandBy",
         "poligono": [
             {
                 "lat": -15.702049784251074,
@@ -28611,7 +28611,7 @@
         "id": "49473",
         "nome": "DNN49473 - Area Campo Verde",
         "gestor": "Marcio Felipe",
-        "status": "Análise",
+        "status": "Negociação",
         "poligono": [
             {
                 "lat": -15.540616313384907,
@@ -28635,7 +28635,7 @@
         "id": "49475",
         "nome": "DNN49475 - Area Contorno leste Ricardo",
         "gestor": "Marcio Felipe",
-        "status": "Análise",
+        "status": "Negociação",
         "poligono": [
             {
                 "lat": -15.603048601867496,
@@ -28707,7 +28707,7 @@
         "id": "49500",
         "nome": "DNN49500 - Area Gerson ADV",
         "gestor": "Edson Maldonado",
-        "status": "Minuta",
+        "status": "Assinado",
         "poligono": [
             {
                 "lat": -23.252897467206175,
@@ -28835,7 +28835,7 @@
         "id": "49504",
         "nome": "DNN49504 - Area Caiobá Ivan - SET",
         "gestor": "Luiz Felipe",
-        "status": "Negociação",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -20.525230872707247,
@@ -29175,7 +29175,7 @@
         "id": "49519",
         "nome": "DNN49519 - Araguaia Auto Posto",
         "gestor": "Emerson Marinho",
-        "status": "Análise",
+        "status": "Negociação",
         "poligono": [
             {
                 "lat": -18.64065965477112,
@@ -29235,7 +29235,7 @@
         "id": "49521",
         "nome": "DNN49521 - Residencial Estrela",
         "gestor": "Emerson Marinho",
-        "status": "Negociação",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -18.209653400811494,
@@ -29273,7 +29273,7 @@
     },
     {
         "id": "49522",
-        "nome": "DNN49522 - Rildo",
+        "nome": "DNN49522 - Rilton e Hilda",
         "gestor": "Emerson Marinho",
         "status": "Negociação",
         "poligono": [
@@ -29501,7 +29501,7 @@
     },
     {
         "id": "49528",
-        "nome": "DNN49528 - Alvino Albino",
+        "nome": "DNN49528 - Zezo Rampeloti",
         "gestor": "Emerson Marinho",
         "status": "Negociação",
         "poligono": [
@@ -29591,7 +29591,7 @@
         "id": "49530",
         "nome": "DNN49530 - Toninho",
         "gestor": "Emerson Marinho",
-        "status": "Análise",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -18.200313854724406,
@@ -30087,7 +30087,7 @@
         "id": "49730",
         "nome": "DNN49730 - Area Comapa",
         "gestor": "Marcio Felipe",
-        "status": "Análise",
+        "status": "Negociação",
         "poligono": [
             {
                 "lat": -16.411658044599267,
@@ -30239,7 +30239,7 @@
         "id": "49793",
         "nome": "DNN49793 - Jean Capuccino",
         "gestor": "Luiz Felipe",
-        "status": "Análise",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -20.905069193557658,
@@ -30351,7 +30351,7 @@
         "id": "49820",
         "nome": "DNN49820 - Area MT 130 Giva",
         "gestor": "Marcio Felipe",
-        "status": "Análise",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -16.41619339812319,
@@ -30383,7 +30383,7 @@
         "id": "49872",
         "nome": "DNN49872 - Água Clara 29hec",
         "gestor": "Luiz Felipe",
-        "status": "Análise",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -20.409514801155126,
@@ -30419,7 +30419,7 @@
         "id": "49874",
         "nome": "DNN49874 - Area Interlagos Sinop",
         "gestor": "Marcio Felipe",
-        "status": "Análise",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -11.927581978126488,
@@ -30467,7 +30467,7 @@
         "id": "49877",
         "nome": "DNN49877 - Area RDC Rodrigo",
         "gestor": "Edson Maldonado",
-        "status": "Negociação",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -22.234695402247695,
@@ -30499,7 +30499,7 @@
         "id": "49878",
         "nome": "DNN49878 - Area Leo Santiago",
         "gestor": "Edson Maldonado",
-        "status": "Negociação",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -23.186355806483338,
@@ -30527,7 +30527,7 @@
         "id": "49879",
         "nome": "DNN49879 - Area Farid - JR Fernandes",
         "gestor": "Edson Maldonado",
-        "status": "Análise",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -21.199167861416612,
@@ -30559,7 +30559,7 @@
         "id": "49880",
         "nome": "DNN49880 - Expandh Catalão Norte",
         "gestor": "Emerson Marinho",
-        "status": "Análise",
+        "status": "Minuta",
         "poligono": [
             {
                 "lat": -18.135322884650808,
@@ -30627,7 +30627,7 @@
         "id": "49881",
         "nome": "DNN49881 - Area JR Fernandes",
         "gestor": "Edson Maldonado",
-        "status": "Negociação",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -22.41788806518231,
@@ -30655,7 +30655,7 @@
         "id": "49882",
         "nome": "DNN49882 - Expandh Catalão Leste",
         "gestor": "Emerson Marinho",
-        "status": "Análise",
+        "status": "Minuta",
         "poligono": [
             {
                 "lat": -18.130596980242586,
@@ -30691,7 +30691,7 @@
         "id": "49883",
         "nome": "DNN49883 - Area ZILMAR - assis",
         "gestor": "Edson Maldonado",
-        "status": "Análise",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -21.683567484674178,
@@ -30783,7 +30783,7 @@
         "id": "49885",
         "nome": "DNN49885 - Expandh Catalão Sul",
         "gestor": "Emerson Marinho",
-        "status": "Análise",
+        "status": "Minuta",
         "poligono": [
             {
                 "lat": -18.218262951517545,
@@ -30817,9 +30817,9 @@
     },
     {
         "id": "49886",
-        "nome": "DNN49886 - Area Paulo - Analy",
-        "gestor": "Edson Maldonado",
-        "status": "Análise",
+        "nome": "DNN49886 - Analy 2 loteamento aprovado",
+        "gestor": "Luiz Felipe",
+        "status": "Minuta",
         "poligono": [
             {
                 "lat": -23.078047841716373,
@@ -30879,7 +30879,7 @@
         "id": "49901",
         "nome": "DNN49901 - Pontal Norte",
         "gestor": "Emerson Marinho",
-        "status": "Análise",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -18.176510455352833,
@@ -31061,17 +31061,17 @@
     },
     {
         "id": "49911",
-        "nome": "DNN49911 - Marcelino Pires 15 hec",
+        "nome": "DNN49911 - Marcelino Pires 10 hec (Ailton)",
         "gestor": "Luiz Felipe",
-        "status": "Análise",
+        "status": "Descartado",
         "poligono": [
             {
-                "lat": -22.222455096873972,
-                "lng": -54.73085427090047
+                "lat": -22.2203793093522,
+                "lng": -54.73147654339193
             },
             {
-                "lat": -22.2221372749391,
-                "lng": -54.72967409893392
+                "lat": -22.220190599872236,
+                "lng": -54.7311117629659
             },
             {
                 "lat": -22.22009127899133,
@@ -31094,12 +31094,12 @@
                 "lng": -54.73259234234212
             },
             {
-                "lat": -22.222574279913868,
-                "lng": -54.73184132381795
+                "lat": -22.22068720322181,
+                "lng": -54.73224901958822
             },
             {
-                "lat": -22.22251468840658,
-                "lng": -54.73068260952352
+                "lat": -22.220538222401554,
+                "lng": -54.73188423916219
             }
         ]
     },
@@ -31147,7 +31147,7 @@
         "id": "49919",
         "nome": "DNN49919 - Cidade Jardim",
         "gestor": "Emerson Marinho",
-        "status": "Negociação",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -18.14726057511441,
@@ -31183,7 +31183,7 @@
         "id": "49920",
         "nome": "DNN49920 - Paineiras",
         "gestor": "Emerson Marinho",
-        "status": "Análise",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -18.153290100711764,
@@ -31351,7 +31351,7 @@
         "id": "49925",
         "nome": "DNN49925 - Guilherme Buena Vista",
         "gestor": "Emerson Marinho",
-        "status": "Negociação",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -16.71721291994825,
@@ -31541,7 +31541,7 @@
     },
     {
         "id": "49930",
-        "nome": "DNN49930 - Pão de Queijo",
+        "nome": "DNN49930 - Chácara Paquetá",
         "gestor": "Emerson Marinho",
         "status": "Análise",
         "poligono": [
@@ -31631,7 +31631,7 @@
         "id": "49932",
         "nome": "DNN49932 - Mackson",
         "gestor": "Emerson Marinho",
-        "status": "Análise",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -16.682221319174474,
@@ -31751,7 +31751,7 @@
         "id": "49934",
         "nome": "DNN49934 - Recreio do Rio Pardo",
         "gestor": "Emerson Marinho",
-        "status": "Análise",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -21.10106800085988,
@@ -31795,7 +31795,7 @@
         "id": "49935",
         "nome": "DNN49935 - Conj Mauricio Arantes",
         "gestor": "Emerson Marinho",
-        "status": "Negociação",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -17.75949519940251,
@@ -31894,8 +31894,8 @@
                 "lng": -52.538187745374685
             },
             {
-                "lat": -17.533983080019578,
-                "lng": -52.5407304795208
+                "lat": -17.534095613917014,
+                "lng": -52.54073852614785
             },
             {
                 "lat": -17.53381939422594,
@@ -31907,7 +31907,7 @@
         "id": "49937",
         "nome": "DNN49937 - Fazenda Quinta do Golf",
         "gestor": "Emerson Marinho",
-        "status": "Análise",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -19.023548031412453,
@@ -32043,7 +32043,7 @@
         "id": "49941",
         "nome": "DNN49941 - Primavera II - Ponta Porã",
         "gestor": "Luiz Felipe",
-        "status": "Análise",
+        "status": "Negociação",
         "poligono": [
             {
                 "lat": -22.551049944606568,
@@ -32127,7 +32127,7 @@
         "id": "49996",
         "nome": "DNN49996 - Cabeceira 7,5hec Ponta porã",
         "gestor": "Luiz Felipe",
-        "status": "Análise",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -22.538125435679365,
@@ -32199,7 +32199,7 @@
         "id": "50000",
         "nome": "DNN50000 - 46hec Rio Brilhante",
         "gestor": "Luiz Felipe",
-        "status": "Análise",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -21.812830778777247,
@@ -32439,7 +32439,7 @@
         "id": "50026",
         "nome": "DNN50026 - Lot. Aprovado Nova Alvorada do Sul",
         "gestor": "Luiz Felipe",
-        "status": "Análise",
+        "status": "Descartado",
         "poligono": [
             {
                 "lat": -21.47492116109421,
@@ -32468,6 +32468,3282 @@
             {
                 "lat": -21.473463487211976,
                 "lng": -54.37129246210699
+            }
+        ]
+    },
+    {
+        "id": "50075",
+        "nome": "DNN50075 - Area Praca por do sol",
+        "gestor": "Marcio Felipe",
+        "status": "Descartado",
+        "poligono": [
+            {
+                "lat": -16.488653334231678,
+                "lng": -54.58438280314967
+            },
+            {
+                "lat": -16.48874592281647,
+                "lng": -54.59012273044154
+            },
+            {
+                "lat": -16.49171902160492,
+                "lng": -54.58843830318019
+            },
+            {
+                "lat": -16.49252144182488,
+                "lng": -54.589082033343765
+            },
+            {
+                "lat": -16.49207908237155,
+                "lng": -54.5872152158694
+            },
+            {
+                "lat": -16.489682093797096,
+                "lng": -54.58762291163966
+            },
+            {
+                "lat": -16.489229440261944,
+                "lng": -54.58422187060878
+            }
+        ]
+    },
+    {
+        "id": "50076",
+        "nome": "DNN50076 - Area Barreiro branco 1",
+        "gestor": "Marcio Felipe",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -15.530855296602345,
+                "lng": -56.052205561348906
+            },
+            {
+                "lat": -15.532261135724813,
+                "lng": -56.053750513741484
+            },
+            {
+                "lat": -15.523908656715621,
+                "lng": -56.06362104291629
+            },
+            {
+                "lat": -15.522296010421833,
+                "lng": -56.06237649793338
+            }
+        ]
+    },
+    {
+        "id": "50077",
+        "nome": "DNN50077 - Area Daycoval 1",
+        "gestor": "Marcio Felipe",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -15.53226591506376,
+                "lng": -56.05386650740202
+            },
+            {
+                "lat": -15.53336163594165,
+                "lng": -56.05513251005705
+            },
+            {
+                "lat": -15.531046143462687,
+                "lng": -56.05820095717009
+            },
+            {
+                "lat": -15.529185461018269,
+                "lng": -56.05757868467863
+            }
+        ]
+    },
+    {
+        "id": "50078",
+        "nome": "DNN50078 - Area Barreiro Branco 2",
+        "gestor": "Marcio Felipe",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -15.52913424903042,
+                "lng": -56.05779381188082
+            },
+            {
+                "lat": -15.530912235275496,
+                "lng": -56.05835171135592
+            },
+            {
+                "lat": -15.526177796101042,
+                "lng": -56.06423111351656
+            },
+            {
+                "lat": -15.52402762189538,
+                "lng": -56.06363029869723
+            }
+        ]
+    },
+    {
+        "id": "50079",
+        "nome": "DNN50079 - Area Daycoval 2",
+        "gestor": "Marcio Felipe",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -15.526515032016048,
+                "lng": -56.06438523371011
+            },
+            {
+                "lat": -15.527714155933024,
+                "lng": -56.06494313318521
+            },
+            {
+                "lat": -15.528995970340477,
+                "lng": -56.06442814905435
+            },
+            {
+                "lat": -15.52928541120068,
+                "lng": -56.06464272577554
+            },
+            {
+                "lat": -15.530649912640328,
+                "lng": -56.06275445062906
+            },
+            {
+                "lat": -15.528830575380795,
+                "lng": -56.06138115961343
+            }
+        ]
+    },
+    {
+        "id": "50080",
+        "nome": "DNN50080 - Area Daycoval 4",
+        "gestor": "Marcio Felipe",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -15.533403581134346,
+                "lng": -56.055368457075566
+            },
+            {
+                "lat": -15.53203909791986,
+                "lng": -56.05729964756629
+            },
+            {
+                "lat": -15.53253527467919,
+                "lng": -56.05832961582801
+            },
+            {
+                "lat": -15.534189188584984,
+                "lng": -56.0559692718949
+            }
+        ]
+    },
+    {
+        "id": "50081",
+        "nome": "DNN50081 - Area Daycoval 3",
+        "gestor": "Marcio Felipe",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -15.531741143352857,
+                "lng": -56.06312987364177
+            },
+            {
+                "lat": -15.531689458130405,
+                "lng": -56.061735124954026
+            },
+            {
+                "lat": -15.531803165602735,
+                "lng": -56.06084463156108
+            },
+            {
+                "lat": -15.531906535977718,
+                "lng": -56.060490579971116
+            },
+            {
+                "lat": -15.53212361359645,
+                "lng": -56.0603618339384
+            },
+            {
+                "lat": -15.532237320829337,
+                "lng": -56.06015798605327
+            },
+            {
+                "lat": -15.532206309772041,
+                "lng": -56.059782476791185
+            },
+            {
+                "lat": -15.533136639461521,
+                "lng": -56.05833408392314
+            },
+            {
+                "lat": -15.534552799928596,
+                "lng": -56.059803934463304
+            },
+            {
+                "lat": -15.532681812137886,
+                "lng": -56.06346246755962
+            },
+            {
+                "lat": -15.532268331881962,
+                "lng": -56.062786550887864
+            },
+            {
+                "lat": -15.53227866889846,
+                "lng": -56.06322643316631
+            }
+        ]
+    },
+    {
+        "id": "50115",
+        "nome": "DNN50115 - Area Lilian Moraes (Deveza)",
+        "gestor": "Marcio Felipe",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -16.43978888209801,
+                "lng": -54.58079424238984
+            },
+            {
+                "lat": -16.44394608496329,
+                "lng": -54.57942095137422
+            },
+            {
+                "lat": -16.446703784283805,
+                "lng": -54.58491411543672
+            },
+            {
+                "lat": -16.44406956487519,
+                "lng": -54.58633032179658
+            },
+            {
+                "lat": -16.445345519365496,
+                "lng": -54.588690665729686
+            },
+            {
+                "lat": -16.443987244942655,
+                "lng": -54.58942022658174
+            }
+        ]
+    },
+    {
+        "id": "50125",
+        "nome": "DNN50125 - Inápolis Jardim 1 lote RV",
+        "gestor": "Luiz Felipe",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -20.492762265313235,
+                "lng": -54.73772303956304
+            },
+            {
+                "lat": -20.500520573945323,
+                "lng": -54.730684923107965
+            },
+            {
+                "lat": -20.49927444721932,
+                "lng": -54.729440378125055
+            },
+            {
+                "lat": -20.497867517769794,
+                "lng": -54.728667901928766
+            },
+            {
+                "lat": -20.497143949023673,
+                "lng": -54.72823874848638
+            },
+            {
+                "lat": -20.490470876253486,
+                "lng": -54.73484771149908
+            }
+        ]
+    },
+    {
+        "id": "50126",
+        "nome": "DNN50126 - Inápolis Jardim 1 lote NQ",
+        "gestor": "Luiz Felipe",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -20.490244005938955,
+                "lng": -54.73460757917263
+            },
+            {
+                "lat": -20.497278873920298,
+                "lng": -54.7279557008157
+            },
+            {
+                "lat": -20.49579152874626,
+                "lng": -54.72666824048855
+            },
+            {
+                "lat": -20.493580583572122,
+                "lng": -54.72542369550564
+            },
+            {
+                "lat": -20.487510370150208,
+                "lng": -54.731045605600855
+            }
+        ]
+    },
+    {
+        "id": "50166",
+        "nome": "DNN50166 - Area Jd Humaita",
+        "gestor": "Marcio Felipe",
+        "status": "Descartado",
+        "poligono": [
+            {
+                "lat": -15.674502764,
+                "lng": -56.057762541
+            },
+            {
+                "lat": -15.674139153,
+                "lng": -56.060577787
+            },
+            {
+                "lat": -15.673775541,
+                "lng": -56.063393034
+            },
+            {
+                "lat": -15.673577207,
+                "lng": -56.065624632
+            },
+            {
+                "lat": -15.674717624,
+                "lng": -56.065882124
+            },
+            {
+                "lat": -15.677180244,
+                "lng": -56.057917038
+            },
+            {
+                "lat": -15.674502764,
+                "lng": -56.057762541
+            }
+        ]
+    },
+    {
+        "id": "50167",
+        "nome": "DNN50167 - Area Vivence C leste",
+        "gestor": "Marcio Felipe",
+        "status": "Descartado",
+        "poligono": [
+            {
+                "lat": -15.60574316,
+                "lng": -56.002185695
+            },
+            {
+                "lat": -15.600832706,
+                "lng": -56.007009381
+            },
+            {
+                "lat": -15.601527121,
+                "lng": -56.008708829
+            },
+            {
+                "lat": -15.604966093,
+                "lng": -56.007249707
+            },
+            {
+                "lat": -15.606106894,
+                "lng": -56.003249996
+            },
+            {
+                "lat": -15.60574316,
+                "lng": -56.002185695
+            }
+        ]
+    },
+    {
+        "id": "50182",
+        "nome": "DNN50182 - Moreninha 27hec",
+        "gestor": "Luiz Felipe",
+        "status": "Descartado",
+        "poligono": [
+            {
+                "lat": -20.54431566,
+                "lng": -54.58613848
+            },
+            {
+                "lat": -20.544026321,
+                "lng": -54.584936851
+            },
+            {
+                "lat": -20.544990783,
+                "lng": -54.584696523
+            },
+            {
+                "lat": -20.544604999,
+                "lng": -54.582945578
+            },
+            {
+                "lat": -20.53823942,
+                "lng": -54.584735148
+            },
+            {
+                "lat": -20.537708943,
+                "lng": -54.588511698
+            },
+            {
+                "lat": -20.545296194,
+                "lng": -54.586640589
+            },
+            {
+                "lat": -20.545101294,
+                "lng": -54.586140626
+            },
+            {
+                "lat": -20.54431566,
+                "lng": -54.58613848
+            }
+        ]
+    },
+    {
+        "id": "50183",
+        "nome": "DNN50183 - Metello 4 x 15 hec",
+        "gestor": "Luiz Felipe",
+        "status": "Negociação",
+        "poligono": [
+            {
+                "lat": -20.955842993,
+                "lng": -54.953648018
+            },
+            {
+                "lat": -20.955947945,
+                "lng": -54.962814734
+            },
+            {
+                "lat": -20.962103605,
+                "lng": -54.963055062
+            },
+            {
+                "lat": -20.960436471,
+                "lng": -54.953613686
+            },
+            {
+                "lat": -20.955842993,
+                "lng": -54.953648018
+            }
+        ]
+    },
+    {
+        "id": "50186",
+        "nome": "DNN50186 - Nova Andradina lot. aprovado Prefeitura",
+        "gestor": "Luiz Felipe",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -22.248454536,
+                "lng": -53.363089117
+            },
+            {
+                "lat": -22.243592683,
+                "lng": -53.381010566
+            },
+            {
+                "lat": -22.244387115,
+                "lng": -53.381422554
+            },
+            {
+                "lat": -22.246452617,
+                "lng": -53.376925025
+            },
+            {
+                "lat": -22.249884462,
+                "lng": -53.369062933
+            },
+            {
+                "lat": -22.24842276,
+                "lng": -53.367895635
+            },
+            {
+                "lat": -22.250742408,
+                "lng": -53.364874397
+            },
+            {
+                "lat": -22.248454536,
+                "lng": -53.363089117
+            }
+        ]
+    },
+    {
+        "id": "50189",
+        "nome": "DNN50189 - Area Saída",
+        "gestor": "Edson Maldonado",
+        "status": "Negociação",
+        "poligono": [
+            {
+                "lat": -21.722475669,
+                "lng": -52.433359717
+            },
+            {
+                "lat": -21.724430347,
+                "lng": -52.436782383
+            },
+            {
+                "lat": -21.726174686,
+                "lng": -52.439899948
+            },
+            {
+                "lat": -21.72937871,
+                "lng": -52.44540359
+            },
+            {
+                "lat": -21.730640008,
+                "lng": -52.444583085
+            },
+            {
+                "lat": -21.727964164,
+                "lng": -52.431947702
+            },
+            {
+                "lat": -21.725605415,
+                "lng": -52.431362058
+            },
+            {
+                "lat": -21.726425176,
+                "lng": -52.434513151
+            },
+            {
+                "lat": -21.725717307,
+                "lng": -52.435005168
+            },
+            {
+                "lat": -21.724672587,
+                "lng": -52.432099917
+            },
+            {
+                "lat": -21.722475669,
+                "lng": -52.433359717
+            }
+        ]
+    },
+    {
+        "id": "50190",
+        "nome": "DNN50190 - Area Masson",
+        "gestor": "Edson Maldonado",
+        "status": "Descartado",
+        "poligono": [
+            {
+                "lat": -21.268176957,
+                "lng": -50.30772432
+            },
+            {
+                "lat": -21.269755403,
+                "lng": -50.310465202
+            },
+            {
+                "lat": -21.278381877,
+                "lng": -50.298532725
+            },
+            {
+                "lat": -21.276598262,
+                "lng": -50.295432762
+            },
+            {
+                "lat": -21.268176957,
+                "lng": -50.30772432
+            }
+        ]
+    },
+    {
+        "id": "50191",
+        "nome": "DNN50191 - Area Faculdade",
+        "gestor": "Edson Maldonado",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -21.237048246,
+                "lng": -50.408043916
+            },
+            {
+                "lat": -21.23822616,
+                "lng": -50.409294999
+            },
+            {
+                "lat": -21.240326725,
+                "lng": -50.411818119
+            },
+            {
+                "lat": -21.237104497,
+                "lng": -50.417511946
+            },
+            {
+                "lat": -21.240098365,
+                "lng": -50.419700713
+            },
+            {
+                "lat": -21.241953593,
+                "lng": -50.417905141
+            },
+            {
+                "lat": -21.243571147,
+                "lng": -50.416337893
+            },
+            {
+                "lat": -21.244790805,
+                "lng": -50.415277079
+            },
+            {
+                "lat": -21.240736491,
+                "lng": -50.410784463
+            },
+            {
+                "lat": -21.23777037,
+                "lng": -50.407610488
+            },
+            {
+                "lat": -21.237048246,
+                "lng": -50.408043916
+            }
+        ]
+    },
+    {
+        "id": "50192",
+        "nome": "DNN50192 - Area Dona Benedita",
+        "gestor": "Edson Maldonado",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -20.778179905,
+                "lng": -51.732619254
+            },
+            {
+                "lat": -20.777846373,
+                "lng": -51.733188553
+            },
+            {
+                "lat": -20.780203537,
+                "lng": -51.734692853
+            },
+            {
+                "lat": -20.780525466,
+                "lng": -51.734123177
+            },
+            {
+                "lat": -20.778179905,
+                "lng": -51.732619254
+            }
+        ]
+    },
+    {
+        "id": "50193",
+        "nome": "DNN50193 - Area Miler 1",
+        "gestor": "Edson Maldonado",
+        "status": "Descartado",
+        "poligono": [
+            {
+                "lat": -21.691628992,
+                "lng": -52.440266015
+            },
+            {
+                "lat": -21.691126175,
+                "lng": -52.441476026
+            },
+            {
+                "lat": -21.690358239,
+                "lng": -52.44348081
+            },
+            {
+                "lat": -21.69106823,
+                "lng": -52.449672689
+            },
+            {
+                "lat": -21.69276266,
+                "lng": -52.449362727
+            },
+            {
+                "lat": -21.694332304,
+                "lng": -52.44850727
+            },
+            {
+                "lat": -21.699026335,
+                "lng": -52.443032546
+            },
+            {
+                "lat": -21.698256104,
+                "lng": -52.438902614
+            },
+            {
+                "lat": -21.695058163,
+                "lng": -52.43959211
+            },
+            {
+                "lat": -21.691628992,
+                "lng": -52.440266015
+            }
+        ]
+    },
+    {
+        "id": "50194",
+        "nome": "DNN50194 - Area Liberato",
+        "gestor": "Edson Maldonado",
+        "status": "Descartado",
+        "poligono": [
+            {
+                "lat": -22.129286715,
+                "lng": -51.431947775
+            },
+            {
+                "lat": -22.129044852,
+                "lng": -51.430257229
+            },
+            {
+                "lat": -22.126587219,
+                "lng": -51.430362422
+            },
+            {
+                "lat": -22.124823011,
+                "lng": -51.433117051
+            },
+            {
+                "lat": -22.125086312,
+                "lng": -51.435865309
+            },
+            {
+                "lat": -22.127016291,
+                "lng": -51.435561465
+            },
+            {
+                "lat": -22.126713704,
+                "lng": -51.432362931
+            },
+            {
+                "lat": -22.129286715,
+                "lng": -51.431947775
+            }
+        ]
+    },
+    {
+        "id": "50195",
+        "nome": "DNN50195 - Area Sampaio",
+        "gestor": "Edson Maldonado",
+        "status": "Negociação",
+        "poligono": [
+            {
+                "lat": -23.422032475,
+                "lng": -51.413991326
+            },
+            {
+                "lat": -23.423071558,
+                "lng": -51.417662767
+            },
+            {
+                "lat": -23.423210461,
+                "lng": -51.420415552
+            },
+            {
+                "lat": -23.433544544,
+                "lng": -51.419668389
+            },
+            {
+                "lat": -23.433538084,
+                "lng": -51.417717585
+            },
+            {
+                "lat": -23.429889468,
+                "lng": -51.417680537
+            },
+            {
+                "lat": -23.426365192,
+                "lng": -51.418033918
+            },
+            {
+                "lat": -23.423701773,
+                "lng": -51.417929312
+            },
+            {
+                "lat": -23.422032475,
+                "lng": -51.413991326
+            }
+        ]
+    },
+    {
+        "id": "50196",
+        "nome": "DNN50196 - Area Sampaio 2",
+        "gestor": "Edson Maldonado",
+        "status": "Negociação",
+        "poligono": [
+            {
+                "lat": -23.405300535,
+                "lng": -51.404555775
+            },
+            {
+                "lat": -23.407177424,
+                "lng": -51.407195572
+            },
+            {
+                "lat": -23.40772864,
+                "lng": -51.408719737
+            },
+            {
+                "lat": -23.41350642,
+                "lng": -51.407365054
+            },
+            {
+                "lat": -23.413491652,
+                "lng": -51.406941516
+            },
+            {
+                "lat": -23.405300535,
+                "lng": -51.404555775
+            }
+        ]
+    },
+    {
+        "id": "50197",
+        "nome": "DNN50197 - Area Dallon",
+        "gestor": "Edson Maldonado",
+        "status": "Negociação",
+        "poligono": [
+            {
+                "lat": -23.306437961,
+                "lng": -51.385177103
+            },
+            {
+                "lat": -23.295990347,
+                "lng": -51.373500106
+            },
+            {
+                "lat": -23.294212583,
+                "lng": -51.37635867
+            },
+            {
+                "lat": -23.303781832,
+                "lng": -51.388246556
+            },
+            {
+                "lat": -23.306437961,
+                "lng": -51.385177103
+            }
+        ]
+    },
+    {
+        "id": "50198",
+        "nome": "DNN50198 - Area Pista",
+        "gestor": "Edson Maldonado",
+        "status": "Negociação",
+        "poligono": [
+            {
+                "lat": -24.01810373,
+                "lng": -52.412947383
+            },
+            {
+                "lat": -24.026152718,
+                "lng": -52.417432707
+            },
+            {
+                "lat": -24.032551034,
+                "lng": -52.412396692
+            },
+            {
+                "lat": -24.03241431,
+                "lng": -52.408901438
+            },
+            {
+                "lat": -24.031461066,
+                "lng": -52.405790578
+            },
+            {
+                "lat": -24.023270471,
+                "lng": -52.406504046
+            },
+            {
+                "lat": -24.01810373,
+                "lng": -52.412947383
+            }
+        ]
+    },
+    {
+        "id": "50199",
+        "nome": "DNN50199 - Area Igor",
+        "gestor": "Edson Maldonado",
+        "status": "Negociação",
+        "poligono": [
+            {
+                "lat": -23.575308122,
+                "lng": -51.420635435
+            },
+            {
+                "lat": -23.578348591,
+                "lng": -51.41726088
+            },
+            {
+                "lat": -23.578805216,
+                "lng": -51.417782235
+            },
+            {
+                "lat": -23.580302757,
+                "lng": -51.416015497
+            },
+            {
+                "lat": -23.579703789,
+                "lng": -51.412557627
+            },
+            {
+                "lat": -23.57821569,
+                "lng": -51.409183156
+            },
+            {
+                "lat": -23.576651213,
+                "lng": -51.409499406
+            },
+            {
+                "lat": -23.577180134,
+                "lng": -51.410470868
+            },
+            {
+                "lat": -23.578311563,
+                "lng": -51.411035808
+            },
+            {
+                "lat": -23.578582819,
+                "lng": -51.412354114
+            },
+            {
+                "lat": -23.577690615,
+                "lng": -51.412811934
+            },
+            {
+                "lat": -23.577783415,
+                "lng": -51.415368833
+            },
+            {
+                "lat": -23.575366047,
+                "lng": -51.417777038
+            },
+            {
+                "lat": -23.575308122,
+                "lng": -51.420635435
+            }
+        ]
+    },
+    {
+        "id": "50200",
+        "nome": "DNN50200 - Area Lot",
+        "gestor": "Edson Maldonado",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -23.548488861,
+                "lng": -51.408501165
+            },
+            {
+                "lat": -23.55553425,
+                "lng": -51.408718926
+            },
+            {
+                "lat": -23.555591415,
+                "lng": -51.405951474
+            },
+            {
+                "lat": -23.549438585,
+                "lng": -51.406362606
+            },
+            {
+                "lat": -23.548488861,
+                "lng": -51.408501165
+            }
+        ]
+    },
+    {
+        "id": "50204",
+        "nome": "DNN50204 - Paulo Cachoeira",
+        "gestor": "Emerson Marinho",
+        "status": "Descartado",
+        "poligono": [
+            {
+                "lat": -18.18744431,
+                "lng": -47.934390566
+            },
+            {
+                "lat": -18.188551927620562,
+                "lng": -47.934190294312984
+            },
+            {
+                "lat": -18.19001514927601,
+                "lng": -47.93331768301856
+            },
+            {
+                "lat": -18.192024227783836,
+                "lng": -47.93259289054344
+            },
+            {
+                "lat": -18.193528190516695,
+                "lng": -47.93145086534715
+            },
+            {
+                "lat": -18.195675391499538,
+                "lng": -47.93086077972449
+            },
+            {
+                "lat": -18.19168674121528,
+                "lng": -47.92856063584734
+            },
+            {
+                "lat": -18.185804389618802,
+                "lng": -47.93255712691894
+            },
+            {
+                "lat": -18.187158910568833,
+                "lng": -47.93481971944238
+            }
+        ]
+    },
+    {
+        "id": "50205",
+        "nome": "DNN50205 - Maria Amélia",
+        "gestor": "Emerson Marinho",
+        "status": "Descartado",
+        "poligono": [
+            {
+                "lat": -18.210255219,
+                "lng": -47.934258562
+            },
+            {
+                "lat": -18.211274365,
+                "lng": -47.938359363
+            },
+            {
+                "lat": -18.217321179,
+                "lng": -47.935498339
+            },
+            {
+                "lat": -18.216755007,
+                "lng": -47.932518107
+            },
+            {
+                "lat": -18.215305597,
+                "lng": -47.932828051
+            },
+            {
+                "lat": -18.213765587,
+                "lng": -47.93332873
+            },
+            {
+                "lat": -18.210255219,
+                "lng": -47.934258562
+            }
+        ]
+    },
+    {
+        "id": "50206",
+        "nome": "DNN50206 - Jardim Itália",
+        "gestor": "Emerson Marinho",
+        "status": "Negociação",
+        "poligono": [
+            {
+                "lat": -16.552885954,
+                "lng": -49.418224829
+            },
+            {
+                "lat": -16.551948946,
+                "lng": -49.41965534
+            },
+            {
+                "lat": -16.550806248,
+                "lng": -49.421467321
+            },
+            {
+                "lat": -16.54948071,
+                "lng": -49.423827666
+            },
+            {
+                "lat": -16.549823522,
+                "lng": -49.424876707
+            },
+            {
+                "lat": -16.549343585,
+                "lng": -49.426474112
+            },
+            {
+                "lat": -16.551011934,
+                "lng": -49.426211851
+            },
+            {
+                "lat": -16.554766810651255,
+                "lng": -49.42052318390258
+            },
+            {
+                "lat": -16.552885954,
+                "lng": -49.418224829
+            }
+        ]
+    },
+    {
+        "id": "50207",
+        "nome": "DNN50207 - TransZero",
+        "gestor": "Emerson Marinho",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -18.192139899,
+                "lng": -47.946301052
+            },
+            {
+                "lat": -18.191618946,
+                "lng": -47.95166547
+            },
+            {
+                "lat": -18.190441132,
+                "lng": -47.951605865
+            },
+            {
+                "lat": -18.191483045,
+                "lng": -47.952941009
+            },
+            {
+                "lat": -18.191890748,
+                "lng": -47.952488014
+            },
+            {
+                "lat": -18.192615552,
+                "lng": -47.952476093
+            },
+            {
+                "lat": -18.193034577,
+                "lng": -47.952869484
+            },
+            {
+                "lat": -18.193521551,
+                "lng": -47.953191349
+            },
+            {
+                "lat": -18.193917925,
+                "lng": -47.952452251
+            },
+            {
+                "lat": -18.194789944,
+                "lng": -47.953000614
+            },
+            {
+                "lat": -18.19464272,
+                "lng": -47.946050712
+            },
+            {
+                "lat": -18.192139899,
+                "lng": -47.946301052
+            }
+        ]
+    },
+    {
+        "id": "50208",
+        "nome": "DNN50208 - Ricardo Expandh Zona Leste 02",
+        "gestor": "Emerson Marinho",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -18.12370657,
+                "lng": -47.911910523
+            },
+            {
+                "lat": -18.122693539,
+                "lng": -47.912645811
+            },
+            {
+                "lat": -18.120543346,
+                "lng": -47.914308418
+            },
+            {
+                "lat": -18.118628616,
+                "lng": -47.916156162
+            },
+            {
+                "lat": -18.119729872,
+                "lng": -47.918014039
+            },
+            {
+                "lat": -18.120341677,
+                "lng": -47.917620648
+            },
+            {
+                "lat": -18.121112096,
+                "lng": -47.91726302
+            },
+            {
+                "lat": -18.121508634,
+                "lng": -47.916595448
+            },
+            {
+                "lat": -18.12195049,
+                "lng": -47.916118611
+            },
+            {
+                "lat": -18.122516969,
+                "lng": -47.915725221
+            },
+            {
+                "lat": -18.123049458,
+                "lng": -47.915451039
+            },
+            {
+                "lat": -18.123853854,
+                "lng": -47.914986123
+            },
+            {
+                "lat": -18.125032117,
+                "lng": -47.914151658
+            },
+            {
+                "lat": -18.12370657,
+                "lng": -47.911910523
+            }
+        ]
+    },
+    {
+        "id": "50209",
+        "nome": "DNN50209 - José Carlos",
+        "gestor": "Emerson Marinho",
+        "status": "Descartado",
+        "poligono": [
+            {
+                "lat": -20.689213787,
+                "lng": -48.913538409
+            },
+            {
+                "lat": -20.690306694,
+                "lng": -48.911130381
+            },
+            {
+                "lat": -20.69077508,
+                "lng": -48.909342242
+            },
+            {
+                "lat": -20.69104273,
+                "lng": -48.907625628
+            },
+            {
+                "lat": -20.690931209,
+                "lng": -48.906028224
+            },
+            {
+                "lat": -20.690328998,
+                "lng": -48.904716922
+            },
+            {
+                "lat": -20.686901928166485,
+                "lng": -48.90877599778625
+            },
+            {
+                "lat": -20.689113417572752,
+                "lng": -48.91363496852453
+            }
+        ]
+    },
+    {
+        "id": "50210",
+        "nome": "DNN50210 - Gilmar Barretos",
+        "gestor": "Emerson Marinho",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -20.581983668,
+                "lng": -48.575259371
+            },
+            {
+                "lat": -20.586068179,
+                "lng": -48.573876544
+            },
+            {
+                "lat": -20.585242358,
+                "lng": -48.571730777
+            },
+            {
+                "lat": -20.584394212,
+                "lng": -48.572851344
+            },
+            {
+                "lat": -20.581559586,
+                "lng": -48.573900385
+            },
+            {
+                "lat": -20.581983668,
+                "lng": -48.575259371
+            }
+        ]
+    },
+    {
+        "id": "50215",
+        "nome": "DNN50215 - Cemitério Maracaju 26hec",
+        "gestor": "Luiz Felipe",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -21.635763249,
+                "lng": -55.178395036
+            },
+            {
+                "lat": -21.636018556,
+                "lng": -55.179270509
+            },
+            {
+                "lat": -21.638045042,
+                "lng": -55.18162227
+            },
+            {
+                "lat": -21.642241534,
+                "lng": -55.180283311
+            },
+            {
+                "lat": -21.641124608,
+                "lng": -55.176266435
+            },
+            {
+                "lat": -21.635763249,
+                "lng": -55.178395036
+            }
+        ]
+    },
+    {
+        "id": "50216",
+        "nome": "DNN50216 - Eldorado Village",
+        "gestor": "Luiz Felipe",
+        "status": "Descartado",
+        "poligono": [
+            {
+                "lat": -20.734671417,
+                "lng": -51.680616013
+            },
+            {
+                "lat": -20.728089017,
+                "lng": -51.675088517
+            },
+            {
+                "lat": -20.726339014,
+                "lng": -51.676908127
+            },
+            {
+                "lat": -20.733627885,
+                "lng": -51.682538621
+            },
+            {
+                "lat": -20.734671417,
+                "lng": -51.680616013
+            }
+        ]
+    },
+    {
+        "id": "50242",
+        "nome": "DNN50242 - 15hec Mario ao lado Portal do Sol",
+        "gestor": "Luiz Felipe",
+        "status": "Negociação",
+        "poligono": [
+            {
+                "lat": -22.272782372,
+                "lng": -54.754861419
+            },
+            {
+                "lat": -22.275355778,
+                "lng": -54.754226272
+            },
+            {
+                "lat": -22.274823627,
+                "lng": -54.748939102
+            },
+            {
+                "lat": -22.272297868,
+                "lng": -54.749582832
+            },
+            {
+                "lat": -22.272782372,
+                "lng": -54.754861419
+            }
+        ]
+    },
+    {
+        "id": "50243",
+        "nome": "DNN50243 - 3 alq. área do Junior - Nova Andradina",
+        "gestor": "Luiz Felipe",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -22.221524622,
+                "lng": -53.332198648
+            },
+            {
+                "lat": -22.224019515,
+                "lng": -53.332808045
+            },
+            {
+                "lat": -22.225235164,
+                "lng": -53.330902604
+            },
+            {
+                "lat": -22.221953683,
+                "lng": -53.330112962
+            },
+            {
+                "lat": -22.221524622,
+                "lng": -53.332198648
+            }
+        ]
+    },
+    {
+        "id": "50260",
+        "nome": "DNN50260 - Área do J",
+        "gestor": "Luiz Felipe",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -22.22197987,
+                "lng": -53.330006103
+            },
+            {
+                "lat": -22.225316968,
+                "lng": -53.330812912
+            },
+            {
+                "lat": -22.228749328,
+                "lng": -53.325216751
+            },
+            {
+                "lat": -22.229670967,
+                "lng": -53.322367171
+            },
+            {
+                "lat": -22.228097822,
+                "lng": -53.321955185
+            },
+            {
+                "lat": -22.224172829,
+                "lng": -53.327946166
+            },
+            {
+                "lat": -22.222361256,
+                "lng": -53.327585678
+            },
+            {
+                "lat": -22.22197987,
+                "lng": -53.330006103
+            }
+        ]
+    },
+    {
+        "id": "50261",
+        "nome": "DNN50261 - loteamento Nova Roma",
+        "gestor": "Luiz Felipe",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -22.261137666,
+                "lng": -53.37353089
+            },
+            {
+                "lat": -22.266157771,
+                "lng": -53.377444767
+            },
+            {
+                "lat": -22.272543846,
+                "lng": -53.368449712
+            },
+            {
+                "lat": -22.266475493,
+                "lng": -53.363231207
+            },
+            {
+                "lat": -22.265299917,
+                "lng": -53.364982153
+            },
+            {
+                "lat": -22.263298239,
+                "lng": -53.363711857
+            },
+            {
+                "lat": -22.261296533,
+                "lng": -53.366355444
+            },
+            {
+                "lat": -22.264156105,
+                "lng": -53.368861698
+            },
+            {
+                "lat": -22.261137666,
+                "lng": -53.37353089
+            }
+        ]
+    },
+    {
+        "id": "50262",
+        "nome": "DNN50262 - área Ademar Capucci",
+        "gestor": "Luiz Felipe",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -22.277463361,
+                "lng": -53.360627369
+            },
+            {
+                "lat": -22.273873342,
+                "lng": -53.357468798
+            },
+            {
+                "lat": -22.266629482,
+                "lng": -53.363373951
+            },
+            {
+                "lat": -22.272634288,
+                "lng": -53.368146135
+            },
+            {
+                "lat": -22.277463361,
+                "lng": -53.360627369
+            }
+        ]
+    },
+    {
+        "id": "50263",
+        "nome": "DNN50263 - anel viário 76hec Dourados (Marcio e Warley)",
+        "gestor": "Luiz Felipe",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -22.195409962,
+                "lng": -54.752160258
+            },
+            {
+                "lat": -22.196395396,
+                "lng": -54.740418618
+            },
+            {
+                "lat": -22.193884117,
+                "lng": -54.738736339
+            },
+            {
+                "lat": -22.19184963,
+                "lng": -54.737500375
+            },
+            {
+                "lat": -22.190164798,
+                "lng": -54.735921091
+            },
+            {
+                "lat": -22.190641639,
+                "lng": -54.748521037
+            },
+            {
+                "lat": -22.191563528,
+                "lng": -54.750031655
+            },
+            {
+                "lat": -22.195409962,
+                "lng": -54.752160258
+            }
+        ]
+    },
+    {
+        "id": "50264",
+        "nome": "DNN50264 - hospital regional - Parizotto",
+        "gestor": "Luiz Felipe",
+        "status": "Descartado",
+        "poligono": [
+            {
+                "lat": -22.257191089,
+                "lng": -54.859955293
+            },
+            {
+                "lat": -22.263768211,
+                "lng": -54.865379794
+            },
+            {
+                "lat": -22.266945453,
+                "lng": -54.865585787
+            },
+            {
+                "lat": -22.270249709,
+                "lng": -54.863525851
+            },
+            {
+                "lat": -22.273172639,
+                "lng": -54.860985262
+            },
+            {
+                "lat": -22.27609551,
+                "lng": -54.85703705
+            },
+            {
+                "lat": -22.272251286,
+                "lng": -54.839458926
+            },
+            {
+                "lat": -22.261798284,
+                "lng": -54.839699251
+            },
+            {
+                "lat": -22.261734737,
+                "lng": -54.843098147
+            },
+            {
+                "lat": -22.259605913,
+                "lng": -54.84330414
+            },
+            {
+                "lat": -22.259637687,
+                "lng": -54.846943361
+            },
+            {
+                "lat": -22.263259844,
+                "lng": -54.847973329
+            },
+            {
+                "lat": -22.262910342,
+                "lng": -54.850170595
+            },
+            {
+                "lat": -22.259383498,
+                "lng": -54.849483949
+            },
+            {
+                "lat": -22.257191089,
+                "lng": -54.859955293
+            }
+        ]
+    },
+    {
+        "id": "50316",
+        "nome": "DNN50316 - Area Kener 33 ha",
+        "gestor": "Marcio Felipe",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -16.415549607,
+                "lng": -54.64261221
+            },
+            {
+                "lat": -16.417311504,
+                "lng": -54.634698621
+            },
+            {
+                "lat": -16.41581307,
+                "lng": -54.634372464
+            },
+            {
+                "lat": -16.414495755,
+                "lng": -54.634252301
+            },
+            {
+                "lat": -16.412849099,
+                "lng": -54.634406796
+            },
+            {
+                "lat": -16.410823694,
+                "lng": -54.635402432
+            },
+            {
+                "lat": -16.415549607,
+                "lng": -54.64261221
+            }
+        ]
+    },
+    {
+        "id": "50317",
+        "nome": "DNN50317 - Area Por do sol 1",
+        "gestor": "Marcio Felipe",
+        "status": "Minuta",
+        "poligono": [
+            {
+                "lat": -12.570865547,
+                "lng": -55.770612533
+            },
+            {
+                "lat": -12.569190079,
+                "lng": -55.769925887
+            },
+            {
+                "lat": -12.567347052,
+                "lng": -55.768586928
+            },
+            {
+                "lat": -12.555484342,
+                "lng": -55.782422835
+            },
+            {
+                "lat": -12.558935977,
+                "lng": -55.785100753
+            },
+            {
+                "lat": -12.570865547,
+                "lng": -55.770612533
+            }
+        ]
+    },
+    {
+        "id": "50318",
+        "nome": "DNN50318 - Area Por do sol 2",
+        "gestor": "Marcio Felipe",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -12.569702692,
+                "lng": -55.765967513
+            },
+            {
+                "lat": -12.567625101,
+                "lng": -55.76833644
+            },
+            {
+                "lat": -12.569602164,
+                "lng": -55.769881393
+            },
+            {
+                "lat": -12.57121061,
+                "lng": -55.770396377
+            },
+            {
+                "lat": -12.57268501,
+                "lng": -55.768542434
+            },
+            {
+                "lat": -12.569702692,
+                "lng": -55.765967513
+            }
+        ]
+    },
+    {
+        "id": "50350",
+        "nome": "DNN50350 - Area MT 242 Sorriso 200 ha",
+        "gestor": "Marcio Felipe",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -12.478279786,
+                "lng": -55.700723309
+            },
+            {
+                "lat": -12.483442012,
+                "lng": -55.707177773
+            },
+            {
+                "lat": -12.501810652,
+                "lng": -55.693719522
+            },
+            {
+                "lat": -12.493162806,
+                "lng": -55.688707013
+            },
+            {
+                "lat": -12.478279786,
+                "lng": -55.700723309
+            }
+        ]
+    },
+    {
+        "id": "50351",
+        "nome": "DNN50351 - 26hec Inocência",
+        "gestor": "Luiz Felipe",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -19.727132872,
+                "lng": -51.94200293
+            },
+            {
+                "lat": -19.727682265,
+                "lng": -51.940234817
+            },
+            {
+                "lat": -19.727504522,
+                "lng": -51.938947357
+            },
+            {
+                "lat": -19.727698424,
+                "lng": -51.937282242
+            },
+            {
+                "lat": -19.728086231,
+                "lng": -51.935754455
+            },
+            {
+                "lat": -19.724919118,
+                "lng": -51.934278168
+            },
+            {
+                "lat": -19.724046535,
+                "lng": -51.936063446
+            },
+            {
+                "lat": -19.724030377,
+                "lng": -51.937179245
+            },
+            {
+                "lat": -19.724612099,
+                "lng": -51.937934556
+            },
+            {
+                "lat": -19.725420043,
+                "lng": -51.937951722
+            },
+            {
+                "lat": -19.724773688,
+                "lng": -51.938689865
+            },
+            {
+                "lat": -19.723787992,
+                "lng": -51.939445175
+            },
+            {
+                "lat": -19.723707197,
+                "lng": -51.940972962
+            },
+            {
+                "lat": -19.724321238,
+                "lng": -51.942054429
+            },
+            {
+                "lat": -19.72519382,
+                "lng": -51.94275824
+            },
+            {
+                "lat": -19.727132872,
+                "lng": -51.94200293
+            }
+        ]
+    },
+    {
+        "id": "50375",
+        "nome": "DNN50375 - Area Vetorasso 1",
+        "gestor": "Marcio Felipe",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -16.502877652,
+                "lng": -54.628715204
+            },
+            {
+                "lat": -16.506021293,
+                "lng": -54.630895304
+            },
+            {
+                "lat": -16.50704173,
+                "lng": -54.629144357
+            },
+            {
+                "lat": -16.503634764,
+                "lng": -54.62753074
+            },
+            {
+                "lat": -16.502877652,
+                "lng": -54.628715204
+            }
+        ]
+    },
+    {
+        "id": "50376",
+        "nome": "DNN50376 - Area Vetorasso 2",
+        "gestor": "Marcio Felipe",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -16.50479862,
+                "lng": -54.633313359
+            },
+            {
+                "lat": -16.517010682,
+                "lng": -54.638634865
+            },
+            {
+                "lat": -16.51901852,
+                "lng": -54.634514992
+            },
+            {
+                "lat": -16.507234511,
+                "lng": -54.629159157
+            },
+            {
+                "lat": -16.50479862,
+                "lng": -54.633313359
+            }
+        ]
+    },
+    {
+        "id": "50378",
+        "nome": "DNN50378 - 375.000m2 Maracaju",
+        "gestor": "Luiz Felipe",
+        "status": "Descartado",
+        "poligono": [
+            {
+                "lat": -21.608297249,
+                "lng": -55.181001059
+            },
+            {
+                "lat": -21.607914214,
+                "lng": -55.180022589
+            },
+            {
+                "lat": -21.604083812,
+                "lng": -55.183781974
+            },
+            {
+                "lat": -21.60877604,
+                "lng": -55.186992041
+            },
+            {
+                "lat": -21.611920068,
+                "lng": -55.186992041
+            },
+            {
+                "lat": -21.611808353,
+                "lng": -55.185704581
+            },
+            {
+                "lat": -21.609797459,
+                "lng": -55.179765097
+            },
+            {
+                "lat": -21.608297249,
+                "lng": -55.181001059
+            }
+        ]
+    },
+    {
+        "id": "50379",
+        "nome": "DNN50379 - 13,5 hec Nova Andradina",
+        "gestor": "Luiz Felipe",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -22.254652694,
+                "lng": -53.372648351
+            },
+            {
+                "lat": -22.256606835,
+                "lng": -53.369781605
+            },
+            {
+                "lat": -22.254017195,
+                "lng": -53.367567174
+            },
+            {
+                "lat": -22.251904142,
+                "lng": -53.370485418
+            },
+            {
+                "lat": -22.254652694,
+                "lng": -53.372648351
+            }
+        ]
+    },
+    {
+        "id": "50389",
+        "nome": "DNN50389 - Area Carlinhos 25 ha Roo",
+        "gestor": "Marcio Felipe",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -16.483663459,
+                "lng": -54.579179009
+            },
+            {
+                "lat": -16.485704565,
+                "lng": -54.579179009
+            },
+            {
+                "lat": -16.488124236,
+                "lng": -54.570012293
+            },
+            {
+                "lat": -16.486198378,
+                "lng": -54.568656167
+            },
+            {
+                "lat": -16.483663459,
+                "lng": -54.579179009
+            }
+        ]
+    },
+    {
+        "id": "50427",
+        "nome": "DNN50427 - Area Prefeito 30 ha",
+        "gestor": "Marcio Felipe",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -13.78319567,
+                "lng": -56.074905954
+            },
+            {
+                "lat": -13.781911936,
+                "lng": -56.078459345
+            },
+            {
+                "lat": -13.787863735,
+                "lng": -56.081034266
+            },
+            {
+                "lat": -13.789297478,
+                "lng": -56.077480874
+            },
+            {
+                "lat": -13.78319567,
+                "lng": -56.074905954
+            }
+        ]
+    },
+    {
+        "id": "50428",
+        "nome": "DNN50428 - Area prefeitura 20 ha",
+        "gestor": "Marcio Felipe",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -13.786568871,
+                "lng": -56.075976381
+            },
+            {
+                "lat": -13.788286037,
+                "lng": -56.071599016
+            },
+            {
+                "lat": -13.784918379,
+                "lng": -56.070466051
+            },
+            {
+                "lat": -13.783317889,
+                "lng": -56.074706087
+            },
+            {
+                "lat": -13.786568871,
+                "lng": -56.075976381
+            }
+        ]
+    },
+    {
+        "id": "50429",
+        "nome": "DNN50429 - Area Distrito/ nova esperança 15 ha",
+        "gestor": "Marcio Felipe",
+        "status": "Descartado",
+        "poligono": [
+            {
+                "lat": -15.658981248,
+                "lng": -55.963261433
+            },
+            {
+                "lat": -15.661278768,
+                "lng": -55.964239903
+            },
+            {
+                "lat": -15.661642404,
+                "lng": -55.963124104
+            },
+            {
+                "lat": -15.664435751,
+                "lng": -55.964068241
+            },
+            {
+                "lat": -15.665824147,
+                "lng": -55.960909672
+            },
+            {
+                "lat": -15.664303523,
+                "lng": -55.960532017
+            },
+            {
+                "lat": -15.662799417,
+                "lng": -55.960806675
+            },
+            {
+                "lat": -15.661410999,
+                "lng": -55.961441823
+            },
+            {
+                "lat": -15.658981248,
+                "lng": -55.963261433
+            }
+        ]
+    },
+    {
+        "id": "50433",
+        "nome": "DNN50433 - Sítio Talismã - Miguel Contintas",
+        "gestor": "Luiz Felipe",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -22.272537921,
+                "lng": -54.792295889
+            },
+            {
+                "lat": -22.271680107,
+                "lng": -54.800037819
+            },
+            {
+                "lat": -22.271743649,
+                "lng": -54.801016288
+            },
+            {
+                "lat": -22.273935829,
+                "lng": -54.800707298
+            },
+            {
+                "lat": -22.275460804,
+                "lng": -54.800621467
+            },
+            {
+                "lat": -22.27730346,
+                "lng": -54.799900489
+            },
+            {
+                "lat": -22.277192265,
+                "lng": -54.792313057
+            },
+            {
+                "lat": -22.272537921,
+                "lng": -54.792295889
+            }
+        ]
+    },
+    {
+        "id": "50434",
+        "nome": "DNN50434 - Guaicurus Dourados",
+        "gestor": "Luiz Felipe",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -22.204084085,
+                "lng": -54.858341648
+            },
+            {
+                "lat": -22.207723571,
+                "lng": -54.858393146
+            },
+            {
+                "lat": -22.209694258,
+                "lng": -54.855097248
+            },
+            {
+                "lat": -22.209630688,
+                "lng": -54.85458441
+            },
+            {
+                "lat": -22.206706431,
+                "lng": -54.854567244
+            },
+            {
+                "lat": -22.20223416207007,
+                "lng": -54.854582270344224
+            },
+            {
+                "lat": -22.202585802,
+                "lng": -54.856015643
+            },
+            {
+                "lat": -22.203332787,
+                "lng": -54.857423266
+            },
+            {
+                "lat": -22.204084085,
+                "lng": -54.858341648
+            }
+        ]
+    },
+    {
+        "id": "50435",
+        "nome": "DNN50435 - Jardim Cristhais Dourados",
+        "gestor": "Luiz Felipe",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -22.215226224,
+                "lng": -54.865192317
+            },
+            {
+                "lat": -22.217069672,
+                "lng": -54.865278148
+            },
+            {
+                "lat": -22.218865421,
+                "lng": -54.865157985
+            },
+            {
+                "lat": -22.220899516,
+                "lng": -54.865260982
+            },
+            {
+                "lat": -22.221177613,
+                "lng": -54.864818953
+            },
+            {
+                "lat": -22.220645256,
+                "lng": -54.864406967
+            },
+            {
+                "lat": -22.220160572,
+                "lng": -54.863582992
+            },
+            {
+                "lat": -22.219922201,
+                "lng": -54.86265602
+            },
+            {
+                "lat": -22.22014468,
+                "lng": -54.861668967
+            },
+            {
+                "lat": -22.220518126,
+                "lng": -54.860630416
+            },
+            {
+                "lat": -22.221082266,
+                "lng": -54.859342956
+            },
+            {
+                "lat": -22.221384199,
+                "lng": -54.858630561
+            },
+            {
+                "lat": -22.221193504,
+                "lng": -54.858081245
+            },
+            {
+                "lat": -22.220287701,
+                "lng": -54.857291602
+            },
+            {
+                "lat": -22.220009603,
+                "lng": -54.856974028
+            },
+            {
+                "lat": -22.215226224,
+                "lng": -54.865192317
+            }
+        ]
+    },
+    {
+        "id": "50469",
+        "nome": "DNN50469 - Area Ufiscar",
+        "gestor": "Edson Maldonado",
+        "status": "Descartado",
+        "poligono": [
+            {
+                "lat": -23.579510821,
+                "lng": -47.529109079
+            },
+            {
+                "lat": -23.579804096,
+                "lng": -47.529267469
+            },
+            {
+                "lat": -23.579721207,
+                "lng": -47.529451396
+            },
+            {
+                "lat": -23.58067155,
+                "lng": -47.52999798
+            },
+            {
+                "lat": -23.580807675,
+                "lng": -47.52793592
+            },
+            {
+                "lat": -23.580558292,
+                "lng": -47.527591256
+            },
+            {
+                "lat": -23.579376231,
+                "lng": -47.528800765
+            },
+            {
+                "lat": -23.578721435,
+                "lng": -47.532392634
+            },
+            {
+                "lat": -23.579510821,
+                "lng": -47.529109079
+            }
+        ]
+    },
+    {
+        "id": "50470",
+        "nome": "DNN50470 - Area Paraibuna",
+        "gestor": "Edson Maldonado",
+        "status": "Descartado",
+        "poligono": [
+            {
+                "lat": -22.658657797,
+                "lng": -47.678975588
+            },
+            {
+                "lat": -22.659725526,
+                "lng": -47.683625589
+            },
+            {
+                "lat": -22.662066034,
+                "lng": -47.682894295
+            },
+            {
+                "lat": -22.660906949,
+                "lng": -47.678001052
+            },
+            {
+                "lat": -22.658657797,
+                "lng": -47.678975588
+            }
+        ]
+    },
+    {
+        "id": "50471",
+        "nome": "DNN50471 - Area São Manuel",
+        "gestor": "Edson Maldonado",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -22.728811448,
+                "lng": -48.584150668
+            },
+            {
+                "lat": -22.729638426,
+                "lng": -48.5862883
+            },
+            {
+                "lat": -22.730956865,
+                "lng": -48.585664193
+            },
+            {
+                "lat": -22.731722856,
+                "lng": -48.587226265
+            },
+            {
+                "lat": -22.733961778,
+                "lng": -48.58726773
+            },
+            {
+                "lat": -22.733355053,
+                "lng": -48.585812977
+            },
+            {
+                "lat": -22.732090898,
+                "lng": -48.584688195
+            },
+            {
+                "lat": -22.730482698,
+                "lng": -48.58394896
+            },
+            {
+                "lat": -22.729197043,
+                "lng": -48.583579663
+            },
+            {
+                "lat": -22.729311097,
+                "lng": -48.584015029
+            },
+            {
+                "lat": -22.728811448,
+                "lng": -48.584150668
+            }
+        ]
+    },
+    {
+        "id": "50473",
+        "nome": "DNN50473 - Monte Hebrom",
+        "gestor": "Emerson Marinho",
+        "status": "Negociação",
+        "poligono": [
+            {
+                "lat": -18.980177796,
+                "lng": -48.354825301
+            },
+            {
+                "lat": -18.972494077,
+                "lng": -48.354253097
+            },
+            {
+                "lat": -18.975957205,
+                "lng": -48.359231277
+            },
+            {
+                "lat": -18.980989436,
+                "lng": -48.354577346
+            },
+            {
+                "lat": -18.980177796,
+                "lng": -48.354825301
+            }
+        ]
+    },
+    {
+        "id": "50474",
+        "nome": "DNN50474 - Area Joao Prudente",
+        "gestor": "Edson Maldonado",
+        "status": "Descartado",
+        "poligono": [
+            {
+                "lat": -22.703224033,
+                "lng": -46.805943841
+            },
+            {
+                "lat": -22.699450781,
+                "lng": -46.803537061
+            },
+            {
+                "lat": -22.698359621,
+                "lng": -46.799057018
+            },
+            {
+                "lat": -22.697049925,
+                "lng": -46.79919557
+            },
+            {
+                "lat": -22.696429521,
+                "lng": -46.804112395
+            },
+            {
+                "lat": -22.697811525,
+                "lng": -46.804489832
+            },
+            {
+                "lat": -22.698071577,
+                "lng": -46.806789156
+            },
+            {
+                "lat": -22.702654846,
+                "lng": -46.807841336
+            },
+            {
+                "lat": -22.703224033,
+                "lng": -46.805943841
+            }
+        ]
+    },
+    {
+        "id": "50475",
+        "nome": "DNN50475 - Area Montalvao",
+        "gestor": "Edson Maldonado",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -22.069689556,
+                "lng": -51.367020855
+            },
+            {
+                "lat": -22.073869471,
+                "lng": -51.368688183
+            },
+            {
+                "lat": -22.074638064,
+                "lng": -51.366144108
+            },
+            {
+                "lat": -22.07040372,
+                "lng": -51.364305621
+            },
+            {
+                "lat": -22.069689556,
+                "lng": -51.367020855
+            }
+        ]
+    },
+    {
+        "id": "50476",
+        "nome": "DNN50476 - Area Barra Funda",
+        "gestor": "Edson Maldonado",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -22.412383967,
+                "lng": -50.564810963
+            },
+            {
+                "lat": -22.41362694,
+                "lng": -50.565130146
+            },
+            {
+                "lat": -22.413829142,
+                "lng": -50.564127544
+            },
+            {
+                "lat": -22.414227192,
+                "lng": -50.564123689
+            },
+            {
+                "lat": -22.413818411,
+                "lng": -50.559341058
+            },
+            {
+                "lat": -22.412028879,
+                "lng": -50.559100204
+            },
+            {
+                "lat": -22.411887619,
+                "lng": -50.560559829
+            },
+            {
+                "lat": -22.412383967,
+                "lng": -50.564810963
+            }
+        ]
+    },
+    {
+        "id": "50477",
+        "nome": "DNN50477 - Fazenda Cafezal",
+        "gestor": "Emerson Marinho",
+        "status": "Descartado",
+        "poligono": [
+            {
+                "lat": -19.699917216,
+                "lng": -47.891141199
+            },
+            {
+                "lat": -19.70014168,
+                "lng": -47.893024707
+            },
+            {
+                "lat": -19.702274073,
+                "lng": -47.894097591
+            },
+            {
+                "lat": -19.701106872,
+                "lng": -47.901893878
+            },
+            {
+                "lat": -19.704361545,
+                "lng": -47.902847553
+            },
+            {
+                "lat": -19.705910298,
+                "lng": -47.902513767
+            },
+            {
+                "lat": -19.70772838,
+                "lng": -47.901750827
+            },
+            {
+                "lat": -19.709119984,
+                "lng": -47.898532176
+            },
+            {
+                "lat": -19.701959827,
+                "lng": -47.88818481
+            },
+            {
+                "lat": -19.699917216,
+                "lng": -47.891141199
+            }
+        ]
+    },
+    {
+        "id": "50478",
+        "nome": "DNN50478 - Região dos Damhas",
+        "gestor": "Emerson Marinho",
+        "status": "Descartado",
+        "poligono": [
+            {
+                "lat": -20.804374948,
+                "lng": -49.300185762
+            },
+            {
+                "lat": -20.8025028,
+                "lng": -49.303571307
+            },
+            {
+                "lat": -20.800140295,
+                "lng": -49.306623063
+            },
+            {
+                "lat": -20.805132715,
+                "lng": -49.308005892
+            },
+            {
+                "lat": -20.806157924,
+                "lng": -49.306241593
+            },
+            {
+                "lat": -20.809188935,
+                "lng": -49.307242952
+            },
+            {
+                "lat": -20.811685016,
+                "lng": -49.304191193
+            },
+            {
+                "lat": -20.814715917,
+                "lng": -49.301902376
+            },
+            {
+                "lat": -20.812264458,
+                "lng": -49.300853333
+            },
+            {
+                "lat": -20.810080398,
+                "lng": -49.299708923
+            },
+            {
+                "lat": -20.80794088,
+                "lng": -49.302569947
+            },
+            {
+                "lat": -20.804374948,
+                "lng": -49.300185762
+            }
+        ]
+    },
+    {
+        "id": "50479",
+        "nome": "DNN50479 - Engenheiro Schmitt",
+        "gestor": "Emerson Marinho",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -20.857835394,
+                "lng": -49.30564701
+            },
+            {
+                "lat": -20.858002489,
+                "lng": -49.306636447
+            },
+            {
+                "lat": -20.860141297,
+                "lng": -49.305933112
+            },
+            {
+                "lat": -20.86053118,
+                "lng": -49.309580917
+            },
+            {
+                "lat": -20.861422338,
+                "lng": -49.30949747
+            },
+            {
+                "lat": -20.861344362,
+                "lng": -49.308829898
+            },
+            {
+                "lat": -20.861845637,
+                "lng": -49.308663005
+            },
+            {
+                "lat": -20.861099294,
+                "lng": -49.306135768
+            },
+            {
+                "lat": -20.862280073,
+                "lng": -49.305539721
+            },
+            {
+                "lat": -20.861823358,
+                "lng": -49.304621809
+            },
+            {
+                "lat": -20.862669951,
+                "lng": -49.304097289
+            },
+            {
+                "lat": -20.862302352,
+                "lng": -49.30309593
+            },
+            {
+                "lat": -20.857835394,
+                "lng": -49.30564701
+            }
+        ]
+    },
+    {
+        "id": "50480",
+        "nome": "DNN50480 - Loteamento Adélia Rodrigues",
+        "gestor": "Emerson Marinho",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -20.048201809,
+                "lng": -47.747427861
+            },
+            {
+                "lat": -20.048134618,
+                "lng": -47.746688763
+            },
+            {
+                "lat": -20.046096463,
+                "lng": -47.746354977
+            },
+            {
+                "lat": -20.045962078,
+                "lng": -47.747809331
+            },
+            {
+                "lat": -20.04611886,
+                "lng": -47.748739164
+            },
+            {
+                "lat": -20.049814396,
+                "lng": -47.75279228
+            },
+            {
+                "lat": -20.050687873,
+                "lng": -47.75267307
+            },
+            {
+                "lat": -20.052367624,
+                "lng": -47.75074188
+            },
+            {
+                "lat": -20.051113412,
+                "lng": -47.748119275
+            },
+            {
+                "lat": -20.048201809,
+                "lng": -47.747427861
+            }
+        ]
+    },
+    {
+        "id": "50481",
+        "nome": "DNN50481 - Família Marques",
+        "gestor": "Emerson Marinho",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -18.977263522,
+                "lng": -48.398445024
+            },
+            {
+                "lat": -18.978813111,
+                "lng": -48.401509504
+            },
+            {
+                "lat": -18.983332795,
+                "lng": -48.409920112
+            },
+            {
+                "lat": -18.984956039,
+                "lng": -48.406415359
+            },
+            {
+                "lat": -18.987278154,
+                "lng": -48.406606094
+            },
+            {
+                "lat": -18.991313596,
+                "lng": -48.407726661
+            },
+            {
+                "lat": -18.991539037,
+                "lng": -48.40617694
+            },
+            {
+                "lat": -18.992440798,
+                "lng": -48.403411285
+            },
+            {
+                "lat": -18.988968993,
+                "lng": -48.398070708
+            },
+            {
+                "lat": -18.987661412,
+                "lng": -48.398428336
+            },
+            {
+                "lat": -18.985609842,
+                "lng": -48.395281211
+            },
+            {
+                "lat": -18.977263522,
+                "lng": -48.398445024
+            }
+        ]
+    },
+    {
+        "id": "50482",
+        "nome": "DNN50482 - Ville Ventura",
+        "gestor": "Emerson Marinho",
+        "status": "Descartado",
+        "poligono": [
+            {
+                "lat": -19.761309419,
+                "lng": -48.030795538
+            },
+            {
+                "lat": -19.768736156,
+                "lng": -48.033275091
+            },
+            {
+                "lat": -19.770329157,
+                "lng": -48.030628645
+            },
+            {
+                "lat": -19.770800324,
+                "lng": -48.028721296
+            },
+            {
+                "lat": -19.767255324,
+                "lng": -48.027505361
+            },
+            {
+                "lat": -19.761533797,
+                "lng": -48.027481519
+            },
+            {
+                "lat": -19.761309419,
+                "lng": -48.030795538
+            }
+        ]
+    },
+    {
+        "id": "50483",
+        "nome": "DNN50483 - Fazenda Sucupira",
+        "gestor": "Emerson Marinho",
+        "status": "Negociação",
+        "poligono": [
+            {
+                "lat": -18.126435046,
+                "lng": -47.903449389
+            },
+            {
+                "lat": -18.125370087,
+                "lng": -47.901971194
+            },
+            {
+                "lat": -18.119116152,
+                "lng": -47.896773669
+            },
+            {
+                "lat": -18.118119128,
+                "lng": -47.899157855
+            },
+            {
+                "lat": -18.121147573,
+                "lng": -47.901155207
+            },
+            {
+                "lat": -18.121255204,
+                "lng": -47.900904867
+            },
+            {
+                "lat": -18.121940647,
+                "lng": -47.901119444
+            },
+            {
+                "lat": -18.121810357,
+                "lng": -47.901602242
+            },
+            {
+                "lat": -18.124457219,
+                "lng": -47.903397867
+            },
+            {
+                "lat": -18.125109510474946,
+                "lng": -47.90347084667212
+            }
+        ]
+    },
+    {
+        "id": "50484",
+        "nome": "DNN50484 - Fazenda Aroeira",
+        "gestor": "Emerson Marinho",
+        "status": "Descartado",
+        "poligono": [
+            {
+                "lat": -16.694368507,
+                "lng": -49.076809832
+            },
+            {
+                "lat": -16.69362973,
+                "lng": -49.073697874
+            },
+            {
+                "lat": -16.692003726,
+                "lng": -49.073240111
+            },
+            {
+                "lat": -16.690825322,
+                "lng": -49.073135206
+            },
+            {
+                "lat": -16.690222415,
+                "lng": -49.073850462
+            },
+            {
+                "lat": -16.68962864,
+                "lng": -49.074556181
+            },
+            {
+                "lat": -16.6892267,
+                "lng": -49.075404951
+            },
+            {
+                "lat": -16.688989189,
+                "lng": -49.075986692
+            },
+            {
+                "lat": -16.689254105,
+                "lng": -49.077188322
+            },
+            {
+                "lat": -16.689875285,
+                "lng": -49.077836821
+            },
+            {
+                "lat": -16.690377709,
+                "lng": -49.078714201
+            },
+            {
+                "lat": -16.691263799,
+                "lng": -49.079095671
+            },
+            {
+                "lat": -16.694196087,
+                "lng": -49.077264616
+            },
+            {
+                "lat": -16.694368507,
+                "lng": -49.076809832
+            }
+        ]
+    },
+    {
+        "id": "50485",
+        "nome": "DNN50485 - Lirios do Campo",
+        "gestor": "Emerson Marinho",
+        "status": "Negociação",
+        "poligono": [
+            {
+                "lat": -16.301824935066424,
+                "lng": -48.88814292865576
+            },
+            {
+                "lat": -16.304232247,
+                "lng": -48.882203922
+            },
+            {
+                "lat": -16.303559485,
+                "lng": -48.881891594
+            },
+            {
+                "lat": -16.29981462408463,
+                "lng": -48.88709925140094
+            },
+            {
+                "lat": -16.301598389985823,
+                "lng": -48.88857744651617
+            }
+        ]
+    },
+    {
+        "id": "50486",
+        "nome": "DNN50486 - Fazenda Urubu",
+        "gestor": "Emerson Marinho",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -16.09152815768974,
+                "lng": -48.021014930221384
+            },
+            {
+                "lat": -16.093511713,
+                "lng": -48.022113953
+            },
+            {
+                "lat": -16.093211052,
+                "lng": -48.022686158
+            },
+            {
+                "lat": -16.094857729,
+                "lng": -48.023639937
+            },
+            {
+                "lat": -16.094554206,
+                "lng": -48.024230023
+            },
+            {
+                "lat": -16.094955085,
+                "lng": -48.024462481
+            },
+            {
+                "lat": -16.094628656,
+                "lng": -48.025004883
+            },
+            {
+                "lat": -16.093952887,
+                "lng": -48.024623413
+            },
+            {
+                "lat": -16.093288569,
+                "lng": -48.025892992
+            },
+            {
+                "lat": -16.094464877,
+                "lng": -48.025465189
+            },
+            {
+                "lat": -16.096641356,
+                "lng": -48.025255808
+            },
+            {
+                "lat": -16.097610612,
+                "lng": -48.023317763
+            },
+            {
+                "lat": -16.097152471,
+                "lng": -48.023034641
+            },
+            {
+                "lat": -16.097427356,
+                "lng": -48.022501179
+            },
+            {
+                "lat": -16.09840663,
+                "lng": -48.023103186
+            },
+            {
+                "lat": -16.098845327,
+                "lng": -48.022677304
+            },
+            {
+                "lat": -16.098341375,
+                "lng": -48.019863965
+            },
+            {
+                "lat": -16.097745794,
+                "lng": -48.021151426
+            },
+            {
+                "lat": -16.096073573,
+                "lng": -48.02031696
+            },
+            {
+                "lat": -16.095615428,
+                "lng": -48.02134216
+            },
+            {
+                "lat": -16.09226836188915,
+                "lng": -48.01961898977863
+            },
+            {
+                "lat": -16.09154619753216,
+                "lng": -48.02100151917631
+            }
+        ]
+    },
+    {
+        "id": "50487",
+        "nome": "DNN50487 - Jardim Panoramico",
+        "gestor": "Emerson Marinho",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -15.547201067,
+                "lng": -47.275725348
+            },
+            {
+                "lat": -15.552024601,
+                "lng": -47.277775748
+            },
+            {
+                "lat": -15.556618339,
+                "lng": -47.266331656
+            },
+            {
+                "lat": -15.552116477,
+                "lng": -47.264615043
+            },
+            {
+                "lat": -15.547201067,
+                "lng": -47.275725348
+            }
+        ]
+    },
+    {
+        "id": "50488",
+        "nome": "DNN50488 - Residencial Dirceu Borges",
+        "gestor": "Emerson Marinho",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -17.796145781,
+                "lng": -50.598372413
+            },
+            {
+                "lat": -17.798529372,
+                "lng": -50.599683715
+            },
+            {
+                "lat": -17.800458924,
+                "lng": -50.600470497
+            },
+            {
+                "lat": -17.80316026,
+                "lng": -50.601829482
+            },
+            {
+                "lat": -17.804567662,
+                "lng": -50.59884925
+            },
+            {
+                "lat": -17.797235427,
+                "lng": -50.594819975
+            },
+            {
+                "lat": -17.796894913,
+                "lng": -50.596298171
+            },
+            {
+                "lat": -17.796145781,
+                "lng": -50.598372413
+            }
+        ]
+    },
+    {
+        "id": "50489",
+        "nome": "DNN50489 - Viveiro Madeiro Real",
+        "gestor": "Emerson Marinho",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -16.814106095,
+                "lng": -49.184122488
+            },
+            {
+                "lat": -16.824886922,
+                "lng": -49.172800631
+            },
+            {
+                "lat": -16.819995823,
+                "lng": -49.168526973
+            },
+            {
+                "lat": -16.815728085,
+                "lng": -49.163305605
+            },
+            {
+                "lat": -16.808490606,
+                "lng": -49.163735758
+            },
+            {
+                "lat": -16.805783659,
+                "lng": -49.165568755
+            },
+            {
+                "lat": -16.799004934,
+                "lng": -49.168906614
+            },
+            {
+                "lat": -16.796106214,
+                "lng": -49.168262884
+            },
+            {
+                "lat": -16.798531327,
+                "lng": -49.172512696
+            },
+            {
+                "lat": -16.798177548,
+                "lng": -49.173561737
+            },
+            {
+                "lat": -16.79890793,
+                "lng": -49.174753831
+            },
+            {
+                "lat": -16.799414632,
+                "lng": -49.175949499
+            },
+            {
+                "lat": -16.802146687,
+                "lng": -49.178066657
+            },
+            {
+                "lat": -16.802922701,
+                "lng": -49.18054621
+            },
+            {
+                "lat": -16.809176354,
+                "lng": -49.178829596
+            },
+            {
+                "lat": -16.814106095,
+                "lng": -49.184122488
+            }
+        ]
+    },
+    {
+        "id": "50490",
+        "nome": "DNN50490 - Eco Tudo",
+        "gestor": "Emerson Marinho",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -20.417752008,
+                "lng": -50.097471477
+            },
+            {
+                "lat": -20.412285322,
+                "lng": -50.097225326
+            },
+            {
+                "lat": -20.412307804,
+                "lng": -50.09668708
+            },
+            {
+                "lat": -20.410665455,
+                "lng": -50.096591713
+            },
+            {
+                "lat": -20.410758187,
+                "lng": -50.100833179
+            },
+            {
+                "lat": -20.415271808,
+                "lng": -50.102216007
+            },
+            {
+                "lat": -20.415785726,
+                "lng": -50.099259617
+            },
+            {
+                "lat": -20.41804248,
+                "lng": -50.099998713
+            },
+            {
+                "lat": -20.417752008,
+                "lng": -50.097471477
+            }
+        ]
+    },
+    {
+        "id": "50512",
+        "nome": "DNN50512 - Area Jonas 112 ha",
+        "gestor": "Marcio Felipe",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -11.920155583,
+                "lng": -55.460109377
+            },
+            {
+                "lat": -11.920189174,
+                "lng": -55.465602541
+            },
+            {
+                "lat": -11.934398195,
+                "lng": -55.465053223
+            },
+            {
+                "lat": -11.93554026,
+                "lng": -55.45853009
+            },
+            {
+                "lat": -11.920155583,
+                "lng": -55.460109377
+            }
+        ]
+    },
+    {
+        "id": "50515",
+        "nome": "DNN50515 - Area Sta Catarina 9,6 ha",
+        "gestor": "Marcio Felipe",
+        "status": "Análise",
+        "poligono": [
+            {
+                "lat": -11.909393454,
+                "lng": -55.518580076
+            },
+            {
+                "lat": -11.909086915,
+                "lng": -55.519047853
+            },
+            {
+                "lat": -11.910182895,
+                "lng": -55.519820329
+            },
+            {
+                "lat": -11.910510428,
+                "lng": -55.519339677
+            },
+            {
+                "lat": -11.909393454,
+                "lng": -55.518580076
             }
         ]
     }

@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\Admin\TenantPlanController;
 use App\Http\Controllers\Api\V1\Admin\UserController;
 use App\Http\Controllers\Api\V1\AdminController;
 use App\Http\Controllers\Api\V1\BlogController;
+use App\Http\Controllers\Api\V1\ConsentLogController;
 use App\Http\Controllers\Api\V1\CentralAuthController;
 use App\Http\Controllers\Api\V1\LanguageController;
 use App\Http\Controllers\Api\V1\PlanController;
@@ -183,6 +184,9 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
                     Route::get('/blog', [BlogController::class, 'index']);
                     Route::get('/blog/categories', [BlogController::class, 'categories']);
                     Route::get('/blog/{slug}', [BlogController::class, 'show']);
+
+                    // LGPD — registro de consentimento de cookies (fire-and-forget, sem auth)
+                    Route::post('/consent-log', [ConsentLogController::class, 'store']);
                 });
 
                 // Authenticated routes (central app)

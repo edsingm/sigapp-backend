@@ -4,7 +4,6 @@ namespace App\Jobs;
 
 use App\Models\Tenant\Terreno;
 use App\Services\Tenant\Area\AreaCalculatorService;
-use App\Services\Tenant\Area\IbgeService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -44,7 +43,7 @@ class CalculateUsableAreaJob implements ShouldBeUnique, ShouldQueue
         return (string) $this->terrenoId;
     }
 
-    public function handle(AreaCalculatorService $calculator, IbgeService $ibge): void
+    public function handle(AreaCalculatorService $calculator): void
     {
         $terreno = Terreno::find($this->terrenoId);
 
@@ -61,8 +60,6 @@ class CalculateUsableAreaJob implements ShouldBeUnique, ShouldQueue
         try {
             $result = $calculator->calculate($terreno);
 
-            $ibgeData = $ibge->getFromPolygon($terreno->polygon_coords ?? []);
-
             $terreno->update([
                 'area_total' => $result['area_total'],
                 'area_declividade' => $result['area_declividade'],
@@ -76,13 +73,6 @@ class CalculateUsableAreaJob implements ShouldBeUnique, ShouldQueue
                 'declividade_percentual_medio' => $result['declividade_percentual_medio'],
                 'app_polygons' => $result['app_polygons'],
                 'steep_polygons' => $result['steep_polygons'],
-                'municipio_ibge_codigo' => $ibgeData['municipio_ibge_codigo'] ?? null,
-                'municipio_nome' => $ibgeData['municipio_nome'] ?? null,
-                'estado_sigla' => $ibgeData['estado_sigla'] ?? null,
-                'estado_nome' => $ibgeData['estado_nome'] ?? null,
-                'regiao_nome' => $ibgeData['regiao_nome'] ?? null,
-                'mesorregiao_nome' => $ibgeData['mesorregiao_nome'] ?? null,
-                'microrregiao_nome' => $ibgeData['microrregiao_nome'] ?? null,
                 'area_calculada_em' => now(),
                 'area_calculo_status' => 'success',
             ]);

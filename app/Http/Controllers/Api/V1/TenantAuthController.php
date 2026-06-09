@@ -123,12 +123,13 @@ class TenantAuthController extends Controller
         $user = $request->user();
         $validated = $request->validated();
 
+        $password = $validated['password'] ?? null;
         unset($validated['password']);
 
         $user->fill($validated);
 
-        if (isset($validated['password'])) {
-            $user->password = $validated['password'];
+        if ($password !== null) {
+            $user->password = $password; // cast 'hashed' no model cuida do bcrypt
         }
 
         $user->save();

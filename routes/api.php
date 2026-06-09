@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\Admin\TenantPlanController;
 use App\Http\Controllers\Api\V1\Admin\UserController;
 use App\Http\Controllers\Api\V1\AdminController;
 use App\Http\Controllers\Api\V1\BlogController;
+use App\Http\Controllers\Api\V1\ConsentLogController;
 use App\Http\Controllers\Api\V1\CentralAuthController;
 use App\Http\Controllers\Api\V1\LanguageController;
 use App\Http\Controllers\Api\V1\PlanController;
@@ -140,12 +141,14 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
         Route::middleware('throttle:api-public')->group(function () {
             Route::get('/tenant/subdomain-availability/{subdomain}', [PublicTenantController::class, 'subdomainAvailability']);
 
-            // Public central health check (comprehensive: DB, cache, storage, queue, Stripe, OpenRouter)
+            // Public central health check for load balancers. Keep payload minimal.
             Route::get('/health', function (HealthCheckService $health) {
                 $report = $health->check();
-                $statusCode = $report['status'] === 'down' ? 503 : 200;
+                $isDown = $report['status'] === 'down';
 
-                return response()->json($report, $statusCode);
+                return response()->json([
+                    'status' => $isDown ? 'down' : 'ok',
+                ], $isDown ? 503 : 200);
             });
         });
 
@@ -183,6 +186,9 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
                     Route::get('/blog', [BlogController::class, 'index']);
                     Route::get('/blog/categories', [BlogController::class, 'categories']);
                     Route::get('/blog/{slug}', [BlogController::class, 'show']);
+
+                    // LGPD — registro de consentimento de cookies (fire-and-forget, sem auth)
+                    Route::post('/consent-log', [ConsentLogController::class, 'store']);
                 });
 
                 // Authenticated routes (central app)
@@ -190,6 +196,13 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
 
                     // Locale
                     Route::put('/locale', [LanguageController::class, 'set']);
+
+                    Route::get('/health/details', function (HealthCheckService $health) {
+                        $report = $health->check();
+                        $statusCode = $report['status'] === 'down' ? 503 : 200;
+
+                        return response()->json($report, $statusCode);
+                    });
 
                     // Auth
                     Route::post('/auth/logout', [TenantAuthController::class, 'logout']);

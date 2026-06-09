@@ -86,6 +86,7 @@ class CalculateUsableAreaJobTest extends TestCase
         Config::set('services.elevation.provider', 'google');
         Config::set('services.google_maps.key', 'fake-key');
 
+        Http::preventStrayRequests();
         Http::fake([
             'maps.googleapis.com/*' => Http::response([
                 'status' => 'OK',
@@ -124,6 +125,8 @@ class CalculateUsableAreaJobTest extends TestCase
         $this->assertEquals('success', $terreno->area_calculo_status, 'status should be success');
         $this->assertNotNull($terreno->area_calculada_em, 'area_calculada_em should be set');
         $this->assertGreaterThan(0.0, $terreno->area_util, 'area_util should be > 0');
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), 'nominatim.openstreetmap.org'));
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), 'servicodados.ibge.gov.br'));
     }
 
     public function test_job_handles_terreno_without_polygon(): void

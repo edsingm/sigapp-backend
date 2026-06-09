@@ -1,4 +1,4 @@
-FROM php:8.4-cli
+FROM php:8.4-fpm
 
 RUN apt-get update && apt-get install -y \
     git \
@@ -14,11 +14,12 @@ RUN apt-get update && apt-get install -y \
     autoconf \
     libjpeg-dev \
     libfreetype6-dev \
+    nginx \
+    supervisor \
     && rm -rf /var/lib/apt/lists/*
 
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install \
-    pdo_mysql \
     pdo_pgsql \
     mbstring \
     exif \
@@ -28,7 +29,7 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     zip \
     intl
 
-# Install Node.js, npm, Chromium and its dependencies for Spatie Browsershot/Puppeteer
+# Dependências do Chromium/Puppeteer para Spatie Browsershot
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
@@ -48,7 +49,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     libxdamage1 \
     libxrandr2 \
     libgbm1 \
-    libasound2 \
+    libasound2t64 \
     && npm install -g npm \
     && npm install -g puppeteer \
     && rm -rf /var/lib/apt/lists/*
@@ -60,9 +61,11 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
 
+COPY .docker/nginx.conf /etc/nginx/sites-available/default
+COPY .docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY .docker/entrypoint.sh /usr/local/bin/docker-entrypoint
 RUN chmod +x /usr/local/bin/docker-entrypoint
 
-EXPOSE 8000
+EXPOSE 80
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint"]

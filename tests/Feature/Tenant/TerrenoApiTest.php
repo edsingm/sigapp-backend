@@ -62,7 +62,14 @@ class TerrenoApiTest extends TestCase
 
         $createResponse->assertCreated()
             ->assertJsonPath('data.nome', 'Terreno Alpha')
-            ->assertJsonPath('data.created_by', $this->admin->id);
+            ->assertJsonPath('data.created_by', $this->admin->id)
+            ->assertJsonMissingPath('data.municipio_ibge_codigo')
+            ->assertJsonMissingPath('data.municipio_nome')
+            ->assertJsonMissingPath('data.estado_sigla')
+            ->assertJsonMissingPath('data.estado_nome')
+            ->assertJsonMissingPath('data.regiao_nome')
+            ->assertJsonMissingPath('data.mesorregiao_nome')
+            ->assertJsonMissingPath('data.microrregiao_nome');
 
         $terrenoId = $createResponse->json('data.id');
 

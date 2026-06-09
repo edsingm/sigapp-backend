@@ -103,6 +103,30 @@ class TerrenoWorkflowApiTest extends TestCase
             );
     }
 
+    public function test_transition_returns_unprocessable_when_workflow_transition_is_invalid(): void
+    {
+        $terreno = Terreno::create([
+            'nome' => 'Terreno Com Transicao Invalida',
+            'created_by' => $this->admin->id,
+            'workflow_stage' => WorkflowStatus::EM_ANALISE->stage(),
+            'workflow_status_code' => WorkflowStatus::EM_ANALISE->value,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/terrenos/{$terreno->id}/workflow", [
+                'target_status' => WorkflowStatus::LEGALIZANDO->value,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonPath(
+                'errors.target_status.0',
+                sprintf(
+                    'Transição inválida de %s para %s.',
+                    WorkflowStatus::EM_ANALISE->value,
+                    WorkflowStatus::LEGALIZANDO->value,
+                )
+            );
+    }
+
     public function test_admin_can_update_qualification_data_and_mark_it_completed(): void
     {
         $terreno = Terreno::create([

@@ -4,17 +4,26 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use App\Services\HealthCheckService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class HealthCheckTest extends TestCase
 {
     use RefreshDatabase;
+
+    private function actingAsCentralAdmin(): void
+    {
+        $user = User::factory()->admin()->create();
+
+        Sanctum::actingAs($user, ['admin']);
+    }
 
     public function test_check_retorna_status_ok_quando_todos_checks_passam(): void
     {
@@ -96,11 +105,44 @@ class HealthCheckTest extends TestCase
         $this->assertSame('Não configurado', $report['checks']['openrouter']['message']);
     }
 
-    public function test_check_rota_central_retorna_200_quando_saudavel(): void
+    public function test_check_rota_central_publica_retorna_apenas_status_ok_quando_saudavel(): void
     {
         Http::fake();
 
         $response = $this->getJson('/api/v1/health');
+
+        $response->assertOk()
+            ->assertExactJson([
+                'status' => 'ok',
+            ]);
+    }
+
+    public function test_check_rota_central_publica_retorna_503_quando_check_critico_falha(): void
+    {
+        DB::shouldReceive('connection')->andReturnSelf();
+        DB::shouldReceive('select')->andThrow(new \RuntimeException('Conexão recusada'));
+
+        $response = $this->getJson('/api/v1/health');
+
+        $response->assertStatus(503)
+            ->assertExactJson([
+                'status' => 'down',
+            ]);
+    }
+
+    public function test_check_rota_central_detalhada_exige_autenticacao_de_admin_central(): void
+    {
+        $response = $this->withHeader('Host', 'localhost')->getJson('/api/v1/health/details');
+
+        $response->assertUnauthorized();
+    }
+
+    public function test_check_rota_central_detalhada_retorna_relatorio_completo_para_admin_central(): void
+    {
+        Http::fake();
+        $this->actingAsCentralAdmin();
+
+        $response = $this->withHeader('Host', 'localhost')->getJson('/api/v1/health/details');
 
         $response->assertOk()
             ->assertJsonStructure([
@@ -115,15 +157,5 @@ class HealthCheckTest extends TestCase
                     'openrouter',
                 ],
             ]);
-    }
-
-    public function test_check_rota_central_retorna_503_quando_check_critico_falha(): void
-    {
-        DB::shouldReceive('connection')->andReturnSelf();
-        DB::shouldReceive('select')->andThrow(new \RuntimeException('Conexão recusada'));
-
-        $response = $this->getJson('/api/v1/health');
-
-        $response->assertStatus(503);
     }
 }

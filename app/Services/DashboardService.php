@@ -8,6 +8,7 @@ use App\Models\AuditLog;
 use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
 use App\Repositories\Contracts\DashboardRepositoryInterface;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
 class DashboardService
@@ -56,25 +57,25 @@ class DashboardService
     }
 
     /**
-     * @return \Illuminate\Database\Eloquent\Collection<int, Tenant>
+     * @return EloquentCollection<int, Tenant>
      */
-    public function recentTenants(int $limit = 5): \Illuminate\Database\Eloquent\Collection
+    public function recentTenants(int $limit = 5): EloquentCollection
     {
         return $this->repository->recentTenants($limit);
     }
 
     /**
-     * @return \Illuminate\Database\Eloquent\Collection<int, AuditLog>
+     * @return EloquentCollection<int, AuditLog>
      */
-    public function recentActivity(int $limit = 10): \Illuminate\Database\Eloquent\Collection
+    public function recentActivity(int $limit = 10): EloquentCollection
     {
         return $this->repository->recentActivity($limit);
     }
 
     /**
-     * @return \Illuminate\Database\Eloquent\Collection<int, Tenant>
+     * @return EloquentCollection<int, Tenant>
      */
-    public function recentTenantsSimple(int $limit = 5): \Illuminate\Database\Eloquent\Collection
+    public function recentTenantsSimple(int $limit = 5): EloquentCollection
     {
         return $this->repository->recentTenantsSimple($limit);
     }

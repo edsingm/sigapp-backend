@@ -4,6 +4,7 @@ services:
     build:
       context: .
       dockerfile: .docker/Dockerfile
+      target: dev
     restart: always
     volumes:
       - .:/var/www:delegated
@@ -31,8 +32,6 @@ services:
     container_name: sigapp-redis
     image: redis:7-alpine
     restart: always
-    ports:
-      - "6379:6379"
     networks:
       - database_sigapp
 

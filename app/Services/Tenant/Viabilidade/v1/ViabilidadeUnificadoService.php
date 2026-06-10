@@ -55,7 +55,7 @@ class ViabilidadeUnificadoService
         int $terrenoId,
         Viabilidade|int|null $viabilidadeRef = null,
         ?array $customProdutos = null
-    ): array{
+    ): array {
         try {
             $terreno = $this->buscarTerreno($terrenoId);
             $viabilidade = $this->buscarViabilidade($terrenoId, $viabilidadeRef);
@@ -125,11 +125,9 @@ class ViabilidadeUnificadoService
 
     /**
      * ═══════════════════════════════════════════════════════════════════════
-     * HELPERS 
+     * HELPERS
      * ═══════════════════════════════════════════════════════════════════════
      */
-
-
     private function buscarTerreno(int $terrenoId): Terreno
     {
         return Terreno::select(['id', 'nome', 'area_calculada', 'data_contrato'])
@@ -284,5 +282,4 @@ class ViabilidadeUnificadoService
 
         $viabilidade->saveQuietly();
     }
-
 }

@@ -14,13 +14,13 @@ class StoreConsentLogRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'consent_id'              => ['required', 'uuid'],
-            'categories'              => ['required', 'array'],
-            'categories.functional'   => ['required', 'boolean'],
-            'categories.analytics'    => ['required', 'boolean'],
-            'categories.marketing'    => ['required', 'boolean'],
-            'version'                 => ['required', 'string', 'max:10'],
-            'timestamp'               => ['required', 'date'],
+            'consent_id' => ['required', 'uuid'],
+            'categories' => ['required', 'array'],
+            'categories.functional' => ['required', 'boolean'],
+            'categories.analytics' => ['required', 'boolean'],
+            'categories.marketing' => ['required', 'boolean'],
+            'version' => ['required', 'string', 'max:10'],
+            'timestamp' => ['required', 'date'],
         ];
     }
 }

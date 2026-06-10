@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repositories\Contracts;
 
 use Illuminate\Database\Eloquent\Collection;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
 interface RoleRepositoryInterface
@@ -29,7 +30,7 @@ interface RoleRepositoryInterface
 
     /**
      * @param  array<int>  $ids
-     * @return Collection<int, \Spatie\Permission\Models\Permission>
+     * @return Collection<int, Permission>
      */
     public function findPermissionsByIds(array $ids): Collection;
 

@@ -2,10 +2,12 @@
 
 namespace App\Services;
 
+use App\Jobs\RefreshTenantStatsJob;
 use App\Models\Central\Tenant;
 use App\Models\Tenant\Projeto;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\User;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -46,7 +48,7 @@ class TenantStatusService
         ];
 
         // Dispara Job assíncrono para calcular estatísticas completas
-        \App\Jobs\RefreshTenantStatsJob::dispatch();
+        RefreshTenantStatsJob::dispatch();
 
         return $basicStats;
     }
@@ -59,7 +61,7 @@ class TenantStatusService
      */
     public function refreshStats(): array
     {
-        /** @var \Illuminate\Database\Eloquent\Collection<int, Tenant> $tenants */
+        /** @var Collection<int, Tenant> $tenants */
         $tenants = Tenant::query()->get(['id', 'slug']);
         $totalTenants = $tenants->count();
         $totalTerrenos = 0;

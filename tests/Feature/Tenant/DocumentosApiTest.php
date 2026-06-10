@@ -6,10 +6,10 @@ use App\Http\Middleware\AddTenantContextToLogs;
 use App\Http\Middleware\ApiRequestLogger;
 use App\Http\Middleware\CheckSubscriptionStatus;
 use App\Http\Middleware\EnforcePlanLimits;
-use App\Http\Middleware\InitializeTenancyFlexible;
 use App\Http\Middleware\EnsureTenantAdmin;
 use App\Http\Middleware\EnsureTenantContext;
 use App\Http\Middleware\EnsureTenantUser;
+use App\Http\Middleware\InitializeTenancyFlexible;
 use App\Jobs\IndexDocumentEmbeddingJob;
 use App\Models\Tenant\Documento;
 use App\Models\Tenant\Terreno;
@@ -28,6 +28,7 @@ class DocumentosApiTest extends TestCase
     use RefreshDatabase;
 
     private User $admin;
+
     private Terreno $terreno;
 
     protected function setUp(): void

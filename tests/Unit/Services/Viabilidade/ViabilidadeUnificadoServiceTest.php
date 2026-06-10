@@ -2,10 +2,6 @@
 
 namespace Tests\Unit\Services\Viabilidade;
 
-use App\Services\Tenant\Viabilidade\v1\CurvaService;
-use App\Services\Tenant\Viabilidade\v1\ImpostosService;
-use App\Services\Tenant\Viabilidade\v1\PremissasViabilidadeService;
-use App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService;
 use App\Services\Tenant\Viabilidade\v1\Calculos\DespesasCalculator;
 use App\Services\Tenant\Viabilidade\v1\Calculos\DreCalculator;
 use App\Services\Tenant\Viabilidade\v1\Calculos\FluxoMensalCalculator;
@@ -13,6 +9,10 @@ use App\Services\Tenant\Viabilidade\v1\Calculos\IndicadoresCalculator;
 use App\Services\Tenant\Viabilidade\v1\Calculos\PocCalculator;
 use App\Services\Tenant\Viabilidade\v1\Calculos\ProdutosProcessor;
 use App\Services\Tenant\Viabilidade\v1\Calculos\ReceitasCalculator;
+use App\Services\Tenant\Viabilidade\v1\CurvaService;
+use App\Services\Tenant\Viabilidade\v1\ImpostosService;
+use App\Services\Tenant\Viabilidade\v1\PremissasViabilidadeService;
+use App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService;
 use Carbon\Carbon;
 use Tests\TestCase;
 

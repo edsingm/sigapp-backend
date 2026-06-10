@@ -11,7 +11,7 @@ use DOMXPath;
  * rota terrenos_terrenos_formulario — cujo strHtml contém pares label→valor em
  * divs .col-md-3.
  *
- * @return array<string, string>  chave = label normalizado, valor = texto bruto
+ * @return array<string, string> chave = label normalizado, valor = texto bruto
  */
 class PortalTerrenoFormularioParser
 {

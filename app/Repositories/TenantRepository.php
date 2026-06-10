@@ -2,7 +2,6 @@
 
 namespace App\Repositories;
 
-use App\Models\Central\Entitlement;
 use App\Models\Central\Tenant;
 use App\Models\Central\TenantEntitlement;
 use App\Models\Tenant\Produto;

@@ -20,7 +20,7 @@ class ListRolesRequest extends FormRequest
      * @return array<string, ValidationRule|array<mixed>|string>
      */
     /**
-     * @return array<string, array<int, \Illuminate\Contracts\Validation\ValidationRule|string>>
+     * @return array<string, array<int, ValidationRule|string>>
      */
     public function rules(): array
     {

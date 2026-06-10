@@ -5,10 +5,10 @@ namespace Tests\Feature\Tenant;
 use App\Http\Middleware\AddTenantContextToLogs;
 use App\Http\Middleware\ApiRequestLogger;
 use App\Http\Middleware\CheckSubscriptionStatus;
-use App\Http\Middleware\InitializeTenancyFlexible;
 use App\Http\Middleware\EnsureTenantAdmin;
 use App\Http\Middleware\EnsureTenantContext;
 use App\Http\Middleware\EnsureTenantUser;
+use App\Http\Middleware\InitializeTenancyFlexible;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -122,7 +122,7 @@ class TerrenoApiTest extends TestCase
             ])->assertOk()
             ->assertJsonPath('data.descricao', 'Nota atualizada');
 
-        $kml = <<<KML
+        $kml = <<<'KML'
 <?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>

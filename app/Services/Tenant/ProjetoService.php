@@ -16,6 +16,7 @@ use App\Http\Resources\Tenant\ViabilidadeResource;
 use App\Models\Tenant\Projeto;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\User;
+use App\Repositories\Contracts\ProjetoRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
@@ -26,7 +27,7 @@ class ProjetoService
     public function __construct(
         protected LegalizacaoService $legalizacaoService,
         protected LandWorkflowService $workflowService,
-        protected \App\Repositories\Contracts\ProjetoRepositoryInterface $repository,
+        protected ProjetoRepositoryInterface $repository,
     ) {}
 
     /**

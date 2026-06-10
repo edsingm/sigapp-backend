@@ -24,36 +24,36 @@ class ProdutoSeeder extends Seeder
             [
                 'description' => '2 dormitórios, 47,2m2, com banheiro, sala 2 ambientes, cozinha e quintal',
                 'image' => '',
-                'private_area' => 47.2, //decimal 5,2 -> tamanho do imóvel em metros quadrados
-                'm2_cost' => 1400.00, //decimal 12,2 -> custo do metro quadrado em valor monetário
-                'infra_cost' => 22000.00, //decimal 12,2 -> custo da infraestrutura em valor monetário
+                'private_area' => 47.2, // decimal 5,2 -> tamanho do imóvel em metros quadrados
+                'm2_cost' => 1400.00, // decimal 12,2 -> custo do metro quadrado em valor monetário
+                'infra_cost' => 22000.00, // decimal 12,2 -> custo da infraestrutura em valor monetário
                 'status' => 'ativo',
-                'sinal' => 0.02, //decimal 5,2 -> porcentagem sobre o valor total do sinal do imóvel no financiamento, geralmente 20% de sinal
-                'parcela_obra' => 0.09, //decimal 5,2 -> porcentagem sobre o valor total do sinal do imóvel no financiamento
-                'parcela_posChave' => 0.09, //decimal 5,2 -> porcentagem sobre o valor total do sinal do imóvel no financiamento
-                'qtde_parcelas_posChave' => 36, //integer -> quantidade maxima de parcelas após entrega de chaves
-                'demanda_minCef' => 0.30, //decimal 5,2 -> demanda mínima para contratacao de PJ CEF
-                'defasagem_pgtoTerreno' => 2, //integer -> quantidade de meses de defasagem para iniciar o pagamento do terreno
-                'avaliacao_lotesCef' => 0.15, //decimal 5,2 -> porcentagem sobre o valor total do imóvel em avaliacao de lotes CEF
-                'juros_mensalSinal' => 0.00, //decimal 5,2 -> juros mensal sobre o sinal do imóvel em percentual
-                'juros_mensalObra' => 0.00, //decimal 5,2 -> juros mensal sobre a obra do imóvel em percentual
-                'juros_mensalPosChave' => 0.01, //decimal 5,2 -> juros mensal sobre a chave do imóvel em percentual
-                'correcao_anualSinal' => 0.00, //decimal 5,2 -> correção anual sobre o sinal do imóvel em percentual
-                'correcao_anualObra' => 0.05, //decimal 5,2 -> correção anual sobre a obra do imóvel em percentual
-                'correcao_anualPosChave' => 0.045, //decimal 5,2 -> correção anual sobre a chave do imóvel em percentual
+                'sinal' => 0.02, // decimal 5,2 -> porcentagem sobre o valor total do sinal do imóvel no financiamento, geralmente 20% de sinal
+                'parcela_obra' => 0.09, // decimal 5,2 -> porcentagem sobre o valor total do sinal do imóvel no financiamento
+                'parcela_posChave' => 0.09, // decimal 5,2 -> porcentagem sobre o valor total do sinal do imóvel no financiamento
+                'qtde_parcelas_posChave' => 36, // integer -> quantidade maxima de parcelas após entrega de chaves
+                'demanda_minCef' => 0.30, // decimal 5,2 -> demanda mínima para contratacao de PJ CEF
+                'defasagem_pgtoTerreno' => 2, // integer -> quantidade de meses de defasagem para iniciar o pagamento do terreno
+                'avaliacao_lotesCef' => 0.15, // decimal 5,2 -> porcentagem sobre o valor total do imóvel em avaliacao de lotes CEF
+                'juros_mensalSinal' => 0.00, // decimal 5,2 -> juros mensal sobre o sinal do imóvel em percentual
+                'juros_mensalObra' => 0.00, // decimal 5,2 -> juros mensal sobre a obra do imóvel em percentual
+                'juros_mensalPosChave' => 0.01, // decimal 5,2 -> juros mensal sobre a chave do imóvel em percentual
+                'correcao_anualSinal' => 0.00, // decimal 5,2 -> correção anual sobre o sinal do imóvel em percentual
+                'correcao_anualObra' => 0.05, // decimal 5,2 -> correção anual sobre a obra do imóvel em percentual
+                'correcao_anualPosChave' => 0.045, // decimal 5,2 -> correção anual sobre a chave do imóvel em percentual
                 'curva_vendas' => [10, 9, 8.1, 7.3, 6.6, 5.9, 5.3, 3.4, 3.4, 3.4, 3.4, 3.4, 2.4, 3.4, 3.4, 3.4, 3.4, 3.4, 3.4, 3.4, 3.4],
                 'baloes_anuais' => [
                     ['mes' => 12, 'percentual' => 3.0],
                     ['mes' => 24, 'percentual' => 3.0],
                 ],
                 'balao_entrega_modo' => 'saldo_restante',
-                'assist_tecnica1' => 0.05, //decimal 5,2 -> porcentagem de assistência tecnica no ano 1
-                'assist_tecnica2' => 0.02, //decimal 5,2 -> porcentagem de assistência tecnica no ano 2
-                'assist_tecnica3' => 0.01, //decimal 5,2 -> porcentagem de assistência tecnica no ano 3
-                'assist_tecnica4' => 0.01, //decimal 5,2 -> porcentagem de assistência tecnica no ano 4
-                'assist_tecnica5' => 0.01, //decimal 5,2 -> porcentagem de assistência tecnica no ano 5
-                'meses_inicioConstrucao' => 4, //integer -> quantidade de meses antes do lancamento para execucao de plantao de vendas
-                'porcentagem_ConstrucaoStand' => 0.025, //decimal 5,2 -> porcentagem de construção padrão sobre o VGV do projeto
+                'assist_tecnica1' => 0.05, // decimal 5,2 -> porcentagem de assistência tecnica no ano 1
+                'assist_tecnica2' => 0.02, // decimal 5,2 -> porcentagem de assistência tecnica no ano 2
+                'assist_tecnica3' => 0.01, // decimal 5,2 -> porcentagem de assistência tecnica no ano 3
+                'assist_tecnica4' => 0.01, // decimal 5,2 -> porcentagem de assistência tecnica no ano 4
+                'assist_tecnica5' => 0.01, // decimal 5,2 -> porcentagem de assistência tecnica no ano 5
+                'meses_inicioConstrucao' => 4, // integer -> quantidade de meses antes do lancamento para execucao de plantao de vendas
+                'porcentagem_ConstrucaoStand' => 0.025, // decimal 5,2 -> porcentagem de construção padrão sobre o VGV do projeto
             ]
         );
     }

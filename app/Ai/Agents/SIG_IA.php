@@ -4,6 +4,7 @@ namespace App\Ai\Agents;
 
 use App\Ai\Tools\AnalyzeDocumentTool;
 use App\Ai\Tools\CompareAreasTool;
+use App\Ai\Tools\CreatePdfsTool;
 use App\Ai\Tools\CreateTaskTool;
 use App\Ai\Tools\DetectAnomaliesTool;
 use App\Ai\Tools\EstimateVgvTool;
@@ -26,7 +27,6 @@ use App\Ai\Tools\ProactiveMonitorTool;
 use App\Ai\Tools\SearchDocumentsTool;
 use App\Ai\Tools\TransitionWorkflowTool;
 use App\Ai\Tools\UpdateTaskStatusTool;
-use App\Ai\Tools\CreatePdfsTool;
 use App\Services\AiAnomalyDetectionService;
 use App\Services\AiEmbeddingService;
 use App\Services\AiInsightGeneratorService;

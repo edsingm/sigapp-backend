@@ -293,6 +293,7 @@ class DespesasCalculator
 
             if ($this->ehProdutoLote($produto)) {
                 $retLotes += $receitaProdutoMes * $tributosPct;
+
                 continue;
             }
 

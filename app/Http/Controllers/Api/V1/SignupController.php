@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Exceptions\SignupSlugReservedException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SignupRequest;
-use App\Models\Central\Tenant;
 use App\Models\Central\Plan;
+use App\Models\Central\Tenant;
 use App\Repositories\Contracts\PlanRepositoryInterface;
 use App\Repositories\Contracts\TenantRepositoryInterface;
 use App\Services\ApiResponseService;
@@ -13,9 +14,8 @@ use App\Services\Billing\StripeCheckoutService;
 use App\Services\Billing\TenantBillingService;
 use App\Services\Signup\TenantSignupService;
 use App\Traits\LogsAudit;
-use App\Exceptions\SignupSlugReservedException;
-use Illuminate\Support\Str;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Stancl\Tenancy\Exceptions\TenantDatabaseAlreadyExistsException;
 

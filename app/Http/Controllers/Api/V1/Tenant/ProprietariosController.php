@@ -7,6 +7,7 @@ use App\Http\Requests\Tenant\StoreProprietarioRequest;
 use App\Http\Requests\Tenant\UpdateProprietarioRequest;
 use App\Http\Resources\Tenant\ProprietarioResource;
 use App\Models\Tenant\Proprietario;
+use App\Models\Tenant\Terreno;
 use App\Services\Tenant\LandWorkflowService;
 use App\Services\Tenant\ProprietarioService;
 use Illuminate\Http\JsonResponse;
@@ -55,7 +56,7 @@ class ProprietariosController extends Controller
         $data['updated_by'] = $request->user()->id;
 
         $proprietario = $this->proprietarioService->create($data);
-        /** @var \App\Models\Tenant\Terreno|null $terreno */
+        /** @var Terreno|null $terreno */
         $terreno = $proprietario->terreno()->first();
 
         if ($terreno !== null) {
@@ -94,7 +95,7 @@ class ProprietariosController extends Controller
         $data['updated_by'] = $request->user()->id;
 
         $proprietario = $this->proprietarioService->update($proprietario, $data);
-        /** @var \App\Models\Tenant\Terreno|null $terreno */
+        /** @var Terreno|null $terreno */
         $terreno = $proprietario->terreno()->first();
 
         if ($terreno !== null) {
@@ -115,7 +116,7 @@ class ProprietariosController extends Controller
     {
         Gate::authorize('delete', $proprietario);
 
-        /** @var \App\Models\Tenant\Terreno|null $terreno */
+        /** @var Terreno|null $terreno */
         $terreno = $proprietario->terreno()->first();
         $this->proprietarioService->delete($proprietario);
 

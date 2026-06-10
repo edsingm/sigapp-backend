@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\AuditLog;
+use App\Models\Central\Plan;
+use App\Models\Central\Tenant;
 use App\Repositories\Contracts\DashboardRepositoryInterface;
 use Illuminate\Support\Collection;
 
@@ -37,7 +40,7 @@ class DashboardService
     public function tenantsByPlan(): Collection
     {
         return $this->repository->tenantsByPlan()
-            ->map(fn (\App\Models\Central\Plan $plan) => [
+            ->map(fn (Plan $plan) => [
                 'name' => $plan->name,
                 'count' => (int) $plan->tenants_count,
                 'price' => $plan->price,
@@ -53,7 +56,7 @@ class DashboardService
     }
 
     /**
-     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Models\Central\Tenant>
+     * @return \Illuminate\Database\Eloquent\Collection<int, Tenant>
      */
     public function recentTenants(int $limit = 5): \Illuminate\Database\Eloquent\Collection
     {
@@ -61,7 +64,7 @@ class DashboardService
     }
 
     /**
-     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Models\AuditLog>
+     * @return \Illuminate\Database\Eloquent\Collection<int, AuditLog>
      */
     public function recentActivity(int $limit = 10): \Illuminate\Database\Eloquent\Collection
     {
@@ -69,7 +72,7 @@ class DashboardService
     }
 
     /**
-     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Models\Central\Tenant>
+     * @return \Illuminate\Database\Eloquent\Collection<int, Tenant>
      */
     public function recentTenantsSimple(int $limit = 5): \Illuminate\Database\Eloquent\Collection
     {

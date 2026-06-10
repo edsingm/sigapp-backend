@@ -3,6 +3,7 @@
 namespace App\Repositories\Tenant;
 
 use App\Models\Tenant\CorretorExterno;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 
 class CorretorExternoRepository
@@ -13,7 +14,7 @@ class CorretorExternoRepository
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function create(array $data): CorretorExterno
     {
@@ -21,7 +22,7 @@ class CorretorExternoRepository
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function update(CorretorExterno $corretor, array $data): CorretorExterno
     {
@@ -36,10 +37,10 @@ class CorretorExternoRepository
     }
 
     /**
-     * @param array<string, mixed> $filters
-     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator<int, CorretorExterno>
+     * @param  array<string, mixed>  $filters
+     * @return LengthAwarePaginator<int, CorretorExterno>
      */
-    public function paginate(int $perPage = 10, array $filters = []): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    public function paginate(int $perPage = 10, array $filters = []): LengthAwarePaginator
     {
         $query = CorretorExterno::query();
 

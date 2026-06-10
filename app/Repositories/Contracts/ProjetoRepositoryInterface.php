@@ -6,7 +6,6 @@ namespace App\Repositories\Contracts;
 
 use App\Models\Tenant\Projeto;
 use App\Models\Tenant\Terreno;
-use Illuminate\Pagination\LengthAwarePaginator;
 
 interface ProjetoRepositoryInterface
 {

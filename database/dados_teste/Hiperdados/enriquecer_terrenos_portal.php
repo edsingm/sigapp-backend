@@ -126,7 +126,7 @@ fwrite(STDOUT, sprintf("\nConcluído: %d terrenos, %d falhas.\n", count($enrique
 fwrite(STDOUT, "Arquivo: {$outputPath}\n");
 
 if ($falhas !== []) {
-    fwrite(STDOUT, "IDs com falha: ".implode(', ', array_column($falhas, 'id'))."\n");
+    fwrite(STDOUT, 'IDs com falha: '.implode(', ', array_column($falhas, 'id'))."\n");
 }
 
 exit(0);

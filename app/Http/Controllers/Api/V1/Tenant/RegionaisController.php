@@ -15,6 +15,7 @@ use App\Http\Resources\Tenant\RegionalResource;
 use App\Models\Tenant\Regional;
 use App\Services\ApiResponseService;
 use App\Services\Tenant\RegionalService;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
@@ -42,7 +43,7 @@ class RegionaisController extends Controller
 
     public function forSelect(SelectRegionaisRequest $request): JsonResponse
     {
-        /** @var \Illuminate\Database\Eloquent\Collection<int, Regional> $regionais */
+        /** @var Collection<int, Regional> $regionais */
         $regionais = $this->regionalService->forSelect();
 
         return ApiResponseService::success(

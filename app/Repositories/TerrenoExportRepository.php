@@ -6,6 +6,7 @@ namespace App\Repositories;
 
 use App\Models\Tenant\Terreno;
 use App\Repositories\Contracts\TerrenoExportRepositoryInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Str;
 
@@ -58,14 +59,14 @@ class TerrenoExportRepository implements TerrenoExportRepositoryInterface
     }
 
     /**
-     * @param  \Illuminate\Database\Eloquent\Builder<Terreno>  $query
+     * @param  Builder<Terreno>  $query
      * @param  array<string, mixed>  $filters
      */
-    private function applyFilters(\Illuminate\Database\Eloquent\Builder $query, array $filters): void
+    private function applyFilters(Builder $query, array $filters): void
     {
         $nome = $filters['nome'] ?? null;
         if ($nome !== null && $nome !== '') {
-            $query->whereRaw('LOWER(nome) LIKE ?', [Str::lower($nome) . '%']);
+            $query->whereRaw('LOWER(nome) LIKE ?', [Str::lower($nome).'%']);
         }
 
         $workflowStatuses = $filters['workflow_statuses'] ?? null;

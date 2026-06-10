@@ -8,6 +8,7 @@ use App\Http\Requests\LoginRequest;
 use App\Http\Requests\UpdateProfileRequest;
 use App\Http\Resources\CentralUserResource;
 use App\Http\Resources\UserResource;
+use App\Models\Tenant\User;
 use App\Models\User as CentralUser;
 use App\Services\ApiResponseService;
 use App\Services\Auth\CentralLoginBrokerService;
@@ -140,7 +141,7 @@ class TenantAuthController extends Controller
     /**
      * Constrói a resposta HTTP a partir do resultado do serviço de login tenant.
      *
-     * @param  array{success: false}|array{success: true, user: \App\Models\Tenant\User, token: string, abilities: list<string>, expires_at: string|null}  $result
+     * @param  array{success: false}|array{success: true, user: User, token: string, abilities: list<string>, expires_at: string|null}  $result
      */
     private function respondToTenantLogin(array $result): JsonResponse
     {

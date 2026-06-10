@@ -8,10 +8,10 @@ use App\Http\Middleware\AiRateLimit;
 use App\Http\Middleware\ApiRequestLogger;
 use App\Http\Middleware\CheckFeature;
 use App\Http\Middleware\CheckSubscriptionStatus;
-use App\Http\Middleware\InitializeTenancyFlexible;
 use App\Http\Middleware\EnsureTenantAdmin;
 use App\Http\Middleware\EnsureTenantContext;
 use App\Http\Middleware\EnsureTenantUser;
+use App\Http\Middleware\InitializeTenancyFlexible;
 use App\Models\Tenant\Task;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\User;
@@ -26,6 +26,7 @@ class AiAutomationApiTest extends TestCase
     use RefreshDatabase;
 
     private User $admin;
+
     private Terreno $terreno;
 
     protected function setUp(): void

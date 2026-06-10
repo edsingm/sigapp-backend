@@ -30,8 +30,7 @@ class CorretoresExternosController extends Controller
         $cacheKey = "tenant:{$tenantId}:corretores_externos:index:".md5(json_encode($filters).":{$perPage}");
 
         $paginator = Cache::tags(["tenant:{$tenantId}:corretores_externos"])
-            ->remember($cacheKey, now()->addMinutes(30), fn () =>
-                $this->repository->paginate($perPage, $filters)
+            ->remember($cacheKey, now()->addMinutes(30), fn () => $this->repository->paginate($perPage, $filters)
             );
 
         return $this->respondWithPagination($paginator, CorretorExternoResource::class);
@@ -96,8 +95,7 @@ class CorretoresExternosController extends Controller
         $cacheKey = "tenant:{$tenantId}:corretores_externos:select";
 
         $corretores = Cache::tags(["tenant:{$tenantId}:corretores_externos"])
-            ->remember($cacheKey, now()->addHours(1), fn () =>
-                $this->repository->listForSelect()
+            ->remember($cacheKey, now()->addHours(1), fn () => $this->repository->listForSelect()
             );
 
         return response()->json(['data' => $corretores]);

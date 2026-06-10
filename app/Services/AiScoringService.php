@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\Tenant\AiRecommendationScore;
 use App\Models\Tenant\ComiteRevisao;
-use App\Models\Tenant\Documento;
 use App\Models\Tenant\Legalizacao;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\Viabilidade;
@@ -22,11 +21,17 @@ class AiScoringService
 
     // Pesos por fator (total = 100)
     protected const WEIGHT_VIABILIDADE_APROVADA = 25;
+
     protected const WEIGHT_ESTAGIO_AVANCADO = 20;
+
     protected const WEIGHT_RECENTE = 15;
+
     protected const WEIGHT_VGV = 15;
+
     protected const WEIGHT_DOCUMENTACAO = 10;
+
     protected const WEIGHT_SEM_PENDENCIAS = 10;
+
     protected const WEIGHT_RESPONSAVEL = 5;
 
     // Posição dos estágios no pipeline (ordem crescente de avanço)
@@ -205,7 +210,7 @@ class AiScoringService
      */
     public function getScore(Terreno $terreno, bool $forceRecalculate = false): array
     {
-        if (!$forceRecalculate) {
+        if (! $forceRecalculate) {
             $saved = AiRecommendationScore::byTerreno($terreno->id)
                 ->where('version', self::CURRENT_VERSION)
                 ->latest()
@@ -243,7 +248,7 @@ class AiScoringService
     {
         $viab = $terreno->viabilidadeAtual;
 
-        if (!$viab) {
+        if (! $viab) {
             return 0;
         }
 
@@ -294,7 +299,7 @@ class AiScoringService
      */
     protected function scoreRecencia(Terreno $terreno): float
     {
-        if (!$terreno->updated_at) {
+        if (! $terreno->updated_at) {
             return 0;
         }
 
@@ -330,7 +335,7 @@ class AiScoringService
     protected function scoreVgv(Terreno $terreno): float
     {
         $viab = $terreno->viabilidadeAtual;
-        if (!$viab || empty($viab->resultados_dre)) {
+        if (! $viab || empty($viab->resultados_dre)) {
             // Se não tem viabilidade, usa valor do terreno como proxy
             if ($terreno->valor && $terreno->valor > 0) {
                 $valor = (float) $terreno->valor;

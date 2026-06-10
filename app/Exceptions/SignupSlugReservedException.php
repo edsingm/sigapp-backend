@@ -4,6 +4,4 @@ namespace App\Exceptions;
 
 use RuntimeException;
 
-class SignupSlugReservedException extends RuntimeException
-{
-}
+class SignupSlugReservedException extends RuntimeException {}

@@ -4,7 +4,6 @@ namespace Tests\Unit\Middleware;
 
 use App\Enums\TenantStatus;
 use App\Http\Middleware\CheckSubscriptionStatus;
-use Illuminate\Http\Request;
 use Tests\TestCase;
 
 class CheckSubscriptionStatusTest extends TestCase

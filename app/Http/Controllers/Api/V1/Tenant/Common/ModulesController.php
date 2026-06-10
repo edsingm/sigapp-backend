@@ -6,11 +6,11 @@ use App\Enums\Common\SectorsEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Tenant\Modules\ModulesResource;
 use App\Http\Resources\TenantResource;
+use App\Http\Resources\UserResource;
 use App\Services\ApiResponseService;
 use App\Services\Modules\ModulesService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use App\Http\Resources\UserResource;
 
 class ModulesController extends Controller
 {

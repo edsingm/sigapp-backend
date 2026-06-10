@@ -7,6 +7,7 @@ use App\Models\Tenant\Terreno;
 use App\Models\Tenant\TerrenoProduto;
 use App\Services\Tenant\Viabilidade\v1\ImpostosService;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Collection;
 
 class ProdutosProcessor
 {
@@ -52,7 +53,7 @@ class ProdutosProcessor
             }
         }
 
-        /** @var \Illuminate\Database\Eloquent\Collection<int, TerrenoProduto> $terrenoProdutos */
+        /** @var Collection<int, TerrenoProduto> $terrenoProdutos */
         $terrenoProdutos = $terreno->terrenoProdutos()->with('produto')->get();
 
         foreach ($terrenoProdutos as $terrenoProduto) {
@@ -181,7 +182,7 @@ class ProdutosProcessor
 
         $extrair = function (string $campo, mixed $fallback) use ($produtos): mixed {
             $primeiro = $produtos[0][$campo] ?? null;
-            if (is_array($primeiro) && !empty($primeiro)) {
+            if (is_array($primeiro) && ! empty($primeiro)) {
                 return $primeiro;
             }
 
@@ -189,7 +190,7 @@ class ProdutosProcessor
             $unidadesComValor = 0;
             foreach ($produtos as $produto) {
                 $valor = $produto[$campo] ?? null;
-                if ($valor !== null && $valor != 0 && !is_array($valor)) {
+                if ($valor !== null && $valor != 0 && ! is_array($valor)) {
                     $unidades = (int) ($produto['quantidade_unidades'] ?? 0);
                     $somaPonderada += (float) $valor * $unidades;
                     $unidadesComValor += $unidades;
@@ -200,7 +201,7 @@ class ProdutosProcessor
             }
             foreach ($produtos as $produto) {
                 $valor = $produto[$campo] ?? null;
-                if ($valor !== null && $valor != 0 && !is_array($valor)) {
+                if ($valor !== null && $valor != 0 && ! is_array($valor)) {
                     return $valor;
                 }
             }

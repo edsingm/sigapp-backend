@@ -7,9 +7,11 @@ use App\Enums\ProjetoStatus;
 use App\Enums\WorkflowStatus;
 use App\Models\Central\Cidade;
 use App\Traits\HasDashboardCache;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -30,13 +32,13 @@ use Illuminate\Support\Facades\Cache;
  * @property array<int, mixed>|null $steep_polygons
  * @property string|null $workflow_stage
  * @property string|null $workflow_status_code
- * @property \Carbon\Carbon|null $workflow_status_changed_at
- * @property \Carbon\Carbon|null $updated_at
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Tenant\TerrenoProduto> $terrenoProdutos
- * @property-read \App\Models\Tenant\Viabilidade|null $viabilidadeAtual
- * @property-read \App\Models\Tenant\ComiteRevisao|null $comiteAtual
- * @property-read \App\Models\Tenant\Legalizacao|null $legalizacao
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Tenant\Task> $tasks
+ * @property Carbon|null $workflow_status_changed_at
+ * @property Carbon|null $updated_at
+ * @property-read Collection<int, TerrenoProduto> $terrenoProdutos
+ * @property-read Viabilidade|null $viabilidadeAtual
+ * @property-read ComiteRevisao|null $comiteAtual
+ * @property-read Legalizacao|null $legalizacao
+ * @property-read Collection<int, Task> $tasks
  */
 class Terreno extends Model
 {

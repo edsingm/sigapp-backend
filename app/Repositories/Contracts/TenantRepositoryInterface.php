@@ -2,11 +2,10 @@
 
 namespace App\Repositories\Contracts;
 
-use App\Models\Central\Entitlement;
 use App\Models\Central\Tenant;
 use App\Models\Central\TenantEntitlement;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection;
 
 interface TenantRepositoryInterface
 {

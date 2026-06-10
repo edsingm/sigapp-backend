@@ -15,6 +15,7 @@ class TenantPlanService
     public function __construct(
         private readonly TenantRepositoryInterface $tenantRepository,
     ) {}
+
     /**
      * Atribui um plano a um tenant, independentemente do plano atual.
      */

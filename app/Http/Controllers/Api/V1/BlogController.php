@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Http\Controllers\Controller;
 use App\Http\Resources\BlogPostDetailResource;
 use App\Http\Resources\BlogPostSummaryResource;
-use App\Http\Controllers\Controller;
 use App\Services\BlogService;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;

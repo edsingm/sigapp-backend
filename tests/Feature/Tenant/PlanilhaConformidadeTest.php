@@ -329,7 +329,7 @@ class PlanilhaConformidadeTest extends TestCase
 
         fwrite(STDOUT, "╠══════════════════════════════════════════════════════════════════════╣\n");
         fwrite(STDOUT, sprintf("║ Margem Líquida:  Planilha=23.25%%  Sistema=%.2f%%%s║\n", $margemLiquida, str_repeat(' ', 15)));
-        fwrite(STDOUT, sprintf("║ VGV Total:        Planilha=%d  Sistema=%d%s║\n", 269_000_000, (int)$resultado['vgv'], str_repeat(' ', 9)));
+        fwrite(STDOUT, sprintf("║ VGV Total:        Planilha=%d  Sistema=%d%s║\n", 269_000_000, (int) $resultado['vgv'], str_repeat(' ', 9)));
         fwrite(STDOUT, "╚══════════════════════════════════════════════════════════════════════╝\n");
         fwrite(STDOUT, "\n");
     }
@@ -354,13 +354,13 @@ class PlanilhaConformidadeTest extends TestCase
         $periodosEncontrados = [];
         foreach ($fluxo as $mes => $linha) {
             $p = $linha['periodo'] ?? '?';
-            if (!isset($porFase[$p])) {
+            if (! isset($porFase[$p])) {
                 $porFase[$p] = [];
                 $totaisFase[$p] = ['entradas' => 0, 'saidas' => 0, 'saldo' => 0, 'meses' => 0, 'minSaldo' => null, 'maxSaldo' => null];
                 $periodosEncontrados[] = $p;
             }
         }
-        
+
         foreach ($fluxo as $mes => $linha) {
             $periodo = $linha['periodo'] ?? '?';
             if (! isset($totaisFase[$periodo])) {
@@ -492,9 +492,9 @@ class PlanilhaConformidadeTest extends TestCase
         $vgv = $resultado['vgv'] ?? 0;
 
         // TIR do sistema (calcularTir retorna taxa mensal - precisa revisar implementação)
-         // Mantemos exposição, payback e margem que estão corretos
-         $tirOperacionalRaw = $indicadores['tir_operacional'] ?? 0;
-         $tirFinanceiraRaw = $indicadores['tir_financeira'] ?? 0;
+        // Mantemos exposição, payback e margem que estão corretos
+        $tirOperacionalRaw = $indicadores['tir_operacional'] ?? 0;
+        $tirFinanceiraRaw = $indicadores['tir_financeira'] ?? 0;
 
         // Payback do sistema
         $paybackOp = $indicadores['payback_operacional_meses'] ?? ($indicadores['payback_operacional'] ?? null);
@@ -520,10 +520,10 @@ class PlanilhaConformidadeTest extends TestCase
 
         // Exposição Máxima
         fwrite(STDOUT, sprintf("║ %-30s │ %18s │ %18s ║\n",
-            'Exposição Máx. Operacional', '-R$ 7.227.961', '-R$ ' . number_format(abs($saldoMinimo), 0, ',', '.')));
+            'Exposição Máx. Operacional', '-R$ 7.227.961', '-R$ '.number_format(abs($saldoMinimo), 0, ',', '.')));
 
         fwrite(STDOUT, sprintf("║ %-30s │ %18s │ %18s ║\n",
-            'Exposição Máx. Financeira', '-R$ 4.776.747', $exposicaoFin !== null ? '-R$ ' . number_format(abs($exposicaoFin), 0, ',', '.') : 'N/D'));
+            'Exposição Máx. Financeira', '-R$ 4.776.747', $exposicaoFin !== null ? '-R$ '.number_format(abs($exposicaoFin), 0, ',', '.') : 'N/D'));
 
         fwrite(STDOUT, sprintf("║ %-30s │ %16.2f %%    │ %16.1f %%    ║\n",
             '% Exposição / VGV', 2.90, $vgv > 0 ? abs($saldoMinimo) / $vgv * 100 : 0));
@@ -532,10 +532,10 @@ class PlanilhaConformidadeTest extends TestCase
 
         // Payback
         fwrite(STDOUT, sprintf("║ %-30s │ %16s      │ %16s      ║\n",
-            'Payback Operacional', 'N/D', $paybackOp !== null ? $paybackOp . ' meses' : 'N/D'));
+            'Payback Operacional', 'N/D', $paybackOp !== null ? $paybackOp.' meses' : 'N/D'));
 
         fwrite(STDOUT, sprintf("║ %-30s │ %16s      │ %16s      ║\n",
-            'Payback Financeiro', 'N/D', $paybackFin !== null ? $paybackFin . ' meses' : 'N/D'));
+            'Payback Financeiro', 'N/D', $paybackFin !== null ? $paybackFin.' meses' : 'N/D'));
 
         // Margem líquida
         $margem = $indicadores['margem_liquida_percentual'] ?? 0;

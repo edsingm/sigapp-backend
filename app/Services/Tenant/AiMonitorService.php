@@ -2,7 +2,10 @@
 
 namespace App\Services\Tenant;
 
+use App\Models\Tenant\Legalizacao;
+use App\Models\Tenant\Task;
 use App\Models\Tenant\Terreno;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 
 class AiMonitorService
@@ -93,7 +96,7 @@ class AiMonitorService
 
             if ($workflowStage === 'comite' &&
                 $committeeStatus === 'em_andamento' &&
-                $committeeUpdatedAt instanceof \Carbon\CarbonInterface &&
+                $committeeUpdatedAt instanceof CarbonInterface &&
                 $committeeUpdatedAt->diffInDays(now()) > 15) {
                 $alerts->push([
                     'type' => 'workflow_inconsistency',
@@ -132,7 +135,7 @@ class AiMonitorService
             ->get();
 
         $terrains->each(function (Terreno $t) use (&$alerts): void {
-            /** @var \Illuminate\Database\Eloquent\Collection<int, \App\Models\Tenant\Task> $tasks */
+            /** @var \Illuminate\Database\Eloquent\Collection<int, Task> $tasks */
             $tasks = $t->tasks()->get();
             foreach ($tasks as $task) {
                 $dueDate = $task->getAttribute('due_date');
@@ -159,7 +162,7 @@ class AiMonitorService
                 }
             }
 
-            /** @var \App\Models\Tenant\Legalizacao|null $legalizacao */
+            /** @var Legalizacao|null $legalizacao */
             $legalizacao = $t->legalizacao()->first();
             if ($legalizacao) {
                 $overdueEtapa = $legalizacao->etapas()

@@ -19,7 +19,7 @@ class RecalculateAiScoresCommand extends Command
 
         if ($terrenoId) {
             $terreno = Terreno::find($terrenoId);
-            if (!$terreno) {
+            if (! $terreno) {
                 $this->error("Terreno {$terrenoId} não encontrado.");
 
                 return Command::FAILURE;

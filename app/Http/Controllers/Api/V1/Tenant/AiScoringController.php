@@ -26,7 +26,7 @@ class AiScoringController extends Controller
         }
 
         $terreno = $this->terrenoRepository->findById($terrenoId);
-        if (!$terreno) {
+        if (! $terreno) {
             return new JsonResponse(['message' => 'Terreno não encontrado.'], 404);
         }
 

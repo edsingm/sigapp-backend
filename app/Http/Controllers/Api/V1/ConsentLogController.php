@@ -23,10 +23,10 @@ class ConsentLogController extends Controller
         $consentLog = ConsentLog::query()->updateOrCreate([
             'consent_id' => $data['consent_id'],
         ], [
-            'categories'   => $data['categories'],
-            'version'      => $data['version'],
-            'ip_hash'      => hash('sha256', $request->ip() ?? ''),
-            'user_agent'   => substr($request->userAgent() ?? '', 0, 500),
+            'categories' => $data['categories'],
+            'version' => $data['version'],
+            'ip_hash' => hash('sha256', $request->ip() ?? ''),
+            'user_agent' => substr($request->userAgent() ?? '', 0, 500),
             'consented_at' => $data['timestamp'],
         ]);
 

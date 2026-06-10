@@ -9,6 +9,8 @@ use App\Notifications\TenantResetPasswordNotification;
 use App\Notifications\TenantWelcomeNotification;
 use App\Notifications\TrialEndingNotification;
 use Carbon\Carbon;
+use Laravel\Cashier\Payment;
+use Stripe\PaymentIntent;
 use Tests\TestCase;
 
 class NotificationTest extends TestCase
@@ -21,7 +23,7 @@ class NotificationTest extends TestCase
     {
         $notification = new TenantWelcomeNotification('Empresa Teste', 'https://app.sigapp.com.br');
 
-        $this->assertContains('mail', $notification->via(new \stdClass()));
+        $this->assertContains('mail', $notification->via(new \stdClass));
     }
 
     public function test_w_notification_aceita_tenant_name_e_app_url(): void
@@ -44,7 +46,7 @@ class NotificationTest extends TestCase
     {
         $notification = new PaymentFailedNotification('Empresa', 1, 'https://invoice.stripe.com');
 
-        $this->assertContains('mail', $notification->via(new \stdClass()));
+        $this->assertContains('mail', $notification->via(new \stdClass));
     }
 
     public function test_payment_failed_aceita_parametros(): void
@@ -75,7 +77,7 @@ class NotificationTest extends TestCase
     {
         $notification = new TrialEndingNotification('Empresa', Carbon::now()->addDays(3));
 
-        $this->assertContains('mail', $notification->via(new \stdClass()));
+        $this->assertContains('mail', $notification->via(new \stdClass));
     }
 
     public function test_trial_ending_aceita_tenant_name_e_data(): void
@@ -105,10 +107,10 @@ class NotificationTest extends TestCase
     {
         // Requer objeto Payment — testamos apenas a existência do método
         $notification = new PaymentRequiresActionNotification(
-            new \Laravel\Cashier\Payment(new \Stripe\PaymentIntent())
+            new Payment(new PaymentIntent)
         );
 
-        $this->assertContains('mail', $notification->via(new \stdClass()));
+        $this->assertContains('mail', $notification->via(new \stdClass));
     }
 
     // -----------------------------------------------------------------
@@ -119,7 +121,7 @@ class NotificationTest extends TestCase
     {
         $notification = new AbandonedCheckoutNotification('Empresa', 'master', 'https://checkout.stripe.com/session');
 
-        $this->assertContains('mail', $notification->via(new \stdClass()));
+        $this->assertContains('mail', $notification->via(new \stdClass));
     }
 
     public function test_abandoned_checkout_aceita_parametros(): void
@@ -148,6 +150,6 @@ class NotificationTest extends TestCase
     {
         $notification = new TenantResetPasswordNotification('https://app.sigapp.com.br/reset?token=abc', 60);
 
-        $this->assertContains('mail', $notification->via(new \stdClass()));
+        $this->assertContains('mail', $notification->via(new \stdClass));
     }
 }

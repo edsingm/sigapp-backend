@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Tenant;
 
+use App\Models\Tenant\LegalizacaoEtapa;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -19,7 +20,7 @@ class UpdateLegalizacaoEtapaRequest extends FormRequest
             return false;
         }
 
-        return (bool) $this->user()?->can('update', [\App\Models\Tenant\LegalizacaoEtapa::class, $etapa]);
+        return (bool) $this->user()?->can('update', [LegalizacaoEtapa::class, $etapa]);
     }
 
     /**

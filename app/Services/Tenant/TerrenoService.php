@@ -9,6 +9,7 @@ use App\Models\Tenant\User;
 use App\Repositories\Tenant\TerrenoRepository;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
 
@@ -21,7 +22,7 @@ class TerrenoService
         private readonly TerrenoFilterService $filterService,
     ) {}
 
-    public function listPaginated(FilterTerrenosRequest|\Illuminate\Http\Request $request): LengthAwarePaginator
+    public function listPaginated(FilterTerrenosRequest|Request $request): LengthAwarePaginator
     {
         $tenantId = tenant('id') ?? 'central';
         $forceRefresh = $request->boolean('force_refresh', false);

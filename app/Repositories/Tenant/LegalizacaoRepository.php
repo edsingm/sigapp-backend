@@ -7,6 +7,7 @@ use App\Models\Tenant\Legalizacao;
 use App\Models\Tenant\LegalizacaoDependencia;
 use App\Models\Tenant\LegalizacaoPendencia;
 use App\Models\Tenant\Terreno;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class LegalizacaoRepository
@@ -126,7 +127,7 @@ class LegalizacaoRepository
     }
 
     /**
-     * @return \Illuminate\Database\Eloquent\Collection<int, LegalizacaoDependencia>
+     * @return Collection<int, LegalizacaoDependencia>
      */
     public function listDependenciasByLegalizacao(int $legalizacaoId)
     {

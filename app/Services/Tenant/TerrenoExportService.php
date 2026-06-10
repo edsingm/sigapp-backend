@@ -23,7 +23,7 @@ class TerrenoExportService
     {
         $encodedFilters = json_encode($filters);
         $cacheKeyPayload = is_string($encodedFilters) ? $encodedFilters : serialize($filters);
-        $cacheKey = "tenant:{$tenantId}:terrenos:export:pdf:" . md5($cacheKeyPayload);
+        $cacheKey = "tenant:{$tenantId}:terrenos:export:pdf:".md5($cacheKeyPayload);
 
         return Cache::tags(["tenant:{$tenantId}:terrenos"])
             ->remember($cacheKey, now()->addMinutes(10), function () use ($filters) {

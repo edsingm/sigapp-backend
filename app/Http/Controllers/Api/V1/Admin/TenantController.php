@@ -8,8 +8,8 @@ use App\Http\Requests\Admin\UpdateTenantStatusRequest;
 use App\Http\Resources\AdminTenantDetailResource;
 use App\Http\Resources\AdminTenantSummaryResource;
 use App\Models\Central\Tenant;
-use App\Services\ApiResponseService;
 use App\Services\Admin\TenantAdminService;
+use App\Services\ApiResponseService;
 use Illuminate\Http\JsonResponse;
 
 class TenantController extends Controller

@@ -17,6 +17,7 @@ class AclController extends Controller
         private readonly PlanRepositoryInterface $planRepository,
         private readonly PlanRolePermissionTemplateRepositoryInterface $templateRepository,
     ) {}
+
     /**
      * Obtém o catálogo de permissões do sistema agrupado por módulo.
      */

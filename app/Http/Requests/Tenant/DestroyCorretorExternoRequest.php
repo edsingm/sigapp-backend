@@ -18,7 +18,7 @@ class DestroyCorretorExternoRequest extends FormRequest
 
         try {
             $corretor = CorretorExterno::findOrFail($id);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
+        } catch (ModelNotFoundException) {
             return false;
         }
 

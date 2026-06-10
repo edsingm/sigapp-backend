@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\DomainException;
 use App\Http\Middleware\AddTenantContextToLogs;
 use App\Http\Middleware\AiBudgetCheck;
 use App\Http\Middleware\AiRateLimit;
@@ -24,7 +25,6 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Laravel\Ai\Exceptions\RateLimitedException;
-use App\Exceptions\DomainException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 

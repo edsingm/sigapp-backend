@@ -33,7 +33,7 @@ class GetTerrenoScoreTool implements Tool
         }
 
         $terreno = Terreno::find($terrenoId);
-        if (!$terreno) {
+        if (! $terreno) {
             return "Terreno {$terrenoId} não encontrado.";
         }
 

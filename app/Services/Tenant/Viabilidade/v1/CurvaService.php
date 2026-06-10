@@ -2,9 +2,11 @@
 
 namespace App\Services\Tenant\Viabilidade\v1;
 
+use Carbon\Carbon;
+
 /**
  * CurvaService - Centraliza todas as curvas do sistema de viabilidade
- * 
+ *
  * Responsabilidades:
  * - Curva S de desembolso de obra
  * - Curvas de vendas por tipo de produto
@@ -24,14 +26,14 @@ class CurvaService
         20 => [0.8, 1.3, 1.5, 3.5, 4.5, 4.8, 6.0, 6.5, 7.0, 8.0, 8.0, 9.0, 8.0, 7.0, 6.5, 4.5, 3.0, 1.5, 1.2],
         24 => [0.8, 1.3, 1.5, 3.5, 4.0, 4.0, 4.5, 4.5, 5.5, 6.0, 7.0, 7.0, 7.5, 6.5, 6.0, 5.0, 5.0, 5.0, 4.5, 4.5, 2.5, 2.0, 1.5, 0.5],
         30 => [2.0, 2.5, 2.9, 3.3, 3.5, 4.5, 5.0, 6.0, 7.0, 7.0, 5.5, 5.5, 4.0, 4.0, 4.0, 4.0, 4.0, 3.0, 3.0, 3.0, 2.8, 2.5, 2.5, 2.5, 2.0, 1.0, 1.5, 0.5, 0.5, 0.5],
-        36 => [0.99, 1.188, 1.386, 1.584, 1.782, 1.98, 2.178, 2.376, 2.574, 2.772, 2.97, 3.168, 3.366, 3.564, 3.762, 3.96, 4.158, 4.257, 4.257, 4.257, 4.257, 3.96, 3.762, 3.564, 3.366, 3.168, 2.97, 2.772, 2.574, 2.376, 2.178, 1.98, 1.782, 1.584, 1.386, 0.792]
+        36 => [0.99, 1.188, 1.386, 1.584, 1.782, 1.98, 2.178, 2.376, 2.574, 2.772, 2.97, 3.168, 3.366, 3.564, 3.762, 3.96, 4.158, 4.257, 4.257, 4.257, 4.257, 3.96, 3.762, 3.564, 3.366, 3.168, 2.97, 2.772, 2.574, 2.376, 2.178, 1.98, 1.782, 1.584, 1.386, 0.792],
     ];
 
     /**
      * Retorna o percentual de custo de obra para um mês específico usando Curva S
-     * 
-     * @param int $mesesTotal Duração total da obra em meses
-     * @param int $mesAtual Mês atual da obra (1 a N)
+     *
+     * @param  int  $mesesTotal  Duração total da obra em meses
+     * @param  int  $mesAtual  Mês atual da obra (1 a N)
      * @return float Percentual do custo total para o mês
      */
     public function getPercentualCustoObra(int $mesesTotal, int $mesAtual): float
@@ -40,6 +42,7 @@ class CurvaService
 
         if ($mesesTotal === $this->getPrazoMaisProximo($mesesTotal)) {
             $indice = $mesAtual - 1;
+
             return $curva[$indice] ?? 0;
         }
 
@@ -53,8 +56,8 @@ class CurvaService
 
     /**
      * Retorna a curva de obra completa normalizada para um prazo específico
-     * 
-     * @param int $mesesTotal Duração total da obra
+     *
+     * @param  int  $mesesTotal  Duração total da obra
      * @return array Curva normalizada para 100%
      */
     /**
@@ -175,17 +178,17 @@ class CurvaService
 
     /**
      * Distribui um valor total ao longo do tempo baseado em uma curva
-     * 
-     * @param float $total Valor total a distribuir
-     * @param \Carbon\Carbon $dataInicio Data de início da distribuição
-     * @param array $curva Curva de distribuição (percentuais)
+     *
+     * @param  float  $total  Valor total a distribuir
+     * @param  Carbon  $dataInicio  Data de início da distribuição
+     * @param  array  $curva  Curva de distribuição (percentuais)
      * @return array Array associativo [Y-m => valor]
      */
     /**
      * @param  list<float>  $curva
      * @return array<string, float>
      */
-    public function distribuirPorCurva(float $total, \Carbon\Carbon $dataInicio, array $curva): array
+    public function distribuirPorCurva(float $total, Carbon $dataInicio, array $curva): array
     {
         $distribuicao = [];
         $dataAtual = $dataInicio->copy();
@@ -193,6 +196,7 @@ class CurvaService
         foreach ($curva as $percentual) {
             if ($percentual <= 0) {
                 $dataAtual->addMonth();
+
                 continue;
             }
 

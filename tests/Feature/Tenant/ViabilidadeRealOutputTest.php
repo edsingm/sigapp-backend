@@ -578,7 +578,7 @@ class ViabilidadeRealOutputTest extends TestCase
             'Marketing' => round(($dre['marketing'] ?? 0) / 1000, 1),
             'ITBI/IPTU + Registro' => round((($dre['itbi_iptu'] ?? 0) + ($dre['registro'] ?? 0)) / 1000, 1),
             'Tx Med+Contratos+Produtos Cx' => round((($dre['tx_medicao_contratacao'] ?? 0) + ($dre['contratos_caixa'] ?? 0) + ($dre['produtos_caixa'] ?? 0)) / 1000, 1),
-             'Despesas Operacionais Total' => round(($dre['despesas_operacionais_total'] ?? 0) / 1000, 1),
+            'Despesas Operacionais Total' => round(($dre['despesas_operacionais_total'] ?? 0) / 1000, 1),
             'EBITDA' => round(($dre['ebitda'] ?? 0) / 1000, 1),
             'Outras Desp Financeiras' => round(($dre['outras_despesas_financeiras'] ?? 0) / 1000, 1),
             'Juros PJ' => round(($dre['juros_pj'] ?? 0) / 1000, 1),
@@ -621,13 +621,17 @@ class ViabilidadeRealOutputTest extends TestCase
 
         fwrite(STDOUT, str_repeat('=', 160).PHP_EOL);
         fwrite(STDOUT, 'DETALHE TERRENO — meses com despesa de terreno > 0'.PHP_EOL);
-        fwrite(STDOUT, "cols: FINANC(custo_terreno+parceria) | PERM_FIS | COMISSAO | PGTO_LOTE | TOTAL_TERRENO | receita_RP | receita_RT | receita_MO".PHP_EOL);
+        fwrite(STDOUT, 'cols: FINANC(custo_terreno+parceria) | PERM_FIS | COMISSAO | PGTO_LOTE | TOTAL_TERRENO | receita_RP | receita_RT | receita_MO'.PHP_EOL);
         fwrite(STDOUT, str_repeat('-', 160).PHP_EOL);
         $count = 0;
         foreach ($fluxo as $mes => $linha) {
             $t = $linha['despesas']['terreno'] ?? [];
-            if (($t['total_terreno'] ?? 0) <= 0.01) continue;
-            if ($count++ >= 25) break;
+            if (($t['total_terreno'] ?? 0) <= 0.01) {
+                continue;
+            }
+            if ($count++ >= 25) {
+                break;
+            }
             $rpTotal = array_sum($linha['receitas']['recursos_proprios'] ?? []);
             $rt = $linha['receitas']['recebimento_terreno']['recebimento_total_terreno'] ?? 0;
             $mo = $linha['receitas']['medicao_obra']['recebimento_total_medicao'] ?? 0;
@@ -708,7 +712,7 @@ class ViabilidadeRealOutputTest extends TestCase
             $viabilidadeId
         );
 
-        $spreadsheet = new Spreadsheet();
+        $spreadsheet = new Spreadsheet;
 
         $this->preencherAbaTabular(
             $spreadsheet->getActiveSheet(),

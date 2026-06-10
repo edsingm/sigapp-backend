@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Tenant;
 
+use App\Enums\PerfilFinanciamento;
 use App\Models\Tenant\PremissasViabilidade;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -19,7 +20,7 @@ class PremissasViabilidadeResource extends JsonResource
         return [
             'id' => $this->attr('id'),
             'nome' => $this->attr('nome'),
-            'perfil_financiamento' => $perfilFinanciamento instanceof \App\Enums\PerfilFinanciamento
+            'perfil_financiamento' => $perfilFinanciamento instanceof PerfilFinanciamento
                 ? $perfilFinanciamento->value
                 : $perfilFinanciamento,
             'ativo' => $this->attr('ativo'),

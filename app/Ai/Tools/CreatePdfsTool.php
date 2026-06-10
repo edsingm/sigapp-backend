@@ -19,8 +19,8 @@ class CreatePdfsTool implements Tool
 
     public function handle(Request $request): Stringable|string
     {
-        $filename = Str::slug($request['filename']) . '-' . Str::uuid() . '.pdf';
-        $path = 'pdfs/' . $filename;
+        $filename = Str::slug($request['filename']).'-'.Str::uuid().'.pdf';
+        $path = 'pdfs/'.$filename;
 
         // HTML completo (a IA pode gerar isso)
         $html = $request['html_content'];
@@ -33,10 +33,10 @@ class CreatePdfsTool implements Tool
 
         $url = Storage::url($path);
 
-        return "✅ PDF gerado com sucesso!\n\n" .
-               "📄 Nome do arquivo: {$filename}\n" .
-               "🔗 Link para download: " . url($url) . "\n\n" .
-               "O usuário pode baixar diretamente nesse link.";
+        return "✅ PDF gerado com sucesso!\n\n".
+               "📄 Nome do arquivo: {$filename}\n".
+               '🔗 Link para download: '.url($url)."\n\n".
+               'O usuário pode baixar diretamente nesse link.';
     }
 
     public function schema(JsonSchema $schema): array

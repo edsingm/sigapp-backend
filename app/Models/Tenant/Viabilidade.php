@@ -7,6 +7,7 @@ use App\Traits\HasDashboardCache;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Attributes\Table;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -82,8 +83,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property-read User|null $createdBy
  * @property-read User|null $updatedBy
  * @property-read User|null $approvalDecidedBy
- * @property-read \Illuminate\Database\Eloquent\Collection<int, ViabilidadeSecao> $secoes
- * @property-read \Illuminate\Database\Eloquent\Collection<int, ViabilidadeAprovacao> $aprovacoes
+ * @property-read Collection<int, ViabilidadeSecao> $secoes
+ * @property-read Collection<int, ViabilidadeAprovacao> $aprovacoes
  */
 class Viabilidade extends Model
 {

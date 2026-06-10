@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\RefreshTenantStatsJob;
 use App\Notifications\TenantWelcomeNotification;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -25,4 +26,4 @@ Schedule::command('privacy:cleanup-consent-logs')->daily();
 Schedule::command('tenants:cleanup-pending')->hourly();
 Schedule::command('tenant:notify-overdue-legalizacao-etapas')->dailyAt('08:00');
 Schedule::command('ai:recalculate-scores')->dailyAt('06:00');
-Schedule::job(new \App\Jobs\RefreshTenantStatsJob)->hourly();
+Schedule::job(new RefreshTenantStatsJob)->hourly();

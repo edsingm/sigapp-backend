@@ -53,7 +53,7 @@ class AiTaskController extends Controller
         ], 201);
     }
 
-     /**
+    /**
      * Atualiza tarefa via API (para uso pela IA).
      */
     public function update(int $taskId, UpdateAiTaskRequest $request): JsonResponse

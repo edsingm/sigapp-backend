@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Tenant;
 
+use App\Models\Tenant\LegalizacaoEtapa;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -12,7 +13,7 @@ class StoreLegalizacaoEtapaRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return (bool) $this->user()?->can('create', \App\Models\Tenant\LegalizacaoEtapa::class);
+        return (bool) $this->user()?->can('create', LegalizacaoEtapa::class);
     }
 
     /**

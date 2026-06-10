@@ -4,7 +4,6 @@ namespace App\Repositories;
 
 use App\Models\AuditLog;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Database\Eloquent\Builder;
 
 class AuditLogRepository
 {

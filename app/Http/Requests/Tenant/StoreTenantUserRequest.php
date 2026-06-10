@@ -3,8 +3,8 @@
 namespace App\Http\Requests\Tenant;
 
 use App\Enums\Common\RolesEnum;
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 

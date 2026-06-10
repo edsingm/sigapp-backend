@@ -6,16 +6,17 @@ namespace Tests\Feature\Tenant;
 
 use App\Http\Middleware\AddTenantContextToLogs;
 use App\Http\Middleware\ApiRequestLogger;
+use App\Http\Middleware\CheckFeature;
 use App\Http\Middleware\CheckSubscriptionStatus;
-use App\Http\Middleware\InitializeTenancyFlexible;
+use App\Http\Middleware\EnforcePlanLimits;
 use App\Http\Middleware\EnsureTenantAdmin;
 use App\Http\Middleware\EnsureTenantContext;
 use App\Http\Middleware\EnsureTenantUser;
+use App\Http\Middleware\InitializeTenancyFlexible;
 use App\Models\Tenant\Produto;
 use App\Models\Tenant\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
-use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
@@ -38,8 +39,8 @@ class ProdutosControllerTest extends TestCase
             EnsureTenantContext::class,
             EnsureTenantUser::class,
             EnsureTenantAdmin::class,
-            \App\Http\Middleware\CheckFeature::class,
-            \App\Http\Middleware\EnforcePlanLimits::class,
+            CheckFeature::class,
+            EnforcePlanLimits::class,
         ]);
 
         $this->artisan('migrate', ['--path' => 'database/migrations/tenant', '--realpath' => false]);

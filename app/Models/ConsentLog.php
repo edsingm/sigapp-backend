@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -15,9 +16,9 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * @property string $version
  * @property string|null $ip_hash
  * @property string|null $user_agent
- * @property \Carbon\Carbon $consented_at
- * @property \Carbon\Carbon|null $created_at
- * @property \Carbon\Carbon|null $updated_at
+ * @property Carbon $consented_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
  */
 class ConsentLog extends Model
 {
@@ -27,7 +28,7 @@ class ConsentLog extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'categories'   => 'array',
+        'categories' => 'array',
         'consented_at' => 'datetime',
     ];
 }

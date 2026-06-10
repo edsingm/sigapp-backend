@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests\Tenant;
 
-use App\Models\Tenant\Viabilidade;
 use App\Models\Tenant\TerrenoProduto;
+use App\Models\Tenant\Viabilidade;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 

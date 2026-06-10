@@ -2,6 +2,7 @@
 
 namespace App\Services\Signup;
 
+use App\Exceptions\SignupSlugReservedException;
 use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
 use App\Traits\LogsAudit;
@@ -10,7 +11,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Stancl\Tenancy\Database\Models\Domain;
-use App\Exceptions\SignupSlugReservedException;
 
 class TenantSignupService
 {
@@ -47,7 +47,7 @@ class TenantSignupService
 
             if ($existingTenant || $existingDomain) {
                 if ($existingTenant && $existingTenant->status === Tenant::STATUS_PENDING) {
-                    throw new SignupSlugReservedException();
+                    throw new SignupSlugReservedException;
                 }
 
                 $this->audit('tenant.signup_slug_conflict', "Slug '{$effectiveSlug}' indisponível no cadastro.", [

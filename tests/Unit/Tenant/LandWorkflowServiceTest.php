@@ -42,4 +42,12 @@ class LandWorkflowServiceTest extends TestCase
         $this->assertContains('legalizado_finalizado', $matrix['legalizando']);
         $this->assertContains('arquivado', $matrix['legalizado_finalizado']);
     }
+
+    public function test_viabilidade_aprovada_can_skip_committee_and_go_to_negociacao(): void
+    {
+        $matrix = LandWorkflowService::transitionMatrix();
+
+        $this->assertContains('negociacao_minuta', $matrix['viabilidade_aprovada']);
+        $this->assertContains('aguardando_comite', $matrix['viabilidade_aprovada']);
+    }
 }

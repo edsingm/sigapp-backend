@@ -51,7 +51,7 @@ class LandWorkflowService
         return [
             WorkflowStatus::EM_ANALISE->value => [WorkflowStatus::AGUARDANDO_VIABILIDADE->value, WorkflowStatus::DESCARTADO->value, WorkflowStatus::ARQUIVADO->value],
             WorkflowStatus::AGUARDANDO_VIABILIDADE->value => [WorkflowStatus::VIABILIDADE_APROVADA->value, WorkflowStatus::EM_ANALISE->value, WorkflowStatus::DESCARTADO->value, WorkflowStatus::ARQUIVADO->value],
-            WorkflowStatus::VIABILIDADE_APROVADA->value => [WorkflowStatus::AGUARDANDO_COMITE->value, WorkflowStatus::EM_ANALISE->value, WorkflowStatus::ARQUIVADO->value],
+            WorkflowStatus::VIABILIDADE_APROVADA->value => [WorkflowStatus::AGUARDANDO_COMITE->value, WorkflowStatus::NEGOCIACAO_MINUTA->value, WorkflowStatus::EM_ANALISE->value, WorkflowStatus::ARQUIVADO->value],
             WorkflowStatus::AGUARDANDO_COMITE->value => [WorkflowStatus::NEGOCIACAO_MINUTA->value, WorkflowStatus::EM_ANALISE->value, WorkflowStatus::ARQUIVADO->value],
             WorkflowStatus::NEGOCIACAO_MINUTA->value => [WorkflowStatus::CONTRATO_ASSINADO->value, WorkflowStatus::EM_ANALISE->value, WorkflowStatus::ARQUIVADO->value],
             WorkflowStatus::CONTRATO_ASSINADO->value => [WorkflowStatus::LEGALIZANDO->value, WorkflowStatus::ARQUIVADO->value],
@@ -95,7 +95,7 @@ class LandWorkflowService
             throw new RuntimeException("Transição inválida de {$currentStatus} para {$targetStatus}.");
         }
 
-        $this->assertPrerequisites($terreno, $targetStatus, $context);
+        $this->assertPrerequisites($terreno, $targetStatus, $context, $currentStatus);
 
         return DB::transaction(function () use ($terreno, $targetStatus, $user, $reasonCode, $reasonNotes, $currentStatus) {
             $freshTerreno = $this->repository->loadTerrenoForTransition($terreno->id);
@@ -259,9 +259,11 @@ class LandWorkflowService
         $available = [];
         $blocked = [];
 
+        $currentStatus = $this->normalizeStatus($terreno->workflow_status_code ?: WorkflowStatus::EM_ANALISE->value);
+
         foreach ($this->availableTransitions($terreno) as $targetStatus) {
             try {
-                $this->assertPrerequisites($terreno, $targetStatus);
+                $this->assertPrerequisites($terreno, $targetStatus, [], $currentStatus);
                 $available[] = $targetStatus;
             } catch (RuntimeException $exception) {
                 $blocked[$targetStatus] = $exception->getMessage();
@@ -279,7 +281,7 @@ class LandWorkflowService
      *
      * @param  array<string, mixed>  $context
      */
-    protected function assertPrerequisites(Terreno $terreno, string $targetStatus, array $context = []): void
+    protected function assertPrerequisites(Terreno $terreno, string $targetStatus, array $context = [], ?string $currentStatus = null): void
     {
         if ($targetStatus === WorkflowStatus::AGUARDANDO_VIABILIDADE->value && ! $this->hasMinimumReadiness($terreno)) {
             throw new RuntimeException('Cadastre ao menos um produto no terreno antes de seguir para viabilidade.');
@@ -293,7 +295,7 @@ class LandWorkflowService
             throw new RuntimeException('Não é possível enviar ao comitê sem viabilidade aprovada.');
         }
 
-        if ($targetStatus === WorkflowStatus::NEGOCIACAO_MINUTA->value) {
+        if ($targetStatus === WorkflowStatus::NEGOCIACAO_MINUTA->value && $currentStatus === WorkflowStatus::AGUARDANDO_COMITE->value) {
             $decision = $terreno->comiteAtual?->final_decision;
 
             if (! in_array($decision, ['aprovado_comite', 'aprovado_com_ressalvas'], true)) {

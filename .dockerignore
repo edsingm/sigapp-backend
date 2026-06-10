@@ -1,6 +1,6 @@
 .git
 .github
-.docker
+.docker/Dockerfile
 node_modules
 vendor
 storage/logs/*

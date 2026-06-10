@@ -20,8 +20,9 @@ class ConsentLogController extends Controller
     {
         $data = $request->validated();
 
-        ConsentLog::create([
-            'consent_id'   => $data['consent_id'],
+        $consentLog = ConsentLog::query()->updateOrCreate([
+            'consent_id' => $data['consent_id'],
+        ], [
             'categories'   => $data['categories'],
             'version'      => $data['version'],
             'ip_hash'      => hash('sha256', $request->ip() ?? ''),
@@ -29,6 +30,10 @@ class ConsentLogController extends Controller
             'consented_at' => $data['timestamp'],
         ]);
 
-        return ApiResponseService::created(['consent_id' => $data['consent_id']]);
+        if ($consentLog->wasRecentlyCreated) {
+            return ApiResponseService::created(['consent_id' => $data['consent_id']]);
+        }
+
+        return ApiResponseService::success(['consent_id' => $data['consent_id']]);
     }
 }

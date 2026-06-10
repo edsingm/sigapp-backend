@@ -18,6 +18,6 @@ class TerrenoFilterService
      */
     public function filter(FilterTerrenosRequest $request)
     {
-        return $this->repository->search($request->all());
+        return $this->repository->search($request->validated());
     }
 }

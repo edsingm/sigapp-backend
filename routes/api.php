@@ -46,6 +46,12 @@ RateLimiter::for('api-public', function (Request $request) {
     return Limit::perMinute(60)->by($request->ip());
 });
 
+RateLimiter::for('consent-log', function (Request $request) {
+    return Limit::perMinute(5)
+        ->by('consent-log:'.$request->ip())
+        ->response(fn () => ApiResponseService::tooManyRequests('Muitos registros de consentimento em curto período. Tente novamente em 1 minuto.'));
+});
+
 RateLimiter::for('api-auth', function (Request $request) {
     $user = $request->user();
     $tenantId = tenancy()->initialized ? (string) tenant('id') : null;
@@ -156,6 +162,12 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
         foreach (config('tenancy.identification.central_domains') as $domain) {
             Route::domain($domain)->group(function () {
 
+                // Public route without generic API throttle
+                Route::middleware('central.context')->group(function () {
+                    // Stripe Webhook (no CSRF, no throttle)
+                    Route::post('/webhook/stripe', [WebhookController::class, 'handleWebhook']);
+                });
+
                 // Public routes (no authentication)
                 Route::middleware(['central.context', 'throttle:api-public'])->group(function () {
 
@@ -167,10 +179,6 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
                     Route::post('/signup', [SignupController::class, 'store']);
                     Route::get('/signup/{sessionId}/status', [SignupController::class, 'status'])
                         ->middleware('throttle:signup-status');
-
-                    // Stripe Webhook (no CSRF, no throttle)
-                    Route::post('/webhook/stripe', [WebhookController::class, 'handleWebhook'])
-                        ->withoutMiddleware(['throttle:api-public']);
 
                     // Auth - central broker flow
                     Route::post('/auth/login', [CentralAuthController::class, 'login'])
@@ -188,7 +196,9 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
                     Route::get('/blog/{slug}', [BlogController::class, 'show']);
 
                     // LGPD — registro de consentimento de cookies (fire-and-forget, sem auth)
-                    Route::post('/consent-log', [ConsentLogController::class, 'store']);
+                    Route::post('/consent-log', [ConsentLogController::class, 'store'])
+                        ->withoutMiddleware(['throttle:api-public'])
+                        ->middleware('throttle:consent-log');
                 });
 
                 // Authenticated routes (central app)

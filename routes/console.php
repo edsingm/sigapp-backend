@@ -21,6 +21,7 @@ Artisan::command('mail:test {email}', function (string $email) {
 })->purpose('Testa o envio de e-mails via Resend');
 
 Schedule::command('auth:cleanup-central-login-broker')->everyFiveMinutes();
+Schedule::command('privacy:cleanup-consent-logs')->daily();
 Schedule::command('tenants:cleanup-pending')->hourly();
 Schedule::command('tenant:notify-overdue-legalizacao-etapas')->dailyAt('08:00');
 Schedule::command('ai:recalculate-scores')->dailyAt('06:00');

@@ -21,7 +21,6 @@
         "spatie/browsershot": "^5.4",
         "spatie/laravel-pdf": "^2.0",
         "spatie/laravel-permission": "^7.0",
-        "spatie/laravel-ray": "^1.43",
         "stancl/tenancy": "^3.8"
     },
     "require-dev": {

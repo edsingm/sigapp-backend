@@ -54,6 +54,14 @@ class CommandsTest extends TestCase
         $this->assertTrue($r->hasMethod('handle'));
     }
 
+    public function test_cleanup_consent_logs_command_existe(): void
+    {
+        $this->assertTrue(class_exists('App\Console\Commands\CleanupConsentLogsCommand'));
+
+        $r = new \ReflectionClass('App\Console\Commands\CleanupConsentLogsCommand');
+        $this->assertTrue($r->hasMethod('handle'));
+    }
+
     public function test_notify_overdue_legalizacao_command_existe(): void
     {
         $this->assertTrue(class_exists('App\Console\Commands\NotifyOverdueLegalizacaoEtapasCommand'));

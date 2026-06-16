@@ -10,6 +10,7 @@ use App\Ai\Tools\CreateTaskTool;
 use App\Ai\Tools\DetectAnomaliesTool;
 use App\Ai\Tools\EstimateVgvTool;
 use App\Ai\Tools\GenerateInsightsTool;
+use App\Ai\Tools\GetCityIbgeProfileTool;
 use App\Ai\Tools\GetComiteTool;
 use App\Ai\Tools\GetDashboardSummaryTool;
 use App\Ai\Tools\GetDocumentosTool;
@@ -29,6 +30,7 @@ use App\Ai\Tools\SearchDocumentsTool;
 use App\Ai\Tools\TransitionWorkflowTool;
 use App\Ai\Tools\UpdateTaskStatusTool;
 use App\Services\AiAnomalyDetectionService;
+use App\Services\AiIbgeCityProfileService;
 use App\Services\AiInsightGeneratorService;
 use App\Services\AiPredictiveAnalysisService;
 use App\Services\AiScoringService;
@@ -61,6 +63,7 @@ class AiToolsTest extends TestCase
             GetDocumentosTool::class,
             GetDashboardSummaryTool::class,
             GetTasksTool::class,
+            GetCityIbgeProfileTool::class,
             SearchDocumentsTool::class,
             AnalyzeDocumentTool::class,
             GetTerrenoScoreTool::class,
@@ -159,6 +162,15 @@ class AiToolsTest extends TestCase
     public function test_get_tasks_tool_has_description(): void
     {
         $tool = new GetTasksTool;
+
+        $this->assertNotEmpty($tool->description());
+    }
+
+    public function test_get_city_ibge_profile_tool_has_description(): void
+    {
+        $tool = new GetCityIbgeProfileTool(
+            app(AiIbgeCityProfileService::class)
+        );
 
         $this->assertNotEmpty($tool->description());
     }

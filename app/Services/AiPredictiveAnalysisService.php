@@ -103,18 +103,29 @@ class AiPredictiveAnalysisService
         $rejectionReasons = collect();
 
         foreach ($this->repository->getComiteReviewsWithParecer() as $review) {
-            $parecer = strtolower($review->parecer);
-            if (str_contains($parecer, 'zona') || str_contains($parecer, 'zoneamento')) {
-                $rejectionReasons->push('zoneamento');
-            }
-            if (str_contains($parecer, 'viabilidade') || str_contains($parecer, 'dre') || str_contains($parecer, 'financeiro')) {
-                $rejectionReasons->push('viabilidade_financeira');
-            }
-            if (str_contains($parecer, 'document') || str_contains($parecer, 'matricula') || str_contains($parecer, 'escritura')) {
-                $rejectionReasons->push('documentacao');
-            }
-            if (str_contains($parecer, 'ambi') || str_contains($parecer, 'licenca') || str_contains($parecer, 'meio ambiente')) {
-                $rejectionReasons->push('licenca_ambiental');
+            $textosParecer = collect([
+                $review->final_comments,
+                ...$review->pareceresDepartamento
+                    ->pluck('comments')
+                    ->filter(fn ($comments) => filled($comments))
+                    ->all(),
+            ])->filter(fn ($text) => filled($text));
+
+            foreach ($textosParecer as $textoParecer) {
+                $parecer = strtolower((string) $textoParecer);
+
+                if (str_contains($parecer, 'zona') || str_contains($parecer, 'zoneamento')) {
+                    $rejectionReasons->push('zoneamento');
+                }
+                if (str_contains($parecer, 'viabilidade') || str_contains($parecer, 'dre') || str_contains($parecer, 'financeiro')) {
+                    $rejectionReasons->push('viabilidade_financeira');
+                }
+                if (str_contains($parecer, 'document') || str_contains($parecer, 'matricula') || str_contains($parecer, 'escritura')) {
+                    $rejectionReasons->push('documentacao');
+                }
+                if (str_contains($parecer, 'ambi') || str_contains($parecer, 'licenca') || str_contains($parecer, 'meio ambiente')) {
+                    $rejectionReasons->push('licenca_ambiental');
+                }
             }
         }
 

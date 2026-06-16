@@ -14,6 +14,7 @@ return [
     */
 
     'default' => 'openai',
+    'agent_provider' => env('AI_PROVIDER', 'openrouter'),
     'default_for_images' => 'gemini',
     'default_for_audio' => 'gemini',
     'default_for_transcription' => 'openai',
@@ -39,8 +40,14 @@ return [
     ],
 
     'models' => [
+        'deepseek' => [
+            'agent' => env('AI_DEEPSEEK_AGENT_MODEL', 'deepseek-chat'),
+        ],
         'gemini' => [
             'agent' => env('AI_GEMINI_AGENT_MODEL', 'gemini-2.5-flash-native-audio-dialog'),
+        ],
+        'openrouter' => [
+            'agent' => env('AI_OPENROUTER_AGENT_MODEL', 'z-ai/glm-4.5-air:free'),
         ],
     ],
 

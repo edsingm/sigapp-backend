@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\CidadesController;
+use App\Http\Controllers\Api\V1\MunicipioController;
 use App\Http\Controllers\Api\V1\LanguageController;
 use App\Http\Controllers\Api\V1\Tenant\Admin\DepartmentController as AdminDepartmentController;
 use App\Http\Controllers\Api\V1\Tenant\Admin\PermissionController as AdminPermissionController;
@@ -279,9 +280,10 @@ Route::middleware([
 
                     // AI Scoring
                     Route::prefix('ai/scoring')->group(function () {
-                        Route::get('/{terreno_id}', [AiScoringController::class, 'getScore']);
                         Route::get('/ranking', [AiScoringController::class, 'getRanking']);
                         Route::post('/recalculate', [AiScoringController::class, 'recalculateAll']);
+                        Route::get('/{terreno_id}', [AiScoringController::class, 'getScore'])
+                            ->whereNumber('terreno_id');
                     });
 
                     // AI Automation
@@ -339,6 +341,9 @@ Route::middleware([
                     Route::get('/cidades/dados', [CidadesController::class, 'dados']);
                     Route::get('/cidades/{estado}', [CidadesController::class, 'getCities']);
                 });
+
+                // Municípios — dados externos (IBGE SIDRA)
+                Route::get('/municipios/{ibge_codigo}/dados-sidra', [MunicipioController::class, 'dadosSidra']);
 
                 // Dashboard
                 Route::prefix('dashboard')

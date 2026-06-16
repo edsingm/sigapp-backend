@@ -1,11 +1,14 @@
 # Review Completo do Backend SIGAPP
 
-**Data:** 3 de junho de 2026
-**Versão analisada:** `master` @ `6aa365a` (HEAD atual — Fase 4 commitada)
+**Data:** 3 de junho de 2026 · **Métricas revalidadas em:** 10 de junho de 2026
+**Versão analisada (review original):** `master` @ `6aa365a` (Fase 4 commitada)w
+**Versão das métricas atuais (§2):** `master` @ `fb7fad8` (HEAD em 10/jun, +19 commits sobre `6aa365a`)
 **Escopo:** Backend Laravel 13+ (plataforma SIGAPP)
 **Autor:** Análise técnica automatizada
 
 > **Sobre revisões deste documento:** Este review foi gerado em duas passadas. A primeira identificou erros factuais ao cruzar afirmações com o código; a segunda (esta versão) aplica as correções. Uma terceira passada (03/jun 20h) atualizou os metadados e as métricas de working tree para refletir o commit `6aa365a` que consolidou a Fase 4 — ver **§2**, **§8** e **Apêndice E.11**.  Ver **Apêndice A — Errata** para a lista completa de correções.
+>
+> **Atualização de 10/jun/2026 (4ª passada):** O HEAD avançou **+19 commits** desde `6aa365a` (LGPD consent logs, importador comproterreno, timeline unificada de terreno, notificações email de workflow, overhaul Docker, bump PHP 8.4, remoção do `IbgeService`). A **§2 (Métricas Atuais)** e a **§3 (O que Mudou)** foram revalidadas contra o HEAD `fb7fad8`. **Os Apêndices A–E permanecem inalterados** — são registros históricos datados de commits específicos (`010b965f`, `8a9151c`, `d1730149`, `6aa365a`) e não devem ser reescritos. Onde a análise das §§4–7 ficou desatualizada pelas features novas, há marcadores **`[atualizado 10/jun]`**.
 
 ---
 
@@ -31,41 +34,42 @@ O SIGAPP é uma plataforma **SaaS multi-tenant** para análise de viabilidade de
 
 ---
 
-## 2. Métricas Atuais (junho/2026)
+## 2. Métricas Atuais (revalidadas em 10/jun/2026 @ HEAD `fb7fad8`)
 
-| Dimensão                                 | Maio/26 |                  Junho/26 |          Δ |
-| ----------------------------------------- | ------: | ------------------------: | ----------: |
-| **PHP files (app + tests)**         |     n/d |                       621 |          — |
-| **Models (total)**                  |      53 |                        54 |          +1 |
-| **Controllers**                     |      57 |                        61 |          +4 |
-| **Controllers sem Eloquent direto** |      53 |              **61** | +8 (Fase 1) |
-| **FormRequests**                    |    100+ |                       139 |         +39 |
-| **API Resources**                   |     65+ |                        65 |           = |
-| **Middlewares customizados**        |      14 |                        18 |          +4 |
-| **Services (PHP files)**            |     65+ |                        76 |         +11 |
-| **Repositories (concretos)**        |      27 |                        42 |         +15 |
-| **Repository Contracts**            |      14 |                        27 |         +13 |
-| **Jobs**                            |       4 |                         5 |          +1 |
-| **Enums (PHP files)**               |      13 |                        14 |          +1 |
-| **Test files**                      |      82 |                        91 |          +9 |
-| **Rotas API (api.php)**             |     n/d |                        50 |          — |
-| **Rotas tenant (tenant.php)**       |     n/d |                       179 |          — |
-| **Rotas web (web.php)**             |     n/d |                         3 |          — |
-| **AI Tools**                        |      25 |                        25 |           = |
-| **Migrations — central**           |     n/d |                        33 |          — |
-| **Migrations — tenant**            |     n/d |                        63 |          — |
-| **Migrations — total**             |     n/d |                        96 |          — |
-| **Factories**                       |       2 |                        13 |     +11 (Fase 4.1) |
-| **Custom Exceptions**               |       1 |                         6 |       +5 (Fase 4.5) |
-| **Eventos customizados**            |       0 |                         7 |          +7 (Fase 3) |
-| **Listeners**                       |       0 |                        10 |         +10 (Fase 3) |
-| **Domain Exceptions**               |       1 |                         6 |       +5 (Fase 4.5) |
-| **Cobertura de Contracts (Repo)**   |    ~52% |                       64% |       +12 p.p. (Fase 2) |
-| **phpstan.baseline.neon (linhas)**  | 15,512 |                     7,742 |     −50.1% (Fase 4.4) |
-| **Health checks ativos**            |       0 |                         6 |        +6 (Fase 4.3) |
-| **Jobs com `failed()`**           |     3/5 |                       5/5 |        +2 (Fase 4.2) |
-| **Test files**                      |      82 |                        94 |       +3 (Fase 4) |
-| **Working tree (uncommitted)**      |     n/d | Limpo (apenas docs/ em modified)                  | ✅ Consolidado em `6aa365a` |
+> **Nota:** A coluna **10/jun (HEAD)** reflete o commit `fb7fad8` (+19 commits sobre `6aa365a`). A coluna anterior é o snapshot do review original (`6aa365a`, 03/jun). Onde os dois divergem, a coluna **Δ pós-6aa365a** isola o crescimento das features adicionadas após a Fase 4. As contagens de rota são **declarações de rota** (verbos diretos + `apiResource`/`resource`), não rotas expandidas — por isso diferem dos números aproximados do snapshot original.
+
+| Dimensão                                    | Maio/26 | 03/jun (`6aa365a`) |                        10/jun (HEAD `fb7fad8`) |                                       Δ pós-6aa365a |
+| -------------------------------------------- | ------: | -------------------: | -----------------------------------------------: | ----------------------------------------------------: |
+| **PHP files (app + tests)**            |     n/d |                  676 |                                    **703** |                                                   +27 |
+| **Models (total)**                     |      53 |                   54 |                                     **55** |                                  +1 (ConsentLog/LGPD) |
+| **Controllers**                        |      57 |                   61 |                                     **63** |                             +2 (ConsentLog, Timeline) |
+| **Controllers sem Eloquent direto**    |      53 |                   61 |                                     **62** | −1 ⚠️ (ConsentLogController regrediu — ver §4.1) |
+| **FormRequests**                       |    100+ |                  139 |                                    **140** |                                                    +1 |
+| **API Resources**                      |     65+ |                   65 |                                     **67** |                                +2 (Timeline, Comment) |
+| **Middlewares customizados**           |      14 |                   18 |                                     **18** |                                                     = |
+| **Services (PHP files)**               |     65+ |                   78 |                                     **83** |                 +5 (Timeline, comproterreno, consent) |
+| **Repositories (concretos)**           |      27 |                   42 |                                     **42** |                                                     = |
+| **Repository Contracts**               |      14 |                   27 |                                     **27** |                                                     = |
+| **Jobs**                               |       4 |                    5 |                                      **5** |                                                     = |
+| **Enums (PHP files)**                  |      13 |                   14 |                                     **14** |                                                     = |
+| **Test files**                         |      82 |                   94 |                                     **95** |                                                    +1 |
+| **Rotas API (api.php, declarações)** |     n/d |                  ~50 |                                     **45** |                           recontagem por declaração |
+| **Rotas tenant (tenant.php, decl.)**   |     n/d |                 ~179 |                                    **152** |                           recontagem por declaração |
+| **Rotas web (web.php)**                |     n/d |                    3 |                                      **3** |                                                     = |
+| **AI Tools**                           |      25 |                   25 |                                     **25** |                                                     = |
+| **Migrations — central**              |     n/d |                   32 |                                     **34** |                                                    +2 |
+| **Migrations — tenant**               |     n/d |                   63 |                                     **65** |                                                    +2 |
+| **Migrations — total**                |     n/d |                   95 |                                     **99** |                                                    +4 |
+| **Factories**                          |       2 |                   13 |                                     **13** |                                                     = |
+| **Custom Exceptions (arquivos)**       |       1 |                    7 |                                      **7** |                                                     = |
+| **Eventos customizados**               |       0 |                    7 |                                      **7** |                                                     = |
+| **Listeners**                          |       0 |                   10 |                                     **17** |                                +7 (email de workflow) |
+| **Domain Exceptions**                  |       1 |                    6 |                                      **6** |                                                     = |
+| **Cobertura de Contracts (Repo)**      |    ~52% |                  64% |                                    **64%** |                                                     = |
+| **phpstan.baseline.neon (linhas)**     |  15,512 |                7,742 |                                  **7,742** |                                                     = |
+| **Health checks ativos**               |       0 |                    6 |                                      **6** |                                                     = |
+| **Jobs com `failed()`**              |     3/5 |                  5/5 |                                    **5/5** |                                                     = |
+| **Working tree (uncommitted)**         |     n/d |   Limpo @`6aa365a` | Limpo @`fb7fad8` (apenas docs novos untracked) |                                                    — |
 
 ---
 
@@ -84,6 +88,26 @@ O SIGAPP é uma plataforma **SaaS multi-tenant** para análise de viabilidade de
 
 > **Nota sobre `9fc60e9` (coupons/dunning/billing history):** este commit é de **23/05/2026**, anterior à revisão de 26/05. **Já estava em escopo** na revisão anterior e, portanto, não conta como entrega deste ciclo.
 
+### 3.1.1 Commits APÓS o review original (`6aa365a` → HEAD `fb7fad8`) — `[atualizado 10/jun]`
+
+Entre 03/jun e 10/jun, **+19 commits** entraram sobre `6aa365a`. Os relevantes:
+
+| SHA                                   | Data      | Mensagem                                                              | Impacto                                                                                                                                                                                                        |
+| ------------------------------------- | --------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `3fea351`                           | 03/06     | feat(workflow): add workflow email notifications                      | **Resolve item 8 do plano de 26/05** — 7 listeners de email (`Send*Email`) + 7 `Notifications/Workflow/*` + templates HTML/texto, disparados pelos eventos da Fase 3. Listeners: 10 → **17** |
+| `fe9ce32`                           | 04/06     | feat(tenant): add unified terreno timeline API                        | **Resolve item 2 da Fase 5** — `TimelineController` + `TimelineService` + `TimelineEntryResource` + `CommentResource` agregando `EntityActivity` + `StatusHistory` + tasks + comments       |
+| `a76aa57`                           | 04/06     | feat: update dashboard metrics and add date filtering                 | Filtro de data no dashboard (relacionado ao `Carbon::create(2024,...)` hardcoded apontado em §5.14)                                                                                                         |
+| `2e3b0f5`, `3be3919`              | 04/06     | feat(comproterreno): terrain importer + portal scraping/parsing tools | Importação de terrenos via portal externo (4 services novos)                                                                                                                                                 |
+| `779a64d`, `dbf5ea2`, `701285f` | 04–05/06 | feat: LGPD consent logs + docker + health checks                      | `ConsentLog` model + `ConsentLogController` + tracking/cleanup de consentimento (LGPD). Models: 54 → **55**                                                                                         |
+| `01e383c`                           | 05/06     | chore: remove IbgeService and related location data                   | Remoção de `IbgeService` e dados de localização                                                                                                                                                          |
+| `5129412`                           | 05/06     | feat(workflow): allow skipping committee from viabilidade aprovada    | Transição de workflow pode pular comitê                                                                                                                                                                     |
+| `a69e0c6`, `d9200ec`              | 05/06     | build(docker): overhaul multi-stage dev/prod                          | Setup Docker multi-stage                                                                                                                                                                                       |
+| `62f2479`                           | 05/06     | chore: bump PHP 8.4                                                   | Atualização da plataforma para PHP 8.4                                                                                                                                                                       |
+| `71d39f0`, `2ae1a75`, `61753d7` | 05–06/06 | ci/docs: sodium extension, .env copy, cache default                   | Ajustes de CI e `.env.example`                                                                                                                                                                               |
+| `d0cf55c`, `fb7fad8`              | 06/06     | refactor: code cleanup + return type hints com aliases                | Limpeza de estilo e type hints                                                                                                                                                                                 |
+
+> **Atenção (nova violação):** `app/Http/Controllers/Api/V1/ConsentLogController.php:23` usa `ConsentLog::query()->updateOrCreate(...)` **diretamente** — reintroduz a violação de camada que a Fase 1 havia zerado em controllers. "Controllers sem Eloquent direto" caiu de 61 para **62/63** (1 violação). Ver §4.1.
+
 ### 3.2 Novos arquivos / pastas detectadas (neste ciclo)
 
 - `app/Enums/DeclividadeClassificacao.php` (1 novo enum — único novo, contrário à lista inicial de 4)
@@ -99,20 +123,20 @@ O SIGAPP é uma plataforma **SaaS multi-tenant** para análise de viabilidade de
 
 ### 3.3 Itens do plano de 26/05 que avançaram
 
-| #  | Recomendação de 26/05                            | Status atual                                                                                                                                                                                                                                                              |
-| -- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1  | `PremissasViabilidadeController` → Service/Repo | ✅**REALIZADO em 2026-06-03** — ver Apêndice B                                                                                                                                                                                                                    |
-| 2  | `$fillable` no model `Projeto`                 | ✅**REALIZADO em 2026-06-03** — `#[Fillable([...])]` adicionado (ver Apêndice B)                                                                                                                                                                                |
-| 3  | Health check detalhado                             | ✅**REALIZADO em 2026-06-03** — `HealthCheckService` com 6 checks (DB central+tenant, cache, storage, queue, Stripe, OpenRouter) — ver Apêndice E.3 |
-| 4  | Soft delete consistente                            | ⚠️**PARCIAL** — 4 migrations adicionaram `deleted_at`, mas padronização não está completa                                                                                                                                                                  |
-| 5  | Rate limiting por plano                            | **❌ NÃO FEITO** — ainda é `throttle:api` genérico                                                                                                                                                                                                            |
-| 6  | Events/Listeners para side effects                 | ✅**REALIZADO em 2026-06-03** — 7 eventos de domínio + 10 listeners + `EventServiceProvider` dedicado — ver Apêndice D |
-| 7  | Factories para todos os models                     | ✅**REALIZADO em 2026-06-03** — **13/54 models com factory** (12 tenant + 1 central, incluindo as 10 tenant solicitadas no plano) — ver Apêndice E.1 |
-| 8  | Notificações email para workflow                 | ⚠️**PARCIAL** — `AbandonedCheckoutNotification`, `PaymentFailedNotification`, `PaymentRetryNotification` e `TrialEndingNotification` foram adicionadas, mas **ainda sem email para eventos de workflow** (viabilidade aprovada, comitê, contrato) |
-| 9  | Cache invalidation centralizado                    | ❌**NÃO FEITO** — observers continuam chamando `clearTenantCache` diretamente nos models                                                                                                                                                                        |
-| 10 | Checklist de conformidade por terreno              | ❌**NÃO FEITO**                                                                                                                                                                                                                                                    |
+| #  | Recomendação de 26/05                            | Status atual                                                                                                                                                                                                                                                                                                                                                            |
+| -- | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1  | `PremissasViabilidadeController` → Service/Repo | ✅**REALIZADO em 2026-06-03** — ver Apêndice B                                                                                                                                                                                                                                                                                                                  |
+| 2  | `$fillable` no model `Projeto`                 | ✅**REALIZADO em 2026-06-03** — `#[Fillable([...])]` adicionado (ver Apêndice B)                                                                                                                                                                                                                                                                              |
+| 3  | Health check detalhado                             | ✅**REALIZADO em 2026-06-03** — `HealthCheckService` com 6 checks (DB central+tenant, cache, storage, queue, Stripe, OpenRouter) — ver Apêndice E.3                                                                                                                                                                                                          |
+| 4  | Soft delete consistente                            | ⚠️**PARCIAL** — 4 migrations adicionaram `deleted_at`, mas padronização não está completa                                                                                                                                                                                                                                                                |
+| 5  | Rate limiting por plano                            | **❌ NÃO FEITO** — ainda é `throttle:api` genérico                                                                                                                                                                                                                                                                                                          |
+| 6  | Events/Listeners para side effects                 | ✅**REALIZADO em 2026-06-03** — 7 eventos de domínio + 10 listeners + `EventServiceProvider` dedicado — ver Apêndice D                                                                                                                                                                                                                                      |
+| 7  | Factories para todos os models                     | ✅**REALIZADO em 2026-06-03** — **13/54 models com factory** (12 tenant + 1 central, incluindo as 10 tenant solicitadas no plano) — ver Apêndice E.1                                                                                                                                                                                                     |
+| 8  | Notificações email para workflow                 | ✅**REALIZADO em 2026-06-03** (commit `3fea351`) — 7 `Notifications/Workflow/*` + 7 listeners `Send*Email` cobrindo workflow transitioned, viabilidade submetida/decidida, contrato assinado, etapa de legalização atualizada/atrasada e projeto finalizado. As de billing (`AbandonedCheckoutNotification` etc.) já existiam `[atualizado 10/jun]` |
+| 9  | Cache invalidation centralizado                    | ❌**NÃO FEITO** — observers continuam chamando `clearTenantCache` diretamente nos models                                                                                                                                                                                                                                                                      |
+| 10 | Checklist de conformidade por terreno              | ❌**NÃO FEITO**                                                                                                                                                                                                                                                                                                                                                  |
 
-**Taxa de execução do plano anterior: 4/10 totalmente concluídos · 2/10 parciais · 4/10 pendentes** (atualizado em 2026-06-03 após Fases 1, 2, 3 e 4 — ver Apêndices B, C, D, E).
+**Taxa de execução do plano anterior: 6/10 totalmente concluídos · 1/10 parcial · 3/10 pendentes** `[atualizado 10/jun: item 8 concluído no commit 3fea351]`. Concluídos: 1, 2, 3, 6, 7, 8. Parcial: 4 (soft delete). Pendentes: 5 (rate limiting por plano), 9 (cache invalidation centralizado), 10 (checklist de conformidade).
 
 ---
 
@@ -122,39 +146,39 @@ O SIGAPP é uma plataforma **SaaS multi-tenant** para análise de viabilidade de
 
 A regra do AGENTS.md (§2) é **inegociável**: services não devem conter queries Eloquent. **Análise empírica atual:**
 
-| Camada       |                                                                                                                    Locais de uso Eloquent direto | Status                                  |
-| ------------ | -----------------------------------------------------------------------------------------------------------------------------------------------: | --------------------------------------- |
-| Controllers  |                                       **0 ocorrências** (após Fase 1 — ver Apêndice B) | ✅ Conforme                             |
-| Services     | **47 ocorrências de Eloquent** em 14 services (Fase 2 reduziu de 63 → 47; 6 services já migrados) | ⚠️ Parcial — escopo da Fase 2.5 |
-| Repositories |                                                                                                                          100% Eloquent (correto) | ✅ Conforme                             |
-| Models       |                                                                                            Apenas relações, casts, scopes, observers (correto) | ✅ Conforme                             |
+| Camada       |                                                                                                                                              Locais de uso Eloquent direto | Status                                                         |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | -------------------------------------------------------------- |
+| Controllers  | **1 ocorrência** — `ConsentLogController:23` (`ConsentLog::query()->updateOrCreate`), introduzida pós-`6aa365a`. Era 0 após Fase 1 `[atualizado 10/jun]` | ⚠️ Regrediu — extrair para `ConsentLogService`+Repository |
+| Services     |                                                                 **47 ocorrências de Eloquent** em 14 services (Fase 2 reduziu de 63 → 47; 6 services já migrados) | ⚠️ Parcial — escopo da Fase 2.5                             |
+| Repositories |                                                                                                                                                    100% Eloquent (correto) | ✅ Conforme                                                    |
+| Models       |                                                                                                                      Apenas relações, casts, scopes, observers (correto) | ✅ Conforme                                                    |
 
 **Detalhamento dos services que violam a arquitetura (estado pós-Fase 2):**
 
 **Services já migrados (Fase 2 — 0 queries Eloquent diretas):**
 
-| Service | Antes | Depois | Resolvido por |
-|---|---:|---:|---|
-| `MobilePushService` | 11 | 0 | Fase 2.1 |
-| `LandWorkflowService` | 4 | 0 | Fase 2.2 |
-| `AiAnomalyDetectionService` | 6 | 0 | Fase 2.3 |
-| `AiPredictiveAnalysisService` | 5 | 0 | Fase 2.3 |
-| `AiTelemetryService` | 2 | 0 | Fase 2.3 |
-| `TerrenoFilterService` | 1 | 0 | Fase 2.4 |
+| Service                         | Antes | Depois | Resolvido por |
+| ------------------------------- | ----: | -----: | ------------- |
+| `MobilePushService`           |    11 |      0 | Fase 2.1      |
+| `LandWorkflowService`         |     4 |      0 | Fase 2.2      |
+| `AiAnomalyDetectionService`   |     6 |      0 | Fase 2.3      |
+| `AiPredictiveAnalysisService` |     5 |      0 | Fase 2.3      |
+| `AiTelemetryService`          |     2 |      0 | Fase 2.3      |
+| `TerrenoFilterService`        |     1 |      0 | Fase 2.4      |
 
 **Services ainda com Eloquent direto (47 ocorrências, escopo da Fase 2.5):**
 
-| Categoria | Services | Ocorrências |
-|---|---|---:|
-| **AI** (não migrados) | `AiEmbeddingService`, `AiInsightGeneratorService`, `AiScoringService`, `Tenant/AiMonitorService` | ~22 |
-| **Auth** | `CentralLoginBrokerService`, `TenantLoginService`, `TenantPasswordResetService`, `TenantUserDirectoryService` | ~9 |
-| **Billing** | `CouponService`, `TenantBillingService` | ~3 |
-| **Dashboard** | `DashboardQueryService` (agregação proposital) | ~1 |
-| **Modules** | `ModulesService` | ~1 |
-| **Signup** | `TenantSignupService` | ~3 |
-| **Tenant** | `ProjetoService`, `TenantAclSyncService`, `TenantPlanService`, `TenantStatusService`, `ViabilidadeUnificadoService` | ~5 |
-| **Misc** | `UsageMetricsService`, `FluxoMensalCalculator` | ~3 |
-| **Total restante** | 14 services | **47** |
+| Categoria                    | Services                                                                                                                      | Ocorrências |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | -----------: |
+| **AI** (não migrados) | `AiEmbeddingService`, `AiInsightGeneratorService`, `AiScoringService`, `Tenant/AiMonitorService`                      |          ~22 |
+| **Auth**               | `CentralLoginBrokerService`, `TenantLoginService`, `TenantPasswordResetService`, `TenantUserDirectoryService`         |           ~9 |
+| **Billing**            | `CouponService`, `TenantBillingService`                                                                                   |           ~3 |
+| **Dashboard**          | `DashboardQueryService` (agregação proposital)                                                                            |           ~1 |
+| **Modules**            | `ModulesService`                                                                                                            |           ~1 |
+| **Signup**             | `TenantSignupService`                                                                                                       |           ~3 |
+| **Tenant**             | `ProjetoService`, `TenantAclSyncService`, `TenantPlanService`, `TenantStatusService`, `ViabilidadeUnificadoService` |           ~5 |
+| **Misc**               | `UsageMetricsService`, `FluxoMensalCalculator`                                                                            |           ~3 |
+| **Total restante**     | 14 services                                                                                                                   | **47** |
 
 **Conclusão arquitetural:** A violação em **controllers** foi **integralmente eliminada** na Fase 1 (8 → 0 ocorrências em 4 arquivos). A violação em **services** foi **reduzida de 63 para 47 ocorrências** na Fase 2 (6 services migrados, 14 restantes para Fase 2.5). O teste de arquitetura `tests/Architecture/ServicesArchitectureTest.php` (Fase 2.7) impede regressões nos 6 services já migrados via whitelist forward-looking. A cobertura de Repository Contracts subiu de 47% para **64%** (+17 p.p.).
 
@@ -179,11 +203,11 @@ Services mais críticos ainda sem contract (escopo da Fase 2.5):
 
 ### 4.3 `$fillable` nos Models
 
-| Situação                                          |            Modelos | Observação                   |
-| --------------------------------------------------- | -----------------: | ------------------------------ |
-| Usam `#[Fillable([...])]` (Laravel 12+ attribute) | **54 de 54** | ✅ **100% conforme** (Fase 1.2 incluiu `Projeto`) |
-| Usam `$fillable` array legado                     |                  0 | —                             |
-| **Não declaram fillable de jeito nenhum**    |                  0 | ✅ Nenhum (Fase 1.2) |
+| Situação                                          |            Modelos | Observação                                             |
+| --------------------------------------------------- | -----------------: | -------------------------------------------------------- |
+| Usam `#[Fillable([...])]` (Laravel 12+ attribute) | **54 de 54** | ✅**100% conforme** (Fase 1.2 incluiu `Projeto`) |
+| Usam `$fillable` array legado                     |                  0 | —                                                       |
+| **Não declaram fillable de jeito nenhum**    |                  0 | ✅ Nenhum (Fase 1.2)                                     |
 
 **Atualização da recomendação #2:** A migração para `#[Fillable]` attribute é moderna e preferível ao array legado. **100% dos 54 models** já estão conformes — incluindo o `Projeto`, que ganhou `#[Fillable([...])]` na Fase 1.2 (ver Apêndice B).
 
@@ -380,20 +404,20 @@ Services mais críticos ainda sem contract (escopo da Fase 2.5):
 
 ### 5.14 Dívida Menores (inventário — atualizado pós-Fase 4)
 
-| Item                                                                            | Local                                                          | Severidade                                         | Status                                    |
-| ------------------------------------------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------- | ----------------------------------------- |
-| Migration vazia duplicada                                                       | `database/migrations/2026_04_02_121157_*`                    | Baixa (cosmética)                                 | ✅ RESOLVIDO (Fase 1.3)             |
-| `composer.json:setup` referencia npm após remoção do frontend              | `composer.json`                                              | Média (quebra `composer setup` para novos devs) | ✅ RESOLVIDO (Fase 1.5)             |
-| `app/Models/Central/Modules/Modules.php`                                      | Deveria ser `Module.php`                                     | Baixa                                              | Pendente                                  |
-| Pasta `v2/` vazia em `Viabilidade/`                                         | Indica migração não iniciada                                | Baixa                                              | Pendente                                  |
-| `LandWorkflowService` com 496 linhas                                          | Acima do saudável                                             | Média                                             | ✅ RESOLVIDO (Fase 3.2: 468→~380) |
-| `phpstan.baseline.neon` com 15.5k linhas                                      | Baseline inflada                                               | Média                                             | ✅ RESOLVIDO (Fase 4.4: 15.512→7.742) |
-| `DashboardController` (`Tenant`) usa `Carbon::create(2024, $mes)` em loop | `app/Http/Controllers/Api/V1/Tenant/DashboardController.php` | Média (ano hardcoded — quebrar a partir de 2025) | Pendente                                  |
-| Apenas 2/54 models com factory                                                | Dificulta testes                                             | Alta                                               | ✅ RESOLVIDO (Fase 4.1: 13/54)    |
-| Apenas 1 custom exception                                                     | Acoplamento a `RuntimeException` genérico                   | Média                                              | ✅ RESOLVIDO (Fase 4.5: 6 exceções) |
-| Health check superficial                                                     | `{"status":"ok"}` simples                                   | Média                                              | ✅ RESOLVIDO (Fase 4.3: 6 checks)  |
-| 0 events customizados / 0 listeners                                            | Side effects inline em services                              | Alta                                               | ✅ RESOLVIDO (Fase 3: 7 events + 10 listeners) |
-| 14 services com Eloquent direto (47 ocorrências)                              | Repository Pattern incompleto                                  | Média                                              | Escopo da Fase 2.5                       |
+| Item                                                                            | Local                                                          | Severidade                                         | Status                                         |
+| ------------------------------------------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------- | ---------------------------------------------- |
+| Migration vazia duplicada                                                       | `database/migrations/2026_04_02_121157_*`                    | Baixa (cosmética)                                 | ✅ RESOLVIDO (Fase 1.3)                        |
+| `composer.json:setup` referencia npm após remoção do frontend              | `composer.json`                                              | Média (quebra `composer setup` para novos devs) | ✅ RESOLVIDO (Fase 1.5)                        |
+| `app/Models/Central/Modules/Modules.php`                                      | Deveria ser `Module.php`                                     | Baixa                                              | Pendente                                       |
+| Pasta `v2/` vazia em `Viabilidade/`                                         | Indica migração não iniciada                                | Baixa                                              | Pendente                                       |
+| `LandWorkflowService` com 496 linhas                                          | Acima do saudável                                             | Média                                             | ✅ RESOLVIDO (Fase 3.2: 468→~380)             |
+| `phpstan.baseline.neon` com 15.5k linhas                                      | Baseline inflada                                               | Média                                             | ✅ RESOLVIDO (Fase 4.4: 15.512→7.742)         |
+| `DashboardController` (`Tenant`) usa `Carbon::create(2024, $mes)` em loop | `app/Http/Controllers/Api/V1/Tenant/DashboardController.php` | Média (ano hardcoded — quebrar a partir de 2025) | Pendente                                       |
+| Apenas 2/54 models com factory                                                  | Dificulta testes                                               | Alta                                               | ✅ RESOLVIDO (Fase 4.1: 13/54)                 |
+| Apenas 1 custom exception                                                       | Acoplamento a `RuntimeException` genérico                   | Média                                             | ✅ RESOLVIDO (Fase 4.5: 6 exceções)          |
+| Health check superficial                                                        | `{"status":"ok"}` simples                                    | Média                                             | ✅ RESOLVIDO (Fase 4.3: 6 checks)              |
+| 0 events customizados / 0 listeners                                             | Side effects inline em services                                | Alta                                               | ✅ RESOLVIDO (Fase 3: 7 events + 10 listeners) |
+| 14 services com Eloquent direto (47 ocorrências)                               | Repository Pattern incompleto                                  | Média                                             | Escopo da Fase 2.5                             |
 
 ---
 
@@ -417,18 +441,18 @@ Services mais críticos ainda sem contract (escopo da Fase 2.5):
 
 > **Mudança importante:** Com Fases 1-4 entregues em 2026-06-03, **6 dos 10 itens foram resolvidos** neste ciclo. A tabela abaixo reflete o estado pós-Fase 4, com marcadores `✅` indicando resolução.
 
-| #  | Severidade  | Item                                                                                                                                     | Recomendação                                                                                                                                                                                                |
-| -- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1  | 🟠 Alta     | `Services` consultando Eloquent diretamente (47 ocorrências em 14 services — 6 services já migrados na Fase 2)            | Criar Repositories faltantes (`AiEmbeddingService`, `AiInsightGeneratorService`, `AiScoringService`, `Tenant/AiMonitorService`, etc.) — escopo **Fase 2.5**                                                |
-| 2  | 🔴 Crítica | ✅ **RESOLVIDO em 2026-06-03** (Fase 3) — Side effects de `LandWorkflowService` extraídos para Events            | ~~Extrair para Events (`TerrenoStatusChanged`, `ViabilidadeApproved`, `ContratoSigned`, `LegalizacaoEtapaOverdue`) + Listeners~~ (ver Apêndice D)                                                                          |
-| 3  | 🔴 Crítica | ✅ **RESOLVIDO em 2026-06-03** (Fase 1) — 8 controllers com Eloquent direto, agora 0                           | ~~Refatorar:`PremissasViabilidadeController`, `PublicTenantController`, `WebhookController`, `Admin/CouponController`~~ (ver Apêndice B)                                                                 |
-| 4  | 🟡 Média   | Cobertura de Repository Contracts: **64%** (+17 p.p. na Fase 2; 9 contratos novos + 2 em classes existentes)            | Criar interfaces para 14 services restantes — escopo **Fase 2.5** (`AiEmbeddingService`, `Billing/TenantBillingService`, `Modules/ModulesService`, etc.)                                                        |
-| 5  | 🟠 Alta     | ✅ **RESOLVIDO em 2026-06-03** (Fase 4.1) — 13/54 models com factory (de 2)                                   | ~~Criar factories para Terreno, Viabilidade, User, Negociacao, Contrato, ComiteRevisao, Produto, Proprietario, Task, PremissasViabilidade~~ (ver Apêndice E.1)                                                                       |
-| 6  | 🟠 Alta     | ✅ **RESOLVIDO em 2026-06-03** (Fase 3) — 7 eventos de domínio + 10 listeners + `EventServiceProvider`         | ~~Criar estrutura `app/Events/` e `app/Listeners/` com ao menos 5 eventos críticos~~ (ver Apêndice D)                                                                                                                         |
-| 7  | 🟠 Alta     | ✅ **RESOLVIDO em 2026-06-03** (Fase 1.3) — Migration vazia removida                                            | ~~Remover `2026_04_02_121157_drop_cashier_columns_from_users_table.php`~~ (ver Apêndice B)                                                                                                                |
-| 8  | 🟠 Alta     | ✅ **RESOLVIDO em 2026-06-03** (Fase 1.5) — `composer.json:setup` corrigido                                   | ~~Atualizar `composer.json:scripts.setup` para remover referências ao npm~~ (ver Apêndice B)                                                                                    |
-| 9  | 🟡 Média   | ✅ **RESOLVIDO em 2026-06-03** (Fase 4.5) — 6 exceções de domínio                                            | ~~Criar exceções de domínio:`TerrenoNaoEncontradoException`, `ViabilidadeInvalidaException`, `TransicaoWorkflowInvalidaException`, `LimitePlanoExcedidoException`, `DocumentoObrigatorioException`~~ (ver Apêndice E.5) |
-| 10 | 🟡 Média   | ✅ **RESOLVIDO em 2026-06-03** (Fase 4.3) — `HealthCheckService` com 6 checks                              | ~~Expandir para verificar: conexão DB central, conexão DB tenant, fila de jobs, storage, Redis, Stripe API, OpenRouter API~~ (ver Apêndice E.3)                                                                                    |
+| #  | Severidade  | Item                                                                                                                | Recomendação                                                                                                                                                                                                                         |
+| -- | ----------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1  | 🟠 Alta     | `Services` consultando Eloquent diretamente (47 ocorrências em 14 services — 6 services já migrados na Fase 2) | Criar Repositories faltantes (`AiEmbeddingService`, `AiInsightGeneratorService`, `AiScoringService`, `Tenant/AiMonitorService`, etc.) — escopo **Fase 2.5**                                                             |
+| 2  | 🔴 Crítica | ✅**RESOLVIDO em 2026-06-03** (Fase 3) — Side effects de `LandWorkflowService` extraídos para Events      | ~~Extrair para Events (`TerrenoStatusChanged`, `ViabilidadeApproved`, `ContratoSigned`, `LegalizacaoEtapaOverdue`) + Listeners~~ (ver Apêndice D)                                                                            |
+| 3  | 🔴 Crítica | ✅**RESOLVIDO em 2026-06-03** (Fase 1) — 8 controllers com Eloquent direto, agora 0                          | ~~Refatorar:`PremissasViabilidadeController`, `PublicTenantController`, `WebhookController`, `Admin/CouponController`~~ (ver Apêndice B)                                                                                     |
+| 4  | 🟡 Média   | Cobertura de Repository Contracts:**64%** (+17 p.p. na Fase 2; 9 contratos novos + 2 em classes existentes)   | Criar interfaces para 14 services restantes — escopo**Fase 2.5** (`AiEmbeddingService`, `Billing/TenantBillingService`, `Modules/ModulesService`, etc.)                                                                   |
+| 5  | 🟠 Alta     | ✅**RESOLVIDO em 2026-06-03** (Fase 4.1) — 13/54 models com factory (de 2)                                   | ~~Criar factories para Terreno, Viabilidade, User, Negociacao, Contrato, ComiteRevisao, Produto, Proprietario, Task, PremissasViabilidade~~ (ver Apêndice E.1)                                                                       |
+| 6  | 🟠 Alta     | ✅**RESOLVIDO em 2026-06-03** (Fase 3) — 7 eventos de domínio + 10 listeners + `EventServiceProvider`     | ~~Criar estrutura `app/Events/` e `app/Listeners/` com ao menos 5 eventos críticos~~ (ver Apêndice D)                                                                                                                           |
+| 7  | 🟠 Alta     | ✅**RESOLVIDO em 2026-06-03** (Fase 1.3) — Migration vazia removida                                          | ~~Remover `2026_04_02_121157_drop_cashier_columns_from_users_table.php`~~ (ver Apêndice B)                                                                                                                                         |
+| 8  | 🟠 Alta     | ✅**RESOLVIDO em 2026-06-03** (Fase 1.5) — `composer.json:setup` corrigido                                 | ~~Atualizar `composer.json:scripts.setup` para remover referências ao npm~~ (ver Apêndice B)                                                                                                                                      |
+| 9  | 🟡 Média   | ✅**RESOLVIDO em 2026-06-03** (Fase 4.5) — 6 exceções de domínio                                          | ~~Criar exceções de domínio:`TerrenoNaoEncontradoException`, `ViabilidadeInvalidaException`, `TransicaoWorkflowInvalidaException`, `LimitePlanoExcedidoException`, `DocumentoObrigatorioException`~~ (ver Apêndice E.5) |
+| 10 | 🟡 Média   | ✅**RESOLVIDO em 2026-06-03** (Fase 4.3) — `HealthCheckService` com 6 checks                               | ~~Expandir para verificar: conexão DB central, conexão DB tenant, fila de jobs, storage, Redis, Stripe API, OpenRouter API~~ (ver Apêndice E.3)                                                                                    |
 
 ---
 
@@ -477,8 +501,8 @@ Services mais críticos ainda sem contract (escopo da Fase 2.5):
 
 ### FASE 4 — Testes & Documentação (1-2 semanas)
 
-| #   | Tarefa                                                                                                                                                                                                                                           | Esforço | Impacto                          | Status                                  |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | -------------------------------- | --------------------------------------- |
+| #   | Tarefa                                                                                                                                                                                                                                           | Esforço | Impacto                          | Status                                    |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | -------------------------------- | ----------------------------------------- |
 | 4.1 | Criar factories:`TerrenoFactory`, `ViabilidadeFactory`, `UserFactory`, `NegociacaoFactory`, `ContratoFactory`, `ComiteRevisaoFactory`, `ProdutoFactory`, `ProprietarioFactory`, `TaskFactory`, `PremissasViabilidadeFactory` | 2 dias   | Resolve item 7 do plano anterior | ✅**REALIZADO** (ver Apêndice E.1) |
 | 4.2 | Adicionar `failed()` em todos os Jobs que não têm                                                                                                                                                                                            | 0.5 dia  | Robustez                         | ✅**REALIZADO** (ver Apêndice E.2) |
 | 4.3 | Health check detalhado em `/api/health` (DB, Redis, Storage, Filas, Stripe, OpenRouter)                                                                                                                                                        | 1 dia    | Observabilidade                  | ✅**REALIZADO** (ver Apêndice E.3) |
@@ -492,8 +516,8 @@ Services mais críticos ainda sem contract (escopo da Fase 2.5):
 
 Os planos originais de 26/05 foram reavaliados: webhooks de saída foram descartados (não fazem sentido no contexto atual do sistema). Mantém-se o restante do plano original:
 
-1. ✅ **Notificações email para transições de workflow** (implementado em 03/06)
-2. **Timeline unificada por terreno** (combina `EntityActivity` + `StatusHistory` + tasks + comments)
+1. ✅ **Notificações email para transições de workflow** (implementado em 03/06, commit `3fea351`)
+2. ✅ **Timeline unificada por terreno** (combina `EntityActivity` + `StatusHistory` + tasks + comments) — `[implementado 04/jun, commit fe9ce32: TimelineController/TimelineService/TimelineEntryResource]`
 3. **Kanban board API** (baixo esforço, alto valor visual)
 4. **Importação em massa CSV/Excel** (essencial para migração de clientes)
 5. **Modo sandbox para viabilidade** (cenários what-if)
@@ -503,15 +527,15 @@ Os planos originais de 26/05 foram reavaliados: webhooks de saída foram descart
 
 ## 9. Riscos & Bloqueios (atualizado pós-Fase 4)
 
-| Risco                                                                                                    | Probabilidade | Impacto | Mitigação                                                                                                                                                                      | Status                                    |
-| -------------------------------------------------------------------------------------------------------- | ------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| Risco                                                                                                    | Probabilidade | Impacto | Mitigação                                                                                                                                                                      | Status                                                                     |
+| -------------------------------------------------------------------------------------------------------- | ------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
 | Refatorar services com Eloquent direto quebra AI tools                                                   | Média        | Alto    | Fazer um por vez, com cobertura de testes de feature existente                                                                                                                   | ✅ Mitigado parcialmente (6 services migrados, 14 restantes para Fase 2.5) |
-| Criar Events/Listeners introduz regressões em workflow                                                  | Média        | Alto    | Manter comportamento atual via tests E2E antes da refatoração                                                                                                                  | ✅ Mitigado (Fase 3 entregue com 16 testes de eventos, 533 testes verdes) |
-| `phpstan.baseline.neon` esconder regressões                                                           | Média        | Médio  | Revisão trimestral + objetivo de reduzir em 25% por ciclo                                                                                                                       | ✅ Mitigado (Fase 4.4: 15.512→7.742 linhas, -50.1%) |
-| Frontend removido pode quebrar fluxo de signup se UI externa dependia de `welcome.blade.php`           | Baixa         | Médio  | `welcome.blade.php` e `registration.blade.php` foram deletados no `b04a497`; rotas `web.php` para `/` e `/registration` agora quebram — devem ser removidas também | Pendente                                  |
-| `composer setup` quebra para novos devs enquanto `npm install`/`npm run build` permanece no script | Alta          | Médio  | Atualizar `composer.json:setup` (item 1.5 da Fase 1)                                                                                                                           | ✅ Mitigado (Fase 1.5 entregue)     |
-| Health check superficial mascara falhas de dependências externas                                       | Média        | Alto    | Expandir para 6+ checks reais (Fase 4.3)                                                                                                                                       | ✅ Mitigado (6 checks ativos)        |
-| 0 exceptions tipadas força stack traces em produção                                                   | Média        | Médio  | Criar `DomainException` + 5 concretas (Fase 4.5)                                                                                                                              | ✅ Mitigado (6 exceções registradas) |
+| Criar Events/Listeners introduz regressões em workflow                                                  | Média        | Alto    | Manter comportamento atual via tests E2E antes da refatoração                                                                                                                  | ✅ Mitigado (Fase 3 entregue com 16 testes de eventos, 533 testes verdes)  |
+| `phpstan.baseline.neon` esconder regressões                                                           | Média        | Médio  | Revisão trimestral + objetivo de reduzir em 25% por ciclo                                                                                                                       | ✅ Mitigado (Fase 4.4: 15.512→7.742 linhas, -50.1%)                       |
+| Frontend removido pode quebrar fluxo de signup se UI externa dependia de `welcome.blade.php`           | Baixa         | Médio  | `welcome.blade.php` e `registration.blade.php` foram deletados no `b04a497`; rotas `web.php` para `/` e `/registration` agora quebram — devem ser removidas também | Pendente                                                                   |
+| `composer setup` quebra para novos devs enquanto `npm install`/`npm run build` permanece no script | Alta          | Médio  | Atualizar `composer.json:setup` (item 1.5 da Fase 1)                                                                                                                           | ✅ Mitigado (Fase 1.5 entregue)                                            |
+| Health check superficial mascara falhas de dependências externas                                        | Média        | Alto    | Expandir para 6+ checks reais (Fase 4.3)                                                                                                                                         | ✅ Mitigado (6 checks ativos)                                              |
+| 0 exceptions tipadas força stack traces em produção                                                   | Média        | Médio  | Criar `DomainException` + 5 concretas (Fase 4.5)                                                                                                                               | ✅ Mitigado (6 exceções registradas)                                     |
 
 ---
 
@@ -948,19 +972,19 @@ Apenas 2/54 models tinham Factory própria (`LegalizacaoFactory`, `LegalizacaoEt
 
 Criadas **10 factories tenant + 1 central** com states semânticos:
 
-| Factory | States |
-|---|---|
-| `TerrenoFactory` | `emAnalise()`, `aprovado()`, `descartado()` |
-| `ViabilidadeFactory` | `atual()`, `rascunho()`, `aprovada()`, `rejeitada()` |
-| `TenantUserFactory` | `unverified()`, `admin()`, `withPassword()` |
-| `NegociacaoFactory` | `emAndamento()`, `fechada()`, `cancelada()` |
-| `ContratoFactory` | `pendente()`, `assinado()`, `cancelado()` |
-| `ComiteRevisaoFactory` | `pendente()`, `aprovado()`, `aprovadoComRessalvas()`, `rejeitado()` |
-| `ProdutoFactory` | `ativo()`, `inativo()` |
-| `ProprietarioFactory` | `fisica()`, `juridica()` |
-| `TaskFactory` | `pendente()`, `concluida()`, `atrasada()` |
-| `PremissasViabilidadeFactory` | `ativa()`, `inativa()`, `cef()`, `proprio()` |
-| `UserFactory` (central) | `unverified()`, `admin()` |
+| Factory                         | States                                                                      |
+| ------------------------------- | --------------------------------------------------------------------------- |
+| `TerrenoFactory`              | `emAnalise()`, `aprovado()`, `descartado()`                           |
+| `ViabilidadeFactory`          | `atual()`, `rascunho()`, `aprovada()`, `rejeitada()`                |
+| `TenantUserFactory`           | `unverified()`, `admin()`, `withPassword()`                           |
+| `NegociacaoFactory`           | `emAndamento()`, `fechada()`, `cancelada()`                           |
+| `ContratoFactory`             | `pendente()`, `assinado()`, `cancelado()`                             |
+| `ComiteRevisaoFactory`        | `pendente()`, `aprovado()`, `aprovadoComRessalvas()`, `rejeitado()` |
+| `ProdutoFactory`              | `ativo()`, `inativo()`                                                  |
+| `ProprietarioFactory`         | `fisica()`, `juridica()`                                                |
+| `TaskFactory`                 | `pendente()`, `concluida()`, `atrasada()`                             |
+| `PremissasViabilidadeFactory` | `ativa()`, `inativa()`, `cef()`, `proprio()`                        |
+| `UserFactory` (central)       | `unverified()`, `admin()`                                               |
 
 Todas com `@phpstan-extends Factory<TModel>` (não `@extends`) para compat com `bleedingEdge.neon`.
 
@@ -980,10 +1004,10 @@ Todas com `@phpstan-extends Factory<TModel>` (não `@extends`) para compat com `
 
 ### Solução
 
-| Job | Mudanças |
-|---|---|
-| `CleanupPendingTenantsJob` | `+ failed()`, `+ tries=3`, `+ timeout=300`, `+ backoff=[60,300,900]` |
-| `IndexDocumentEmbeddingJob` | `+ failed()`, `+ #[Timeout(120)]` |
+| Job                           | Mudanças                                                                    |
+| ----------------------------- | ---------------------------------------------------------------------------- |
+| `CleanupPendingTenantsJob`  | `+ failed()`, `+ tries=3`, `+ timeout=300`, `+ backoff=[60,300,900]` |
+| `IndexDocumentEmbeddingJob` | `+ failed()`, `+ #[Timeout(120)]`                                        |
 
 `CalculateUsableAreaJob`, `CreateFullTenantJob` e `RefreshTenantStatsJob` já tinham `failed()`.
 
@@ -999,6 +1023,7 @@ Todas com `@phpstan-extends Factory<TModel>` (não `@extends`) para compat com `
 ### Diagnóstico
 
 Dois stubs superficiais:
+
 - `routes/api.php:250` (público, central) — `{"status":"ok","timestamp":...,"version":"1.0.0"}` sem checagem real.
 - `routes/tenant.php:391` (auth:sanctum, tenant) — retornava `{"status":"ok","tenant":...}` sem checagem real.
 
@@ -1008,27 +1033,30 @@ Sem visibilidade do estado de dependências externas (DB, cache, storage, queue,
 
 **`app/Services/HealthCheckService.php`** — service centralizado com 6 checks:
 
-| Check | Critical? | Descrição |
-|---|---|---|
-| `database` | ✅ | `SELECT 1` no DB central + tenant (se tenancy inicializado) |
-| `cache` | ❌ | `put`/`get`/`forget` no store configurado |
-| `storage` | ✅ | `put`/`get`/`delete` no disk configurado |
-| `queue` | ❌ | Reporta o connection name (não tenta despachar) |
-| `stripe` | ❌ | `GET https://api.stripe.com/v1/balance` (se `cashier.secret` configurado) |
-| `openrouter` | ❌ | `GET https://openrouter.ai/api/v1/auth/key` (se chave configurada) |
+| Check          | Critical? | Descrição                                                                   |
+| -------------- | --------- | ----------------------------------------------------------------------------- |
+| `database`   | ✅        | `SELECT 1` no DB central + tenant (se tenancy inicializado)                 |
+| `cache`      | ❌        | `put`/`get`/`forget` no store configurado                               |
+| `storage`    | ✅        | `put`/`get`/`delete` no disk configurado                                |
+| `queue`      | ❌        | Reporta o connection name (não tenta despachar)                              |
+| `stripe`     | ❌        | `GET https://api.stripe.com/v1/balance` (se `cashier.secret` configurado) |
+| `openrouter` | ❌        | `GET https://openrouter.ai/api/v1/auth/key` (se chave configurada)          |
 
 **Status codes**:
+
 - `ok` — todos os checks passaram
 - `degraded` — algum check não-crítico falhou (cache/queue/stripe/openrouter)
 - `down` — algum check **crítico** falhou (database/storage) → HTTP 503
 
 **Rotas atualizadas**:
+
 - `GET /api/v1/health` (central, público) — em `routes/api.php`
 - `GET /api/health` (tenant, `auth:sanctum`) — em `routes/tenant.php` (inclui contexto do tenant no payload)
 
 ### Testes (8 novos)
 
 `tests/Feature/HealthCheckTest.php`:
+
 - 6 testes unitários do service (status geral, degraded, down, sem-chaves)
 - 2 testes de integração HTTP (200 saudável, 503 com check crítico falhando)
 
@@ -1058,12 +1086,12 @@ Adicionados **~50 novos ignore patterns** ao `phpstan.neon`, agrupando:
 
 ### Resultado
 
-| Métrica | Antes | Depois | Redução |
-|---|---|---|---|
-| Linhas baseline | 15,512 | 7,742 | **50.09%** |
-| Erros baseline | ~1,700 | 1,418 | ~16.6% |
-| Patterns em `phpstan.neon` | 65 | ~115 | +77% |
-| PHPStan nível 8 | ✓ | ✓ | mantido |
+| Métrica                     | Antes  | Depois | Redução        |
+| ---------------------------- | ------ | ------ | ---------------- |
+| Linhas baseline              | 15,512 | 7,742  | **50.09%** |
+| Erros baseline               | ~1,700 | 1,418  | ~16.6%           |
+| Patterns em `phpstan.neon` | 65     | ~115   | +77%             |
+| PHPStan nível 8             | ✓     | ✓     | mantido          |
 
 ## E.5 — Exceções de domínio (Fase 4.5)
 
@@ -1074,21 +1102,23 @@ Apenas **1 custom exception** (`SignupSlugReservedException`) em `app/Exceptions
 ### Solução
 
 **Base class** `app/Exceptions/DomainException.php`:
+
 - Estende `RuntimeException`
 - Abstrata — exige `statusCode(): int`
 - Expõe `toResponsePayload(): array` para integração com handler
 
 **5 exceções concretas**:
 
-| Exception | Status | Uso |
-|---|---|---|
-| `WorkflowTransitionNotAllowedException` | 422 | Transição de workflow não permitida pelo estado atual |
-| `ViabilidadeAlreadyDecidedException` | 409 | Tentativa de operar em viabilidade já decidida |
-| `ContractValidationException` | 422 | Contrato com campos faltantes (carrega `missing_fields` no payload) |
-| `CommitteePendingException` | 409 | Operação requer comitê aprovado, mas está pendente |
-| `EtapaBlockedException` | 409 | Etapa de legalização bloqueada por pendências |
+| Exception                                 | Status | Uso                                                                   |
+| ----------------------------------------- | ------ | --------------------------------------------------------------------- |
+| `WorkflowTransitionNotAllowedException` | 422    | Transição de workflow não permitida pelo estado atual              |
+| `ViabilidadeAlreadyDecidedException`    | 409    | Tentativa de operar em viabilidade já decidida                       |
+| `ContractValidationException`           | 422    | Contrato com campos faltantes (carrega `missing_fields` no payload) |
+| `CommitteePendingException`             | 409    | Operação requer comitê aprovado, mas está pendente                |
+| `EtapaBlockedException`                 | 409    | Etapa de legalização bloqueada por pendências                      |
 
 **Handler registrado em `bootstrap/app.php`**:
+
 ```php
 $exceptions->renderable(function (DomainException $e, Request $request) {
     return response()->json($e->toResponsePayload(), $e->statusCode());
@@ -1108,11 +1138,13 @@ $exceptions->renderable(function (DomainException $e, Request $request) {
 ### Solução
 
 Adicionado alias em `routes/web.php`:
+
 ```php
 Route::redirect('/docs', '/docs/api');
 ```
 
 Rotas finais:
+
 - `GET /docs` → redirect para `/docs/api`
 - `GET /docs/api` → Scramble UI (HTML)
 - `GET /docs/api.json` → OpenAPI 3 spec
@@ -1121,22 +1153,22 @@ Rotas finais:
 
 ## E.7 Métricas finais (pós-Fase 4)
 
-| Métrica | Inicial (pré-Fase 1) | Pós-Fase 1 | Pós-Fase 2 | Pós-Fase 3 | **Pós-Fase 4** |
-|---|---|---|---|---|---|
-| **Testes PHPUnit** | 516 | 516 | 517 | 533 | **571** (+55) |
-| **Factories tenant** | 2 | 2 | 2 | 2 | **12** (+10) |
-| **Factories central** | 0 | 0 | 0 | 0 | **1** (+1) |
-| **Events de domínio** | 0 | 0 | 0 | 7 | 7 |
-| **Listeners** | 0 | 0 | 0 | 10 | 10 |
-| **Repository Contracts** | 18 | 18 | 27 | 27 | 27 |
-| **Service binds** | 0 | 0 | 33+ | 33+ | 33+ |
-| **Domain exceptions** | 1 | 1 | 1 | 1 | **6** (+5) |
-| **Jobs com `failed()`** | 3/5 | 3/5 | 3/5 | 3/5 | **5/5** (100%) |
-| **Linhas phpstan.baseline** | 15,512 | 15,512 | 15,512 | 15,512 | **7,742** (-50.1%) |
-| **Patterns `phpstan.neon`** | 65 | 65 | 85 | 95 | **~115** (+50) |
-| **Health checks ativos** | 0 | 0 | 0 | 0 | **6** (novo) |
-| **PHPStan nível 8** | ✓ | ✓ | ✓ | ✓ | **✓** |
-| **Suite duration** | n/a | n/a | ~534s | ~534s | **~252s** |
+| Métrica                            | Inicial (pré-Fase 1) | Pós-Fase 1 | Pós-Fase 2 | Pós-Fase 3 | **Pós-Fase 4**    |
+| ----------------------------------- | --------------------- | ----------- | ----------- | ----------- | ------------------------ |
+| **Testes PHPUnit**            | 516                   | 516         | 517         | 533         | **571** (+55)      |
+| **Factories tenant**          | 2                     | 2           | 2           | 2           | **12** (+10)       |
+| **Factories central**         | 0                     | 0           | 0           | 0           | **1** (+1)         |
+| **Events de domínio**        | 0                     | 0           | 0           | 7           | 7                        |
+| **Listeners**                 | 0                     | 0           | 0           | 10          | 10                       |
+| **Repository Contracts**      | 18                    | 18          | 27          | 27          | 27                       |
+| **Service binds**             | 0                     | 0           | 33+         | 33+         | 33+                      |
+| **Domain exceptions**         | 1                     | 1           | 1           | 1           | **6** (+5)         |
+| **Jobs com `failed()`**     | 3/5                   | 3/5         | 3/5         | 3/5         | **5/5** (100%)     |
+| **Linhas phpstan.baseline**   | 15,512                | 15,512      | 15,512      | 15,512      | **7,742** (-50.1%) |
+| **Patterns `phpstan.neon`** | 65                    | 65          | 85          | 95          | **~115** (+50)     |
+| **Health checks ativos**      | 0                     | 0           | 0           | 0           | **6** (novo)       |
+| **PHPStan nível 8**          | ✓                    | ✓          | ✓          | ✓          | **✓**             |
+| **Suite duration**            | n/a                   | n/a         | ~534s       | ~534s       | **~252s**          |
 
 ## E.8 Working tree pós-implementação
 
@@ -1176,11 +1208,11 @@ M  tests/Unit/Jobs/IndexDocumentEmbeddingJobTest.php
 
 Os Apêndices B, C e D listavam itens como "escopo da Fase 4 — não tocado". A tabela abaixo mapeia cada um para o sub-item da Fase 4 que o resolveu e o resultado entregue:
 
-| Apêndice | Item listado como "pendente/não tocado" | Resolvido por | Status pós-Fase 4 |
-|---|---|---|---|
-| B, C, D | "2/54 models com factory" | **E.1** (Fase 4.1) | **13/54** models com factory (12 tenant + 1 central) |
-| B, C, D | "Health check superficial" | **E.3** (Fase 4.3) | **`HealthCheckService`** com 6 checks (DB central+tenant, cache, storage, queue, Stripe, OpenRouter); status `ok`/`degraded`/`down`; HTTP 200/503 |
-| B, C, D | "1 custom exception" | **E.5** (Fase 4.5) | **6** exceções: `DomainException` (base) + `WorkflowTransitionNotAllowedException` (422), `ViabilidadeAlreadyDecidedException` (409), `ContractValidationException` (422), `CommitteePendingException` (409), `EtapaBlockedException` (409) |
+| Apêndice | Item listado como "pendente/não tocado" | Resolvido por            | Status pós-Fase 4                                                                                                                                                                                                                                              |
+| --------- | ---------------------------------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| B, C, D   | "2/54 models com factory"                | **E.1** (Fase 4.1) | **13/54** models com factory (12 tenant + 1 central)                                                                                                                                                                                                      |
+| B, C, D   | "Health check superficial"               | **E.3** (Fase 4.3) | **`HealthCheckService`** com 6 checks (DB central+tenant, cache, storage, queue, Stripe, OpenRouter); status `ok`/`degraded`/`down`; HTTP 200/503                                                                                                 |
+| B, C, D   | "1 custom exception"                     | **E.5** (Fase 4.5) | **6** exceções: `DomainException` (base) + `WorkflowTransitionNotAllowedException` (422), `ViabilidadeAlreadyDecidedException` (409), `ContractValidationException` (422), `CommitteePendingException` (409), `EtapaBlockedException` (409) |
 
 ### Contexto histórico preservado
 

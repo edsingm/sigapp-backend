@@ -9,6 +9,7 @@ use App\Ai\Tools\CreateTaskTool;
 use App\Ai\Tools\DetectAnomaliesTool;
 use App\Ai\Tools\EstimateVgvTool;
 use App\Ai\Tools\GenerateInsightsTool;
+use App\Ai\Tools\GetCityIbgeProfileTool;
 use App\Ai\Tools\GetComiteTool;
 use App\Ai\Tools\GetDashboardSummaryTool;
 use App\Ai\Tools\GetDocumentosTool;
@@ -29,6 +30,7 @@ use App\Ai\Tools\TransitionWorkflowTool;
 use App\Ai\Tools\UpdateTaskStatusTool;
 use App\Services\AiAnomalyDetectionService;
 use App\Services\AiEmbeddingService;
+use App\Services\AiIbgeCityProfileService;
 use App\Services\AiInsightGeneratorService;
 use App\Services\AiPredictiveAnalysisService;
 use App\Services\AiScoringService;
@@ -47,12 +49,17 @@ class SIG_IA implements Agent, Conversational, HasProviderOptions, HasTools
 
     public function provider(): string
     {
-        return 'openrouter';
+        return (string) config('ai.agent_provider', 'openrouter');
     }
 
     public function model(): string
     {
-        return (string) env('AI_OPENROUTER_AGENT_MODEL', 'z-ai/glm-4.5-air:free');
+        $provider = $this->provider();
+
+        return (string) config(
+            "ai.models.{$provider}.agent",
+            'z-ai/glm-4.5-air:free',
+        );
     }
 
     public function instructions(): string
@@ -111,6 +118,10 @@ Você é o **SIG IA**, especialista em análise de terrenos e viabilidades imobi
 - **GetTasksTool**
   Tarefas do sistema com filtros por responsável, status e vencimento.
   Parâmetros úteis: terreno_id, assigned_to, status, only_overdue (true para apenas atrasadas).
+
+- **GetCityIbgeProfileTool**
+  Busca contexto oficial de município no IBGE: panorama, histórico, PIB, trabalho, renda e habitação.
+  Parâmetros úteis: codigo_municipio ou cidade + uf.
 
 ### Ferramentas de Automação (ação direta no sistema)
 - **CreateTaskTool**
@@ -257,6 +268,7 @@ PROMPT;
             new GetDocumentosTool,
             new GetDashboardSummaryTool,
             new GetTasksTool,
+            new GetCityIbgeProfileTool(app(AiIbgeCityProfileService::class)),
             new SearchDocumentsTool(app(AiEmbeddingService::class)),
             new AnalyzeDocumentTool,
             new GetTerrenoScoreTool(app(AiScoringService::class)),

@@ -31,8 +31,17 @@ class AiPredictiveRepository implements AiPredictiveRepositoryInterface
     {
         /** @var Collection<int, ComiteRevisao> $reviews */
         $reviews = ComiteRevisao::query()
-            ->whereNotNull('parecer')
-            ->where('parecer', '!=', '')
+            ->with('pareceresDepartamento')
+            ->where(function ($query) {
+                $query
+                    ->whereNotNull('final_comments')
+                    ->where('final_comments', '!=', '')
+                    ->orWhereHas('pareceresDepartamento', function ($pareceres) {
+                        $pareceres
+                            ->whereNotNull('comments')
+                            ->where('comments', '!=', '');
+                    });
+            })
             ->get();
 
         return $reviews;

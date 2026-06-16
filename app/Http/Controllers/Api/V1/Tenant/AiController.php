@@ -37,11 +37,11 @@ class AiController extends Controller
      */
     public function conversationMessages(string $id): JsonResponse
     {
-        if (! $this->conversationRepository->conversationExists((int) $id, Auth::id())) {
+        if (! $this->conversationRepository->conversationExists($id, Auth::id())) {
             return new JsonResponse(['message' => 'Conversa não encontrada.'], 404);
         }
 
-        $messages = $this->conversationRepository->getMessages((int) $id);
+        $messages = $this->conversationRepository->getMessages($id);
 
         return new JsonResponse(['data' => $messages]);
     }
@@ -79,7 +79,7 @@ class AiController extends Controller
         try {
             // Conversa existente: verificar ownership
             if ($conversationId) {
-                if (! $this->conversationRepository->conversationExists((int) $conversationId, $user)) {
+                if (! $this->conversationRepository->conversationExists($conversationId, $user)) {
                     return new JsonResponse(['message' => 'Conversa não encontrada.'], 404);
                 }
             } else {

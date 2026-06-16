@@ -21,7 +21,7 @@ class AiConversationRepository
             ->get(['id', 'title', 'created_at', 'updated_at']);
     }
 
-    public function conversationExists(int $conversationId, int|string|null $userId): bool
+    public function conversationExists(string $conversationId, int|string|null $userId): bool
     {
         return DB::table('agent_conversations')
             ->where('id', $conversationId)
@@ -34,7 +34,7 @@ class AiConversationRepository
      *
      * @return Collection<int, object>
      */
-    public function getMessages(int $conversationId): Collection
+    public function getMessages(string $conversationId): Collection
     {
         return DB::table('agent_conversation_messages')
             ->where('conversation_id', $conversationId)

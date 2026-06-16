@@ -193,7 +193,7 @@ class Terreno extends Model
     public function viabilidadeAtual(): HasOne
     {
         return $this->hasOne(Viabilidade::class, 'terreno_id')
-            ->where('is_current', true)
+            ->where('viabilidades.is_current', true)
             ->latestOfMany();
     }
 

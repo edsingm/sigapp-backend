@@ -4,7 +4,6 @@ namespace App\Ai\Tools;
 
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -21,16 +20,19 @@ class CreatePdfsTool implements Tool
 
     public function handle(Request $request): Stringable|string
     {
-        $filename = Str::slug($request['filename']).'-'.Str::uuid().'.pdf';
+        $filename = Str::slug($request['filename']).'.pdf';
         $path = 'pdfs/'.$filename;
 
-        // HTML completo (a IA pode gerar isso)
-        $html = $request['html_content'];
-
         try {
-            Pdf::html($html)
+            Pdf::view('exports.ai-pdf', [
+                'title' => $request['title'],
+                'content' => $request['html_content'],
+            ])
                 ->format('A4')
-                ->margins(20, 20, 20, 20)
+                ->margins(14, 16, 24, 16)
+                ->footerView('exports.ai-pdf-footer', [
+                    'title' => $request['title'],
+                ])
                 ->withBrowsershot(function ($browsershot) {
                     $chromePath = $this->resolveChromePath();
                     if ($chromePath && method_exists($browsershot, 'setChromePath')) {
@@ -46,7 +48,7 @@ class CreatePdfsTool implements Tool
         } catch (Throwable $e) {
             Log::warning('AI PDF generation failed', [
                 'filename' => $filename,
-                'title' => $request['title'] ?? 'Documento Gerado',
+                'title' => $request['title'],
                 'error' => $e->getMessage(),
             ]);
 
@@ -59,7 +61,7 @@ class CreatePdfsTool implements Tool
             return 'Nao foi possivel gerar o PDF solicitado neste momento. Motivo tecnico: '.$e->getMessage();
         }
 
-        $url = tenant_asset($path);
+        $url = $this->buildDownloadUrl($path);
 
         return "✅ PDF gerado com sucesso!\n\n".
                "📄 Nome do arquivo: {$filename}\n".
@@ -81,7 +83,7 @@ class CreatePdfsTool implements Tool
 
             'html_content' => $schema->string()
                 ->required()
-                ->description('Conteúdo completo em HTML do PDF. Pode incluir Tailwind classes se estiver usando Browsershot.'),
+                ->description('Conteúdo HTML do corpo do PDF (sem as tags html/head/body). Use h1-h6, p, ul, ol, table. Estilos inline são permitidos.'),
         ];
     }
 
@@ -103,5 +105,26 @@ class CreatePdfsTool implements Tool
         }
 
         return null;
+    }
+
+    private function buildDownloadUrl(string $path): string
+    {
+        $relativePath = '/tenancy/assets/'.ltrim($path, '/');
+        $request = request();
+
+        if ($request) {
+            $externalHost = trim((string) $request->header('X-External-Host', ''));
+            $externalProto = trim((string) $request->header('X-External-Proto', ''));
+
+            if ($externalHost !== '') {
+                $scheme = $externalProto !== '' ? $externalProto : $request->getScheme();
+
+                return "{$scheme}://{$externalHost}{$relativePath}";
+            }
+
+            return rtrim($request->getSchemeAndHttpHost(), '/').$relativePath;
+        }
+
+        return tenant_asset($path);
     }
 }

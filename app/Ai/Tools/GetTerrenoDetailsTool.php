@@ -37,9 +37,36 @@ class GetTerrenoDetailsTool implements Tool
 
         $terreno = Terreno::query()
             ->with([
-                'viabilidadeAtual:id,terreno_id,version,status,approval_status,updated_at',
-                'negociacaoAtual:id,terreno_id,status,proposal_value,started_at,closed_at',
-                'contratoAtual:id,terreno_id,contract_type,contract_number,status,signed_at',
+                'viabilidadeAtual' => static function ($query): void {
+                    $query->select([
+                        'viabilidades.id',
+                        'viabilidades.terreno_id',
+                        'viabilidades.version',
+                        'viabilidades.status',
+                        'viabilidades.approval_status',
+                        'viabilidades.updated_at',
+                    ]);
+                },
+                'negociacaoAtual' => static function ($query): void {
+                    $query->select([
+                        'negociacoes.id',
+                        'negociacoes.terreno_id',
+                        'negociacoes.status',
+                        'negociacoes.proposal_value',
+                        'negociacoes.started_at',
+                        'negociacoes.closed_at',
+                    ]);
+                },
+                'contratoAtual' => static function ($query): void {
+                    $query->select([
+                        'contratos.id',
+                        'contratos.terreno_id',
+                        'contratos.contract_type',
+                        'contratos.contract_number',
+                        'contratos.status',
+                        'contratos.signed_at',
+                    ]);
+                },
                 'projetos:id,terreno_id,nome,status,created_at',
             ])
             ->withCount(['documentos', 'contatos', 'proprietarios', 'viabilidades', 'projetos'])
@@ -141,7 +168,15 @@ class GetTerrenoDetailsTool implements Tool
 
         if ($includeViabilidades) {
             $payload['ultimas_viabilidades'] = $terreno->viabilidades()
-                ->select(['id', 'terreno_id', 'version', 'is_current', 'status', 'approval_status', 'updated_at'])
+                ->select([
+                    'viabilidades.id',
+                    'viabilidades.terreno_id',
+                    'viabilidades.version',
+                    'viabilidades.is_current',
+                    'viabilidades.status',
+                    'viabilidades.approval_status',
+                    'viabilidades.updated_at',
+                ])
                 ->orderByDesc('version')
                 ->limit(5)
                 ->get()

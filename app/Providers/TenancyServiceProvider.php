@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Stancl\JobPipeline\JobPipeline;
 use Stancl\Tenancy\Bootstrappers\RootUrlBootstrapper;
+use Stancl\Tenancy\Controllers\TenantAssetsController;
 // use Stancl\Tenancy\Actions\CloneRoutesAsTenant; // Classe não existe na v3.9.1
 use Stancl\Tenancy\DatabaseConfig;
 use Stancl\Tenancy\Events;
@@ -198,6 +199,8 @@ class TenancyServiceProvider extends ServiceProvider
 
     public function boot()
     {
+        TenantAssetsController::$tenancyMiddleware = Middleware\InitializeTenancyByDomainOrSubdomain::class;
+
         $this->bootEvents();
         $this->mapRoutes();
 

@@ -293,7 +293,7 @@ class AiToolsTest extends TestCase
 
     public function test_create_pdfs_tool_returns_friendly_message_when_chrome_is_missing(): void
     {
-        Pdf::shouldReceive('html')
+        Pdf::shouldReceive('view')
             ->once()
             ->andThrow(new RuntimeException('Could not find Chrome (ver. 148.0.7778.97).'));
 
@@ -309,11 +309,14 @@ class AiToolsTest extends TestCase
         $this->assertStringContainsString('infraestrutura de PDF', $result);
     }
 
-    public function test_sig_ia_uses_openrouter_provider(): void
+    public function test_sig_ia_uses_configured_provider(): void
     {
         $agent = new SIG_IA;
 
-        $this->assertEquals('openrouter', $agent->provider());
+        $this->assertEquals(
+            (string) config('ai.agent_provider', 'openrouter'),
+            $agent->provider()
+        );
     }
 
     public function test_sig_ia_has_reasoning_enabled(): void

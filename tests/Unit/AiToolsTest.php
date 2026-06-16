@@ -19,6 +19,7 @@ use App\Ai\Tools\GetNegociacaoTool;
 use App\Ai\Tools\GetRankingTool;
 use App\Ai\Tools\GetTasksTool;
 use App\Ai\Tools\GetTerrenoDetailsTool;
+use App\Ai\Tools\GetTerrenoGeoAnalysisTool;
 use App\Ai\Tools\GetTerrenoScoreTool;
 use App\Ai\Tools\GetTrendsTool;
 use App\Ai\Tools\GetViabilidadesTool;
@@ -31,6 +32,8 @@ use App\Ai\Tools\TransitionWorkflowTool;
 use App\Ai\Tools\UpdateTaskStatusTool;
 use App\Services\AiAnomalyDetectionService;
 use App\Services\AiIbgeCityProfileService;
+use App\Services\Tenant\Area\PolygonCalculator;
+use App\Services\Tenant\Geo\GeoProximityService;
 use App\Services\AiInsightGeneratorService;
 use App\Services\AiPredictiveAnalysisService;
 use App\Services\AiScoringService;
@@ -59,6 +62,7 @@ class AiToolsTest extends TestCase
         $expected = [
             ListTerrenosTool::class,
             GetTerrenoDetailsTool::class,
+            GetTerrenoGeoAnalysisTool::class,
             GetViabilidadesTool::class,
             GetLegalizacaoTool::class,
             GetComiteTool::class,
@@ -125,6 +129,28 @@ class AiToolsTest extends TestCase
         $tool = new GetTerrenoDetailsTool;
 
         $this->assertNotEmpty($tool->description());
+    }
+
+    public function test_get_terreno_geo_analysis_tool_has_description(): void
+    {
+        $tool = new GetTerrenoGeoAnalysisTool(
+            app(GeoProximityService::class),
+            app(PolygonCalculator::class),
+        );
+
+        $this->assertNotEmpty($tool->description());
+    }
+
+    public function test_get_terreno_geo_analysis_tool_returns_error_without_id(): void
+    {
+        $tool = new GetTerrenoGeoAnalysisTool(
+            app(GeoProximityService::class),
+            app(PolygonCalculator::class),
+        );
+
+        $result = $tool->handle(new Request([]));
+
+        $this->assertStringContainsString('terreno_id', (string) $result);
     }
 
     public function test_get_legalizacao_tool_has_description(): void

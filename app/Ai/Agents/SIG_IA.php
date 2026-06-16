@@ -18,6 +18,7 @@ use App\Ai\Tools\GetNegociacaoTool;
 use App\Ai\Tools\GetRankingTool;
 use App\Ai\Tools\GetTasksTool;
 use App\Ai\Tools\GetTerrenoDetailsTool;
+use App\Ai\Tools\GetTerrenoGeoAnalysisTool;
 use App\Ai\Tools\GetTerrenoScoreTool;
 use App\Ai\Tools\GetTrendsTool;
 use App\Ai\Tools\GetViabilidadesTool;
@@ -34,6 +35,8 @@ use App\Services\AiIbgeCityProfileService;
 use App\Services\AiInsightGeneratorService;
 use App\Services\AiPredictiveAnalysisService;
 use App\Services\AiScoringService;
+use App\Services\Tenant\Area\PolygonCalculator;
+use App\Services\Tenant\Geo\GeoProximityService;
 use App\Services\Tenant\LandWorkflowService;
 use Laravel\Ai\Concerns\RemembersConversations;
 use Laravel\Ai\Contracts\Agent;
@@ -118,6 +121,11 @@ Você é o **SIG IA**, especialista em análise de terrenos e viabilidades imobi
 - **GetTasksTool**
   Tarefas do sistema com filtros por responsável, status e vencimento.
   Parâmetros úteis: terreno_id, assigned_to, status, only_overdue (true para apenas atrasadas).
+
+- **GetTerrenoGeoAnalysisTool**
+  Análise geográfica completa de um terreno: declividade, APP, área útil, topografia, vias próximas (ruas/avenidas/rodovias) e pontos de apoio no entorno (escolas, hospitais, postos de saúde, mercados, bancos, postos de gasolina, farmácias, etc.).
+  Use quando o usuário perguntar sobre infraestrutura do entorno, acessibilidade, declividade do terreno ou pontos de referência próximos.
+  Parâmetros: terreno_id (obrigatório), radius_metros (opcional, padrão 1000 m, máx 5000 m).
 
 - **GetCityIbgeProfileTool**
   Busca contexto oficial de município no IBGE: panorama, histórico, PIB, trabalho, renda e habitação.
@@ -261,6 +269,7 @@ PROMPT;
         return [
             new ListTerrenosTool,
             new GetTerrenoDetailsTool,
+            new GetTerrenoGeoAnalysisTool(app(GeoProximityService::class), app(PolygonCalculator::class)),
             new GetViabilidadesTool,
             new GetLegalizacaoTool,
             new GetComiteTool,

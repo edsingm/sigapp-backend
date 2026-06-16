@@ -53,7 +53,7 @@ return [
     ],
 
     'google_maps' => [
-        'key' => env('GOOGLE_MAPS_KEY'),
+        'key' => env('GOOGLE_MAPS_API_KEY', env('GOOGLE_MAPS_KEY')),
     ],
 
     'opentopography' => [

@@ -4,7 +4,6 @@ namespace App\Http\Middleware;
 
 use App\Services\AiTelemetryService;
 use App\Services\ApiResponseService;
-use App\Services\PlanMatrixService;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -13,7 +12,6 @@ class AiBudgetCheck
 {
     public function __construct(
         protected AiTelemetryService $telemetryService,
-        protected PlanMatrixService $planMatrix
     ) {}
 
     /**
@@ -37,8 +35,6 @@ class AiBudgetCheck
             );
         }
 
-        // Resolve budget do plano (entitlement ai_budget) ou usa default
-        $budget = $this->resolveBudget();
         $budgetStatus = $this->telemetryService->getBudgetStatus();
 
         if ($budgetStatus['exceeded']) {
@@ -57,28 +53,4 @@ class AiBudgetCheck
         return $next($request);
     }
 
-    /**
-     * Resolve o orçamento configurável para o tenant.
-     */
-    protected function resolveBudget(): float
-    {
-        $default = (float) env('AI_TENANT_BUDGET_DEFAULT', 10.00);
-
-        try {
-            if (! tenancy()->initialized) {
-                return $default;
-            }
-
-            $tenant = tenancy()->tenant;
-            $custom = $this->planMatrix->getLimitForTenant($tenant, 'ai_budget');
-
-            if ($custom > 0) {
-                return (float) $custom;
-            }
-        } catch (\Throwable) {
-            // Fallback ao default se não resolver via PlanMatrix
-        }
-
-        return $default;
-    }
 }

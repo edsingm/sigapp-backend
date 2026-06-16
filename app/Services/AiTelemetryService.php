@@ -17,9 +17,14 @@ class AiTelemetryService
     protected array $priceMap = [];
 
     public function __construct(
-        private readonly AiTelemetryRepositoryInterface $repository
+        private readonly AiTelemetryRepositoryInterface $repository,
+        private readonly PlanMatrixService $planMatrix,
     ) {
         $this->priceMap = [
+            'deepseek' => [
+                'input' => (float) env('AI_DEEPSEEK_INPUT_PRICE_PER_M', 0.0028),
+                'output' => (float) env('AI_DEEPSEEK_OUTPUT_PRICE_PER_M', 0.28),
+            ],
             'openrouter' => [
                 'input' => (float) env('AI_OPENROUTER_INPUT_PRICE_PER_M', 0.00),
                 'output' => (float) env('AI_OPENROUTER_OUTPUT_PRICE_PER_M', 0.00),
@@ -160,11 +165,36 @@ class AiTelemetryService
     }
 
     /**
+     * Resolve o limite de orçamento do tenant: plano > env default.
+     */
+    private function resolveBudgetLimit(): float
+    {
+        $default = (float) env('AI_TENANT_BUDGET_DEFAULT', 10.00);
+
+        try {
+            if (! tenancy()->initialized) {
+                return $default;
+            }
+
+            $tenant = tenancy()->tenant;
+            $custom = $this->planMatrix->getLimitForTenant($tenant, 'ai_budget');
+
+            if ($custom > 0) {
+                return (float) $custom;
+            }
+        } catch (\Throwable) {
+            // Fallback ao default se o plano não estiver configurado
+        }
+
+        return $default;
+    }
+
+    /**
      * Retorna o orçamento atual e o gasto.
      */
     public function getBudgetStatus(): array
     {
-        $budgetLimit = (float) env('AI_TENANT_BUDGET_DEFAULT', 10.00);
+        $budgetLimit = $this->resolveBudgetLimit();
         $spent = $this->getTenantMonthlyCost();
 
         return [

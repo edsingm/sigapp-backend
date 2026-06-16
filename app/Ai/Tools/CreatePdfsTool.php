@@ -3,12 +3,14 @@
 namespace App\Ai\Tools;
 
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Spatie\LaravelPdf\Facades\Pdf;
 use Stringable;
+use Throwable;
 
 class CreatePdfsTool implements Tool
 {
@@ -25,17 +27,43 @@ class CreatePdfsTool implements Tool
         // HTML completo (a IA pode gerar isso)
         $html = $request['html_content'];
 
-        Pdf::html($html)
-            ->meta(title: $request['title'] ?? 'Documento Gerado')
-            ->format('A4')
-            ->margins(20, 20, 20, 20)
-            ->save(storage_path("app/public/{$path}"));
+        try {
+            Pdf::html($html)
+                ->format('A4')
+                ->margins(20, 20, 20, 20)
+                ->withBrowsershot(function ($browsershot) {
+                    $chromePath = $this->resolveChromePath();
+                    if ($chromePath && method_exists($browsershot, 'setChromePath')) {
+                        $browsershot->setChromePath($chromePath);
+                    }
 
-        $url = Storage::url($path);
+                    if (method_exists($browsershot, 'noSandbox')) {
+                        $browsershot->noSandbox();
+                    }
+                })
+                ->disk('public')
+                ->save($path);
+        } catch (Throwable $e) {
+            Log::warning('AI PDF generation failed', [
+                'filename' => $filename,
+                'title' => $request['title'] ?? 'Documento Gerado',
+                'error' => $e->getMessage(),
+            ]);
+
+            if (str_contains($e->getMessage(), 'Could not find Chrome')) {
+                return 'Nao foi possivel gerar o PDF neste ambiente porque o Chrome/Chromium nao esta instalado no servidor. '
+                    .'O chat continua funcionando, mas a infraestrutura de PDF precisa da instalacao do navegador headless '
+                    .'ou de um driver alternativo para concluir essa acao.';
+            }
+
+            return 'Nao foi possivel gerar o PDF solicitado neste momento. Motivo tecnico: '.$e->getMessage();
+        }
+
+        $url = tenant_asset($path);
 
         return "✅ PDF gerado com sucesso!\n\n".
                "📄 Nome do arquivo: {$filename}\n".
-               '🔗 Link para download: '.url($url)."\n\n".
+               '🔗 Link para download: '.$url."\n\n".
                'O usuário pode baixar diretamente nesse link.';
     }
 
@@ -55,5 +83,25 @@ class CreatePdfsTool implements Tool
                 ->required()
                 ->description('Conteúdo completo em HTML do PDF. Pode incluir Tailwind classes se estiver usando Browsershot.'),
         ];
+    }
+
+    private function resolveChromePath(): ?string
+    {
+        $candidates = array_filter([
+            env('BROWSERSHOT_CHROME_PATH'),
+            env('PUPPETEER_EXECUTABLE_PATH'),
+            '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+            '/usr/bin/google-chrome',
+            '/usr/bin/chromium-browser',
+            '/usr/bin/chromium',
+        ]);
+
+        foreach ($candidates as $candidate) {
+            if (is_string($candidate) && is_file($candidate) && is_executable($candidate)) {
+                return $candidate;
+            }
+        }
+
+        return null;
     }
 }

@@ -107,7 +107,7 @@ class EntitlementSeeder extends Seeder
                     'terrenos' => 50,
                     'products' => 1,
                     'storage_gb' => 0,
-                    'ai_budget' => 5,
+                    'ai_budget' => 0,
                 ],
             ],
             'basico' => [
@@ -142,7 +142,7 @@ class EntitlementSeeder extends Seeder
                     'terrenos' => 100,
                     'products' => 2,
                     'storage_gb' => 1,
-                    'ai_budget' => 10,
+                    'ai_budget' => 5,
                 ],
             ],
             'master' => [
@@ -177,7 +177,7 @@ class EntitlementSeeder extends Seeder
                     'terrenos' => 200,
                     'products' => 3,
                     'storage_gb' => 3,
-                    'ai_budget' => 25,
+                    'ai_budget' => 20,
                 ],
             ],
             'pro' => [
@@ -212,7 +212,7 @@ class EntitlementSeeder extends Seeder
                     'terrenos' => -1,
                     'products' => -1,
                     'storage_gb' => 5,
-                    'ai_budget' => 100,
+                    'ai_budget' => 50,
                 ],
             ],
         ];

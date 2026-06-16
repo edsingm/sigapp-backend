@@ -5,8 +5,11 @@ namespace App\Services;
 use App\Models\Tenant\Cidade;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\Viabilidade;
+use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 /**
  * Serviço de geração de insights e análise avançada do portfólio.
@@ -353,13 +356,13 @@ class AiInsightGeneratorService
         return Terreno::query()
             ->whereNotIn('workflow_status_code', ['descartado', 'arquivado'])
             ->whereNotNull('cidade_code')
-            ->selectRaw('
+            ->selectRaw("
                 cidade_code,
                 COUNT(*) as total_terrenos,
-                COUNT(CASE WHEN workflow_status_code = "legalizado_finalizado" THEN 1 END) as finalizados,
+                COUNT(CASE WHEN workflow_status_code = 'legalizado_finalizado' THEN 1 END) as finalizados,
                 AVG(COALESCE(valor, 0)) as avg_valor,
                 MAX(created_at) as last_cadastro
-            ')
+            ")
             ->groupBy('cidade_code')
             ->orderByDesc('total_terrenos')
             ->limit(20)
@@ -369,9 +372,26 @@ class AiInsightGeneratorService
                 'total_terrenos' => $row->total_terrenos,
                 'finalizados' => $row->finalizados,
                 'avg_valor' => round($row->avg_valor, 2),
-                'last_cadastro' => $row->last_cadastro?->toIso8601String(),
+                'last_cadastro' => $this->toIsoDateTime($row->last_cadastro),
             ])
             ->all();
+    }
+
+    protected function toIsoDateTime(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if ($value instanceof CarbonInterface) {
+            return $value->toIso8601String();
+        }
+
+        try {
+            return CarbonImmutable::parse((string) $value)->toIso8601String();
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     /**
@@ -398,15 +418,15 @@ class AiInsightGeneratorService
     protected function getMonthlyTrends(): array
     {
         $months = Terreno::query()
-            ->selectRaw('
-                DATE_FORMAT(created_at, "%Y-%m") as month,
+            ->selectRaw("
+                TO_CHAR(created_at, 'YYYY-MM') as month,
                 COUNT(*) as cadastros,
-                COUNT(CASE WHEN workflow_stage = "captacao" THEN 1 END) as captacoes,
-                COUNT(CASE WHEN workflow_status_code IN ("descartado", "arquivado") THEN 1 END) as descarte
-            ')
+                COUNT(CASE WHEN workflow_stage = 'captacao' THEN 1 END) as captacoes,
+                COUNT(CASE WHEN workflow_status_code IN ('descartado', 'arquivado') THEN 1 END) as descarte
+            ")
             ->where('created_at', '>=', now()->subMonths(12))
-            ->groupBy('month')
-            ->orderBy('month')
+            ->groupByRaw("TO_CHAR(created_at, 'YYYY-MM')")
+            ->orderByRaw("TO_CHAR(created_at, 'YYYY-MM')")
             ->get()
             ->map(fn ($row) => [
                 'month' => $row->month,
@@ -464,12 +484,12 @@ class AiInsightGeneratorService
         $data = Terreno::query()
             ->whereNotIn('workflow_status_code', ['descartado', 'arquivado'])
             ->whereNotNull('cidade_code')
-            ->selectRaw('
+            ->selectRaw("
                 cidade_code,
                 COUNT(*) as total,
-                COUNT(CASE WHEN workflow_status_code = "legalizado_finalizado" THEN 1 END) as finalizados,
-                COUNT(CASE WHEN workflow_status_code = "descartado" THEN 1 END) as descartados
-            ')
+                COUNT(CASE WHEN workflow_status_code = 'legalizado_finalizado' THEN 1 END) as finalizados,
+                COUNT(CASE WHEN workflow_status_code = 'descartado' THEN 1 END) as descartados
+            ")
             ->groupBy('cidade_code')
             ->get()
             ->map(function ($row) {
@@ -490,7 +510,7 @@ class AiInsightGeneratorService
             'metrics' => [
                 'total_cities' => count($data),
                 'avg_completion_rate' => count($data) > 0
-                    ? round(collect($items)->average('completion_rate') ?? 0, 1)
+                    ? round(collect($data)->average('completion_rate') ?? 0, 1)
                     : 0,
             ],
         ];
@@ -503,14 +523,14 @@ class AiInsightGeneratorService
     {
         return DB::table('terrenos')
             ->leftJoin('users', 'users.id', '=', 'terrenos.responsavel_id')
-            ->selectRaw('
+            ->selectRaw("
                 terrenos.responsavel_id,
-                COALESCE(users.name, "Sem responsável") as name,
+                COALESCE(users.name, 'Sem responsável') as name,
                 COUNT(*) as total,
-                COUNT(CASE WHEN terrenos.workflow_status_code IN ("viabilidade_aprovada", "aguardando_comite", "negociacao_minuta", "contrato_assinado", "legalizando", "legalizado_finalizado") THEN 1 END) as aprovados,
-                COUNT(CASE WHEN terrenos.workflow_status_code = "em_analise" THEN 1 END) as em_analise,
-                COUNT(CASE WHEN terrenos.workflow_status_code IN ("descartado", "arquivado") THEN 1 END) as descartados
-            ')
+                COUNT(CASE WHEN terrenos.workflow_status_code IN ('viabilidade_aprovada', 'aguardando_comite', 'negociacao_minuta', 'contrato_assinado', 'legalizando', 'legalizado_finalizado') THEN 1 END) as aprovados,
+                COUNT(CASE WHEN terrenos.workflow_status_code = 'em_analise' THEN 1 END) as em_analise,
+                COUNT(CASE WHEN terrenos.workflow_status_code IN ('descartado', 'arquivado') THEN 1 END) as descartados
+            ")
             ->whereNotIn('terrenos.workflow_status_code', ['descartado', 'arquivado'])
             ->groupBy('terrenos.responsavel_id', 'users.name')
             ->orderByDesc('total')

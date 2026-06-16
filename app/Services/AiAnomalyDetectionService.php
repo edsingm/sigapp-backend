@@ -354,8 +354,8 @@ class AiAnomalyDetectionService
         if (filled($a->cidade_code) && $a->cidade_code === $b->cidade_code) {
             $matchPoints += 1;
 
-            if ($a->area_terreno > 0 && $b->area_terreno > 0) {
-                $areaDiff = abs($a->area_terreno - $b->area_terreno) / max($a->area_terreno, $b->area_terreno);
+            if ($a->area_calculada > 0 && $b->area_calculada > 0) {
+                $areaDiff = abs($a->area_calculada - $b->area_calculada) / max($a->area_calculada, $b->area_calculada);
                 if ($areaDiff < 0.05) {
                     $matchPoints += 2;
                 }

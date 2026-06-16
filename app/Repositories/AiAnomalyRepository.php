@@ -72,7 +72,7 @@ class AiAnomalyRepository implements AiAnomalyRepositoryInterface
             ->whereNotIn('workflow_status_code', self::FINAL_STATUSES)
             ->where('valor', 0)
             ->limit($limit)
-            ->get(['id', 'nome', 'area_terreno', 'updated_at']);
+            ->get(['id', 'nome', 'area_calculada', 'updated_at']);
 
         return $terrenos;
     }
@@ -83,8 +83,8 @@ class AiAnomalyRepository implements AiAnomalyRepositoryInterface
         $terrenos = Terreno::query()
             ->whereNotIn('workflow_status_code', self::FINAL_STATUSES)
             ->where(function ($q) {
-                $q->where('area_terreno', 0)
-                    ->orWhereNull('area_terreno');
+                $q->where('area_calculada', 0)
+                    ->orWhereNull('area_calculada');
             })
             ->limit($limit)
             ->get(['id', 'nome', 'updated_at']);

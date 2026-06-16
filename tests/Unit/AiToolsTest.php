@@ -36,6 +36,9 @@ use App\Services\AiPredictiveAnalysisService;
 use App\Services\AiScoringService;
 use App\Services\Tenant\LandWorkflowService;
 use Laravel\Ai\Contracts\Tool;
+use Laravel\Ai\Tools\Request;
+use RuntimeException;
+use Spatie\LaravelPdf\Facades\Pdf;
 use Tests\TestCase;
 
 /**
@@ -286,6 +289,24 @@ class AiToolsTest extends TestCase
         );
 
         $this->assertNotEmpty($tool->description());
+    }
+
+    public function test_create_pdfs_tool_returns_friendly_message_when_chrome_is_missing(): void
+    {
+        Pdf::shouldReceive('html')
+            ->once()
+            ->andThrow(new RuntimeException('Could not find Chrome (ver. 148.0.7778.97).'));
+
+        $tool = new CreatePdfsTool;
+
+        $result = $tool->handle(new Request([
+            'filename' => 'relatorio-ibge',
+            'title' => 'Relatorio IBGE',
+            'html_content' => '<html><body><h1>Teste</h1></body></html>',
+        ]));
+
+        $this->assertStringContainsString('Chrome/Chromium', $result);
+        $this->assertStringContainsString('infraestrutura de PDF', $result);
     }
 
     public function test_sig_ia_uses_openrouter_provider(): void

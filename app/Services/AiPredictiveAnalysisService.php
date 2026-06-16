@@ -245,7 +245,7 @@ class AiPredictiveAnalysisService
             filled($terreno->corretor_id),
             $terreno->terrenoProdutos()->exists(),
             filled($terreno->valor),
-            filled($terreno->area_terreno),
+            filled($terreno->area_calculada),
         ];
         $readinessScore = (collect($criteria)->filter()->count() / count($criteria)) * 100;
 

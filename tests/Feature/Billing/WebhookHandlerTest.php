@@ -299,6 +299,180 @@ class WebhookHandlerTest extends TestCase
         ])->assertOk();
     }
 
+    // -------------------------------------------------------------------------
+    // Downgrade diferido — customer.subscription.updated
+    // -------------------------------------------------------------------------
+
+    public function test_subscription_updated_with_pending_downgrade_skips_plan_sync(): void
+    {
+        $subscriptionId = 'sub_downgrade_'.uniqid();
+
+        // Cria um plano extra para usar como scheduled_plan_id
+        $scheduledPlan = Plan::create([
+            'name' => 'Plano Agendado',
+            'slug' => 'agendado-'.uniqid(),
+            'description' => 'Teste downgrade',
+            'stripe_price_id' => 'price_scheduled',
+            'price' => 9900,
+            'trial_days' => 0,
+            'is_active' => true,
+        ]);
+
+        $tenant = $this->makeTenant([
+            'stripe_subscription_id' => $subscriptionId,
+            'scheduled_plan_id' => $scheduledPlan->id,
+            'database_created' => true, // evita dispatch de provisioning em teste
+        ]);
+
+        $billingMock = Mockery::mock(TenantBillingService::class)->makePartial();
+        $billingMock->shouldReceive('retrieveSubscription')
+            ->andReturn((object) [
+                'id' => $subscriptionId,
+                'status' => 'active',
+                'customer' => $tenant->getAttribute('stripe_id'),
+                'items' => (object) [
+                    'data' => [
+                        (object) [
+                            'id' => 'si_test',
+                            'price' => (object) ['id' => 'price_scheduled', 'product' => 'prod_test'],
+                            'quantity' => 1,
+                        ],
+                    ],
+                ],
+                'trial_end' => null,
+                'cancel_at' => null,
+            ]);
+
+        // syncPlanFromPriceId NÃO deve ser chamado enquanto o downgrade está pendente
+        $billingMock->shouldReceive('syncPlanFromPriceId')->never();
+        $billingMock->shouldReceive('syncSubscription')->once()->andReturnNull();
+        $billingMock->shouldReceive('applyStripeSubscriptionStatus')->andReturn('active');
+
+        $this->app->instance(TenantBillingService::class, $billingMock);
+
+        $this->postWebhook('customer.subscription.updated', [
+            'customer' => $tenant->getAttribute('stripe_id'),
+            'id' => $subscriptionId,
+            'status' => 'active',
+            'items' => [
+                'data' => [
+                    [
+                        'id' => 'si_test',
+                        'price' => ['id' => 'price_scheduled', 'product' => 'prod_test'],
+                        'quantity' => 1,
+                    ],
+                ],
+            ],
+        ])->assertOk();
+    }
+
+    // -------------------------------------------------------------------------
+    // Downgrade diferido — invoice.paid
+    // -------------------------------------------------------------------------
+
+    public function test_invoice_paid_clears_scheduled_plan_id_after_renewal(): void
+    {
+        $subscriptionId = 'sub_renewal_'.uniqid();
+        $scheduledPlan = Plan::create([
+            'name' => 'Plano Renovação',
+            'slug' => 'renovacao-'.uniqid(),
+            'description' => 'Teste',
+            'stripe_price_id' => 'price_renewed',
+            'price' => 9900,
+            'trial_days' => 0,
+            'is_active' => true,
+        ]);
+
+        $tenant = $this->makeTenant([
+            'stripe_subscription_id' => $subscriptionId,
+            'scheduled_plan_id' => $scheduledPlan->id,
+            'database_created' => true, // evita dispatch de provisioning em teste
+        ]);
+
+        $billingMock = Mockery::mock(TenantBillingService::class)->makePartial();
+        $billingMock->shouldReceive('retrieveSubscription')
+            ->andReturn((object) [
+                'id' => $subscriptionId,
+                'status' => 'active',
+                'customer' => $tenant->getAttribute('stripe_id'),
+                'items' => (object) [
+                    'data' => [
+                        (object) [
+                            'id' => 'si_test',
+                            'price' => (object) ['id' => 'price_renewed', 'product' => 'prod_test'],
+                            'quantity' => 1,
+                        ],
+                    ],
+                ],
+                'trial_end' => null,
+                'cancel_at' => null,
+            ]);
+
+        // No invoice.paid, syncPlanFromPriceId DEVE rodar normalmente
+        $billingMock->shouldReceive('syncPlanFromPriceId')->once()->andReturnNull();
+        $billingMock->shouldReceive('syncSubscription')->once()->andReturnNull();
+        $billingMock->shouldReceive('applyStripeSubscriptionStatus')->andReturn('active');
+
+        $this->app->instance(TenantBillingService::class, $billingMock);
+
+        $this->postWebhook('invoice.paid', [
+            'customer' => $tenant->getAttribute('stripe_id'),
+            'subscription' => $subscriptionId,
+            'id' => 'in_renewal_'.uniqid(),
+        ])->assertOk();
+
+        // scheduled_plan_id deve ser limpo após a renovação confirmada pelo Stripe
+        $this->assertDatabaseHas('tenants', [
+            'id' => $tenant->id,
+            'scheduled_plan_id' => null,
+        ]);
+    }
+
+    public function test_invoice_paid_without_pending_downgrade_does_not_fail(): void
+    {
+        $subscriptionId = 'sub_normal_'.uniqid();
+        $tenant = $this->makeTenant([
+            'stripe_subscription_id' => $subscriptionId,
+            'database_created' => true,
+            // scheduled_plan_id = null (sem downgrade pendente)
+        ]);
+
+        $billingMock = Mockery::mock(TenantBillingService::class)->makePartial();
+        $billingMock->shouldReceive('retrieveSubscription')
+            ->andReturn((object) [
+                'id' => $subscriptionId,
+                'status' => 'active',
+                'customer' => $tenant->getAttribute('stripe_id'),
+                'items' => (object) [
+                    'data' => [
+                        (object) [
+                            'id' => 'si_test',
+                            'price' => (object) ['id' => 'price_test', 'product' => 'prod_test'],
+                            'quantity' => 1,
+                        ],
+                    ],
+                ],
+                'trial_end' => null,
+                'cancel_at' => null,
+            ]);
+        $billingMock->shouldReceive('syncPlanFromPriceId')->once()->andReturnNull();
+        $billingMock->shouldReceive('syncSubscription')->once()->andReturnNull();
+        $billingMock->shouldReceive('applyStripeSubscriptionStatus')->andReturn('active');
+
+        $this->app->instance(TenantBillingService::class, $billingMock);
+
+        $this->postWebhook('invoice.paid', [
+            'customer' => $tenant->getAttribute('stripe_id'),
+            'subscription' => $subscriptionId,
+            'id' => 'in_normal_'.uniqid(),
+        ])->assertOk();
+
+        $this->assertDatabaseHas('tenants', [
+            'id' => $tenant->id,
+            'scheduled_plan_id' => null,
+        ]);
+    }
+
     protected function tearDown(): void
     {
         Mockery::close();

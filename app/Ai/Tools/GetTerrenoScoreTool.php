@@ -41,7 +41,7 @@ class GetTerrenoScoreTool implements Tool
             return "Acesso negado ao terreno {$terrenoId}.";
         }
 
-        $result = $this->scoringService->getScore($terreno, false);
+        $result = $this->scoringService->getScore($terreno);
 
         $factorsSummary = [];
         foreach ($result['factors'] as $key => $data) {

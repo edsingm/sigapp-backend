@@ -458,7 +458,9 @@ class DashboardController extends Controller
                 'data' => $data,
             ]);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            Log::error('Erro no dashboard', ['exception' => $e->getMessage()]);
+
+            return response()->json(['success' => false, 'message' => 'Erro interno no servidor.'], 500);
         }
     }
 }

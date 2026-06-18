@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\RecalculateAiScoresJob;
 use App\Models\Tenant\Terreno;
 use App\Repositories\Tenant\TerrenoRepository;
 use App\Services\AiScoringService;
@@ -34,8 +35,7 @@ class AiScoringController extends Controller
             return new JsonResponse(['message' => 'Acesso negado.'], 403);
         }
 
-        $forceRecalculate = request()->boolean('recalculate');
-        $result = $this->scoringService->getScore($terreno, $forceRecalculate);
+        $result = $this->scoringService->getScore($terreno);
 
         return new JsonResponse([
             'data' => [
@@ -62,21 +62,16 @@ class AiScoringController extends Controller
     }
 
     /**
-     * Recalcula scores de todos os terrenos do tenant.
+     * Enfileira recálculo de scores de todos os terrenos do tenant.
      */
     public function recalculateAll(): JsonResponse
     {
-        if (Gate::denies('viewAny', Terreno::class)) {
+        if (Gate::denies('update', Terreno::class)) {
             return new JsonResponse(['message' => 'Acesso negado.'], 403);
         }
 
-        $results = $this->scoringService->scoreAll();
+        RecalculateAiScoresJob::dispatch();
 
-        return new JsonResponse([
-            'data' => [
-                'total' => count($results),
-                'results' => $results,
-            ],
-        ]);
+        return new JsonResponse(['message' => 'Recálculo de scores enfileirado.'], 202);
     }
 }

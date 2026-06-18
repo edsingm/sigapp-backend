@@ -16,6 +16,7 @@ use App\Http\Middleware\EnsureTenantContext;
 use App\Http\Middleware\EnsureTenantUser;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\ForceJsonResponse;
+use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\InitializeTenancyFlexible;
 use App\Http\Middleware\PermissionGate;
 use Illuminate\Auth\AuthenticationException;
@@ -36,6 +37,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->append(SecurityHeaders::class);
+
         // Add global middleware aliases
         $middleware->alias([
             'force.json' => ForceJsonResponse::class,

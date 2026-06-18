@@ -8,13 +8,13 @@ Verificações executadas:
 
 - `php artisan test`: **584 testes, 1.979 assertions, todos passando**.
 - PHPStan nível 8: **sem erros** (revalidado em 2026-06-18 com PHP 8.4 e `--memory-limit=1G`).
-- `composer audit --locked`: **4 advisories em 3 pacotes**.
+- `composer audit --locked`: **sem advisories**.
 - Inventário de secrets rastreados: nenhum token/chave privada hardcoded identificado pelos padrões usados.
 - Migrations: todas declaram `down()`, mas duas possuem rollback vazio/não automático.
 
 ## Contexto levantado
 
-- **Stack:** PHP 8.4; Laravel 13.11.2; Eloquent; PostgreSQL; Sanctum 4.3.2; Cashier 16.5.3; `stripe/stripe-php` 17.6.0; Spatie Permission 7.4.1; `stancl/tenancy` 3.10.0; Laravel AI 0.7; PHPUnit 13; PHPStan 2.1.
+- **Stack:** PHP 8.4; Laravel 13.16.1; Eloquent; PostgreSQL; Sanctum 4.3.2; Cashier 16.5.3; `stripe/stripe-php` 17.6.0; Spatie Permission 7.4.1; `stancl/tenancy` 3.10.0; Laravel AI 0.7; PHPUnit 13; PHPStan 2.1.
 - **Estrutura:** domínio central (`Models/Central`, admin, signup, billing, broker de login) e domínio tenant (`Models/Tenant`, controllers/services/repositories tenant), além de AI, jobs, events/listeners, policies e migrations separadas.
 - **Tenancy:** um banco PostgreSQL compartilhado com **schema por tenant**, selecionado por conexão/search path dinâmico. Banco/conexão, cache, filesystem e queue recebem contexto do tenant. Dados centrais usam schema/conexão central. Não depende de `tenant_id` nas tabelas tenant.
 - **Auth:** tokens pessoais Sanctum, com validade explícita de 7 dias para tenant e 12 horas para admin; guards de sessão `central_web` e `tenant_web` também estão habilitados. Login central usa diretório e ticket one-time de 90 segundos; logout de PAT remove token no servidor.
@@ -26,31 +26,7 @@ Verificações executadas:
 
 ### Severidade alta
 
-**[ALTO, suspeito — requer teste controlado]** — `resources/views/exports/ai-pdf.blade.php:169` e `app/Ai/Tools/CreatePdfsTool.php:36`
-
-> HTML produzido pela IA é renderizado sem sanitização (`{!! $content !!}`) em Chromium com `noSandbox()`. O comportamento exato de acesso a `file://`/rede interna depende do Chromium/Browsershot, mas a superfície permite HTML ativo e recursos remotos.
-> Impacto potencial: SSRF, leitura de serviços internos ou arquivos e exfiltração por conteúdo do PDF.
-> Correção sugerida: allowlist estrutural de tags/atributos, remover scripts/iframes/object/embed e URLs não HTTPS; bloquear rede/metadata no runtime e executar Chromium sandboxed em container sem credenciais. Validar com payloads benignos para `127.0.0.1`, metadata e `file://`.
-
-**[ALTO]** — `storage/tenantab5ddc2b-2fc5-472a-83f1-2f9b9fc69d75/app/public/pdfs/`
-
-> O `.gitignore` agora cobre `storage/tenant*/`, mas dez PDFs reais de tenant continuam rastreados no Git e permanecem distribuíveis a qualquer clone; a regra nova não remove arquivos já versionados nem o histórico anterior.
-> Impacto: dados de terrenos/viabilidade podem ser distribuídos a todo clone e permanecer no histórico Git.
-> Correção sugerida: confirmar classificação dos documentos, remover do índice/histórico conforme política e rotacionar qualquer dado sensível contido. O `ignore` já ajuda para novos arquivos, mas não resolve o material já rastreado.
-
 ### Severidade média
-
-**[MÉDIO]** — `app/Http/Controllers/Api/V1/TenantAuthController.php:59`
-
-> Sanctum aceita sessão stateful, mas `logout()` e `refresh()` chamam `delete()` em `currentAccessToken()`. Em autenticação por sessão esse token é `TransientToken`, que não possui `delete`; `logoutAll()` apaga PATs mas não invalida a sessão.
-> Impacto: erro 500 em logout/refresh ou logout que deixa a sessão autenticada.
-> Correção sugerida: separar fluxos PAT e sessão; para sessão, chamar guard logout + invalidate + regenerateToken; para PAT, deletar somente `PersonalAccessToken`.
-
-**[MÉDIO]** — `composer.lock`
-
-> `composer audit` encontrou Laravel 13.11.2 vulnerável a signed URL path confusion (corrigido em 13.12.0), Guzzle PSR-7 2.10.1 vulnerável a host confusion/CRLF (2.10.2 corrige) e JMESPath 2.8.0 vulnerável a code injection (2.9.1 corrige). Exploitabilidade de Guzzle/JMESPath no fluxo atual não foi confirmada.
-> Impacto: URLs temporárias podem resolver recurso incorreto/ignorar expiração; os outros dois dependem de fluxos específicos.
-> Correção sugerida: atualizar versões dentro das constraints, executar testes e repetir `composer audit`.
 
 **[MÉDIO]** — `app/Http/Controllers/Api/V1/Tenant/DashboardController.php:461` e `TerrenosExportController.php:118`
 
@@ -133,6 +109,9 @@ Ownership dentro do mesmo tenant é majoritariamente **RBAC por módulo**, não 
 - Tools de IA para viabilidade, legalização, comitê e negociação agora exigem feature do plano e `Gate::viewAny` do model correto, com cobertura unitária de negação.
 - Criação de regionais e terreno-produto agora passa por `Gate::allows('create', ...)`, com testes cobrindo `403` para perfil viewer.
 - Chargebacks agora criam disputa local idempotente, colocam o tenant em `under_review` e tratam encerramento `won`/`lost` com testes dedicados.
+- PDFs gerados pela IA agora passam por sanitização com `HTMLPurifier`, bloqueio de esquemas URI e `disableJavascript()` antes do render.
+- Logout e logout-all agora invalidam sessão stateful quando não há `PersonalAccessToken`; refresh rejeita tokens não refreshables sem chamar `delete()`.
+- Dependências auditadas foram atualizadas (`laravel/framework` 13.16.1, `guzzlehttp/psr7` 2.12.1, `mtdowling/jmespath.php` 2.9.1) e `composer audit --locked` está limpo.
 - Operações compostas de signup, workflow, legalização, projeto, comitê, negociação e viabilidade usam transações.
 - 584 testes passam, incluindo auth, billing/webhook, tenancy, ACL, recursos e fluxos de negócio; PHPStan nível 8 também passa sem erros.
 - Nenhum uso de command execution/eval ou SQL raw concatenando input foi confirmado.
@@ -140,11 +119,11 @@ Ownership dentro do mesmo tenant é majoritariamente **RBAC por módulo**, não 
 
 ## Resumo executivo — top 5
 
-1. HTML de IA é renderizado sem sanitização em Chromium `noSandbox` (risco alto, requer teste controlado de SSRF/file access).
-2. PDFs reais de tenant estão rastreados no Git e podem vazar dados operacionais.
-3. Dependências com advisory aberto incluem Laravel 13.11.2, Guzzle PSR-7 2.10.1 e JMESPath 2.8.0.
-4. Logout/refresh com sessão stateful Sanctum podem falhar ou não encerrar a sessão corretamente.
-5. CORS com credenciais ainda aceita `http` e `https` em subdomínios, e o app não define HSTS/CSP/X-Frame/X-Content-Type/Referrer-Policy localmente.
+1. CORS com credenciais ainda aceita `http` e `https` em subdomínios, e o app não define HSTS/CSP/X-Frame/X-Content-Type/Referrer-Policy localmente.
+2. Um viewer ainda pode recalcular scores em massa e disparar escrita síncrona no GET com `?recalculate=true`.
+3. O monitor de IA ainda faz N+1 ao recarregar `tasks()` dentro do loop apesar do eager loading.
+4. Não há ledger central de trial por email/organização/payment method, permitindo repetição de trials com novas identidades.
+5. Respostas 500 ainda expõem `getMessage()` em alguns fluxos tenant/export, com risco de vazamento de detalhes internos.
 
 ## Tabela completa de endpoints
 
@@ -454,14 +433,14 @@ A tabela tem 333 contratos únicos. Rotas centrais repetidas nos quatro domínio
 
 ### regionais
 
-| Método    | Path                                     | Auth? | Plano mínimo | Tenant-scoped? | Problemas encontrados                                              |
-| ---------- | ---------------------------------------- | ----- | ------------- | -------------- | ------------------------------------------------------------------ |
-| GET\|HEAD  | `api/v1/regionais` (tenant)            | Sim   | Broker        | Sim            | ok                                                                 |
-| POST       | `api/v1/regionais` (tenant)            | Sim   | Broker        | Sim            | ok                                                                 |
-| DELETE     | `api/v1/regionais/{regionai}` (tenant) | Sim   | Broker        | Sim            | ok                                                                 |
-| GET\|HEAD  | `api/v1/regionais/{regionai}` (tenant) | Sim   | Broker        | Sim            | ok                                                                 |
-| PUT\|PATCH | `api/v1/regionais/{regionai}` (tenant) | Sim   | Broker        | Sim            | ok                                                                 |
-| GET\|HEAD  | `api/v1/regionais/select` (tenant)     | Sim   | Broker        | Sim            | ok                                                                 |
+| Método    | Path                                     | Auth? | Plano mínimo | Tenant-scoped? | Problemas encontrados |
+| ---------- | ---------------------------------------- | ----- | ------------- | -------------- | --------------------- |
+| GET\|HEAD  | `api/v1/regionais` (tenant)            | Sim   | Broker        | Sim            | ok                    |
+| POST       | `api/v1/regionais` (tenant)            | Sim   | Broker        | Sim            | ok                    |
+| DELETE     | `api/v1/regionais/{regionai}` (tenant) | Sim   | Broker        | Sim            | ok                    |
+| GET\|HEAD  | `api/v1/regionais/{regionai}` (tenant) | Sim   | Broker        | Sim            | ok                    |
+| PUT\|PATCH | `api/v1/regionais/{regionai}` (tenant) | Sim   | Broker        | Sim            | ok                    |
+| GET\|HEAD  | `api/v1/regionais/select` (tenant)     | Sim   | Broker        | Sim            | ok                    |
 
 ### signup
 
@@ -524,32 +503,32 @@ A tabela tem 333 contratos únicos. Rotas centrais repetidas nos quatro domínio
 
 ### tenant
 
-| Método   | Path                                                        | Auth? | Plano mínimo | Tenant-scoped? | Problemas encontrados                                                           |
-| --------- | ----------------------------------------------------------- | ----- | ------------- | -------------- | ------------------------------------------------------------------------------- |
-| POST      | `api/v1/tenant/billing-portal` (tenant)                   | Sim   | N/A           | Sim            | ok                                                                              |
-| POST      | `api/v1/tenant/billing/coupon/redeem` (tenant)            | Sim   | N/A           | Sim            | ok                                                                              |
-| GET\|HEAD | `api/v1/tenant/billing/history` (tenant)                  | Sim   | N/A           | Sim            | ok                                                                              |
-| GET\|HEAD | `api/v1/tenant/billing/invoices/{invoiceId}` (tenant)     | Sim   | N/A           | Sim            | ok                                                                              |
-| GET\|HEAD | `api/v1/tenant/billing/invoices/{invoiceId}/pdf` (tenant) | Sim   | N/A           | Sim            | ok                                                                              |
-| POST      | `api/v1/tenant/billing/payment-method` (tenant)           | Sim   | N/A           | Sim            | ok                                                                              |
-| GET\|HEAD | `api/v1/tenant/billing/payment-status` (tenant)           | Sim   | N/A           | Sim            | ok                                                                              |
-| POST      | `api/v1/tenant/billing/retry-payment` (tenant)            | Sim   | N/A           | Sim            | ok                                                                              |
-| POST      | `api/v1/tenant/billing/setup-intent` (tenant)             | Sim   | N/A           | Sim            | ok                                                                              |
-| GET\|HEAD | `api/v1/tenant/subdomain-availability/{subdomain}`        | Não  | N/A           | Não           | ok                                                                              |
-| GET\|HEAD | `api/v1/tenant/subscription` (tenant)                     | Sim   | N/A           | Sim            | ok                                                                              |
-| POST      | `api/v1/tenant/subscription/swap` (tenant)                | Sim   | N/A           | Sim            | ok                                                                              |
-| GET\|HEAD | `api/v1/tenant/usage` (tenant)                            | Sim   | N/A           | Sim            | ok                                                                              |
+| Método   | Path                                                        | Auth? | Plano mínimo | Tenant-scoped? | Problemas encontrados |
+| --------- | ----------------------------------------------------------- | ----- | ------------- | -------------- | --------------------- |
+| POST      | `api/v1/tenant/billing-portal` (tenant)                   | Sim   | N/A           | Sim            | ok                    |
+| POST      | `api/v1/tenant/billing/coupon/redeem` (tenant)            | Sim   | N/A           | Sim            | ok                    |
+| GET\|HEAD | `api/v1/tenant/billing/history` (tenant)                  | Sim   | N/A           | Sim            | ok                    |
+| GET\|HEAD | `api/v1/tenant/billing/invoices/{invoiceId}` (tenant)     | Sim   | N/A           | Sim            | ok                    |
+| GET\|HEAD | `api/v1/tenant/billing/invoices/{invoiceId}/pdf` (tenant) | Sim   | N/A           | Sim            | ok                    |
+| POST      | `api/v1/tenant/billing/payment-method` (tenant)           | Sim   | N/A           | Sim            | ok                    |
+| GET\|HEAD | `api/v1/tenant/billing/payment-status` (tenant)           | Sim   | N/A           | Sim            | ok                    |
+| POST      | `api/v1/tenant/billing/retry-payment` (tenant)            | Sim   | N/A           | Sim            | ok                    |
+| POST      | `api/v1/tenant/billing/setup-intent` (tenant)             | Sim   | N/A           | Sim            | ok                    |
+| GET\|HEAD | `api/v1/tenant/subdomain-availability/{subdomain}`        | Não  | N/A           | Não           | ok                    |
+| GET\|HEAD | `api/v1/tenant/subscription` (tenant)                     | Sim   | N/A           | Sim            | ok                    |
+| POST      | `api/v1/tenant/subscription/swap` (tenant)                | Sim   | N/A           | Sim            | ok                    |
+| GET\|HEAD | `api/v1/tenant/usage` (tenant)                            | Sim   | N/A           | Sim            | ok                    |
 
 ### terreno-produtos
 
-| Método    | Path                                                        | Auth? | Plano mínimo | Tenant-scoped? | Problemas encontrados                                              |
-| ---------- | ----------------------------------------------------------- | ----- | ------------- | -------------- | ------------------------------------------------------------------ |
-| GET\|HEAD  | `api/v1/terreno-produtos` (tenant)                        | Sim   | N/A           | Sim            | ok                                                                 |
-| POST       | `api/v1/terreno-produtos` (tenant)                        | Sim   | N/A           | Sim            | ok                                                                 |
-| DELETE     | `api/v1/terreno-produtos/{terreno_produto}` (tenant)      | Sim   | N/A           | Sim            | ok                                                                 |
-| GET\|HEAD  | `api/v1/terreno-produtos/{terreno_produto}` (tenant)      | Sim   | N/A           | Sim            | ok                                                                 |
-| PUT\|PATCH | `api/v1/terreno-produtos/{terreno_produto}` (tenant)      | Sim   | N/A           | Sim            | ok                                                                 |
-| GET\|HEAD  | `api/v1/terreno-produtos/by-terreno/{terrenoId}` (tenant) | Sim   | N/A           | Sim            | ok                                                                 |
+| Método    | Path                                                        | Auth? | Plano mínimo | Tenant-scoped? | Problemas encontrados |
+| ---------- | ----------------------------------------------------------- | ----- | ------------- | -------------- | --------------------- |
+| GET\|HEAD  | `api/v1/terreno-produtos` (tenant)                        | Sim   | N/A           | Sim            | ok                    |
+| POST       | `api/v1/terreno-produtos` (tenant)                        | Sim   | N/A           | Sim            | ok                    |
+| DELETE     | `api/v1/terreno-produtos/{terreno_produto}` (tenant)      | Sim   | N/A           | Sim            | ok                    |
+| GET\|HEAD  | `api/v1/terreno-produtos/{terreno_produto}` (tenant)      | Sim   | N/A           | Sim            | ok                    |
+| PUT\|PATCH | `api/v1/terreno-produtos/{terreno_produto}` (tenant)      | Sim   | N/A           | Sim            | ok                    |
+| GET\|HEAD  | `api/v1/terreno-produtos/by-terreno/{terrenoId}` (tenant) | Sim   | N/A           | Sim            | ok                    |
 
 ### terrenos
 

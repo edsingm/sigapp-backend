@@ -147,35 +147,34 @@ class AiScoringService
      */
     public function scoreAll(): array
     {
-        $terrenos = Terreno::with(['viabilidadeAtual', 'comiteAtual'])->get();
         $results = [];
 
-        foreach ($terrenos as $terreno) {
-            $result = $this->score($terreno);
+        Terreno::with(['viabilidadeAtual', 'comiteAtual'])->chunkById(100, function ($terrenos) use (&$results): void {
+            foreach ($terrenos as $terreno) {
+                $result = $this->score($terreno);
 
-            // Upsert score
-            AiRecommendationScore::updateOrCreate(
-                ['terreno_id' => $terreno->id],
-                [
+                AiRecommendationScore::updateOrCreate(
+                    ['terreno_id' => $terreno->id],
+                    [
+                        'score' => $result['score'],
+                        'tier' => $result['tier'],
+                        'factors' => $result['factors'],
+                        'version' => $result['version'],
+                    ]
+                );
+
+                $results[] = [
+                    'terreno_id' => $terreno->id,
+                    'nome' => $terreno->nome,
                     'score' => $result['score'],
                     'tier' => $result['tier'],
-                    'factors' => $result['factors'],
-                    'version' => $result['version'],
-                ]
-            );
+                ];
+            }
+        });
 
-            $results[] = [
-                'terreno_id' => $terreno->id,
-                'nome' => $terreno->nome,
-                'score' => $result['score'],
-                'tier' => $result['tier'],
-            ];
-        }
-
-        // Ordenar por score
         usort($results, fn ($a, $b) => $b['score'] <=> $a['score']);
 
-        Log::info("AI Scoring: {$terrenos->count()} terrenos classificados.");
+        Log::info('AI Scoring: '.count($results).' terrenos classificados.');
 
         return $results;
     }
@@ -206,24 +205,22 @@ class AiScoringService
     }
 
     /**
-     * Retorna score individual salvo ou recalcula.
+     * Retorna score individual salvo; calcula e persiste apenas se não existir.
      */
-    public function getScore(Terreno $terreno, bool $forceRecalculate = false): array
+    public function getScore(Terreno $terreno): array
     {
-        if (! $forceRecalculate) {
-            $saved = AiRecommendationScore::byTerreno($terreno->id)
-                ->where('version', self::CURRENT_VERSION)
-                ->latest()
-                ->first();
+        $saved = AiRecommendationScore::byTerreno($terreno->id)
+            ->where('version', self::CURRENT_VERSION)
+            ->latest()
+            ->first();
 
-            if ($saved) {
-                return [
-                    'score' => (float) $saved->score,
-                    'tier' => $saved->tier,
-                    'factors' => $saved->factors ?? [],
-                    'version' => $saved->version,
-                ];
-            }
+        if ($saved) {
+            return [
+                'score' => (float) $saved->score,
+                'tier' => $saved->tier,
+                'factors' => $saved->factors ?? [],
+                'version' => $saved->version,
+            ];
         }
 
         $result = $this->score($terreno);

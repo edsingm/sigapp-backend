@@ -15,6 +15,7 @@ use App\Services\Auth\CentralLoginBrokerService;
 use App\Services\Auth\TenantLoginService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class TenantAuthController extends Controller
 {
@@ -58,7 +59,14 @@ class TenantAuthController extends Controller
      */
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
+        $token = $request->user()->currentAccessToken();
+
+        if ($token instanceof PersonalAccessToken) {
+            $token->delete();
+        } else {
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
 
         return ApiResponseService::success(null, 'LOGOUT_SUCCESS');
     }
@@ -69,6 +77,12 @@ class TenantAuthController extends Controller
     public function logoutAll(Request $request): JsonResponse
     {
         $request->user()->tokens()->delete();
+
+        $token = $request->user()->currentAccessToken();
+        if (! ($token instanceof PersonalAccessToken)) {
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
 
         return ApiResponseService::success(null, 'LOGOUT_ALL_DEVICES_SUCCESS');
     }
@@ -91,6 +105,10 @@ class TenantAuthController extends Controller
             : ($user instanceof CentralUser ? ['admin'] : ['tenant-api']);
 
         $expiresAt = $tenantLogin->tokenExpiration($user, $abilities);
+
+        if (! ($currentToken instanceof PersonalAccessToken)) {
+            return ApiResponseService::error('INVALID_TOKEN', 'TOKEN_NOT_REFRESHABLE', null, 422);
+        }
 
         $currentToken->delete();
 

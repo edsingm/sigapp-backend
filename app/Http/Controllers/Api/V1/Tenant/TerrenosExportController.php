@@ -93,7 +93,6 @@ class TerrenosExportController extends Controller
                 'responsavel',
                 'data',
             ]);
-            Log::info('Dados extras recebidos:', $extraData);
 
             $data = [
                 'terreno' => $terreno,
@@ -110,14 +109,13 @@ class TerrenosExportController extends Controller
                 ->name('checklist-'.$terreno->getKey().'-'.Str::slug((string) $terreno->getAttribute('nome')).'.pdf')
                 ->toResponse(request());
         } catch (\Exception $e) {
-            Log::error('Erro ao gerar checklist PDF: '.$e->getMessage(), [
+            Log::error('Erro ao gerar checklist PDF', [
                 'id' => $id,
-                'trace' => $e->getTraceAsString(),
+                'exception' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'message' => 'Erro interno ao gerar o checklist.',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }

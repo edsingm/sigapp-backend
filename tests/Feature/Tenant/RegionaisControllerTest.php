@@ -134,4 +134,20 @@ class RegionaisControllerTest extends TestCase
         $response->assertOk()
             ->assertJsonPath('message', 'Regionais recuperadas com sucesso');
     }
+
+    public function test_user_without_permission_cannot_create_regional(): void
+    {
+        $viewer = User::create([
+            'name' => 'Viewer Test',
+            'email' => 'viewer@test.com',
+            'password' => Hash::make('password'),
+        ]);
+
+        $response = $this->actingAs($viewer)
+            ->postJson('/api/v1/regionais', [
+                'nome' => 'Regional Bloqueada',
+            ]);
+
+        $response->assertForbidden();
+    }
 }

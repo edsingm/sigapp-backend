@@ -109,6 +109,26 @@ class TerrenoProdutosControllerTest extends TestCase
         ]);
     }
 
+    public function test_user_without_permission_cannot_create_terreno_produto(): void
+    {
+        $viewer = User::create([
+            'name' => 'Viewer Test',
+            'email' => 'viewer@test.com',
+            'password' => Hash::make('password'),
+        ]);
+
+        $terreno = Terreno::create(['nome' => 'Terreno F', 'endereco' => 'Rua F']);
+        $produto = Produto::create(['name' => 'Produto F']);
+
+        $response = $this->actingAs($viewer)
+            ->postJson('/api/v1/terreno-produtos', [
+                'terreno_id' => $terreno->id,
+                'produto_id' => $produto->id,
+            ]);
+
+        $response->assertForbidden();
+    }
+
     public function test_it_updates_a_terreno_produto(): void
     {
         $terreno = Terreno::create(['nome' => 'Terreno D', 'endereco' => 'Rua D']);

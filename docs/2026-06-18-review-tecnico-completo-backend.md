@@ -26,12 +26,6 @@ Verificações executadas:
 
 ### Severidade alta
 
-**[ALTO]** — `app/Http/Requests/Tenant/StoreRegionalRequest.php:13` e `StoreTerrenoProdutoRequest.php:12`
-
-> Ambos retornam `true`; as rotas não têm `permission.gate`. Update/delete usam policy, mas create não.
-> Impacto: usuário viewer cria regionais e associações terreno-produto, alterando dados operacionais/financeiros.
-> Correção sugerida: `Gate::allows('create', Regional::class)` e `Gate::allows('create', TerrenoProduto::class)`, mais testes com role viewer esperando 403.
-
 **[ALTO]** — `app/Http/Controllers/Api/V1/WebhookController.php:487`
 
 > `charge.dispute.created` apenas registra log/auditoria; não suspende, restringe ou marca o tenant.
@@ -46,9 +40,9 @@ Verificações executadas:
 
 **[ALTO]** — `storage/tenantab5ddc2b-2fc5-472a-83f1-2f9b9fc69d75/app/public/pdfs/`
 
-> Sete PDFs reais de tenant estão rastreados no Git, e outros três estão não rastreados no mesmo caminho. O `.gitignore` não exclui storage tenant.
+> O `.gitignore` agora cobre `storage/tenant*/`, mas dez PDFs reais de tenant continuam rastreados no Git e permanecem distribuíveis a qualquer clone; a regra nova não remove arquivos já versionados nem o histórico anterior.
 > Impacto: dados de terrenos/viabilidade podem ser distribuídos a todo clone e permanecer no histórico Git.
-> Correção sugerida: confirmar classificação dos documentos, remover do índice/histórico conforme política, rotacionar qualquer dado sensível contido e adicionar regra de ignore para `storage/tenant*/`.
+> Correção sugerida: confirmar classificação dos documentos, remover do índice/histórico conforme política e rotacionar qualquer dado sensível contido. O `ignore` já ajuda para novos arquivos, mas não resolve o material já rastreado.
 
 ### Severidade média
 
@@ -143,6 +137,7 @@ Ownership dentro do mesmo tenant é majoritariamente **RBAC por módulo**, não 
 - Resources são amplamente usados e os testes verificam campos Stripe sensíveis não expostos.
 - Troca de plano do tenant não aceita mais decisão de prorrateio do cliente; upgrades e downgrades seguem regras server-side com cobertura de testes.
 - Tools de IA para viabilidade, legalização, comitê e negociação agora exigem feature do plano e `Gate::viewAny` do model correto, com cobertura unitária de negação.
+- Criação de regionais e terreno-produto agora passa por `Gate::allows('create', ...)`, com testes cobrindo `403` para perfil viewer.
 - Operações compostas de signup, workflow, legalização, projeto, comitê, negociação e viabilidade usam transações.
 - 584 testes passam, incluindo auth, billing/webhook, tenancy, ACL, recursos e fluxos de negócio; PHPStan nível 8 também passa sem erros.
 - Nenhum uso de command execution/eval ou SQL raw concatenando input foi confirmado.
@@ -150,11 +145,11 @@ Ownership dentro do mesmo tenant é majoritariamente **RBAC por módulo**, não 
 
 ## Resumo executivo — top 5
 
-1. Criação de regionais e terreno-produto ignora policy e aceita viewer.
-2. Chargeback não altera acesso do tenant.
-3. HTML de IA é renderizado sem sanitização em Chromium `noSandbox` (risco alto, requer teste controlado de SSRF/file access).
-4. PDFs reais de tenant estão rastreados no Git e podem vazar dados operacionais.
-5. Dependências com advisory aberto incluem Laravel 13.11.2, Guzzle PSR-7 2.10.1 e JMESPath 2.8.0.
+1. Chargeback não altera acesso do tenant.
+2. HTML de IA é renderizado sem sanitização em Chromium `noSandbox` (risco alto, requer teste controlado de SSRF/file access).
+3. PDFs reais de tenant estão rastreados no Git e podem vazar dados operacionais.
+4. Dependências com advisory aberto incluem Laravel 13.11.2, Guzzle PSR-7 2.10.1 e JMESPath 2.8.0.
+5. Logout/refresh com sessão stateful Sanctum podem falhar ou não encerrar a sessão corretamente.
 
 ## Tabela completa de endpoints
 
@@ -467,7 +462,7 @@ A tabela tem 333 contratos únicos. Rotas centrais repetidas nos quatro domínio
 | Método    | Path                                     | Auth? | Plano mínimo | Tenant-scoped? | Problemas encontrados                                              |
 | ---------- | ---------------------------------------- | ----- | ------------- | -------------- | ------------------------------------------------------------------ |
 | GET\|HEAD  | `api/v1/regionais` (tenant)            | Sim   | Broker        | Sim            | ok                                                                 |
-| POST       | `api/v1/regionais` (tenant)            | Sim   | Broker        | Sim            | ALTO: criação sem policy (request autoriza qualquer autenticado) |
+| POST       | `api/v1/regionais` (tenant)            | Sim   | Broker        | Sim            | ok                                                                 |
 | DELETE     | `api/v1/regionais/{regionai}` (tenant) | Sim   | Broker        | Sim            | ok                                                                 |
 | GET\|HEAD  | `api/v1/regionais/{regionai}` (tenant) | Sim   | Broker        | Sim            | ok                                                                 |
 | PUT\|PATCH | `api/v1/regionais/{regionai}` (tenant) | Sim   | Broker        | Sim            | ok                                                                 |
@@ -555,7 +550,7 @@ A tabela tem 333 contratos únicos. Rotas centrais repetidas nos quatro domínio
 | Método    | Path                                                        | Auth? | Plano mínimo | Tenant-scoped? | Problemas encontrados                                              |
 | ---------- | ----------------------------------------------------------- | ----- | ------------- | -------------- | ------------------------------------------------------------------ |
 | GET\|HEAD  | `api/v1/terreno-produtos` (tenant)                        | Sim   | N/A           | Sim            | ok                                                                 |
-| POST       | `api/v1/terreno-produtos` (tenant)                        | Sim   | N/A           | Sim            | ALTO: criação sem policy (request autoriza qualquer autenticado) |
+| POST       | `api/v1/terreno-produtos` (tenant)                        | Sim   | N/A           | Sim            | ok                                                                 |
 | DELETE     | `api/v1/terreno-produtos/{terreno_produto}` (tenant)      | Sim   | N/A           | Sim            | ok                                                                 |
 | GET\|HEAD  | `api/v1/terreno-produtos/{terreno_produto}` (tenant)      | Sim   | N/A           | Sim            | ok                                                                 |
 | PUT\|PATCH | `api/v1/terreno-produtos/{terreno_produto}` (tenant)      | Sim   | N/A           | Sim            | ok                                                                 |

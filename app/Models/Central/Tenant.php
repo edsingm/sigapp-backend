@@ -72,6 +72,8 @@ class Tenant extends BaseTenant implements TenantWithDatabase
 
     public const STATUS_SETUP_FAILED = TenantStatus::SETUP_FAILED->value;
 
+    public const STATUS_UNDER_REVIEW = TenantStatus::UNDER_REVIEW->value;
+
     /**
      * Obtém o plano associado ao tenant.
      */
@@ -225,6 +227,16 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     public function suspend(): self
     {
         $this->update(['status' => self::STATUS_SUSPENDED]);
+
+        return $this;
+    }
+
+    /**
+     * Coloca o tenant em revisão por disputa/chargeback.
+     */
+    public function placeUnderReview(): self
+    {
+        $this->update(['status' => self::STATUS_UNDER_REVIEW]);
 
         return $this;
     }

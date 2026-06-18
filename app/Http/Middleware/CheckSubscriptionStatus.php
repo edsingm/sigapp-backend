@@ -30,6 +30,7 @@ class CheckSubscriptionStatus
                     TenantStatus::SUSPENDED->value => 'Assinatura suspensa por falta de pagamento',
                     TenantStatus::CANCELLED->value => 'Assinatura cancelada',
                     TenantStatus::SETUP_FAILED->value => 'Falha na configuração do ambiente. Entre em contato com o suporte.',
+                    TenantStatus::UNDER_REVIEW->value => 'Conta em revisão por contestação de pagamento. Entre em contato com o suporte.',
                     default => 'Assinatura inativa',
                 },
                 [

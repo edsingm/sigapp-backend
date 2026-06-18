@@ -26,12 +26,13 @@ class EnumTest extends TestCase
     {
         $cases = TenantStatus::cases();
 
-        $this->assertCount(5, $cases);
+        $this->assertCount(6, $cases);
         $this->assertContains(TenantStatus::PENDING, $cases);
         $this->assertContains(TenantStatus::ACTIVE, $cases);
         $this->assertContains(TenantStatus::SUSPENDED, $cases);
         $this->assertContains(TenantStatus::CANCELLED, $cases);
         $this->assertContains(TenantStatus::SETUP_FAILED, $cases);
+        $this->assertContains(TenantStatus::UNDER_REVIEW, $cases);
     }
 
     public function test_tenant_status_values(): void
@@ -41,6 +42,7 @@ class EnumTest extends TestCase
         $this->assertSame('suspended', TenantStatus::SUSPENDED->value);
         $this->assertSame('cancelled', TenantStatus::CANCELLED->value);
         $this->assertSame('setup_failed', TenantStatus::SETUP_FAILED->value);
+        $this->assertSame('under_review', TenantStatus::UNDER_REVIEW->value);
     }
 
     public function test_tenant_status_label_retorna_string(): void

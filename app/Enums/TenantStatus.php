@@ -9,6 +9,7 @@ enum TenantStatus: string
     case SUSPENDED = 'suspended';
     case CANCELLED = 'cancelled';
     case SETUP_FAILED = 'setup_failed';
+    case UNDER_REVIEW = 'under_review';
 
     public function label(): string
     {
@@ -18,11 +19,17 @@ enum TenantStatus: string
             self::SUSPENDED => 'Suspenso',
             self::CANCELLED => 'Cancelado',
             self::SETUP_FAILED => 'Falha na configuração',
+            self::UNDER_REVIEW => 'Em Revisão',
         };
     }
 
     public function isActive(): bool
     {
         return $this === self::ACTIVE;
+    }
+
+    public function isUnderReview(): bool
+    {
+        return $this === self::UNDER_REVIEW;
     }
 }

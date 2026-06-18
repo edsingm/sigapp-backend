@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\ConsentLog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -106,8 +105,6 @@ class ConsentLogTest extends TestCase
 
     public function test_cleanup_command_removes_only_expired_consent_logs(): void
     {
-        Config::set('privacy.consent_log_retention_days', 30);
-
         $expiredLog = ConsentLog::query()->create([
             'consent_id' => (string) Str::uuid(),
             'categories' => [
@@ -134,11 +131,8 @@ class ConsentLogTest extends TestCase
             'consented_at' => now()->subDays(5),
         ]);
 
-        $command = $this->artisan('privacy:cleanup-consent-logs');
-        if (! $command instanceof \Illuminate\Testing\PendingCommand) {
-            $this->fail('Expected PendingCommand instance from artisan()');
-        }
-        $command->assertExitCode(0);
+        $exitCode = \Illuminate\Support\Facades\Artisan::call('privacy:cleanup-consent-logs', ['--days' => 30]);
+        $this->assertEquals(0, $exitCode);
 
         $this->assertDatabaseMissing('consent_logs', ['id' => $expiredLog->id]);
         $this->assertDatabaseHas('consent_logs', ['id' => $activeLog->id]);

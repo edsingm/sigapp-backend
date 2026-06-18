@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Enums\TenantStatus;
 use App\Jobs\CreateFullTenantJob;
+use App\Models\Central\Dispute;
 use App\Models\Central\Tenant;
+use App\Notifications\DisputeCreatedNotification;
 use App\Notifications\PaymentRetryNotification;
 use App\Notifications\TrialEndingNotification;
 use App\Repositories\Contracts\TenantRepositoryInterface;
@@ -494,29 +496,168 @@ class WebhookController extends CashierController
     /**
      * Handle charge.dispute.created event (chargeback).
      *
+     * Coloca o tenant em under_review e persiste a disputa para rastreamento.
      * Requer que o evento esteja registrado no Dashboard do Stripe.
      */
     protected function handleChargeDisputeCreated(array $payload)
     {
-        $dispute = (array) data_get($payload, 'data.object', []);
-        $chargeId = data_get($dispute, 'charge');
-        $amount = data_get($dispute, 'amount');
-        $reason = data_get($dispute, 'reason');
-        $disputeId = data_get($dispute, 'id');
+        $disputeData = (array) data_get($payload, 'data.object', []);
+        $disputeId = (string) data_get($disputeData, 'id', '');
+        $chargeId = (string) data_get($disputeData, 'charge', '');
+        $amount = (int) data_get($disputeData, 'amount', 0);
+        $reason = (string) data_get($disputeData, 'reason', '');
 
-        Log::critical('Chargeback criado no Stripe', [
+        if ($disputeId === '' || $chargeId === '') {
+            Log::warning('charge.dispute.created: payload incompleto', [
+                'dispute_id' => $disputeId,
+                'charge_id' => $chargeId,
+            ]);
+
+            return $this->successMethod();
+        }
+
+        // Idempotência: disputa já processada anteriormente
+        if (Dispute::where('stripe_dispute_id', $disputeId)->exists()) {
+            return $this->successMethod();
+        }
+
+        // Resolve customer_id a partir do charge (disputa não carrega customer diretamente)
+        try {
+            $charge = $this->billingService->retrieveCharge($chargeId);
+            $customerId = is_string($charge->customer ?? null) ? $charge->customer : null;
+        } catch (\Exception $e) {
+            Log::error('charge.dispute.created: erro ao recuperar charge do Stripe', [
+                'dispute_id' => $disputeId,
+                'charge_id' => $chargeId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return $this->successMethod();
+        }
+
+        $tenant = $this->validateTenantForWebhook(
+            $this->tenantRepository->findByStripeId($customerId),
+            'charge.dispute.created',
+            $customerId
+        );
+
+        if (! $tenant) {
+            return $this->successMethod();
+        }
+
+        Dispute::create([
+            'tenant_id' => $tenant->id,
+            'stripe_dispute_id' => $disputeId,
+            'stripe_charge_id' => $chargeId,
+            'amount' => $amount,
+            'reason' => $reason,
+            'status' => 'needs_response',
+        ]);
+
+        $tenant->placeUnderReview();
+
+        $tenant->notify(new DisputeCreatedNotification($this->tenantName($tenant), $amount, $reason));
+
+        $this->audit('tenant.dispute_under_review', "Chargeback recebido. Tenant '{$this->tenantName($tenant)}' colocado em revisão.", [
+            'tenant_id' => $tenant->id,
+            'tenant_slug' => $this->tenantSlug($tenant),
             'dispute_id' => $disputeId,
             'charge_id' => $chargeId,
             'amount' => $amount,
             'reason' => $reason,
         ]);
 
-        $this->audit('stripe.dispute_created', 'Chargeback recebido do Stripe.', [
+        return $this->successMethod();
+    }
+
+    /**
+     * Handle charge.dispute.updated event.
+     *
+     * Atualiza o status local da disputa sem alterar o status do tenant.
+     * Requer que o evento esteja registrado no Dashboard do Stripe.
+     */
+    protected function handleChargeDisputeUpdated(array $payload)
+    {
+        $disputeData = (array) data_get($payload, 'data.object', []);
+        $disputeId = (string) data_get($disputeData, 'id', '');
+        $disputeStatus = (string) data_get($disputeData, 'status', '');
+
+        if ($disputeId === '') {
+            return $this->successMethod();
+        }
+
+        $localDispute = Dispute::where('stripe_dispute_id', $disputeId)->first();
+
+        if ($localDispute) {
+            $localDispute->update(['status' => $disputeStatus]);
+        }
+
+        $this->audit('stripe.dispute_updated', "Disputa '{$disputeId}' atualizada para status '{$disputeStatus}'.", [
             'dispute_id' => $disputeId,
-            'charge_id' => $chargeId,
-            'amount' => $amount,
-            'reason' => $reason,
+            'charge_id' => data_get($disputeData, 'charge'),
+            'status' => $disputeStatus,
         ]);
+
+        return $this->successMethod();
+    }
+
+    /**
+     * Handle charge.dispute.closed event.
+     *
+     * won  → reativa o tenant.
+     * lost → suspende o tenant.
+     * outros → apenas auditoria.
+     * Requer que o evento esteja registrado no Dashboard do Stripe.
+     */
+    protected function handleChargeDisputeClosed(array $payload)
+    {
+        $disputeData = (array) data_get($payload, 'data.object', []);
+        $disputeId = (string) data_get($disputeData, 'id', '');
+        $disputeStatus = (string) data_get($disputeData, 'status', '');
+
+        if ($disputeId === '') {
+            return $this->successMethod();
+        }
+
+        $localDispute = Dispute::with('tenant')->where('stripe_dispute_id', $disputeId)->first();
+
+        if (! $localDispute || ! $localDispute->tenant) {
+            Log::warning('charge.dispute.closed: disputa não encontrada localmente', [
+                'dispute_id' => $disputeId,
+                'status' => $disputeStatus,
+            ]);
+
+            return $this->successMethod();
+        }
+
+        $localDispute->update(['status' => $disputeStatus, 'resolved_at' => now()]);
+
+        $tenant = $localDispute->tenant;
+
+        if ($disputeStatus === 'won') {
+            $tenant->activate();
+
+            $this->audit('tenant.dispute_won', "Disputa encerrada a favor do tenant '{$this->tenantName($tenant)}'. Conta reativada.", [
+                'tenant_id' => $tenant->id,
+                'tenant_slug' => $this->tenantSlug($tenant),
+                'dispute_id' => $disputeId,
+            ]);
+        } elseif ($disputeStatus === 'lost') {
+            $tenant->suspend();
+
+            $this->audit('tenant.dispute_lost', "Disputa encerrada contra o tenant '{$this->tenantName($tenant)}'. Conta suspensa.", [
+                'tenant_id' => $tenant->id,
+                'tenant_slug' => $this->tenantSlug($tenant),
+                'dispute_id' => $disputeId,
+            ]);
+        } else {
+            $this->audit('tenant.dispute_closed', "Disputa '{$disputeId}' encerrada com status '{$disputeStatus}'.", [
+                'tenant_id' => $tenant->id,
+                'tenant_slug' => $this->tenantSlug($tenant),
+                'dispute_id' => $disputeId,
+                'status' => $disputeStatus,
+            ]);
+        }
 
         return $this->successMethod();
     }

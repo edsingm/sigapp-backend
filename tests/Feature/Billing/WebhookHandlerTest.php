@@ -2,8 +2,10 @@
 
 namespace Tests\Feature\Billing;
 
+use App\Models\Central\Dispute;
 use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
+use App\Notifications\DisputeCreatedNotification;
 use App\Notifications\PaymentRetryNotification;
 use App\Notifications\TrialEndingNotification;
 use App\Services\Billing\TenantBillingService;
@@ -286,17 +288,180 @@ class WebhookHandlerTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
-    // charge.dispute.created
+    // charge.dispute.created / updated / closed
     // -------------------------------------------------------------------------
 
-    public function test_charge_dispute_created_returns_ok_and_logs(): void
+    private function mockBillingWithCharge(string $chargeId, string $customerId): void
     {
+        $billingMock = Mockery::mock(TenantBillingService::class)->makePartial();
+        $billingMock->shouldReceive('retrieveCharge')
+            ->with($chargeId)
+            ->andReturn((object) ['id' => $chargeId, 'customer' => $customerId]);
+
+        $this->app->instance(TenantBillingService::class, $billingMock);
+    }
+
+    public function test_charge_dispute_created_places_tenant_under_review(): void
+    {
+        Notification::fake();
+
+        $chargeId = 'ch_test_'.uniqid();
+        $disputeId = 'dp_test_'.uniqid();
+        $tenant = $this->makeTenant();
+
+        $this->mockBillingWithCharge($chargeId, (string) $tenant->getAttribute('stripe_id'));
+
         $this->postWebhook('charge.dispute.created', [
-            'id' => 'dp_test_'.uniqid(),
-            'charge' => 'ch_test_'.uniqid(),
+            'id' => $disputeId,
+            'charge' => $chargeId,
             'amount' => 19900,
             'reason' => 'fraudulent',
         ])->assertOk();
+
+        $this->assertEquals(Tenant::STATUS_UNDER_REVIEW, $tenant->fresh()->status);
+        $this->assertDatabaseHas('disputes', [
+            'stripe_dispute_id' => $disputeId,
+            'stripe_charge_id' => $chargeId,
+            'tenant_id' => $tenant->id,
+            'status' => 'needs_response',
+        ]);
+        Notification::assertSentTo($tenant, DisputeCreatedNotification::class);
+    }
+
+    public function test_charge_dispute_created_is_idempotent(): void
+    {
+        Notification::fake();
+
+        $chargeId = 'ch_idem_'.uniqid();
+        $disputeId = 'dp_idem_'.uniqid();
+        $tenant = $this->makeTenant();
+
+        $this->mockBillingWithCharge($chargeId, (string) $tenant->getAttribute('stripe_id'));
+
+        $this->postWebhook('charge.dispute.created', [
+            'id' => $disputeId,
+            'charge' => $chargeId,
+            'amount' => 19900,
+            'reason' => 'fraudulent',
+        ])->assertOk();
+
+        // Segundo dispatch com mesmo dispute_id (idempotência do evento, diferente do lock de webhook)
+        $this->postWebhook('charge.dispute.created', [
+            'id' => $disputeId,
+            'charge' => $chargeId,
+            'amount' => 19900,
+            'reason' => 'fraudulent',
+        ])->assertOk();
+
+        $this->assertSame(1, Dispute::where('stripe_dispute_id', $disputeId)->count());
+        Notification::assertSentToTimes($tenant, DisputeCreatedNotification::class, 1);
+    }
+
+    public function test_charge_dispute_created_with_unknown_customer_returns_ok(): void
+    {
+        Notification::fake();
+
+        $chargeId = 'ch_unknown_'.uniqid();
+        $disputeId = 'dp_unknown_'.uniqid();
+
+        $billingMock = Mockery::mock(TenantBillingService::class)->makePartial();
+        $billingMock->shouldReceive('retrieveCharge')
+            ->andReturn((object) ['id' => $chargeId, 'customer' => 'cus_does_not_exist']);
+
+        $this->app->instance(TenantBillingService::class, $billingMock);
+
+        $this->postWebhook('charge.dispute.created', [
+            'id' => $disputeId,
+            'charge' => $chargeId,
+            'amount' => 5000,
+            'reason' => 'fraudulent',
+        ])->assertOk();
+
+        $this->assertDatabaseMissing('disputes', ['stripe_dispute_id' => $disputeId]);
+        Notification::assertNothingSent();
+    }
+
+    public function test_charge_dispute_updated_updates_local_status(): void
+    {
+        $tenant = $this->makeTenant();
+        $disputeId = 'dp_upd_'.uniqid();
+
+        Dispute::create([
+            'tenant_id' => $tenant->id,
+            'stripe_dispute_id' => $disputeId,
+            'stripe_charge_id' => 'ch_upd_'.uniqid(),
+            'amount' => 19900,
+            'reason' => 'fraudulent',
+            'status' => 'needs_response',
+        ]);
+
+        $this->postWebhook('charge.dispute.updated', [
+            'id' => $disputeId,
+            'charge' => 'ch_upd_test',
+            'status' => 'under_review',
+        ])->assertOk();
+
+        $this->assertDatabaseHas('disputes', [
+            'stripe_dispute_id' => $disputeId,
+            'status' => 'under_review',
+        ]);
+        // Tenant não muda de estado em dispute.updated
+        $this->assertEquals(Tenant::STATUS_ACTIVE, $tenant->fresh()->status);
+    }
+
+    public function test_charge_dispute_closed_won_restores_active(): void
+    {
+        $tenant = $this->makeTenant(['status' => Tenant::STATUS_UNDER_REVIEW]);
+        $disputeId = 'dp_won_'.uniqid();
+
+        Dispute::create([
+            'tenant_id' => $tenant->id,
+            'stripe_dispute_id' => $disputeId,
+            'stripe_charge_id' => 'ch_won_'.uniqid(),
+            'amount' => 19900,
+            'reason' => 'fraudulent',
+            'status' => 'under_review',
+        ]);
+
+        $this->postWebhook('charge.dispute.closed', [
+            'id' => $disputeId,
+            'charge' => 'ch_won_test',
+            'status' => 'won',
+        ])->assertOk();
+
+        $this->assertEquals(Tenant::STATUS_ACTIVE, $tenant->fresh()->status);
+        $this->assertDatabaseHas('disputes', [
+            'stripe_dispute_id' => $disputeId,
+            'status' => 'won',
+        ]);
+        $this->assertNotNull(Dispute::where('stripe_dispute_id', $disputeId)->value('resolved_at'));
+    }
+
+    public function test_charge_dispute_closed_lost_suspends_tenant(): void
+    {
+        $tenant = $this->makeTenant(['status' => Tenant::STATUS_UNDER_REVIEW]);
+        $disputeId = 'dp_lost_'.uniqid();
+
+        Dispute::create([
+            'tenant_id' => $tenant->id,
+            'stripe_dispute_id' => $disputeId,
+            'stripe_charge_id' => 'ch_lost_'.uniqid(),
+            'amount' => 19900,
+            'reason' => 'fraudulent',
+            'status' => 'under_review',
+        ]);
+
+        $this->postWebhook('charge.dispute.closed', [
+            'id' => $disputeId,
+            'charge' => 'ch_lost_test',
+            'status' => 'lost',
+        ])->assertOk();
+
+        $this->assertEquals(Tenant::STATUS_SUSPENDED, $tenant->fresh()->status);
+        $this->assertDatabaseHas('disputes', [
+            'stripe_dispute_id' => $disputeId,
+            'status' => 'lost',
+        ]);
     }
 
     // -------------------------------------------------------------------------

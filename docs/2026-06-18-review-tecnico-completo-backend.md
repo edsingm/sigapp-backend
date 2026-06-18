@@ -19,18 +19,12 @@ Verificações executadas:
 - **Tenancy:** um banco PostgreSQL compartilhado com **schema por tenant**, selecionado por conexão/search path dinâmico. Banco/conexão, cache, filesystem e queue recebem contexto do tenant. Dados centrais usam schema/conexão central. Não depende de `tenant_id` nas tabelas tenant.
 - **Auth:** tokens pessoais Sanctum, com validade explícita de 7 dias para tenant e 12 horas para admin; guards de sessão `central_web` e `tenant_web` também estão habilitados. Login central usa diretório e ticket one-time de 90 segundos; logout de PAT remove token no servidor.
 - **Autorização:** entitlements por plano (`broker`, `basico`, `master`, `pro`) em `CheckFeature`, limites em `EnforcePlanLimits`, RBAC Spatie em `PermissionGate`/`TenantPolicy`.
-- **Stripe:** Checkout subscription, trials, subscriptions, swap, invoices, SetupIntent/payment methods, billing portal, coupons e webhooks. Eventos tratados: `checkout.session.completed`, `invoice.paid`, `invoice.payment_failed`, `customer.subscription.created|updated|deleted|trial_will_end`, `charge.dispute.created` e `coupon.redeemed`.
+- **Stripe:** Checkout subscription, trials, subscriptions, swap, invoices, SetupIntent/payment methods, billing portal, coupons e webhooks. Eventos tratados: `checkout.session.completed`, `invoice.paid`, `invoice.payment_failed`, `customer.subscription.created|updated|deleted|trial_will_end`, `charge.dispute.created|updated|closed` e `coupon.redeemed`.
 - **⚠️ indefinido:** valores efetivos de `APP_DEBUG`, CORS, headers do proxy/CDN, queue workers e scheduler em produção. O código local mostra `queue=sync`; isso não foi projetado automaticamente para produção.
 
 ## Achados
 
 ### Severidade alta
-
-**[ALTO]** — `app/Http/Controllers/Api/V1/WebhookController.php:487`
-
-> `charge.dispute.created` apenas registra log/auditoria; não suspende, restringe ou marca o tenant.
-> Impacto: um tenant com chargeback continua usando o serviço pago durante a disputa.
-> Correção sugerida: escolher política explícita: (A) suspensão imediata, menor risco financeiro/maior risco de falso positivo; ou (B) estado `under_review` com bloqueio parcial e revisão humana. Persistir a disputa idempotentemente e tratar encerramento/ganho/perda.
 
 **[ALTO, suspeito — requer teste controlado]** — `resources/views/exports/ai-pdf.blade.php:169` e `app/Ai/Tools/CreatePdfsTool.php:36`
 
@@ -117,7 +111,7 @@ Verificações executadas:
 - Upgrade/downgrade: o servidor classifica a troca por `sort_order`; upgrades usam `swapAndInvoice`, downgrades ficam em `scheduled_plan_id` até `invoice.paid`.
 - Trial: Stripe controla o período, mas a elegibilidade de repetição não é centralizada.
 - Cartão: dados completos não passam pelo backend; usa Checkout, SetupIntent e payment method IDs. Só brand/last4/expiração são lidos.
-- Evento faltante relevante: `invoice.payment_action_required` não tem handler próprio apesar de existir template de email; `charge.dispute.closed/updated` também é necessário se houver estado de disputa.
+- Evento faltante relevante: `invoice.payment_action_required` não tem handler próprio apesar de existir template de email.
 
 ## Multi-tenancy e ownership
 
@@ -138,6 +132,7 @@ Ownership dentro do mesmo tenant é majoritariamente **RBAC por módulo**, não 
 - Troca de plano do tenant não aceita mais decisão de prorrateio do cliente; upgrades e downgrades seguem regras server-side com cobertura de testes.
 - Tools de IA para viabilidade, legalização, comitê e negociação agora exigem feature do plano e `Gate::viewAny` do model correto, com cobertura unitária de negação.
 - Criação de regionais e terreno-produto agora passa por `Gate::allows('create', ...)`, com testes cobrindo `403` para perfil viewer.
+- Chargebacks agora criam disputa local idempotente, colocam o tenant em `under_review` e tratam encerramento `won`/`lost` com testes dedicados.
 - Operações compostas de signup, workflow, legalização, projeto, comitê, negociação e viabilidade usam transações.
 - 584 testes passam, incluindo auth, billing/webhook, tenancy, ACL, recursos e fluxos de negócio; PHPStan nível 8 também passa sem erros.
 - Nenhum uso de command execution/eval ou SQL raw concatenando input foi confirmado.
@@ -145,11 +140,11 @@ Ownership dentro do mesmo tenant é majoritariamente **RBAC por módulo**, não 
 
 ## Resumo executivo — top 5
 
-1. Chargeback não altera acesso do tenant.
-2. HTML de IA é renderizado sem sanitização em Chromium `noSandbox` (risco alto, requer teste controlado de SSRF/file access).
-3. PDFs reais de tenant estão rastreados no Git e podem vazar dados operacionais.
-4. Dependências com advisory aberto incluem Laravel 13.11.2, Guzzle PSR-7 2.10.1 e JMESPath 2.8.0.
-5. Logout/refresh com sessão stateful Sanctum podem falhar ou não encerrar a sessão corretamente.
+1. HTML de IA é renderizado sem sanitização em Chromium `noSandbox` (risco alto, requer teste controlado de SSRF/file access).
+2. PDFs reais de tenant estão rastreados no Git e podem vazar dados operacionais.
+3. Dependências com advisory aberto incluem Laravel 13.11.2, Guzzle PSR-7 2.10.1 e JMESPath 2.8.0.
+4. Logout/refresh com sessão stateful Sanctum podem falhar ou não encerrar a sessão corretamente.
+5. CORS com credenciais ainda aceita `http` e `https` em subdomínios, e o app não define HSTS/CSP/X-Frame/X-Content-Type/Referrer-Policy localmente.
 
 ## Tabela completa de endpoints
 

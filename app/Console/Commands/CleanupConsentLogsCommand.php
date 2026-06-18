@@ -7,13 +7,14 @@ use Illuminate\Console\Command;
 
 class CleanupConsentLogsCommand extends Command
 {
-    protected $signature = 'privacy:cleanup-consent-logs';
+    protected $signature = 'privacy:cleanup-consent-logs {--days= : Sobrescreve o período de retenção em dias}';
 
     protected $description = 'Remove registros de consentimento expirados conforme a retenção configurada';
 
     public function handle(): int
     {
-        $retentionDays = max(1, (int) config('privacy.consent_log_retention_days', 180));
+        $configDays = (int) config('privacy.consent_log_retention_days', 180);
+        $retentionDays = max(1, $this->option('days') !== null ? (int) $this->option('days') : $configDays);
         $cutoff = now()->subDays($retentionDays);
 
         $deletedCount = ConsentLog::query()

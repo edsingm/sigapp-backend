@@ -3,7 +3,6 @@
 namespace App\Ai\Tools;
 
 use App\Models\Tenant\Documento;
-use App\Models\Tenant\Terreno;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Facades\Gate;
 use Laravel\Ai\Contracts\Tool;
@@ -19,7 +18,7 @@ class GetDocumentosTool implements Tool
 
     public function handle(Request $request): Stringable|string
     {
-        if (Gate::denies('viewAny', Terreno::class)) {
+        if (Gate::denies('viewAny', Documento::class)) {
             return 'Acesso negado: você não tem permissão para acessar documentos.';
         }
 

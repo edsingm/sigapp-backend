@@ -2,8 +2,8 @@
 
 namespace App\Ai\Tools;
 
-use App\Models\Tenant\Terreno;
 use App\Models\Tenant\Viabilidade;
+use App\Services\PlanMatrixService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Facades\Gate;
 use Laravel\Ai\Contracts\Tool;
@@ -12,6 +12,8 @@ use Stringable;
 
 class GetViabilidadesTool implements Tool
 {
+    public function __construct(private readonly PlanMatrixService $planMatrix) {}
+
     /**
      * Get the description of the tool's purpose.
      */
@@ -31,7 +33,12 @@ class GetViabilidadesTool implements Tool
         $somenteAtual = filter_var($request['somente_atual'] ?? false, FILTER_VALIDATE_BOOL);
         $limit = max(1, min((int) ($request['limit'] ?? 20), 100));
 
-        if (Gate::denies('viewAny', Terreno::class)) {
+        $tenant = tenancy()->tenant;
+        if (! $tenant || ! $this->planMatrix->hasFeatureForTenant($tenant, 'viabilities.enabled')) {
+            return 'Acesso negado: seu plano não inclui viabilidades.';
+        }
+
+        if (Gate::denies('viewAny', Viabilidade::class)) {
             return 'Acesso negado: você não tem permissão para acessar viabilidades.';
         }
 

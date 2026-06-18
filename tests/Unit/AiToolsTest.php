@@ -119,7 +119,7 @@ class AiToolsTest extends TestCase
 
     public function test_get_viabilidades_tool_has_description(): void
     {
-        $tool = new GetViabilidadesTool;
+        $tool = app(GetViabilidadesTool::class);
 
         $this->assertNotEmpty($tool->description());
     }
@@ -155,21 +155,21 @@ class AiToolsTest extends TestCase
 
     public function test_get_legalizacao_tool_has_description(): void
     {
-        $tool = new GetLegalizacaoTool;
+        $tool = app(GetLegalizacaoTool::class);
 
         $this->assertNotEmpty($tool->description());
     }
 
     public function test_get_comite_tool_has_description(): void
     {
-        $tool = new GetComiteTool;
+        $tool = app(GetComiteTool::class);
 
         $this->assertNotEmpty($tool->description());
     }
 
     public function test_get_negociacao_tool_has_description(): void
     {
-        $tool = new GetNegociacaoTool;
+        $tool = app(GetNegociacaoTool::class);
 
         $this->assertNotEmpty($tool->description());
     }

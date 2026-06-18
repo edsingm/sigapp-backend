@@ -3,7 +3,7 @@
 namespace App\Ai\Tools;
 
 use App\Models\Tenant\Negociacao;
-use App\Models\Tenant\Terreno;
+use App\Services\PlanMatrixService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Facades\Gate;
 use Laravel\Ai\Contracts\Tool;
@@ -12,6 +12,8 @@ use Stringable;
 
 class GetNegociacaoTool implements Tool
 {
+    public function __construct(private readonly PlanMatrixService $planMatrix) {}
+
     public function description(): Stringable|string
     {
         return 'Consulta o status de negociações de um terreno, incluindo proposta, modelo de negócio e eventos.';
@@ -19,7 +21,12 @@ class GetNegociacaoTool implements Tool
 
     public function handle(Request $request): Stringable|string
     {
-        if (Gate::denies('viewAny', Terreno::class)) {
+        $tenant = tenancy()->tenant;
+        if (! $tenant || ! $this->planMatrix->hasFeatureForTenant($tenant, 'negotiation')) {
+            return 'Acesso negado: seu plano não inclui negociações.';
+        }
+
+        if (Gate::denies('viewAny', Negociacao::class)) {
             return 'Acesso negado: você não tem permissão para acessar negociações.';
         }
 

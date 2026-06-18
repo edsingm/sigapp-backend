@@ -26,18 +26,6 @@ Verificações executadas:
 
 ### Severidade alta
 
-**[ALTO]** — `app/Http/Controllers/Api/V1/Tenant/PlanSwapController.php:62 `
-
-> O cliente escolhe `prorate`. Um admin tenant pode pedir upgrade para Pro com `prorate=false`; o Stripe troca o preço sem cobrança imediata e o código atualiza `plan_id` na linha 73, liberando entitlements Pro até a renovação.
-> Impacto: acesso imediato a features premium sem pagamento proporcional.
-> Correção sugerida: classificar upgrade/downgrade no servidor pelo preço/sort order. Upgrade deve usar `swapAndInvoice` e só atualizar o plano após confirmação; downgrade deve ser agendado para o fim do período. Não aceite essa decisão do cliente.
-
-**[ALTO]** — `app/Ai/Tools/GetLegalizacaoTool.php:24`, `GetNegociacaoTool.php:22`, `GetComiteTool.php:22`, `GetViabilidadesTool.php:34`
-
-> As tools verificam apenas `viewAny` de `Terreno`, não o entitlement nem a permissão do domínio consultado. Um tenant Master (tem AI, não tem comitê/negociação/legalização) pode consultar dados Pro remanescentes após downgrade pelo chat.
-> Impacto: bypass de plano e RBAC, expondo dados financeiros, jurídicos e de negociação.
-> Correção sugerida: cada tool deve exigir o `CheckFeature` equivalente e a policy do model correto (`Legalizacao`, `Negociacao`, `ComiteRevisao`, `Viabilidade`, `Documento`), com testes Master→Pro e roles customizadas.
-
 **[ALTO]** — `app/Http/Requests/Tenant/StoreRegionalRequest.php:13` e `StoreTerrenoProdutoRequest.php:12`
 
 > Ambos retornam `true`; as rotas não têm `permission.gate`. Update/delete usam policy, mas create não.
@@ -132,7 +120,7 @@ Verificações executadas:
 - Idempotência: lock por event ID + tabela central com ID único + `processed_at`; resposta não processada mantém evento reprocessável.
 - Falha de pagamento: notifica toda tentativa e suspende a partir da terceira; `unpaid`/`incomplete_expired` também suspendem na reconciliação.
 - Cancelamento: `customer.subscription.deleted` cancela tenant e Cashier sincroniza tabela local.
-- Upgrade/downgrade: contém o bypass financeiro descrito acima.
+- Upgrade/downgrade: o servidor classifica a troca por `sort_order`; upgrades usam `swapAndInvoice`, downgrades ficam em `scheduled_plan_id` até `invoice.paid`.
 - Trial: Stripe controla o período, mas a elegibilidade de repetição não é centralizada.
 - Cartão: dados completos não passam pelo backend; usa Checkout, SetupIntent e payment method IDs. Só brand/last4/expiração são lidos.
 - Evento faltante relevante: `invoice.payment_action_required` não tem handler próprio apesar de existir template de email; `charge.dispute.closed/updated` também é necessário se houver estado de disputa.
@@ -153,6 +141,8 @@ Ownership dentro do mesmo tenant é majoritariamente **RBAC por módulo**, não 
 - Rotas críticas de auth, signup, reset e aprovação têm rate limiting; nenhum endpoint crítico autenticado ficou sem throttle genérico.
 - Upload de documentos: 3 MB, MIME/extensões allowlisted, nome aleatório e storage privado tenant-scoped.
 - Resources são amplamente usados e os testes verificam campos Stripe sensíveis não expostos.
+- Troca de plano do tenant não aceita mais decisão de prorrateio do cliente; upgrades e downgrades seguem regras server-side com cobertura de testes.
+- Tools de IA para viabilidade, legalização, comitê e negociação agora exigem feature do plano e `Gate::viewAny` do model correto, com cobertura unitária de negação.
 - Operações compostas de signup, workflow, legalização, projeto, comitê, negociação e viabilidade usam transações.
 - 584 testes passam, incluindo auth, billing/webhook, tenancy, ACL, recursos e fluxos de negócio; PHPStan nível 8 também passa sem erros.
 - Nenhum uso de command execution/eval ou SQL raw concatenando input foi confirmado.
@@ -160,11 +150,11 @@ Ownership dentro do mesmo tenant é majoritariamente **RBAC por módulo**, não 
 
 ## Resumo executivo — top 5
 
-1. Upgrade de plano pode liberar Pro sem cobrança proporcional ao aceitar `prorate=false` do cliente.
-2. Tools de IA contornam entitlements/permissões dos domínios Pro consultados.
-3. Criação de regionais e terreno-produto ignora policy e aceita viewer.
-4. Chargeback não altera acesso do tenant.
-5. HTML de IA é renderizado sem sanitização em Chromium `noSandbox` (risco alto, requer teste controlado de SSRF/file access).
+1. Criação de regionais e terreno-produto ignora policy e aceita viewer.
+2. Chargeback não altera acesso do tenant.
+3. HTML de IA é renderizado sem sanitização em Chromium `noSandbox` (risco alto, requer teste controlado de SSRF/file access).
+4. PDFs reais de tenant estão rastreados no Git e podem vazar dados operacionais.
+5. Dependências com advisory aberto incluem Laravel 13.11.2, Guzzle PSR-7 2.10.1 e JMESPath 2.8.0.
 
 ## Tabela completa de endpoints
 
@@ -557,7 +547,7 @@ A tabela tem 333 contratos únicos. Rotas centrais repetidas nos quatro domínio
 | POST      | `api/v1/tenant/billing/setup-intent` (tenant)             | Sim   | N/A           | Sim            | ok                                                                              |
 | GET\|HEAD | `api/v1/tenant/subdomain-availability/{subdomain}`        | Não  | N/A           | Não           | ok                                                                              |
 | GET\|HEAD | `api/v1/tenant/subscription` (tenant)                     | Sim   | N/A           | Sim            | ok                                                                              |
-| POST      | `api/v1/tenant/subscription/swap` (tenant)                | Sim   | N/A           | Sim            | ALTO: cliente escolhe prorrateio; upgrade pode liberar plano antes da cobrança |
+| POST      | `api/v1/tenant/subscription/swap` (tenant)                | Sim   | N/A           | Sim            | ok                                                                              |
 | GET\|HEAD | `api/v1/tenant/usage` (tenant)                            | Sim   | N/A           | Sim            | ok                                                                              |
 
 ### terreno-produtos

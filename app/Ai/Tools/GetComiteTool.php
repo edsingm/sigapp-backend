@@ -3,7 +3,7 @@
 namespace App\Ai\Tools;
 
 use App\Models\Tenant\ComiteRevisao;
-use App\Models\Tenant\Terreno;
+use App\Services\PlanMatrixService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Facades\Gate;
 use Laravel\Ai\Contracts\Tool;
@@ -12,6 +12,8 @@ use Stringable;
 
 class GetComiteTool implements Tool
 {
+    public function __construct(private readonly PlanMatrixService $planMatrix) {}
+
     public function description(): Stringable|string
     {
         return 'Consulta o status de comitê de revisão de um terreno, incluindo pareceres e pendências por departamento.';
@@ -22,7 +24,12 @@ class GetComiteTool implements Tool
         $terrenoId = (int) ($request['terreno_id'] ?? 0);
         $status = trim((string) ($request['status'] ?? ''));
 
-        if (Gate::denies('viewAny', Terreno::class)) {
+        $tenant = tenancy()->tenant;
+        if (! $tenant || ! $this->planMatrix->hasFeatureForTenant($tenant, 'committee')) {
+            return 'Acesso negado: seu plano não inclui comitê de revisão.';
+        }
+
+        if (Gate::denies('viewAny', ComiteRevisao::class)) {
             return 'Acesso negado: você não tem permissão para acessar comitês.';
         }
 

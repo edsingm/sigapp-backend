@@ -3,7 +3,7 @@
 namespace App\Ai\Tools;
 
 use App\Models\Tenant\Legalizacao;
-use App\Models\Tenant\Terreno;
+use App\Services\PlanMatrixService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Facades\Gate;
 use Laravel\Ai\Contracts\Tool;
@@ -12,6 +12,8 @@ use Stringable;
 
 class GetLegalizacaoTool implements Tool
 {
+    public function __construct(private readonly PlanMatrixService $planMatrix) {}
+
     public function description(): Stringable|string
     {
         return 'Consulta o status de legalização de um terreno, incluindo etapas e pendências.';
@@ -21,7 +23,12 @@ class GetLegalizacaoTool implements Tool
     {
         $terrenoId = (int) ($request['terreno_id'] ?? 0);
 
-        if (Gate::denies('viewAny', Terreno::class)) {
+        $tenant = tenancy()->tenant;
+        if (! $tenant || ! $this->planMatrix->hasFeatureForTenant($tenant, 'legalizations')) {
+            return 'Acesso negado: seu plano não inclui legalizações.';
+        }
+
+        if (Gate::denies('viewAny', Legalizacao::class)) {
             return 'Acesso negado: você não tem permissão para acessar legalizações.';
         }
 

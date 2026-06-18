@@ -26,7 +26,7 @@ class CreatePdfsTool implements Tool
         try {
             Pdf::view('exports.ai-pdf', [
                 'title' => $request['title'],
-                'content' => $request['html_content'],
+                'content' => $this->sanitizeHtml($request['html_content']),
             ])
                 ->format('A4')
                 ->margins(14, 16, 24, 16)
@@ -39,7 +39,11 @@ class CreatePdfsTool implements Tool
                         $browsershot->setChromePath($chromePath);
                     }
 
-                    if (method_exists($browsershot, 'noSandbox')) {
+                    if (method_exists($browsershot, 'disableJavascript')) {
+                        $browsershot->disableJavascript();
+                    }
+
+                    if (env('BROWSERSHOT_NO_SANDBOX') && method_exists($browsershot, 'noSandbox')) {
                         $browsershot->noSandbox();
                     }
                 })
@@ -85,6 +89,29 @@ class CreatePdfsTool implements Tool
                 ->required()
                 ->description('Conteúdo HTML do corpo do PDF (sem as tags html/head/body). Use h1-h6, p, ul, ol, table. Estilos inline são permitidos.'),
         ];
+    }
+
+    private function sanitizeHtml(string $html): string
+    {
+        $config = \HTMLPurifier_Config::createDefault();
+
+        $config->set('HTML.Allowed',
+            'h1,h2,h3,h4,h5,h6,p[class|style],'.
+            'ul[class|style],ol[class|style],li[class|style],'.
+            'table[class|style],thead,tbody,tfoot,'.
+            'tr[class|style],th[class|style|colspan|rowspan],td[class|style|colspan|rowspan],'.
+            'strong,em,b,i,hr,br,'.
+            'blockquote[class|style],div[class|style],span[class|style],'.
+            'code[class],pre[class]'
+        );
+
+        // Bloqueia todos os esquemas URI — remove src, href, url() em CSS, etc.
+        $config->set('URI.AllowedSchemes', []);
+
+        // Desabilita cache em disco durante a geração
+        $config->set('Cache.DefinitionImpl', null);
+
+        return (new \HTMLPurifier($config))->purify($html);
     }
 
     private function resolveChromePath(): ?string

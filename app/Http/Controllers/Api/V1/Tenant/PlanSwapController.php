@@ -59,31 +59,41 @@ class PlanSwapController extends Controller
             return ApiResponseService::conflict('ALREADY_ON_THIS_PLAN');
         }
 
-        $prorate = (bool) $request->validated('prorate', true);
+        $currentPlan = $tenant->plan;
+        $isUpgrade = $currentPlan === null
+            || $newPlan->getAttribute('sort_order') > $currentPlan->getAttribute('sort_order');
 
         try {
-            if ($prorate) {
-                // swapAndInvoice: cobra imediatamente o valor proporcional (upgrade)
+            if ($isUpgrade) {
+                // Upgrade: cobra a diferença proporcional imediatamente no Stripe.
+                // Nunca aceitar 'prorate' do cliente para evitar acesso gratuito a planos superiores.
                 $subscription->swapAndInvoice($stripePriceId);
+                // Aplica o plano imediatamente e cancela qualquer downgrade pendente.
+                $tenant->update(['plan_id' => $newPlan->getKey(), 'scheduled_plan_id' => null]);
             } else {
-                // swap: aplica no próximo ciclo sem cobrança imediata (downgrade)
+                // Downgrade: muda o preço no Stripe para a próxima renovação.
+                // O plan_id permanece inalterado até invoice.paid confirmar o novo ciclo.
                 $subscription->swap($stripePriceId);
+                $tenant->update(['scheduled_plan_id' => $newPlan->getKey()]);
             }
 
-            $tenant->update(['plan_id' => $newPlan->getKey()]);
             cache()->forget('tenant:'.$tenant->getAttribute('slug'));
 
-            $this->audit('tenant.plan_swapped', "Plano alterado para '{$newPlan->getAttribute('name')}'.", [
+            $auditMessage = $isUpgrade
+                ? "Upgrade para '{$newPlan->getAttribute('name')}' aplicado imediatamente."
+                : "Downgrade para '{$newPlan->getAttribute('name')}' agendado para a próxima renovação.";
+
+            $this->audit('tenant.plan_swapped', $auditMessage, [
                 'tenant_id' => $tenant->id,
                 'tenant_slug' => $tenant->getAttribute('slug'),
                 'new_plan_id' => $newPlan->getKey(),
                 'new_plan_slug' => $newPlan->getAttribute('slug'),
-                'prorate' => $prorate,
+                'is_upgrade' => $isUpgrade,
             ]);
 
             return ApiResponseService::success([
                 'plan' => new PlanResource($newPlan),
-                'prorate' => $prorate,
+                'is_upgrade' => $isUpgrade,
             ], 'PLAN_CHANGED_SUCCESSFULLY');
 
         } catch (\Exception $e) {

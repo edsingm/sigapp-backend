@@ -4,6 +4,7 @@ namespace App\Services\Tenant;
 
 use DOMDocument;
 use DOMElement;
+use DOMNode;
 use DOMXPath;
 
 /**
@@ -56,16 +57,16 @@ class PortalTerrenoFichaParser
 
     private function inputValue(DOMXPath $xp, string $name): string
     {
-        $node = $xp->query(sprintf('//input[@name=%s]', $this->quote($name)))->item(0);
+        $result = $xp->query(sprintf('//input[@name=%s]', $this->quote($name)));
+        $node = $result !== false ? $result->item(0) : null;
 
         return $node instanceof DOMElement ? trim($node->getAttribute('value')) : '';
     }
 
     private function selectedText(DOMXPath $xp, string $name): string
     {
-        $option = $xp->query(
-            sprintf('//select[@name=%s]//option[@selected]', $this->quote($name))
-        )->item(0);
+        $result = $xp->query(sprintf('//select[@name=%s]//option[@selected]', $this->quote($name)));
+        $option = $result !== false ? $result->item(0) : null;
 
         return $option instanceof DOMElement ? trim($option->textContent) : '';
     }
@@ -97,10 +98,26 @@ class PortalTerrenoFichaParser
 
         $produtos = [];
 
-        foreach ($xp->query('.//tbody/tr', $table) as $row) {
+        $rowsResult = $xp->query('.//tbody/tr', $table);
+        if ($rowsResult === false) {
+            return $produtos;
+        }
+
+        foreach ($rowsResult as $row) {
+            if (! $row instanceof DOMNode) {
+                continue;
+            }
+
             $cells = [];
 
-            foreach ($xp->query('.//td', $row) as $cell) {
+            $cellsResult = $xp->query('.//td', $row);
+            if ($cellsResult === false) {
+                continue;
+            }
+            foreach ($cellsResult as $cell) {
+                if (! $cell instanceof DOMNode) {
+                    continue;
+                }
                 $cells[] = trim(preg_replace('/\s+/', ' ', $cell->textContent) ?? '');
             }
 
@@ -126,8 +143,25 @@ class PortalTerrenoFichaParser
 
     private function findTableByHeader(DOMXPath $xp, string $headerText): ?DOMElement
     {
-        foreach ($xp->query('//table') as $table) {
-            foreach ($xp->query('.//th', $table) as $th) {
+        $tablesResult = $xp->query('//table');
+        if ($tablesResult === false) {
+            return null;
+        }
+
+        foreach ($tablesResult as $table) {
+            if (! $table instanceof DOMNode) {
+                continue;
+            }
+
+            $thsResult = $xp->query('.//th', $table);
+            if ($thsResult === false) {
+                continue;
+            }
+
+            foreach ($thsResult as $th) {
+                if (! $th instanceof DOMNode) {
+                    continue;
+                }
                 if (str_contains(trim($th->textContent), $headerText)) {
                     return $table instanceof DOMElement ? $table : null;
                 }

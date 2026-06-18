@@ -18,7 +18,7 @@ use Stancl\Tenancy\Database\Concerns\HasDomains;
 use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
 
 #[Table('tenants')]
-#[Fillable(['name', 'slug', 'status', 'stripe_id', 'stripe_subscription_id', 'plan_id', 'trial_ends_at', 'encryption_key', 'database_created', 'setup_completed_at', 'trial_extended', 'admin_name', 'admin_email', 'admin_password', 'data'])]
+#[Fillable(['name', 'slug', 'status', 'stripe_id', 'stripe_subscription_id', 'plan_id', 'scheduled_plan_id', 'trial_ends_at', 'encryption_key', 'database_created', 'setup_completed_at', 'trial_extended', 'admin_name', 'admin_email', 'admin_password', 'data'])]
 #[Hidden(['admin_password', 'encryption_key'])]
 /**
  * @property string $id
@@ -28,6 +28,7 @@ use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
  * @property string|null $stripe_id
  * @property string|null $stripe_subscription_id
  * @property int|null $plan_id
+ * @property int|null $scheduled_plan_id
  * @property Carbon|null $trial_ends_at
  * @property string|null $encryption_key
  * @property bool $database_created
@@ -77,6 +78,14 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     public function plan()
     {
         return $this->belongsTo(Plan::class);
+    }
+
+    /**
+     * Obtém o plano agendado para a próxima renovação (downgrade diferido).
+     */
+    public function scheduledPlan()
+    {
+        return $this->belongsTo(Plan::class, 'scheduled_plan_id');
     }
 
     /**
@@ -317,6 +326,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
             'stripe_id',
             'stripe_subscription_id',
             'plan_id',
+            'scheduled_plan_id',
             'trial_ends_at',
             'encryption_key',
             'database_created',

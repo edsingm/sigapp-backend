@@ -238,16 +238,25 @@ class AiIbgeCityProfileService
         $items = [];
 
         foreach ($nodes as $node) {
-            $labelNode = $xpath->query(".//div[contains(@class,'ind-label')]/p", $node)?->item(0);
-            $valueNode = $xpath->query(".//p[contains(@class,'ind-value')]", $node)?->item(0);
-            $unitNode = $xpath->query(".//span[contains(@class,'indicador-unidade')]", $node)?->item(0);
-            $periodNode = $xpath->query('.//small', $node)?->item(0);
+            if (! $node instanceof \DOMNode) {
+                continue;
+            }
 
-            $label = $this->cleanText($labelNode?->textContent);
-            $unit = $this->cleanText($unitNode?->textContent);
-            $periodoTexto = $this->cleanText($periodNode?->textContent);
+            $labelResult = $xpath->query(".//div[contains(@class,'ind-label')]/p", $node);
+            $valueResult = $xpath->query(".//p[contains(@class,'ind-value')]", $node);
+            $unitResult = $xpath->query(".//span[contains(@class,'indicador-unidade')]", $node);
+            $periodResult = $xpath->query('.//small', $node);
+
+            $labelNode = $labelResult !== false ? $labelResult->item(0) : null;
+            $valueNode = $valueResult !== false ? $valueResult->item(0) : null;
+            $unitNode = $unitResult !== false ? $unitResult->item(0) : null;
+            $periodNode = $periodResult !== false ? $periodResult->item(0) : null;
+
+            $label = $this->cleanText($labelNode instanceof \DOMNode ? $labelNode->textContent : null);
+            $unit = $this->cleanText($unitNode instanceof \DOMNode ? $unitNode->textContent : null);
+            $periodoTexto = $this->cleanText($periodNode instanceof \DOMNode ? $periodNode->textContent : null);
             $periodo = trim($periodoTexto, '[]');
-            $valorBruto = $this->cleanText($valueNode?->textContent);
+            $valorBruto = $this->cleanText($valueNode instanceof \DOMNode ? $valueNode->textContent : null);
 
             if ($label === '' || $valorBruto === '') {
                 continue;
@@ -303,7 +312,7 @@ class AiIbgeCityProfileService
         }
 
         $ultimoPeriodo = array_key_last($serie);
-        $valor = $ultimoPeriodo !== null ? ($serie[$ultimoPeriodo] ?? null) : null;
+        $valor = $serie[$ultimoPeriodo] ?? null;
 
         if ($valor === null || $valor === '-') {
             return null;

@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
-#[Fillable(['consent_id', 'categories', 'version', 'ip_hash', 'user_agent', 'consented_at'])]
 /**
  * @property int $id
  * @property string $consent_id
@@ -20,6 +19,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
+#[Fillable(['consent_id', 'categories', 'version', 'ip_hash', 'user_agent', 'consented_at'])]
 class ConsentLog extends Model
 {
     use CentralConnection, HasFactory;

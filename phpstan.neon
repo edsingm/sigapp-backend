@@ -169,6 +169,12 @@ parameters:
         # Eloquent Model widening (Builder, EloquentCollection returning stdClass from raw queries)
         - '#Parameter \#1 \$callback of method Illuminate\\Support\\Collection<int,stdClass>::map\(\) contains unresolvable type#'
         - '#Return type of call to method Illuminate\\Support\\Collection<int,stdClass>::map\(\) contains unresolvable type#'
+        # GetTerrenoGeoAnalysisTool: Builder::find() sem Larastan infere stdClass
+        - '#Parameter \#1 \$terreno of method App\\Ai\\Tools\\GetTerrenoGeoAnalysisTool::build\w+\(\) expects App\\Models\\Tenant\\Terreno, stdClass given#'
+        # cURL: URL e cookie jar são sempre não-vazios em runtime mas PHPStan não infere
+        - '#Parameter \#2 \$options of function curl_setopt_array expects array\{10002: non-empty-string.+\}, array\{10002: string.+\} given#'
+        # ConsentLog usa HasFactory sem ConsentLogFactory (sem factory dedicada neste projeto)
+        - '#Class App\\Models\\ConsentLog uses generic trait Illuminate\\Database\\Eloquent\\Factories\\HasFactory but does not specify its types#'
         # Auth Factory (auth() helper retorna Factory mas usamos como guard)
         - '#Call to an undefined method Illuminate\\Contracts\\Auth\\Factory::\w+\(\)#'
         - '#Access to an undefined property Illuminate\\Contracts\\Auth\\Authenticatable::\$\w+#'

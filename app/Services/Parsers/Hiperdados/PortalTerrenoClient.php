@@ -12,6 +12,7 @@ use RuntimeException;
  */
 class PortalTerrenoClient
 {
+    /** @var non-empty-string */
     private string $cookieJar;
 
     public function __construct(
@@ -67,6 +68,9 @@ class PortalTerrenoClient
         return $this->request(url: $url, method: 'POST', fields: $fields, referer: $referer);
     }
 
+    /**
+     * @param  array<string, string>  $fields
+     */
     private function request(string $url, string $method = 'GET', array $fields = [], ?string $referer = null): string
     {
         $curl = curl_init();
@@ -94,18 +98,20 @@ class PortalTerrenoClient
             ],
         ]);
 
-        if ($referer !== null) {
+        if ($referer !== null && $referer !== '') {
             curl_setopt($curl, CURLOPT_REFERER, $referer);
         }
 
         if ($method !== 'GET') {
-            curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $method);
+            if ($method !== '') {
+                curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $method);
+            }
             curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($fields));
         }
 
         $response = curl_exec($curl);
 
-        if ($response === false) {
+        if (! is_string($response)) {
             $message = curl_error($curl);
             curl_close($curl);
             throw new RuntimeException("Falha na requisição HTTP: {$message}");
@@ -121,6 +127,9 @@ class PortalTerrenoClient
         return $response;
     }
 
+    /**
+     * @return array<string, string>
+     */
     private function extractHiddenFields(string $html): array
     {
         $dom = $this->loadDom($html);
@@ -151,6 +160,9 @@ class PortalTerrenoClient
         return $fields;
     }
 
+    /**
+     * @return array<string, string>
+     */
     private function detectLoginForm(string $html): array
     {
         $dom = $this->loadDom($html);

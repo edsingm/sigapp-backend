@@ -112,19 +112,18 @@ class CreatePdfsTool implements Tool
         $relativePath = '/tenancy/assets/'.ltrim($path, '/');
         $request = request();
 
-        if ($request) {
-            $externalHost = trim((string) $request->header('X-External-Host', ''));
-            $externalProto = trim((string) $request->header('X-External-Proto', ''));
+        $hostHeader = $request->header('X-External-Host');
+        $externalHost = is_string($hostHeader) ? trim($hostHeader) : '';
 
-            if ($externalHost !== '') {
-                $scheme = $externalProto !== '' ? $externalProto : $request->getScheme();
+        $protoHeader = $request->header('X-External-Proto');
+        $externalProto = is_string($protoHeader) ? trim($protoHeader) : '';
 
-                return "{$scheme}://{$externalHost}{$relativePath}";
-            }
+        if ($externalHost !== '') {
+            $scheme = $externalProto !== '' ? $externalProto : $request->getScheme();
 
-            return rtrim($request->getSchemeAndHttpHost(), '/').$relativePath;
+            return "{$scheme}://{$externalHost}{$relativePath}";
         }
 
-        return tenant_asset($path);
+        return rtrim($request->getSchemeAndHttpHost(), '/').$relativePath;
     }
 }

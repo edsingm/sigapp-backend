@@ -21,7 +21,6 @@ class PlanSwapRequest extends FormRequest
     {
         return [
             'plan_slug' => ['required', 'string', 'exists:plans,slug'],
-            'prorate' => ['sometimes', 'boolean'],
         ];
     }
 

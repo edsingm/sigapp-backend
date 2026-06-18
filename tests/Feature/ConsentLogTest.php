@@ -134,8 +134,11 @@ class ConsentLogTest extends TestCase
             'consented_at' => now()->subDays(5),
         ]);
 
-        $this->artisan('privacy:cleanup-consent-logs')
-            ->assertExitCode(0);
+        $command = $this->artisan('privacy:cleanup-consent-logs');
+        if (! $command instanceof \Illuminate\Testing\PendingCommand) {
+            $this->fail('Expected PendingCommand instance from artisan()');
+        }
+        $command->assertExitCode(0);
 
         $this->assertDatabaseMissing('consent_logs', ['id' => $expiredLog->id]);
         $this->assertDatabaseHas('consent_logs', ['id' => $activeLog->id]);

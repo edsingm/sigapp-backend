@@ -55,8 +55,8 @@ class GeoProximityService
                 $results = $this->reverseGeocode($point, $apiKey);
 
                 foreach ($results as $component) {
-                    if (in_array('route', $component['types'] ?? [], true)) {
-                        $name = $component['long_name'] ?? null;
+                    if (in_array('route', $component['types'], true)) {
+                        $name = $component['long_name'];
 
                         if ($name && ! isset($routes[$name])) {
                             $routes[$name] = [

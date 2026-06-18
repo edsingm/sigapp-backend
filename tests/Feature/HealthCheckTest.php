@@ -20,9 +20,12 @@ class HealthCheckTest extends TestCase
 
     private function actingAsCentralAdmin(): void
     {
-        $user = User::factory()->admin()->create();
+        $result = User::factory()->admin()->create();
+        if (! $result instanceof User) {
+            $this->fail('Expected User instance from factory');
+        }
 
-        Sanctum::actingAs($user, ['admin']);
+        Sanctum::actingAs($result, ['admin']);
     }
 
     public function test_check_retorna_status_ok_quando_todos_checks_passam(): void

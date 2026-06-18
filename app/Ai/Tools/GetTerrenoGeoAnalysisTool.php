@@ -113,6 +113,9 @@ class GetTerrenoGeoAnalysisTool implements Tool
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function buildAreaSection(Terreno $terreno): array
     {
         return [
@@ -126,6 +129,9 @@ class GetTerrenoGeoAnalysisTool implements Tool
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function buildDeclividadeSection(Terreno $terreno): array
     {
         return [
@@ -137,6 +143,9 @@ class GetTerrenoGeoAnalysisTool implements Tool
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function buildAppSection(Terreno $terreno): array
     {
         $appPolygons = $terreno->app_polygons ?? [];

@@ -4,6 +4,7 @@ namespace App\Services\Tenant;
 
 use DOMDocument;
 use DOMElement;
+use DOMNode;
 use DOMXPath;
 
 /**
@@ -33,14 +34,20 @@ class PortalTerrenoFormularioParser
         $xp = new DOMXPath($dom);
         $campos = [];
 
-        foreach ($xp->query('//div[contains(@class,"col-md-")]') as $div) {
+        $divsResult = $xp->query('//div[contains(@class,"col-md-")]');
+        if ($divsResult === false) {
+            return [];
+        }
+
+        foreach ($divsResult as $div) {
             if (! $div instanceof DOMElement) {
                 continue;
             }
 
-            $label = $xp->query('.//label', $div)->item(0);
+            $labelResult = $xp->query('.//label', $div);
+            $label = $labelResult !== false ? $labelResult->item(0) : null;
 
-            if ($label === null) {
+            if (! $label instanceof DOMNode) {
                 continue;
             }
 

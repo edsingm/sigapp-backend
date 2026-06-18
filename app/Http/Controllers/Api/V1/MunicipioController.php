@@ -28,6 +28,9 @@ class MunicipioController extends Controller
         return response()->json(['success' => true, 'data' => $data]);
     }
 
+    /**
+     * @return array<string, array<string, mixed>|null>
+     */
     private function fetchSidraData(string $ibgeCodigo): array
     {
         $loc = "N6[{$ibgeCodigo}]";
@@ -98,6 +101,9 @@ class MunicipioController extends Controller
      *
      * Cada elemento do array de resposta IBGE representa uma variável.
      * Cada variável pode ter múltiplos resultados (classificações/categorias).
+     *
+     * @param  array<mixed>  $data
+     * @return array<int, array<string, mixed>>
      */
     private function parseRows(array $data, string $ibgeCodigo): array
     {
@@ -145,6 +151,9 @@ class MunicipioController extends Controller
         return $rows;
     }
 
+    /**
+     * @return array<mixed>
+     */
     private function safeJson(mixed $response): array
     {
         try {

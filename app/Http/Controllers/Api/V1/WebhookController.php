@@ -285,6 +285,12 @@ class WebhookController extends CashierController
                     'customer_id' => $customerId,
                 ]
             );
+
+            // Após a renovação, o downgrade diferido foi confirmado pelo Stripe.
+            // syncPlanFromPriceId já atualizou plan_id; limpa o agendamento.
+            if ($tenant->getAttribute('scheduled_plan_id') !== null) {
+                $tenant->update(['scheduled_plan_id' => null]);
+            }
         }
 
         return $this->successMethod();
@@ -362,6 +368,10 @@ class WebhookController extends CashierController
         );
 
         if ($tenant) {
+            // Se há um downgrade agendado, o Stripe já mudou o preço mas o plan_id
+            // deve permanecer inalterado até a próxima renovação (invoice.paid).
+            $hasPendingDowngrade = $tenant->getAttribute('scheduled_plan_id') !== null;
+
             $this->reconcileTenantBillingState(
                 $tenant,
                 $subscription['id'] ?? null,
@@ -369,7 +379,9 @@ class WebhookController extends CashierController
                 [
                     'customer_id' => $customerId,
                     'stripe_status' => $subscription['status'] ?? null,
-                ]
+                    'skip_plan_sync' => $hasPendingDowngrade,
+                ],
+                skipPlanSync: $hasPendingDowngrade
             );
         }
 
@@ -601,7 +613,8 @@ class WebhookController extends CashierController
         Tenant $tenant,
         ?string $subscriptionId,
         string $source,
-        array $context = []
+        array $context = [],
+        bool $skipPlanSync = false
     ): void {
         if (! $subscriptionId) {
             Log::warning('Evento Stripe sem subscription_id para reconciliação do tenant', array_merge([
@@ -620,7 +633,10 @@ class WebhookController extends CashierController
             'stripe_subscription_id' => $stripeSubscription->id ?? $subscriptionId,
         ]);
 
-        $this->billingService->syncPlanFromPriceId($tenant, data_get($stripeSubscription, 'items.data.0.price.id'));
+        if (! $skipPlanSync) {
+            $this->billingService->syncPlanFromPriceId($tenant, data_get($stripeSubscription, 'items.data.0.price.id'));
+        }
+
         $this->billingService->syncSubscription($tenant, $subscriptionId);
 
         $appliedStatus = $this->billingService->applyStripeSubscriptionStatus($tenant, $stripeStatus);

@@ -108,5 +108,11 @@ return new class extends Migration
         }
     }
 
-    public function down(): void {}
+    public function down(): void
+    {
+        throw new \RuntimeException(
+            'Migration de backfill irreversível. '
+            .'Para reverter, restaure o banco a partir de um backup pré-migration.'
+        );
+    }
 };

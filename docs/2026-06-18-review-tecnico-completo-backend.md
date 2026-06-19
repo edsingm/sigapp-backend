@@ -10,7 +10,7 @@ Verificações executadas:
 - PHPStan nível 8: **sem erros** (revalidado em 2026-06-18 com PHP 8.4 e `--memory-limit=1G`).
 - `composer audit --locked`: **sem advisories**.
 - Inventário de secrets rastreados: nenhum token/chave privada hardcoded identificado pelos padrões usados.
-- Migrations: todas declaram `down()`, mas duas possuem rollback vazio/não automático.
+- Migrations: todas declaram `down()`; as migrations de backfill irreversível agora falham explicitamente e instruem restore por backup.
 
 ## Contexto levantado
 
@@ -28,49 +28,7 @@ Verificações executadas:
 
 ### Severidade média
 
-**[MÉDIO]** — `app/Http/Controllers/Api/V1/Tenant/DashboardController.php:461` e `TerrenosExportController.php:118`
-
-> Respostas 500 retornam `getMessage()` sem condicionar a ambiente; o checklist também grava payload do usuário e stack trace em log.
-> Impacto: vazamento de SQL, paths, nomes internos e dados inseridos no checklist.
-> Correção sugerida: resposta genérica em produção, correlation ID e detalhes somente em log sanitizado; remover payload bruto/trace fora de canal protegido.
-
-**[MÉDIO]** — `config/cors.php:9` e `bootstrap/app.php:38`
-
-> CORS com credenciais aceita `http` e `https` em qualquer subdomínio de `APP_DOMAIN`; não há middleware de HSTS/CSP/X-Frame/X-Content-Type/Referrer-Policy no app.
-> Impacto: se proxy/CDN não aplicar HTTPS e headers, um subdomínio comprometido ou servido em HTTP amplia ataques com credenciais e clickjacking/MIME sniffing.
-> Correção sugerida: em produção aceitar apenas `https://*.domínio`, allowlist quando possível e adicionar headers no edge ou middleware. Tradeoff: CSP estrita exige inventário de scripts/assets; HSTS com `includeSubDomains` exige todos os subdomínios em HTTPS.
-
-**[MÉDIO]** — `app/Http/Controllers/Api/V1/Tenant/AiScoringController.php:67` e `app/Services/AiScoringService.php:150`
-
-> Um viewer pode recalcular todos os scores, síncrono, carregando todos os terrenos e executando um upsert por item. O GET individual também aceita `?recalculate=true` e escreve.
-> Impacto: abuso de CPU/DB e mutação por perfil de leitura; GET deixa de ser idempotente.
-> Correção sugerida: exigir permissão editor, mover recálculo para job paginado/único e remover escrita do GET.
-
-**[MÉDIO]** — `app/Services/Tenant/AiMonitorService.php:131`
-
-> `tasks` é eager-loaded, mas o loop chama `$t->tasks()->get()` novamente.
-> Impacto: N+1 de uma query por terreno no monitor; combinado ao limite 200 degrada o endpoint.
-> Correção sugerida: iterar `$t->tasks` já carregado.
-
-**[MÉDIO]** — `app/Services/Signup/TenantSignupService.php:72`
-
-> Não há ledger central de trial por email, organização ou payment method. Novo slug/tenant gera novo customer e novo trial.
-> Impacto: repetição de trials com identidades/slugs novos.
-> Correção sugerida: registrar elegibilidade de trial de forma central e aplicar regra de negócio; tradeoff entre email verificado (menos atrito) e fingerprint/payment method (mais forte, maior impacto de privacidade/suporte).
-
 ### Severidade baixa
-
-**[BAIXO]** — `app/Jobs/CalculateUsableAreaJob.php:41`
-
-> `uniqueId()` contém apenas o ID local do terreno. IDs se repetem entre schemas; dependendo do momento em que o lock é prefixado pelo bootstrap de cache, tenants podem colidir.
-> Impacto: cálculo de área de um tenant pode ser suprimido pelo job de outro.
-> Correção sugerida: incluir tenant ID no unique ID e adicionar teste com dois schemas. Marcado como risco porque o prefixo efetivo do lock deve ser verificado no worker real.
-
-**[BAIXO]** — `database/migrations/tenant/2026_03_11_000002_backfill_workflow_and_versions.php:111`
-
-> `down()` é vazio; a migration seguinte também declara rollback não automático.
-> Impacto: rollback não restaura estado, contrariando o contrato operacional do projeto.
-> Correção sugerida: documentar como irreversível com estratégia de restore/backup ou implementar reversão quando os dados originais puderem ser preservados.
 
 **[BAIXO]** — `app/Http/Controllers/Api/V1/Tenant/DashboardController.php` e serviços AI/dashboard
 
@@ -85,7 +43,7 @@ Verificações executadas:
 - Falha de pagamento: notifica toda tentativa e suspende a partir da terceira; `unpaid`/`incomplete_expired` também suspendem na reconciliação.
 - Cancelamento: `customer.subscription.deleted` cancela tenant e Cashier sincroniza tabela local.
 - Upgrade/downgrade: o servidor classifica a troca por `sort_order`; upgrades usam `swapAndInvoice`, downgrades ficam em `scheduled_plan_id` até `invoice.paid`.
-- Trial: Stripe controla o período, mas a elegibilidade de repetição não é centralizada.
+- Trial: Stripe controla o período e o signup agora registra um ledger central por email para evitar repetir trial com novo slug no mesmo email. Ainda não há trava adicional por organização ou payment method.
 - Cartão: dados completos não passam pelo backend; usa Checkout, SetupIntent e payment method IDs. Só brand/last4/expiração são lidos.
 - Evento faltante relevante: `invoice.payment_action_required` não tem handler próprio apesar de existir template de email.
 
@@ -112,18 +70,25 @@ Ownership dentro do mesmo tenant é majoritariamente **RBAC por módulo**, não 
 - PDFs gerados pela IA agora passam por sanitização com `HTMLPurifier`, bloqueio de esquemas URI e `disableJavascript()` antes do render.
 - Logout e logout-all agora invalidam sessão stateful quando não há `PersonalAccessToken`; refresh rejeita tokens não refreshables sem chamar `delete()`.
 - Dependências auditadas foram atualizadas (`laravel/framework` 13.16.1, `guzzlehttp/psr7` 2.12.1, `mtdowling/jmespath.php` 2.9.1) e `composer audit --locked` está limpo.
+- Dashboard e export de checklist agora retornam mensagens 500 genéricas, sem expor `getMessage()` ao cliente.
+- CORS em produção restringe subdomínios a `https`, e `SecurityHeaders` aplica `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy` e HSTS em conexões seguras.
+- Recálculo de AI scoring em massa agora exige `update` em `Terreno`, roda em job assíncrono e o GET individual não escreve mais por `?recalculate=true`.
+- Signup agora registra `trial_ledger` central por email e impede novo trial para o mesmo email mesmo com outro slug/tenant.
+- `AiMonitorService` agora usa as relações já carregadas de `tasks`, `legalizacao` e `etapas` no monitor de itens vencidos.
+- `CalculateUsableAreaJob` agora compõe `uniqueId()` com `tenantId` e `terrenoId`, eliminando a colisão direta entre schemas no lock único.
+- `TerrenoObserver` agora só dispara `CalculateUsableAreaJob` com tenant inicializado, e a suíte de `CalculateUsableAreaJobTest`/`TerrenoObserverTest` foi alinhada ao novo contrato do job e está passando.
+- As migrations `2026_03_11_000002` e `2026_03_11_000003` agora tratam `down()` de forma explícita como irreversível, falhando com instrução operacional de restore por backup em vez de sugerir rollback automático inexistente.
 - Operações compostas de signup, workflow, legalização, projeto, comitê, negociação e viabilidade usam transações.
 - 584 testes passam, incluindo auth, billing/webhook, tenancy, ACL, recursos e fluxos de negócio; PHPStan nível 8 também passa sem erros.
 - Nenhum uso de command execution/eval ou SQL raw concatenando input foi confirmado.
 - Todas as migrations possuem método `down()` declarado; a maioria implementa rollback funcional.
 
-## Resumo executivo — top 5
+## Resumo executivo — pendências principais
 
-1. CORS com credenciais ainda aceita `http` e `https` em subdomínios, e o app não define HSTS/CSP/X-Frame/X-Content-Type/Referrer-Policy localmente.
-2. Um viewer ainda pode recalcular scores em massa e disparar escrita síncrona no GET com `?recalculate=true`.
-3. O monitor de IA ainda faz N+1 ao recarregar `tasks()` dentro do loop apesar do eager loading.
-4. Não há ledger central de trial por email/organização/payment method, permitindo repetição de trials com novas identidades.
-5. Respostas 500 ainda expõem `getMessage()` em alguns fluxos tenant/export, com risco de vazamento de detalhes internos.
+1. O app ainda não define CSP localmente; se o edge não aplicar política equivalente, a proteção contra carregamento de conteúdo ativo fica incompleta.
+2. O controller de dashboard tenant segue fora do padrão Controller→Service→Repository, aumentando custo de manutenção e chance de regressão.
+3. `invoice.payment_action_required` segue sem handler dedicado apesar de já existir template de email relacionado.
+4. A regra de ownership global dentro do tenant continua indefinida fora dos módulos que aplicam escopo explícito por usuário.
 
 ## Tabela completa de endpoints
 
@@ -202,9 +167,9 @@ A tabela tem 333 contratos únicos. Rotas centrais repetidas nos quatro domínio
 | GET\|HEAD | `api/v1/ai/predictive/approval/{terreno_id}` (tenant) | Sim   | Master        | Sim            | ok                                                                   |
 | GET\|HEAD | `api/v1/ai/predictive/stalling` (tenant)              | Sim   | Master        | Sim            | ok                                                                   |
 | GET\|HEAD | `api/v1/ai/predictive/vgv/{terreno_id}` (tenant)      | Sim   | Master        | Sim            | ok                                                                   |
-| GET\|HEAD | `api/v1/ai/scoring/{terreno_id}` (tenant)             | Sim   | Master        | Sim            | MÉDIO: query recalculate permite escrita em GET para viewer         |
+| GET\|HEAD | `api/v1/ai/scoring/{terreno_id}` (tenant)             | Sim   | Master        | Sim            | ok                                                                   |
 | GET\|HEAD | `api/v1/ai/scoring/ranking` (tenant)                  | Sim   | Master        | Sim            | ok                                                                   |
-| POST      | `api/v1/ai/scoring/recalculate` (tenant)              | Sim   | Master        | Sim            | MÉDIO: viewer dispara escrita síncrona e sem limite de lote        |
+| POST      | `api/v1/ai/scoring/recalculate` (tenant)              | Sim   | Master        | Sim            | ok                                                                   |
 | POST      | `api/v1/ai/sig-ai` (tenant)                           | Sim   | Master        | Sim            | ALTO: tools consultam módulos Pro usando só permissão de terrenos |
 
 ### auth
@@ -214,10 +179,10 @@ A tabela tem 333 contratos únicos. Rotas centrais repetidas nos quatro domínio
 | POST      | `api/v1/auth/exchange-ticket` (tenant)        | Não  | N/A           | Sim            | ok                                                         |
 | POST      | `api/v1/auth/login` (sigapp.com.br)           | Não  | N/A           | Não           | ok                                                         |
 | POST      | `api/v1/auth/login` (tenant)                  | Não  | N/A           | Sim            | ok                                                         |
-| POST      | `api/v1/auth/logout` (sigapp.com.br)          | Sim   | N/A           | Não           | MÉDIO: fluxo quebra/não encerra sessão Sanctum stateful |
-| POST      | `api/v1/auth/logout` (tenant)                 | Sim   | N/A           | Sim            | MÉDIO: fluxo quebra/não encerra sessão Sanctum stateful |
-| POST      | `api/v1/auth/logout-all` (sigapp.com.br)      | Sim   | N/A           | Não           | MÉDIO: fluxo quebra/não encerra sessão Sanctum stateful |
-| POST      | `api/v1/auth/logout-all` (tenant)             | Sim   | N/A           | Sim            | MÉDIO: fluxo quebra/não encerra sessão Sanctum stateful |
+| POST      | `api/v1/auth/logout` (sigapp.com.br)          | Sim   | N/A           | Não           | ok                                                         |
+| POST      | `api/v1/auth/logout` (tenant)                 | Sim   | N/A           | Sim            | ok                                                         |
+| POST      | `api/v1/auth/logout-all` (sigapp.com.br)      | Sim   | N/A           | Não           | ok                                                         |
+| POST      | `api/v1/auth/logout-all` (tenant)             | Sim   | N/A           | Sim            | ok                                                         |
 | GET\|HEAD | `api/v1/auth/me` (sigapp.com.br)              | Sim   | N/A           | Não           | ok                                                         |
 | GET\|HEAD | `api/v1/auth/me` (tenant)                     | Sim   | N/A           | Sim            | ok                                                         |
 | PUT       | `api/v1/auth/me` (tenant)                     | Sim   | N/A           | Sim            | ok                                                         |
@@ -225,8 +190,8 @@ A tabela tem 333 contratos únicos. Rotas centrais repetidas nos quatro domínio
 | POST      | `api/v1/auth/password/forgot` (tenant)        | Não  | N/A           | Sim            | ok                                                         |
 | POST      | `api/v1/auth/password/reset` (sigapp.com.br)  | Não  | N/A           | Não           | ok                                                         |
 | POST      | `api/v1/auth/password/reset` (tenant)         | Não  | N/A           | Sim            | ok                                                         |
-| POST      | `api/v1/auth/refresh` (sigapp.com.br)         | Sim   | N/A           | Não           | MÉDIO: fluxo quebra/não encerra sessão Sanctum stateful |
-| POST      | `api/v1/auth/refresh` (tenant)                | Sim   | N/A           | Sim            | MÉDIO: fluxo quebra/não encerra sessão Sanctum stateful |
+| POST      | `api/v1/auth/refresh` (sigapp.com.br)         | Sim   | N/A           | Não           | ok                                                         |
+| POST      | `api/v1/auth/refresh` (tenant)                | Sim   | N/A           | Sim            | ok                                                         |
 | POST      | `api/v1/auth/select-tenant` (sigapp.com.br)   | Não  | N/A           | Não           | ok                                                         |
 
 ### blog
@@ -295,7 +260,7 @@ A tabela tem 333 contratos únicos. Rotas centrais repetidas nos quatro domínio
 | GET\|HEAD | `api/v1/dashboard/overview` (tenant)                      | Sim   | Básico       | Sim            | ok                                                |
 | GET\|HEAD | `api/v1/dashboard/resumo` (tenant)                        | Sim   | Básico       | Sim            | ok                                                |
 | GET\|HEAD | `api/v1/dashboard/status-chart` (tenant)                  | Sim   | Básico       | Sim            | ok                                                |
-| GET\|HEAD | `api/v1/dashboard/terrenos-responsavel` (tenant)          | Sim   | Básico       | Sim            | MÉDIO: exceção interna exposta em resposta 500 |
+| GET\|HEAD | `api/v1/dashboard/terrenos-responsavel` (tenant)          | Sim   | Básico       | Sim            | ok                                                |
 | GET\|HEAD | `api/v1/dashboard/top-cidades` (tenant)                   | Sim   | Básico       | Sim            | ok                                                |
 | GET\|HEAD | `api/v1/dashboard/unidades-fechadas-anual` (tenant)       | Sim   | Master        | Sim            | ok                                                |
 | GET\|HEAD | `api/v1/dashboard/vgv-anual` (tenant)                     | Sim   | Master        | Sim            | ok                                                |

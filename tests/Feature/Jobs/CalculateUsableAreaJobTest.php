@@ -6,6 +6,7 @@ use App\Http\Middleware\AddTenantContextToLogs;
 use App\Http\Middleware\ApiRequestLogger;
 use App\Http\Middleware\CheckSubscriptionStatus;
 use App\Http\Middleware\InitializeTenancyFlexible;
+use App\Models\Central\Tenant as CentralTenant;
 use App\Jobs\CalculateUsableAreaJob;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\User;
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
+use Stancl\Tenancy\Tenancy;
 use Tests\TestCase;
 
 class CalculateUsableAreaJobTest extends TestCase
@@ -24,6 +26,8 @@ class CalculateUsableAreaJobTest extends TestCase
     use RefreshDatabase;
 
     private User $admin;
+
+    private const TENANT_ID = 'test-tenant';
 
     protected function setUp(): void
     {
@@ -47,6 +51,17 @@ class CalculateUsableAreaJobTest extends TestCase
             'password' => Hash::make('password123'),
         ]);
         $this->admin->assignRole('admin');
+
+        $tenant = new CentralTenant;
+        $tenant->setAttribute('id', self::TENANT_ID);
+        app(Tenancy::class)->tenant = $tenant;
+    }
+
+    protected function tearDown(): void
+    {
+        app(Tenancy::class)->tenant = null;
+
+        parent::tearDown();
     }
 
     public function test_job_is_dispatched_on_polygon_change(): void
@@ -65,12 +80,12 @@ class CalculateUsableAreaJobTest extends TestCase
 
     public function test_job_configuration(): void
     {
-        $job = new CalculateUsableAreaJob(1);
+        $job = new CalculateUsableAreaJob(1, self::TENANT_ID);
 
         $this->assertSame(3, $job->tries);
         $this->assertSame(120, $job->timeout);
         $this->assertSame([30, 60, 120], $job->backoff);
-        $this->assertSame('1', $job->uniqueId());
+        $this->assertSame(self::TENANT_ID.':1', $job->uniqueId());
     }
 
     public function test_job_updates_terreno_with_calculation_results(): void
@@ -109,13 +124,13 @@ class CalculateUsableAreaJobTest extends TestCase
 
         $terreno->refresh();
 
-        $job = new CalculateUsableAreaJob($terreno->id);
+        $job = new CalculateUsableAreaJob($terreno->id, self::TENANT_ID);
         $job->handle(app(AreaCalculatorService::class));
 
         $terreno->refresh();
 
         // Executar o job sincronamente
-        $job = new CalculateUsableAreaJob($terreno->id);
+        $job = new CalculateUsableAreaJob($terreno->id, self::TENANT_ID);
         $job->handle(app(AreaCalculatorService::class));
 
         $terreno->refresh();
@@ -136,7 +151,7 @@ class CalculateUsableAreaJobTest extends TestCase
             'created_by' => $this->admin->id,
         ]);
 
-        $job = new CalculateUsableAreaJob($terreno->id);
+        $job = new CalculateUsableAreaJob($terreno->id, self::TENANT_ID);
         $job->handle(app(AreaCalculatorService::class));
 
         $terreno->refresh();
@@ -148,7 +163,7 @@ class CalculateUsableAreaJobTest extends TestCase
 
     public function test_job_handles_missing_terreno_gracefully(): void
     {
-        $job = new CalculateUsableAreaJob(99999);
+        $job = new CalculateUsableAreaJob(99999, self::TENANT_ID);
         $job->handle(app(AreaCalculatorService::class));
 
         // Não deve lançar exceção

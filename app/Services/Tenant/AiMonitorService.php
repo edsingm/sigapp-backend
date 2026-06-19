@@ -136,7 +136,7 @@ class AiMonitorService
 
         $terrains->each(function (Terreno $t) use (&$alerts): void {
             /** @var \Illuminate\Database\Eloquent\Collection<int, Task> $tasks */
-            $tasks = $t->tasks()->get();
+            $tasks = $t->tasks;
             foreach ($tasks as $task) {
                 $dueDate = $task->getAttribute('due_date');
                 $taskStatus = (string) $task->getAttribute('status');
@@ -163,11 +163,11 @@ class AiMonitorService
             }
 
             /** @var Legalizacao|null $legalizacao */
-            $legalizacao = $t->legalizacao()->first();
+            $legalizacao = $t->legalizacao;
             if ($legalizacao) {
-                $overdueEtapa = $legalizacao->etapas()
-                    ->where('status', '!=', 'concluida')
-                    ->where('due_date', '<', now())
+                $overdueEtapa = $legalizacao->etapas
+                    ->filter(fn ($e): bool => $e->getAttribute('status') !== 'concluida'
+                        && $e->getAttribute('due_date') < now())
                     ->first();
 
                 if ($overdueEtapa) {

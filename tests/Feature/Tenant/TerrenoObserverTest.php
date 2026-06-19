@@ -10,6 +10,7 @@ use App\Http\Middleware\EnsureTenantContext;
 use App\Http\Middleware\EnsureTenantUser;
 use App\Http\Middleware\InitializeTenancyFlexible;
 use App\Jobs\CalculateUsableAreaJob;
+use App\Models\Central\Tenant as CentralTenant;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
+use Stancl\Tenancy\Tenancy;
 use Tests\TestCase;
 
 class TerrenoObserverTest extends TestCase
@@ -24,6 +26,8 @@ class TerrenoObserverTest extends TestCase
     use RefreshDatabase;
 
     private User $admin;
+
+    private const TENANT_ID = 'test-tenant';
 
     protected function setUp(): void
     {
@@ -50,6 +54,17 @@ class TerrenoObserverTest extends TestCase
             'password' => Hash::make('password123'),
         ]);
         $this->admin->assignRole('admin');
+
+        $tenant = new CentralTenant;
+        $tenant->setAttribute('id', self::TENANT_ID);
+        app(Tenancy::class)->tenant = $tenant;
+    }
+
+    protected function tearDown(): void
+    {
+        app(Tenancy::class)->tenant = null;
+
+        parent::tearDown();
     }
 
     public function test_dispatches_job_when_polygon_coords_is_set_on_create(): void
@@ -66,7 +81,10 @@ class TerrenoObserverTest extends TestCase
             'created_by' => $this->admin->id,
         ]);
 
-        Bus::assertDispatched(CalculateUsableAreaJob::class);
+        Bus::assertDispatched(
+            CalculateUsableAreaJob::class,
+            fn (CalculateUsableAreaJob $job): bool => $job->tenantId === self::TENANT_ID
+        );
     }
 
     public function test_does_not_dispatch_job_when_polygon_coords_is_null(): void
@@ -99,6 +117,27 @@ class TerrenoObserverTest extends TestCase
             ],
         ]);
 
-        Bus::assertDispatched(CalculateUsableAreaJob::class);
+        Bus::assertDispatched(
+            CalculateUsableAreaJob::class,
+            fn (CalculateUsableAreaJob $job): bool => $job->tenantId === self::TENANT_ID
+        );
+    }
+
+    public function test_does_not_dispatch_job_without_tenant_context(): void
+    {
+        app(Tenancy::class)->tenant = null;
+        Bus::fake(CalculateUsableAreaJob::class);
+
+        Terreno::create([
+            'nome' => 'Sem Tenant',
+            'polygon_coords' => [
+                ['lat' => -23.5, 'lng' => -46.6],
+                ['lat' => -23.5, 'lng' => -46.7],
+                ['lat' => -23.6, 'lng' => -46.7],
+            ],
+            'created_by' => $this->admin->id,
+        ]);
+
+        Bus::assertNotDispatched(CalculateUsableAreaJob::class);
     }
 }

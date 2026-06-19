@@ -225,7 +225,7 @@ class TerrenoController extends Controller
             );
         }
 
-        CalculateUsableAreaJob::dispatch($terreno->id);
+        CalculateUsableAreaJob::dispatch($terreno->id, tenancy()->tenant->id);
 
         return ApiResponseService::success(
             ['status' => 'queued'],

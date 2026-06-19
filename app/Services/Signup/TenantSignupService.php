@@ -69,14 +69,19 @@ class TenantSignupService
                 effectiveSlug: $effectiveSlug,
             );
 
+            $adminEmail = (string) $validated['admin_email'];
+            $trialEligible = ! DB::table('trial_ledger')
+                ->where('email', $adminEmail)
+                ->exists();
+
             $tenant = Tenant::create([
                 'name' => $validated['organization_name'],
                 'slug' => $effectiveSlug,
                 'status' => Tenant::STATUS_PENDING,
                 'plan_id' => $plan->id,
-                'trial_ends_at' => now()->addDays($plan->trial_days),
+                'trial_ends_at' => $trialEligible ? now()->addDays($plan->trial_days) : null,
                 'admin_name' => $validated['admin_name'],
-                'admin_email' => $validated['admin_email'],
+                'admin_email' => $adminEmail,
                 'admin_password' => $validated['admin_password'],
                 'data' => [
                     'signup_contract_acceptance' => $contractAcceptance,
@@ -84,6 +89,15 @@ class TenantSignupService
             ]);
 
             $tenant->domains()->create(['domain' => $tenant->slug]);
+
+            if ($trialEligible) {
+                DB::table('trial_ledger')->insert([
+                    'email' => $adminEmail,
+                    'tenant_slug' => $effectiveSlug,
+                    'granted_at' => now(),
+                    'created_at' => now(),
+                ]);
+            }
 
             // WORKAROUND stancl/tenancy: Tenant::create() ignora colunas customizadas
             // que não estão na lista interna do pacote (id, created_at, updated_at, data).

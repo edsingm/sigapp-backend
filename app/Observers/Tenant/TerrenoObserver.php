@@ -32,6 +32,16 @@ class TerrenoObserver
             'terreno_id' => $terreno->id,
         ]);
 
-        CalculateUsableAreaJob::dispatch($terreno->id);
+        $tenant = tenancy()->tenant;
+
+        if ($tenant === null) {
+            Log::warning('Não foi possível disparar cálculo de área útil sem tenant inicializado', [
+                'terreno_id' => $terreno->id,
+            ]);
+
+            return;
+        }
+
+        CalculateUsableAreaJob::dispatch($terreno->id, (string) $tenant->id);
     }
 }

@@ -33,14 +33,13 @@ class CalculateUsableAreaJob implements ShouldBeUnique, ShouldQueue
 
     public function __construct(
         public readonly int $terrenoId,
+        public readonly string $tenantId,
     ) {}
 
-    /**
-     * O lock é baseado no ID do terreno para evitar cálculos concorrentes.
-     */
+    // IDs de terreno se repetem entre schemas; o prefixo do tenant evita colisão de lock.
     public function uniqueId(): string
     {
-        return (string) $this->terrenoId;
+        return "{$this->tenantId}:{$this->terrenoId}";
     }
 
     public function handle(AreaCalculatorService $calculator): void

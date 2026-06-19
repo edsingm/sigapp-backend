@@ -1,8 +1,8 @@
 <?php
 
 use App\Http\Controllers\Api\V1\CidadesController;
-use App\Http\Controllers\Api\V1\MunicipioController;
 use App\Http\Controllers\Api\V1\LanguageController;
+use App\Http\Controllers\Api\V1\MunicipioController;
 use App\Http\Controllers\Api\V1\Tenant\Admin\DepartmentController as AdminDepartmentController;
 use App\Http\Controllers\Api\V1\Tenant\Admin\PermissionController as AdminPermissionController;
 use App\Http\Controllers\Api\V1\Tenant\Admin\PositionController as AdminPositionController;

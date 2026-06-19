@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\ConsentLog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -131,7 +132,7 @@ class ConsentLogTest extends TestCase
             'consented_at' => now()->subDays(5),
         ]);
 
-        $exitCode = \Illuminate\Support\Facades\Artisan::call('privacy:cleanup-consent-logs', ['--days' => 30]);
+        $exitCode = Artisan::call('privacy:cleanup-consent-logs', ['--days' => 30]);
         $this->assertEquals(0, $exitCode);
 
         $this->assertDatabaseMissing('consent_logs', ['id' => $expiredLog->id]);

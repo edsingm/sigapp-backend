@@ -62,12 +62,12 @@ class GetTerrenoGeoAnalysisTool implements Tool
         $hasPolygon = count($polygon) >= 3;
 
         $payload = [
-            'terreno_id'   => $terreno->id,
-            'nome'         => $terreno->nome,
-            'endereco'     => $terreno->endereco,
-            'bairro'       => $terreno->bairro,
-            'cidade_code'  => $terreno->cidade_code,
-            'estado'       => $terreno->estado,
+            'terreno_id' => $terreno->id,
+            'nome' => $terreno->nome,
+            'endereco' => $terreno->endereco,
+            'bairro' => $terreno->bairro,
+            'cidade_code' => $terreno->cidade_code,
+            'estado' => $terreno->estado,
         ];
 
         $payload['area'] = $this->buildAreaSection($terreno);
@@ -79,10 +79,10 @@ class GetTerrenoGeoAnalysisTool implements Tool
             $bbox = $this->polygonCalc->boundingBox($polygon);
 
             $payload['topografia'] = [
-                'centroide'     => $center,
-                'bounding_box'  => $bbox,
-                'vertices'      => count($polygon),
-                'observacao'    => 'Elevações processadas pelo CalculateUsableAreaJob no calculo de declividade.',
+                'centroide' => $center,
+                'bounding_box' => $bbox,
+                'vertices' => count($polygon),
+                'observacao' => 'Elevações processadas pelo CalculateUsableAreaJob no calculo de declividade.',
             ];
 
             try {
@@ -91,7 +91,7 @@ class GetTerrenoGeoAnalysisTool implements Tool
             } catch (\Throwable $e) {
                 $payload['vias'] = null;
                 $payload['pontos_de_apoio'] = null;
-                $payload['aviso_geo'] = 'Erro ao consultar API geográfica: ' . $e->getMessage();
+                $payload['aviso_geo'] = 'Erro ao consultar API geográfica: '.$e->getMessage();
             }
             $payload['radius_metros_usado'] = $radiusMetros;
         } else {
@@ -108,7 +108,7 @@ class GetTerrenoGeoAnalysisTool implements Tool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'terreno_id'   => $schema->integer()->required(),
+            'terreno_id' => $schema->integer()->required(),
             'radius_metros' => $schema->integer()->description('Raio em metros para busca de vias e pontos de apoio (padrão: 1000, máx: 5000).'),
         ];
     }
@@ -119,12 +119,12 @@ class GetTerrenoGeoAnalysisTool implements Tool
     private function buildAreaSection(Terreno $terreno): array
     {
         return [
-            'status_calculo'          => $terreno->area_calculo_status,
-            'calculado_em'            => optional($terreno->area_calculada_em)?->toAtomString(),
-            'area_total_m2'           => $terreno->area_total,
-            'area_declividade_m2'     => $terreno->area_declividade,
-            'area_app_m2'             => $terreno->area_app,
-            'area_util_m2'            => $terreno->area_util,
+            'status_calculo' => $terreno->area_calculo_status,
+            'calculado_em' => optional($terreno->area_calculada_em)?->toAtomString(),
+            'area_total_m2' => $terreno->area_total,
+            'area_declividade_m2' => $terreno->area_declividade,
+            'area_app_m2' => $terreno->area_app,
+            'area_util_m2' => $terreno->area_util,
             'percentual_aproveitamento' => $terreno->percentual_aproveitamento,
         ];
     }
@@ -135,11 +135,11 @@ class GetTerrenoGeoAnalysisTool implements Tool
     private function buildDeclividadeSection(Terreno $terreno): array
     {
         return [
-            'classificacao'     => $terreno->declividade_classificacao,
-            'avaliacao'         => $terreno->declividade_avaliacao,
-            'impacto_custo'     => $terreno->declividade_impacto_custo,
+            'classificacao' => $terreno->declividade_classificacao,
+            'avaliacao' => $terreno->declividade_avaliacao,
+            'impacto_custo' => $terreno->declividade_impacto_custo,
             'percentual_maximo' => $terreno->declividade_percentual_maximo,
-            'percentual_medio'  => $terreno->declividade_percentual_medio,
+            'percentual_medio' => $terreno->declividade_percentual_medio,
         ];
     }
 
@@ -151,7 +151,7 @@ class GetTerrenoGeoAnalysisTool implements Tool
         $appPolygons = $terreno->app_polygons ?? [];
 
         return [
-            'area_app_m2'      => $terreno->area_app,
+            'area_app_m2' => $terreno->area_app,
             'quantidade_zonas' => count($appPolygons),
         ];
     }

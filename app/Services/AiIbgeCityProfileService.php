@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -58,7 +59,7 @@ class AiIbgeCityProfileService
 
         $ufSigla = Str::lower((string) data_get($municipio, 'microrregiao.mesorregiao.UF.sigla'));
         $cidadeSlug = Str::slug((string) ($municipio['nome'] ?? ''));
-        $panoramaUrl = self::CIDADES_BASE . "/{$ufSigla}/{$cidadeSlug}.html";
+        $panoramaUrl = self::CIDADES_BASE."/{$ufSigla}/{$cidadeSlug}.html";
 
         $historico = $this->fetchHistorico($codigo);
         $panorama = $this->fetchPanorama($panoramaUrl);
@@ -120,7 +121,7 @@ class AiIbgeCityProfileService
                 'fonte' => $historico['HISTORICO_FONTE'] ?? null,
             ],
             'fontes' => [
-                'biblioteca' => self::BIBLIOTECA_BASE . '?aspas=3&codmun=' . $codigo . '&tipoRetorno=json',
+                'biblioteca' => self::BIBLIOTECA_BASE.'?aspas=3&codmun='.$codigo.'&tipoRetorno=json',
                 'pagina_panorama' => $panoramaUrl,
                 'indicadores' => [
                     $this->buildIndicadorUrl($codigo, 33, '2025', 29171),
@@ -149,7 +150,7 @@ class AiIbgeCityProfileService
     ): array {
         if ($codigoMunicipio !== null && preg_match('/^\d{7}$/', $codigoMunicipio) === 1) {
             $response = $this->http()
-                ->get(self::LOCALIDADES_BASE . '/municipios/' . $codigoMunicipio);
+                ->get(self::LOCALIDADES_BASE.'/municipios/'.$codigoMunicipio);
 
             if (! $response->successful()) {
                 throw new RuntimeException('Falha ao consultar o município no IBGE.');
@@ -163,7 +164,7 @@ class AiIbgeCityProfileService
         }
 
         $response = $this->http()
-            ->get(self::LOCALIDADES_BASE . '/estados/' . Str::upper(trim($uf)) . '/municipios');
+            ->get(self::LOCALIDADES_BASE.'/estados/'.Str::upper(trim($uf)).'/municipios');
 
         if (! $response->successful()) {
             throw new RuntimeException('Falha ao listar municípios da UF informada no IBGE.');
@@ -226,7 +227,7 @@ class AiIbgeCityProfileService
         libxml_use_internal_errors(true);
 
         $dom = new \DOMDocument('1.0', 'UTF-8');
-        $dom->loadHTML('<?xml encoding="utf-8" ?>' . $html);
+        $dom->loadHTML('<?xml encoding="utf-8" ?>'.$html);
 
         $xpath = new \DOMXPath($dom);
         $nodes = $xpath->query("//ul[contains(@class,'resultados-padrao')]/li");
@@ -334,9 +335,9 @@ class AiIbgeCityProfileService
         int $indicadorId
     ): string {
         return self::PESQUISAS_BASE
-            . "/{$pesquisaId}/periodos/{$periodo}/indicadores/{$indicadorId}"
-            . '?scope=all&localidade=' . $codigoMunicipio
-            . '&lang=PT';
+            ."/{$pesquisaId}/periodos/{$periodo}/indicadores/{$indicadorId}"
+            .'?scope=all&localidade='.$codigoMunicipio
+            .'&lang=PT';
     }
 
     private function normalizeText(string $value): string
@@ -354,7 +355,7 @@ class AiIbgeCityProfileService
         return trim(preg_replace('/\s+/u', ' ', html_entity_decode((string) $value)) ?? '');
     }
 
-    private function http(): \Illuminate\Http\Client\PendingRequest
+    private function http(): PendingRequest
     {
         return Http::acceptJson()
             ->timeout(20)

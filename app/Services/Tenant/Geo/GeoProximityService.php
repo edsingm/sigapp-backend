@@ -10,7 +10,8 @@ use RuntimeException;
 
 class GeoProximityService
 {
-    private const PLACES_API   = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json';
+    private const PLACES_API = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json';
+
     private const GEOCODING_API = 'https://maps.googleapis.com/maps/api/geocode/json';
 
     /**
@@ -18,13 +19,13 @@ class GeoProximityService
      * A Places API aceita apenas um type por requisição.
      */
     private const PLACE_TYPES = [
-        'escola'         => 'school',
-        'universidade'   => 'university',
-        'hospital'       => 'hospital',
-        'clinica'        => 'doctor',
-        'farmacia'       => 'pharmacy',
-        'mercado'        => 'supermarket',
-        'banco'          => 'bank',
+        'escola' => 'school',
+        'universidade' => 'university',
+        'hospital' => 'hospital',
+        'clinica' => 'doctor',
+        'farmacia' => 'pharmacy',
+        'mercado' => 'supermarket',
+        'banco' => 'bank',
         'posto_gasolina' => 'gas_station',
     ];
 
@@ -105,7 +106,7 @@ class GeoProximityService
                     }
 
                     $entries[] = [
-                        'name'             => $place['name'] ?? null,
+                        'name' => $place['name'] ?? null,
                         'distancia_metros' => (int) round(
                             $this->polygonCalc->haversineDistance(
                                 $center,
@@ -173,9 +174,9 @@ class GeoProximityService
     {
         try {
             $response = Http::timeout(10)->get(self::GEOCODING_API, [
-                'latlng'      => "{$point['lat']},{$point['lng']}",
+                'latlng' => "{$point['lat']},{$point['lng']}",
                 'result_type' => 'route',
-                'key'         => $apiKey,
+                'key' => $apiKey,
             ]);
 
             if ($response->failed() || ($response->json('status') !== 'OK' && $response->json('status') !== 'ZERO_RESULTS')) {
@@ -210,9 +211,9 @@ class GeoProximityService
         try {
             $response = Http::timeout(15)->get(self::PLACES_API, [
                 'location' => "{$center['lat']},{$center['lng']}",
-                'radius'   => $radius,
-                'type'     => $type,
-                'key'      => $apiKey,
+                'radius' => $radius,
+                'type' => $type,
+                'key' => $apiKey,
             ]);
 
             $status = $response->json('status');

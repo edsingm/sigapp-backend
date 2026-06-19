@@ -69,7 +69,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        throw new \RuntimeException(
+        throw new RuntimeException(
             'Migration de backfill irreversível: mapeamento antigo era muitos-para-um. '
             .'Para reverter, restaure o banco a partir de um backup pré-migration.'
         );

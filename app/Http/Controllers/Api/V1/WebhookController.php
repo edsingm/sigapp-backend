@@ -543,7 +543,7 @@ class WebhookController extends CashierController
      * Coloca o tenant em under_review e persiste a disputa para rastreamento.
      * Requer que o evento esteja registrado no Dashboard do Stripe.
      */
-    protected function handleChargeDisputeCreated(array $payload)
+    protected function handleChargeDisputeCreated(array $payload): Response
     {
         $disputeData = (array) data_get($payload, 'data.object', []);
         $disputeId = (string) data_get($disputeData, 'id', '');
@@ -574,6 +574,15 @@ class WebhookController extends CashierController
                 'dispute_id' => $disputeId,
                 'charge_id' => $chargeId,
                 'error' => $e->getMessage(),
+            ]);
+
+            return $this->successMethod();
+        }
+
+        if (! is_string($customerId) || $customerId === '') {
+            Log::warning('charge.dispute.created: customer_id ausente no charge recuperado', [
+                'dispute_id' => $disputeId,
+                'charge_id' => $chargeId,
             ]);
 
             return $this->successMethod();
@@ -620,7 +629,7 @@ class WebhookController extends CashierController
      * Atualiza o status local da disputa sem alterar o status do tenant.
      * Requer que o evento esteja registrado no Dashboard do Stripe.
      */
-    protected function handleChargeDisputeUpdated(array $payload)
+    protected function handleChargeDisputeUpdated(array $payload): Response
     {
         $disputeData = (array) data_get($payload, 'data.object', []);
         $disputeId = (string) data_get($disputeData, 'id', '');
@@ -653,7 +662,7 @@ class WebhookController extends CashierController
      * outros → apenas auditoria.
      * Requer que o evento esteja registrado no Dashboard do Stripe.
      */
-    protected function handleChargeDisputeClosed(array $payload)
+    protected function handleChargeDisputeClosed(array $payload): Response
     {
         $disputeData = (array) data_get($payload, 'data.object', []);
         $disputeId = (string) data_get($disputeData, 'id', '');
@@ -665,7 +674,9 @@ class WebhookController extends CashierController
 
         $localDispute = Dispute::with('tenant')->where('stripe_dispute_id', $disputeId)->first();
 
-        if (! $localDispute || ! $localDispute->tenant) {
+        $tenant = $localDispute?->tenant()->first();
+
+        if (! $localDispute || ! ($tenant instanceof Tenant)) {
             Log::warning('charge.dispute.closed: disputa não encontrada localmente', [
                 'dispute_id' => $disputeId,
                 'status' => $disputeStatus,
@@ -675,8 +686,6 @@ class WebhookController extends CashierController
         }
 
         $localDispute->update(['status' => $disputeStatus, 'resolved_at' => now()]);
-
-        $tenant = $localDispute->tenant;
 
         if ($disputeStatus === 'won') {
             $tenant->activate();

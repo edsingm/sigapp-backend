@@ -73,6 +73,17 @@ class WebhookHandlerTest extends TestCase
         ], $attrs));
     }
 
+    private function assertTenantStatus(Tenant $tenant, string $expectedStatus): void
+    {
+        $freshTenant = $tenant->fresh();
+
+        if (! $freshTenant instanceof Tenant) {
+            $this->fail('Tenant not found after webhook processing.');
+        }
+
+        $this->assertSame($expectedStatus, $freshTenant->status);
+    }
+
     // -------------------------------------------------------------------------
     // invoice.payment_failed
     // -------------------------------------------------------------------------
@@ -90,7 +101,7 @@ class WebhookHandlerTest extends TestCase
         ])->assertOk();
 
         Notification::assertSentTo($tenant, PaymentRetryNotification::class);
-        $this->assertEquals(Tenant::STATUS_ACTIVE, $tenant->fresh()->status);
+        $this->assertTenantStatus($tenant, Tenant::STATUS_ACTIVE);
     }
 
     public function test_payment_failed_sends_notification_on_second_attempt(): void
@@ -105,7 +116,7 @@ class WebhookHandlerTest extends TestCase
         ])->assertOk();
 
         Notification::assertSentTo($tenant, PaymentRetryNotification::class);
-        $this->assertEquals(Tenant::STATUS_ACTIVE, $tenant->fresh()->status);
+        $this->assertTenantStatus($tenant, Tenant::STATUS_ACTIVE);
     }
 
     public function test_payment_failed_suspends_tenant_after_three_attempts(): void
@@ -120,7 +131,7 @@ class WebhookHandlerTest extends TestCase
         ])->assertOk();
 
         Notification::assertSentTo($tenant, PaymentRetryNotification::class);
-        $this->assertEquals(Tenant::STATUS_SUSPENDED, $tenant->fresh()->status);
+        $this->assertTenantStatus($tenant, Tenant::STATUS_SUSPENDED);
     }
 
     public function test_payment_failed_with_unknown_customer_returns_ok_without_error(): void
@@ -149,7 +160,7 @@ class WebhookHandlerTest extends TestCase
 
         Notification::assertSentTo($tenant, PaymentActionRequiredNotification::class);
         Notification::assertNotSentTo($tenant, PaymentRetryNotification::class);
-        $this->assertEquals(Tenant::STATUS_ACTIVE, $tenant->fresh()->status);
+        $this->assertTenantStatus($tenant, Tenant::STATUS_ACTIVE);
     }
 
     public function test_payment_action_required_with_unknown_customer_returns_ok_without_error(): void
@@ -263,7 +274,7 @@ class WebhookHandlerTest extends TestCase
             'status' => 'canceled',
         ])->assertOk();
 
-        $this->assertEquals(Tenant::STATUS_CANCELLED, $tenant->fresh()->status);
+        $this->assertTenantStatus($tenant, Tenant::STATUS_CANCELLED);
     }
 
     // -------------------------------------------------------------------------
@@ -318,7 +329,7 @@ class WebhookHandlerTest extends TestCase
         ])->assertOk();
 
         // Tenant deve continuar ativo (não suspenso)
-        $this->assertEquals(Tenant::STATUS_ACTIVE, $tenant->fresh()->status);
+        $this->assertTenantStatus($tenant, Tenant::STATUS_ACTIVE);
         // Deve ter sido notificado
         Notification::assertSentTo($tenant, PaymentRetryNotification::class);
     }
@@ -367,7 +378,7 @@ class WebhookHandlerTest extends TestCase
             'reason' => 'fraudulent',
         ])->assertOk();
 
-        $this->assertEquals(Tenant::STATUS_UNDER_REVIEW, $tenant->fresh()->status);
+        $this->assertTenantStatus($tenant, Tenant::STATUS_UNDER_REVIEW);
         $this->assertDatabaseHas('disputes', [
             'stripe_dispute_id' => $disputeId,
             'stripe_charge_id' => $chargeId,
@@ -455,7 +466,7 @@ class WebhookHandlerTest extends TestCase
             'status' => 'under_review',
         ]);
         // Tenant não muda de estado em dispute.updated
-        $this->assertEquals(Tenant::STATUS_ACTIVE, $tenant->fresh()->status);
+        $this->assertTenantStatus($tenant, Tenant::STATUS_ACTIVE);
     }
 
     public function test_charge_dispute_closed_won_restores_active(): void
@@ -478,7 +489,7 @@ class WebhookHandlerTest extends TestCase
             'status' => 'won',
         ])->assertOk();
 
-        $this->assertEquals(Tenant::STATUS_ACTIVE, $tenant->fresh()->status);
+        $this->assertTenantStatus($tenant, Tenant::STATUS_ACTIVE);
         $this->assertDatabaseHas('disputes', [
             'stripe_dispute_id' => $disputeId,
             'status' => 'won',
@@ -506,7 +517,7 @@ class WebhookHandlerTest extends TestCase
             'status' => 'lost',
         ])->assertOk();
 
-        $this->assertEquals(Tenant::STATUS_SUSPENDED, $tenant->fresh()->status);
+        $this->assertTenantStatus($tenant, Tenant::STATUS_SUSPENDED);
         $this->assertDatabaseHas('disputes', [
             'stripe_dispute_id' => $disputeId,
             'status' => 'lost',

@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property Carbon|null $resolved_at
  * @property Carbon $created_at
  * @property Carbon $updated_at
+ * @property-read Tenant|null $tenant
  */
 class Dispute extends Model
 {
@@ -30,6 +31,9 @@ class Dispute extends Model
         ];
     }
 
+    /**
+     * @return BelongsTo<Tenant, $this>
+     */
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class, 'tenant_id');

@@ -171,7 +171,13 @@ class CouponService
             return ['success' => false, 'error' => 'COUPON_NOT_FOUND', 'coupon' => null];
         }
 
-        $plan = $tenant->plan()->first();
+        $stripeCouponId = $coupon->stripe_coupon_id;
+        if (! is_string($stripeCouponId) || $stripeCouponId === '') {
+            return ['success' => false, 'error' => 'COUPON_REDEEM_ERROR', 'coupon' => $coupon];
+        }
+
+        $planId = $tenant->getAttribute('plan_id');
+        $plan = is_int($planId) ? Plan::query()->find($planId) : null;
         $validation = $this->validateForTenant($coupon, $tenant, $plan);
 
         if (! $validation['valid']) {
@@ -188,7 +194,7 @@ class CouponService
             // O contador times_redeemed é incrementado pelo webhook customer.discount.created
             // (fonte única), cobrindo também resgates via promotion code no Checkout.
             $this->stripe()->subscriptions->update($stripeSubscriptionId, [
-                'discounts' => [['coupon' => $coupon->stripe_coupon_id]],
+                'discounts' => [['coupon' => $stripeCouponId]],
             ]);
 
             $this->audit('coupon.redeemed', "Coupon '{$coupon->code}' aplicado ao tenant.", [

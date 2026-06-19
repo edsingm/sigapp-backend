@@ -10,6 +10,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Mockery;
+use Mockery\MockInterface;
+use Stripe\Service\SubscriptionService;
 use Stripe\StripeClient;
 use Tests\TestCase;
 
@@ -26,6 +28,13 @@ class TestableCouponService extends CouponService
     }
 }
 
+class CouponTestStripeClient extends StripeClient
+{
+    public function __construct(public SubscriptionService $subscriptions)
+    {
+    }
+}
+
 class CouponRedeemTest extends TestCase
 {
     use RefreshDatabase;
@@ -34,6 +43,28 @@ class CouponRedeemTest extends TestCase
     {
         Mockery::close();
         parent::tearDown();
+    }
+
+    /**
+     * @return SubscriptionService&MockInterface
+     */
+    private function makeSubscriptionsMock(): SubscriptionService
+    {
+        /** @var SubscriptionService&MockInterface $mock */
+        $mock = Mockery::mock(SubscriptionService::class);
+
+        return $mock;
+    }
+
+    private function loadTenant(string $id): Tenant
+    {
+        $tenant = Tenant::query()->find($id);
+
+        if (! $tenant instanceof Tenant) {
+            throw new \RuntimeException('Tenant not found in test setup.');
+        }
+
+        return $tenant;
     }
 
     private function makeTenantWithSubscription(int $planId, string $subscriptionId): Tenant
@@ -56,7 +87,7 @@ class CouponRedeemTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        return Tenant::find($id);
+        return $this->loadTenant($id);
     }
 
     public function test_redeem_uses_discounts_param_and_does_not_increment_locally(): void
@@ -77,7 +108,7 @@ class CouponRedeemTest extends TestCase
 
         $tenant = $this->makeTenantWithSubscription($plan->id, 'sub_test');
 
-        $subscriptions = Mockery::mock(\Stripe\Service\SubscriptionService::class);
+        $subscriptions = $this->makeSubscriptionsMock();
         $subscriptions->shouldReceive('update')
             ->once()
             ->withArgs(fn ($id, $params) => $id === 'sub_test'
@@ -85,8 +116,7 @@ class CouponRedeemTest extends TestCase
                 && ! array_key_exists('coupon', $params))
             ->andReturnNull();
 
-        $client = Mockery::mock(StripeClient::class);
-        $client->subscriptions = $subscriptions;
+        $client = new CouponTestStripeClient($subscriptions);
 
         $service = new TestableCouponService;
         $service->fakeStripe = $client;

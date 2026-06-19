@@ -13,6 +13,7 @@ use Laravel\Cashier\Exceptions\IncompletePayment;
 use Laravel\Cashier\Payment;
 use Laravel\Cashier\Subscription;
 use Mockery;
+use Mockery\MockInterface;
 use Stancl\Tenancy\Tenancy;
 use Tests\TestCase;
 
@@ -92,11 +93,29 @@ class PlanSwapTest extends TestCase
         return $id;
     }
 
+    private function loadTenant(string $tenantId): TenantWithFakeSubscription
+    {
+        $tenant = DB::table('tenants')->where('id', $tenantId)->first();
+
+        if ($tenant === null) {
+            throw new \RuntimeException('Tenant not found in test setup.');
+        }
+
+        $model = new TenantWithFakeSubscription;
+        $model->exists = true;
+        $model->setRawAttributes((array) $tenant, true);
+
+        return $model;
+    }
+
     /**
      * Retorna um mock de Subscription com active()=true e stripe_price definido.
+     *
+     * @return Subscription&MockInterface
      */
     private function makeSubscriptionMock(string $currentStripePriceId): Subscription
     {
+        /** @var Subscription&MockInterface $mock */
         $mock = Mockery::mock(Subscription::class)->makePartial();
         $mock->shouldReceive('active')->andReturn(true);
         $mock->shouldReceive('getAttribute')
@@ -108,11 +127,25 @@ class PlanSwapTest extends TestCase
 
     /**
      * Cria um mock de PlanSwapRequest que retorna o slug sem autenticação/validação real.
+     *
+     * @return PlanSwapRequest&MockInterface
      */
     private function makeSwapRequest(string $planSlug): PlanSwapRequest
     {
+        /** @var PlanSwapRequest&MockInterface $mock */
         $mock = Mockery::mock(PlanSwapRequest::class);
         $mock->shouldReceive('validated')->with('plan_slug')->andReturn($planSlug);
+
+        return $mock;
+    }
+
+    /**
+     * @return Payment&MockInterface
+     */
+    private function makePaymentMock(): Payment
+    {
+        /** @var Payment&MockInterface $mock */
+        $mock = Mockery::mock(Payment::class);
 
         return $mock;
     }
@@ -127,7 +160,7 @@ class PlanSwapTest extends TestCase
         $planLow = $this->makePlan('Basic', 1, 'price_basic');
 
         $tenantId = $this->insertTenant($planHigh->id);
-        $tenant = TenantWithFakeSubscription::find($tenantId);
+        $tenant = $this->loadTenant($tenantId);
 
         $subMock = $this->makeSubscriptionMock('price_pro');
         $subMock->shouldReceive('swap')->once()->with('price_basic')->andReturnSelf();
@@ -151,7 +184,7 @@ class PlanSwapTest extends TestCase
         $planLow = $this->makePlan('Basic', 1, 'price_basic');
 
         $tenantId = $this->insertTenant($planHigh->id);
-        $tenant = TenantWithFakeSubscription::find($tenantId);
+        $tenant = $this->loadTenant($tenantId);
 
         $subMock = $this->makeSubscriptionMock('price_pro');
         $subMock->shouldReceive('swap')->once()->andReturnSelf();
@@ -176,7 +209,7 @@ class PlanSwapTest extends TestCase
 
         // Tenant tinha um downgrade pendente
         $tenantId = $this->insertTenant($planLow->id, $planHigh->id);
-        $tenant = TenantWithFakeSubscription::find($tenantId);
+        $tenant = $this->loadTenant($tenantId);
 
         $subMock = $this->makeSubscriptionMock('price_basic');
         $subMock->shouldReceive('pendingIfPaymentFails')->once()->andReturnSelf();
@@ -201,7 +234,7 @@ class PlanSwapTest extends TestCase
         $planHigh = $this->makePlan('Pro', 10, 'price_pro');
 
         $tenantId = $this->insertTenant($planLow->id);
-        $tenant = TenantWithFakeSubscription::find($tenantId);
+        $tenant = $this->loadTenant($tenantId);
 
         $subMock = $this->makeSubscriptionMock('price_basic');
         $subMock->shouldReceive('pendingIfPaymentFails')->once()->andReturnSelf();
@@ -222,7 +255,7 @@ class PlanSwapTest extends TestCase
         $planHigh = $this->makePlan('Pro', 10, 'price_pro');
 
         $tenantId = $this->insertTenant($planLow->id);
-        $tenant = TenantWithFakeSubscription::find($tenantId);
+        $tenant = $this->loadTenant($tenantId);
 
         // Upgrade cujo pagamento exige ação (SCA) ou falha: swapAndInvoice lança
         // IncompletePayment. Com pendingIfPaymentFails() a troca fica em pending_update
@@ -230,7 +263,7 @@ class PlanSwapTest extends TestCase
         $subMock = $this->makeSubscriptionMock('price_basic');
         $subMock->shouldReceive('pendingIfPaymentFails')->once()->andReturnSelf();
         $subMock->shouldReceive('swapAndInvoice')->once()->with('price_pro')
-            ->andThrow(new IncompletePayment(Mockery::mock(Payment::class)));
+            ->andThrow(new IncompletePayment($this->makePaymentMock()));
 
         $tenant->fakeSubscription = $subMock;
         app(Tenancy::class)->tenant = $tenant;
@@ -253,7 +286,7 @@ class PlanSwapTest extends TestCase
     {
         $planHigh = $this->makePlan('Pro', 10, 'price_pro');
         $tenantId = $this->insertTenant($planHigh->id);
-        $tenant = TenantWithFakeSubscription::find($tenantId);
+        $tenant = $this->loadTenant($tenantId);
 
         $subMock = $this->makeSubscriptionMock('price_pro');
         $tenant->fakeSubscription = $subMock;
@@ -268,7 +301,7 @@ class PlanSwapTest extends TestCase
     {
         $plan = $this->makePlan('Pro', 10, 'price_pro');
         $tenantId = $this->insertTenant($plan->id);
-        $tenant = TenantWithFakeSubscription::find($tenantId);
+        $tenant = $this->loadTenant($tenantId);
 
         // Subscription já está no mesmo preço Stripe que o plano solicitado
         $subMock = $this->makeSubscriptionMock('price_pro');

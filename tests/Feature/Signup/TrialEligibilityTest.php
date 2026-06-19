@@ -15,6 +15,9 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Mockery;
+use Mockery\MockInterface;
+use Stripe\Checkout\Session;
+use Stripe\Customer;
 use Tests\TestCase;
 
 class TrialEligibilityTest extends TestCase
@@ -57,6 +60,64 @@ class TrialEligibilityTest extends TestCase
     private function request(): Request
     {
         return Request::create('/api/v1/signup', 'POST');
+    }
+
+    /**
+     * @return StripeCheckoutService&MockInterface
+     */
+    private function checkoutServiceMock(): StripeCheckoutService
+    {
+        /** @var StripeCheckoutService&MockInterface $mock */
+        $mock = Mockery::mock(StripeCheckoutService::class);
+
+        return $mock;
+    }
+
+    /**
+     * @return PlanRepositoryInterface&MockInterface
+     */
+    private function planRepositoryMock(): PlanRepositoryInterface
+    {
+        /** @var PlanRepositoryInterface&MockInterface $mock */
+        $mock = Mockery::mock(PlanRepositoryInterface::class);
+
+        return $mock;
+    }
+
+    /**
+     * @return TenantRepositoryInterface&MockInterface
+     */
+    private function tenantRepositoryMock(): TenantRepositoryInterface
+    {
+        /** @var TenantRepositoryInterface&MockInterface $mock */
+        $mock = Mockery::mock(TenantRepositoryInterface::class);
+
+        return $mock;
+    }
+
+    /**
+     * @return TenantBillingService&MockInterface
+     */
+    private function billingServiceMock(): TenantBillingService
+    {
+        /** @var TenantBillingService&MockInterface $mock */
+        $mock = Mockery::mock(TenantBillingService::class);
+
+        return $mock;
+    }
+
+    /**
+     * @return SignupRequest&MockInterface
+     */
+    private function signupRequestMock(array $validatedData): SignupRequest
+    {
+        /** @var SignupRequest&MockInterface $mock */
+        $mock = Mockery::mock(SignupRequest::class);
+        $mock->shouldReceive('validated')->andReturn($validatedData);
+        $mock->shouldReceive('ip')->andReturn('127.0.0.1');
+        $mock->shouldReceive('userAgent')->andReturn('PHPUnit');
+
+        return $mock;
     }
 
     // -------------------------------------------------------------------------
@@ -123,32 +184,29 @@ class TrialEligibilityTest extends TestCase
             'email' => 'dono@example.com', 'tenant_slug' => 'outra-empresa', 'granted_at' => now(), 'created_at' => now(),
         ]);
 
-        $checkout = Mockery::mock(StripeCheckoutService::class);
+        $checkout = $this->checkoutServiceMock();
         $checkout->shouldReceive('createCustomer')->once()
-            ->andReturn(\Stripe\Customer::constructFrom(['id' => 'cus_test']));
+            ->andReturn(Customer::constructFrom(['id' => 'cus_test']));
         $checkout->shouldReceive('createSubscriptionSession')
             ->once()
             ->withArgs(fn ($tenant, $p, $customerId, $trialEligible) => $trialEligible === false)
-            ->andReturn(\Stripe\Checkout\Session::constructFrom([
+            ->andReturn(Session::constructFrom([
                 'id' => 'cs_test',
                 'url' => 'https://checkout.stripe.test/cs_test',
             ]));
 
-        $planRepo = Mockery::mock(PlanRepositoryInterface::class);
+        $planRepo = $this->planRepositoryMock();
         $planRepo->shouldReceive('findActiveBySlug')->with('pro')->andReturn($plan);
 
         $controller = new SignupController(
-            Mockery::mock(TenantBillingService::class),
+            $this->billingServiceMock(),
             app(TenantSignupService::class),
             $checkout,
             $planRepo,
-            Mockery::mock(TenantRepositoryInterface::class),
+            $this->tenantRepositoryMock(),
         );
 
-        $requestMock = Mockery::mock(SignupRequest::class);
-        $requestMock->shouldReceive('validated')->andReturn($this->validatedData(['admin_email' => 'dono@example.com']));
-        $requestMock->shouldReceive('ip')->andReturn('127.0.0.1');
-        $requestMock->shouldReceive('userAgent')->andReturn('PHPUnit');
+        $requestMock = $this->signupRequestMock($this->validatedData(['admin_email' => 'dono@example.com']));
 
         $response = $controller->store($requestMock);
 

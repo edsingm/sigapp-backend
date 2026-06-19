@@ -11,6 +11,7 @@ use Tests\TestCase;
  */
 class TenantPortalStub extends Tenant
 {
+    /** @var array<string, string> */
     public array $capturedOptions = [];
 
     public ?string $capturedReturnUrl = null;

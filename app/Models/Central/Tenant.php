@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
@@ -76,16 +77,20 @@ class Tenant extends BaseTenant implements TenantWithDatabase
 
     /**
      * Obtém o plano associado ao tenant.
+     *
+     * @return BelongsTo<Plan, $this>
      */
-    public function plan()
+    public function plan(): BelongsTo
     {
         return $this->belongsTo(Plan::class);
     }
 
     /**
      * Obtém o plano agendado para a próxima renovação (downgrade diferido).
+     *
+     * @return BelongsTo<Plan, $this>
      */
-    public function scheduledPlan()
+    public function scheduledPlan(): BelongsTo
     {
         return $this->belongsTo(Plan::class, 'scheduled_plan_id');
     }

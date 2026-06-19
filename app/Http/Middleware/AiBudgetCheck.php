@@ -52,5 +52,4 @@ class AiBudgetCheck
 
         return $next($request);
     }
-
 }

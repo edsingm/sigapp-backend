@@ -8,9 +8,11 @@ use App\Models\Central\Tenant;
 use App\Services\Billing\TenantBillingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
+use Mockery\MockInterface;
 use Stancl\Tenancy\Tenancy;
 use Stripe\Collection;
 use Stripe\Invoice;
+use Stripe\Service\InvoiceService;
 use Stripe\StripeClient;
 use Tests\TestCase;
 
@@ -27,6 +29,13 @@ class TestableBillingService extends TenantBillingService
     }
 }
 
+class PaymentRetryStripeClient extends StripeClient
+{
+    public function __construct(public InvoiceService $invoices)
+    {
+    }
+}
+
 class PaymentRetryTest extends TestCase
 {
     use RefreshDatabase;
@@ -37,16 +46,24 @@ class PaymentRetryTest extends TestCase
         parent::tearDown();
     }
 
+    /**
+     * @return InvoiceService&MockInterface
+     */
+    private function fakeInvoiceService(): InvoiceService
+    {
+        /** @var InvoiceService&MockInterface $mock */
+        $mock = Mockery::mock(InvoiceService::class);
+
+        return $mock;
+    }
+
     private function fakeStripeReturningInvoices(array $invoices): StripeClient
     {
-        $invoiceService = Mockery::mock(\Stripe\Service\InvoiceService::class);
+        $invoiceService = $this->fakeInvoiceService();
         $invoiceService->shouldReceive('all')
             ->andReturn(Collection::constructFrom(['data' => $invoices]));
 
-        $client = Mockery::mock(StripeClient::class);
-        $client->invoices = $invoiceService;
-
-        return $client;
+        return new PaymentRetryStripeClient($invoiceService);
     }
 
     private function tenantWithStripeId(string $stripeId = 'cus_test'): Tenant
@@ -119,6 +136,7 @@ class PaymentRetryTest extends TestCase
         $tenant = $this->tenantWithStripeId();
         app(Tenancy::class)->tenant = $tenant;
 
+        /** @var TenantBillingService&MockInterface $billing */
         $billing = Mockery::mock(TenantBillingService::class);
         $billing->shouldReceive('getOpenInvoicePaymentUrl')
             ->once()
@@ -136,6 +154,7 @@ class PaymentRetryTest extends TestCase
         $tenant = $this->tenantWithStripeId();
         app(Tenancy::class)->tenant = $tenant;
 
+        /** @var TenantBillingService&MockInterface $billing */
         $billing = Mockery::mock(TenantBillingService::class);
         $billing->shouldReceive('getOpenInvoicePaymentUrl')->once()->andReturnNull();
 
@@ -150,6 +169,7 @@ class PaymentRetryTest extends TestCase
         $tenant->setAttribute('status', TenantStatus::CANCELLED->value);
         app(Tenancy::class)->tenant = $tenant;
 
+        /** @var TenantBillingService&MockInterface $billing */
         $billing = Mockery::mock(TenantBillingService::class);
         $billing->shouldReceive('getOpenInvoicePaymentUrl')->never();
 

@@ -37,7 +37,7 @@ class GetCityIbgeProfileTool implements Tool
                 $uf
             );
         } catch (Throwable $exception) {
-            return 'Falha ao consultar dados do IBGE: ' . $exception->getMessage();
+            return 'Falha ao consultar dados do IBGE: '.$exception->getMessage();
         }
 
         return json_encode($result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT)

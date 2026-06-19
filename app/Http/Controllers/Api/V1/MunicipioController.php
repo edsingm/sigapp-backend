@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Client\Response;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -10,6 +11,7 @@ use Illuminate\Support\Facades\Http;
 class MunicipioController extends Controller
 {
     private const IBGE_BASE = 'https://servicodados.ibge.gov.br/api/v3/agregados';
+
     private const CACHE_TTL = 60 * 60 * 24 * 30; // 30 dias
 
     public function dadosSidra(string $ibgeCodigo): JsonResponse
@@ -39,22 +41,22 @@ class MunicipioController extends Controller
             // População estimada (tabela 6579, variável 9324)
             $pool->as('populacao')
                 ->timeout(10)
-                ->get(self::IBGE_BASE . "/6579/periodos/2022/variaveis/9324?localidades={$loc}"),
+                ->get(self::IBGE_BASE."/6579/periodos/2022/variaveis/9324?localidades={$loc}"),
 
             // PIB total e PIB per capita (tabela 5938)
             $pool->as('pib')
                 ->timeout(10)
-                ->get(self::IBGE_BASE . "/5938/periodos/2021/variaveis/37|614?localidades={$loc}"),
+                ->get(self::IBGE_BASE."/5938/periodos/2021/variaveis/37|614?localidades={$loc}"),
 
             // Área territorial (tabela 301, variável 606)
             $pool->as('area')
                 ->timeout(10)
-                ->get(self::IBGE_BASE . "/301/periodos/2022/variaveis/606?localidades={$loc}"),
+                ->get(self::IBGE_BASE."/301/periodos/2022/variaveis/606?localidades={$loc}"),
 
             // Domicílios Censo 2022 (tabela 9514, variável 9344)
             $pool->as('domicilios')
                 ->timeout(10)
-                ->get(self::IBGE_BASE . "/9514/periodos/2022/variaveis/9344?localidades={$loc}"),
+                ->get(self::IBGE_BASE."/9514/periodos/2022/variaveis/9344?localidades={$loc}"),
         ]);
 
         $populacaoRows = $this->parseRows(
@@ -157,7 +159,7 @@ class MunicipioController extends Controller
     private function safeJson(mixed $response): array
     {
         try {
-            if ($response instanceof \Illuminate\Http\Client\Response && $response->successful()) {
+            if ($response instanceof Response && $response->successful()) {
                 return $response->json() ?? [];
             }
         } catch (\Throwable) {

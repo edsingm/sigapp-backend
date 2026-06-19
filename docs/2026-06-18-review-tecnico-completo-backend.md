@@ -45,7 +45,7 @@ Verificações executadas:
 - Upgrade/downgrade: o servidor classifica a troca por `sort_order`; upgrades usam `swapAndInvoice`, downgrades ficam em `scheduled_plan_id` até `invoice.paid`.
 - Trial: Stripe controla o período e o signup agora registra um ledger central por email para evitar repetir trial com novo slug no mesmo email. Ainda não há trava adicional por organização ou payment method.
 - Cartão: dados completos não passam pelo backend; usa Checkout, SetupIntent e payment method IDs. Só brand/last4/expiração são lidos.
-- Evento faltante relevante: `invoice.payment_action_required` não tem handler próprio apesar de existir template de email.
+- `invoice.payment_action_required` agora possui handler próprio e notificação dedicada para ação adicional do cliente sem suspender a conta.
 
 ## Multi-tenancy e ownership
 
@@ -67,6 +67,7 @@ Ownership dentro do mesmo tenant é majoritariamente **RBAC por módulo**, não 
 - Tools de IA para viabilidade, legalização, comitê e negociação agora exigem feature do plano e `Gate::viewAny` do model correto, com cobertura unitária de negação.
 - Criação de regionais e terreno-produto agora passa por `Gate::allows('create', ...)`, com testes cobrindo `403` para perfil viewer.
 - Chargebacks agora criam disputa local idempotente, colocam o tenant em `under_review` e tratam encerramento `won`/`lost` com testes dedicados.
+- `invoice.payment_action_required` agora é tratado com notificação dedicada ao cliente e cobertura de idempotência/ausência de suspensão.
 - PDFs gerados pela IA agora passam por sanitização com `HTMLPurifier`, bloqueio de esquemas URI e `disableJavascript()` antes do render.
 - Logout e logout-all agora invalidam sessão stateful quando não há `PersonalAccessToken`; refresh rejeita tokens não refreshables sem chamar `delete()`.
 - Dependências auditadas foram atualizadas (`laravel/framework` 13.16.1, `guzzlehttp/psr7` 2.12.1, `mtdowling/jmespath.php` 2.9.1) e `composer audit --locked` está limpo.
@@ -87,8 +88,7 @@ Ownership dentro do mesmo tenant é majoritariamente **RBAC por módulo**, não 
 
 1. O app ainda não define CSP localmente; se o edge não aplicar política equivalente, a proteção contra carregamento de conteúdo ativo fica incompleta.
 2. O controller de dashboard tenant segue fora do padrão Controller→Service→Repository, aumentando custo de manutenção e chance de regressão.
-3. `invoice.payment_action_required` segue sem handler dedicado apesar de já existir template de email relacionado.
-4. A regra de ownership global dentro do tenant continua indefinida fora dos módulos que aplicam escopo explícito por usuário.
+3. A regra de ownership global dentro do tenant continua indefinida fora dos módulos que aplicam escopo explícito por usuário.
 
 ## Tabela completa de endpoints
 

@@ -6,6 +6,7 @@ use App\Models\Central\Dispute;
 use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
 use App\Notifications\DisputeCreatedNotification;
+use App\Notifications\PaymentActionRequiredNotification;
 use App\Notifications\PaymentRetryNotification;
 use App\Notifications\TrialEndingNotification;
 use App\Services\Billing\TenantBillingService;
@@ -134,6 +135,35 @@ class WebhookHandlerTest extends TestCase
         Notification::assertNothingSent();
     }
 
+    public function test_payment_action_required_sends_specific_notification_without_suspending(): void
+    {
+        Notification::fake();
+        $tenant = $this->makeTenant();
+
+        $this->postWebhook('invoice.payment_action_required', [
+            'customer' => $tenant->getAttribute('stripe_id'),
+            'hosted_invoice_url' => 'https://invoice.stripe.com/inv_action_required',
+            'id' => 'in_action_required_001',
+        ])->assertOk();
+
+        Notification::assertSentTo($tenant, PaymentActionRequiredNotification::class);
+        Notification::assertNotSentTo($tenant, PaymentRetryNotification::class);
+        $this->assertEquals(Tenant::STATUS_ACTIVE, $tenant->fresh()->status);
+    }
+
+    public function test_payment_action_required_with_unknown_customer_returns_ok_without_error(): void
+    {
+        Notification::fake();
+
+        $this->postWebhook('invoice.payment_action_required', [
+            'customer' => 'cus_action_required_unknown',
+            'hosted_invoice_url' => 'https://invoice.stripe.com/inv_action_required_unknown',
+            'id' => 'in_action_required_unknown',
+        ])->assertOk();
+
+        Notification::assertNothingSent();
+    }
+
     // -------------------------------------------------------------------------
     // customer.subscription.trial_will_end
     // -------------------------------------------------------------------------
@@ -194,6 +224,24 @@ class WebhookHandlerTest extends TestCase
 
         // Notificação deve ter sido enviada apenas uma vez
         Notification::assertSentToTimes($tenant, PaymentRetryNotification::class, 1);
+    }
+
+    public function test_duplicate_payment_action_required_event_is_processed_only_once(): void
+    {
+        Notification::fake();
+        $tenant = $this->makeTenant();
+        $eventId = 'evt_test_action_required_duplicate_'.uniqid();
+
+        $dataObject = [
+            'customer' => $tenant->getAttribute('stripe_id'),
+            'hosted_invoice_url' => 'https://invoice.stripe.com/inv_action_required_dup',
+            'id' => 'in_action_required_dup_001',
+        ];
+
+        $this->postWebhook('invoice.payment_action_required', $dataObject, ['id' => $eventId])->assertOk();
+        $this->postWebhook('invoice.payment_action_required', $dataObject, ['id' => $eventId])->assertOk();
+
+        Notification::assertSentToTimes($tenant, PaymentActionRequiredNotification::class, 1);
     }
 
     // -------------------------------------------------------------------------

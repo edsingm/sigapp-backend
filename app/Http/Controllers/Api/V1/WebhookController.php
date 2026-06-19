@@ -7,6 +7,7 @@ use App\Jobs\CreateFullTenantJob;
 use App\Models\Central\Dispute;
 use App\Models\Central\Tenant;
 use App\Notifications\DisputeCreatedNotification;
+use App\Notifications\PaymentActionRequiredNotification;
 use App\Notifications\PaymentRetryNotification;
 use App\Notifications\TrialEndingNotification;
 use App\Repositories\Contracts\TenantRepositoryInterface;
@@ -348,6 +349,43 @@ class WebhookController extends CashierController
                 'reason' => 'payment_failed_suspended',
             ]);
         }
+
+        return $this->successMethod();
+    }
+
+    /**
+     * Handle invoice.payment_action_required event.
+     *
+     * Notifica o cliente para concluir autenticação/ação pendente sem suspender a conta.
+     */
+    protected function handleInvoicePaymentActionRequired(array $payload)
+    {
+        $invoice = (array) data_get($payload, 'data.object', []);
+        $customerId = data_get($invoice, 'customer');
+        $invoiceUrl = data_get($invoice, 'hosted_invoice_url');
+
+        $tenant = $this->validateTenantForWebhook(
+            $this->tenantRepository->findByStripeId($customerId),
+            'invoice.payment_action_required',
+            $customerId
+        );
+
+        if (! $tenant) {
+            return $this->successMethod();
+        }
+
+        $tenant->notify(new PaymentActionRequiredNotification(
+            $this->tenantName($tenant),
+            is_string($invoiceUrl) ? $invoiceUrl : null,
+        ));
+
+        $this->audit('tenant.payment_action_required', 'Pagamento exige ação adicional do cliente.', [
+            'tenant_id' => $tenant->id,
+            'tenant_slug' => $this->tenantSlug($tenant),
+            'invoice_id' => data_get($invoice, 'id'),
+            'customer_id' => $customerId,
+            'hosted_invoice_url' => $invoiceUrl,
+        ]);
 
         return $this->successMethod();
     }

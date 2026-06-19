@@ -49,12 +49,20 @@ class StripeCheckoutService
         Tenant $tenant,
         Plan $plan,
         string $customerId,
+        bool $trialEligible,
         array $sessionOptions = [],
     ): Session {
         $priceId = (string) ($plan->getAttribute('stripe_price_id') ?? $this->createPriceOnTheFly($plan));
         $tenantId = (string) $tenant->getKey();
         $planTrialDays = (int) $plan->getAttribute('trial_days');
         $planSlug = (string) $plan->getAttribute('slug');
+
+        // Só concede trial no Stripe se o email for elegível (decisão do trial_ledger).
+        // Sem isso, um email repetido ganharia outro trial mesmo com trial_ends_at nulo localmente.
+        $subscriptionData = ['metadata' => ['tenant_id' => $tenantId]];
+        if ($trialEligible && $planTrialDays > 0) {
+            $subscriptionData['trial_period_days'] = $planTrialDays;
+        }
 
         return Cashier::stripe()->checkout->sessions->create(array_merge([
             'customer' => $customerId,
@@ -66,12 +74,7 @@ class StripeCheckoutService
                     'quantity' => 1,
                 ],
             ],
-            'subscription_data' => [
-                'trial_period_days' => $planTrialDays,
-                'metadata' => [
-                    'tenant_id' => $tenantId,
-                ],
-            ],
+            'subscription_data' => $subscriptionData,
             // Permite códigos de desconto/cupom no checkout
             'allow_promotion_codes' => true,
             // Coleta Tax ID (CNPJ/CPF) e endereço do cliente

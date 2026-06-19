@@ -28,14 +28,7 @@ class TerrenoProdutosController extends Controller
         $terrenoId = $request->has('terreno_id') ? $request->integer('terreno_id') : null;
         $terrenoProdutos = $this->terrenoProdutoService->list($perPage, $terrenoId);
 
-        return TerrenoProdutoResource::collection($terrenoProdutos)
-            ->additional([
-                'message' => 'Associações terreno-produto recuperadas com sucesso',
-                'current_page' => $terrenoProdutos->currentPage(),
-                'last_page' => $terrenoProdutos->lastPage(),
-                'total' => $terrenoProdutos->total(),
-                'per_page' => $terrenoProdutos->perPage(),
-            ]);
+        return TerrenoProdutoResource::collection($terrenoProdutos);
     }
 
     public function show(ShowTerrenoProdutoRequest $request, int $id): JsonResponse

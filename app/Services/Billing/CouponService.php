@@ -184,11 +184,12 @@ class CouponService
         }
 
         try {
+            // API Basil: usa 'discounts' (o parâmetro legado 'coupon' foi removido).
+            // O contador times_redeemed é incrementado pelo webhook customer.discount.created
+            // (fonte única), cobrindo também resgates via promotion code no Checkout.
             $this->stripe()->subscriptions->update($stripeSubscriptionId, [
-                'coupon' => $coupon->stripe_coupon_id,
+                'discounts' => [['coupon' => $coupon->stripe_coupon_id]],
             ]);
-
-            Coupon::query()->whereKey($coupon->getKey())->increment('times_redeemed');
 
             $this->audit('coupon.redeemed', "Coupon '{$coupon->code}' aplicado ao tenant.", [
                 'coupon_id' => $coupon->id,

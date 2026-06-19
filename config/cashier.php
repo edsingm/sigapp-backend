@@ -1,6 +1,5 @@
 <?php
 
-use Laravel\Cashier\Console\WebhookCommand;
 use Laravel\Cashier\Invoices\DompdfInvoiceRenderer;
 
 return [
@@ -47,8 +46,39 @@ return [
     'webhook' => [
         'secret' => env('STRIPE_WEBHOOK_SECRET'),
         'tolerance' => env('STRIPE_WEBHOOK_TOLERANCE', 300),
-        'events' => WebhookCommand::DEFAULT_EVENTS,
+
+        // Eventos explícitos tratados pelo WebhookController. Mantenha em sincronia
+        // com os handlers em App\Http\Controllers\Api\V1\WebhookController.
+        'events' => [
+            'checkout.session.completed',
+            'invoice.paid',
+            'invoice.payment_failed',
+            'invoice.payment_action_required',
+            'customer.subscription.created',
+            'customer.subscription.updated',
+            'customer.subscription.deleted',
+            'customer.subscription.trial_will_end',
+            'charge.dispute.created',
+            'charge.dispute.updated',
+            'charge.dispute.closed',
+            'customer.discount.created',
+        ],
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Customer Portal Configuration
+    |--------------------------------------------------------------------------
+    |
+    | ID de uma configuração de Customer Portal do Stripe (bpc_...) com a troca
+    | de plano DESABILITADA. Quando definido, é enviado explicitamente ao criar
+    | a sessão do portal, impedindo que o cliente troque de plano por fora do
+    | PlanSwapController (que classifica upgrade/downgrade). Vazio => usa a
+    | configuração default do Dashboard.
+    |
+    */
+
+    'portal_configuration_id' => env('STRIPE_PORTAL_CONFIGURATION_ID'),
 
     /*
     |--------------------------------------------------------------------------

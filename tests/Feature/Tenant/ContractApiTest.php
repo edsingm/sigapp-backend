@@ -105,7 +105,7 @@ class ContractApiTest extends TestCase
 
         $this->actingAs($this->admin)->getJson('/api/v1/contratos')
             ->assertOk()
-            ->assertJsonStructure(['success', 'data', 'meta']);
+            ->assertJsonStructure(['data', 'links', 'meta']);
 
         $this->actingAs($this->admin)->getJson("/api/v1/contratos/{$contractId}")
             ->assertOk()

@@ -7,6 +7,7 @@ use App\Http\Requests\Tenant\StoreAiTaskRequest;
 use App\Http\Requests\Tenant\UpdateAiTaskRequest;
 use App\Repositories\Tenant\TaskRepository;
 use App\Repositories\Tenant\TerrenoRepository;
+use App\Services\ApiResponseService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Gate;
 
@@ -25,7 +26,7 @@ class AiTaskController extends Controller
         $validated = $request->validated();
         $terreno = $this->terrenoRepository->findOrFail($validated['terreno_id']);
         if (Gate::denies('update', $terreno)) {
-            return new JsonResponse(['message' => 'Acesso negado ao terreno.'], 403);
+            return ApiResponseService::forbidden('Acesso negado ao terreno.');
         }
 
         $task = $this->taskRepository->create([
@@ -42,15 +43,13 @@ class AiTaskController extends Controller
             'updated_by' => auth()->id(),
         ]);
 
-        return new JsonResponse([
-            'data' => [
-                'id' => $task->getKey(),
-                'title' => $task->getAttribute('title'),
-                'status' => $task->getAttribute('status'),
-                'priority' => $task->getAttribute('priority'),
-                'due_date' => $task->getAttribute('due_date')?->toDateString(),
-            ],
-        ], 201);
+        return ApiResponseService::created([
+            'id' => $task->getKey(),
+            'title' => $task->getAttribute('title'),
+            'status' => $task->getAttribute('status'),
+            'priority' => $task->getAttribute('priority'),
+            'due_date' => $task->getAttribute('due_date')?->toDateString(),
+        ]);
     }
 
     /**
@@ -60,13 +59,13 @@ class AiTaskController extends Controller
     {
         $task = $this->taskRepository->find($taskId);
         if (! $task) {
-            return new JsonResponse(['message' => 'Tarefa não encontrada.'], 404);
+            return ApiResponseService::notFound('Tarefa não encontrada.');
         }
 
         $terrenoId = $task->getAttribute('terreno_id');
         $terreno = $this->terrenoRepository->findOrFail((int) $terrenoId);
         if (Gate::denies('update', $terreno)) {
-            return new JsonResponse(['message' => 'Acesso negado ao terreno.'], 403);
+            return ApiResponseService::forbidden('Acesso negado ao terreno.');
         }
 
         $validated = $request->validated();
@@ -87,19 +86,17 @@ class AiTaskController extends Controller
         }
 
         if (empty($changes)) {
-            return new JsonResponse(['message' => 'Nenhuma alteração informada.'], 400);
+            return ApiResponseService::error('NO_CHANGES', 'Nenhuma alteração informada.', null, 400);
         }
 
         $task = $this->taskRepository->update($task, $updates);
 
-        return new JsonResponse([
-            'data' => [
-                'id' => $task->getKey(),
-                'title' => $task->getAttribute('title'),
-                'status' => $task->getAttribute('status'),
-                'assigned_to' => $task->getAttribute('assigned_to'),
-                'changes' => $changes,
-            ],
+        return ApiResponseService::success([
+            'id' => $task->getKey(),
+            'title' => $task->getAttribute('title'),
+            'status' => $task->getAttribute('status'),
+            'assigned_to' => $task->getAttribute('assigned_to'),
+            'changes' => $changes,
         ]);
     }
 }

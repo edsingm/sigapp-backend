@@ -8,6 +8,7 @@ use App\Repositories\AiConversationRepository;
 use App\Services\AiDataRedactor;
 use App\Services\AiProviderRouter;
 use App\Services\AiTelemetryService;
+use App\Services\ApiResponseService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -29,7 +30,7 @@ class AiController extends Controller
         $userId = (int) Auth::id();
         $rows = $this->conversationRepository->getRecentConversations($userId);
 
-        return new JsonResponse(['data' => $rows]);
+        return ApiResponseService::success($rows);
     }
 
     /**
@@ -38,12 +39,12 @@ class AiController extends Controller
     public function conversationMessages(string $id): JsonResponse
     {
         if (! $this->conversationRepository->conversationExists($id, Auth::id())) {
-            return new JsonResponse(['message' => 'Conversa não encontrada.'], 404);
+            return ApiResponseService::notFound('Conversa não encontrada.');
         }
 
         $messages = $this->conversationRepository->getMessages($id);
 
-        return new JsonResponse(['data' => $messages]);
+        return ApiResponseService::success($messages);
     }
 
     /**
@@ -51,9 +52,7 @@ class AiController extends Controller
      */
     public function budgetStatus(AiTelemetryService $telemetryService): JsonResponse
     {
-        return new JsonResponse([
-            'data' => $telemetryService->getBudgetStatus(),
-        ]);
+        return ApiResponseService::success($telemetryService->getBudgetStatus());
     }
 
     /**
@@ -80,7 +79,7 @@ class AiController extends Controller
             // Conversa existente: verificar ownership
             if ($conversationId) {
                 if (! $this->conversationRepository->conversationExists($conversationId, $user)) {
-                    return new JsonResponse(['message' => 'Conversa não encontrada.'], 404);
+                    return ApiResponseService::notFound('Conversa não encontrada.');
                 }
             } else {
                 // Nova conversa: criar registro
@@ -90,8 +89,10 @@ class AiController extends Controller
         } catch (\Throwable $e) {
             Log::error('AI conversation setup failed: '.$e->getMessage());
 
-            return new JsonResponse(
-                ['message' => 'Falha ao configurar conversa.'],
+            return ApiResponseService::error(
+                'AI_CONVERSATION_SETUP_FAILED',
+                'Falha ao configurar conversa.',
+                null,
                 500
             );
         }
@@ -268,8 +269,10 @@ class AiController extends Controller
                 'ip_address' => request()->ip(),
             ]);
 
-            return new JsonResponse(
-                ['message' => 'O assistente atingiu o limite de requisições do provedor de IA. Aguarde alguns segundos e tente novamente.'],
+            return ApiResponseService::error(
+                'AI_PROVIDER_RATE_LIMITED',
+                'O assistente atingiu o limite de requisições do provedor de IA. Aguarde alguns segundos e tente novamente.',
+                null,
                 429,
             );
         }

@@ -76,7 +76,7 @@ class TerrenoApiTest extends TestCase
         $this->actingAs($this->admin)
             ->getJson('/api/v1/terrenos')
             ->assertOk()
-            ->assertJsonStructure(['success', 'data', 'meta']);
+            ->assertJsonStructure(['data', 'links', 'meta']);
 
         $this->actingAs($this->admin)
             ->getJson("/api/v1/terrenos/{$terrenoId}")

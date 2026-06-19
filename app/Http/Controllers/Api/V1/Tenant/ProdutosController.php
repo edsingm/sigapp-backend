@@ -28,14 +28,7 @@ class ProdutosController extends Controller
         $perPage = $request->integer('per_page', 10);
         $produtos = $this->produtoService->list($perPage);
 
-        return ProdutoResource::collection($produtos)
-            ->additional([
-                'message' => 'Produtos recuperados com sucesso',
-                'current_page' => $produtos->currentPage(),
-                'last_page' => $produtos->lastPage(),
-                'total' => $produtos->total(),
-                'per_page' => $produtos->perPage(),
-            ]);
+        return ProdutoResource::collection($produtos);
     }
 
     public function forSelect(ListProdutosRequest $request): JsonResponse

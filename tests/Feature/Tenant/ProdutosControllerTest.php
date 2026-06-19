@@ -65,7 +65,8 @@ class ProdutosControllerTest extends TestCase
             ->getJson('/api/v1/produtos');
 
         $response->assertOk()
-            ->assertJsonPath('message', 'Produtos recuperados com sucesso');
+            ->assertJsonStructure(['data', 'links', 'meta'])
+            ->assertJsonPath('data.0.name', 'Produto A');
     }
 
     public function test_it_shows_a_produto(): void

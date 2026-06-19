@@ -25,7 +25,7 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 ../.agent
-.agent
+.agents
 .openclaude-profile.json
 .claude
 .codex

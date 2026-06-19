@@ -83,13 +83,13 @@ class CidadesApiTest extends TestCase
         $this->actingAs($this->user)
             ->getJson('/api/v1/cidades/buscar?termo=Paulo')
             ->assertOk()
-            ->assertJsonPath('status', 'OK')
+            ->assertJsonPath('success', true)
             ->assertJsonPath('data.0.code', '3550308');
 
         $this->actingAs($this->user)
             ->getJson('/api/v1/cidades/dados?cityCode=3550308')
             ->assertOk()
-            ->assertJsonPath('status', 'OK')
+            ->assertJsonPath('success', true)
             ->assertJsonPath('data.city', 'São Paulo');
     }
 

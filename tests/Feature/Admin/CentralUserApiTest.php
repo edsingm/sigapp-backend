@@ -26,11 +26,10 @@ class CentralUserApiTest extends TestCase
         $response = $this->adminJson('get', '/api/v1/admin/users');
 
         $response->assertOk()
-            ->assertJsonPath('success', true)
             ->assertJsonCount(4, 'data')
             ->assertJsonStructure([
-                'success',
                 'data',
+                'links',
                 'meta',
             ]);
 

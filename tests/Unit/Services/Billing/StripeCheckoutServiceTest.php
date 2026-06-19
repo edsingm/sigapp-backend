@@ -42,11 +42,12 @@ class StripeCheckoutServiceTest extends TestCase
         $this->assertTrue($reflection->isPublic());
 
         $params = $reflection->getParameters();
-        $this->assertCount(4, $params);
+        $this->assertCount(5, $params);
         $this->assertSame('tenant', $params[0]->getName());
         $this->assertSame('plan', $params[1]->getName());
         $this->assertSame('customerId', $params[2]->getName());
-        $this->assertSame('sessionOptions', $params[3]->getName());
+        $this->assertSame('trialEligible', $params[3]->getName());
+        $this->assertSame('sessionOptions', $params[4]->getName());
     }
 
     public function test_create_customer_aceita_tenant_e_validated(): void

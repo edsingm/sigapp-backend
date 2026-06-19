@@ -54,13 +54,11 @@ class BlogApiTest extends TestCase
             ->getJson('/api/v1/blog');
 
         $response->assertOk()
-            ->assertJsonPath('success', true)
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.slug', 'publicado')
             ->assertJsonPath('data.0.author.name', $author->name);
 
         $response->assertJsonStructure([
-            'success',
             'data',
             'links',
             'meta',

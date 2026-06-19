@@ -15,6 +15,7 @@ use App\Services\Billing\TenantBillingService;
 use App\Services\Signup\TenantSignupService;
 use App\Traits\LogsAudit;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Stancl\Tenancy\Exceptions\TenantDatabaseAlreadyExistsException;
@@ -49,7 +50,7 @@ class SignupController extends Controller
         $tenant = null;
 
         try {
-            ['tenant' => $tenant, 'contract_acceptance' => $contractAcceptance] =
+            ['tenant' => $tenant, 'contract_acceptance' => $contractAcceptance, 'trial_eligible' => $trialEligible] =
                 $this->signupService->createPendingTenant($validated, $plan, $request);
 
             $this->auditContractAcceptance($tenant, $plan, $validated, $contractAcceptance);
@@ -57,7 +58,7 @@ class SignupController extends Controller
 
             $customer = $this->checkoutService->createCustomer($tenant, $validated);
 
-            $session = $this->checkoutService->createSubscriptionSession($tenant, $plan, $customer->id);
+            $session = $this->checkoutService->createSubscriptionSession($tenant, $plan, $customer->id, $trialEligible);
 
             $this->signupService->storeCheckoutSessionId($tenant, $session->id);
 
@@ -175,6 +176,18 @@ class SignupController extends Controller
             if (is_string($stripeId) && $stripeId !== '') {
                 $this->billingService->deleteCustomer($stripeId);
             }
+        } catch (\Exception $e) {
+            report($e);
+        }
+
+        try {
+            // Remove a linha do trial_ledger criada por ESTE signup. Filtra por
+            // tenant_slug para nunca afetar a elegibilidade de um cadastro anterior
+            // com o mesmo email (cujo registro tem outro slug).
+            DB::table('trial_ledger')
+                ->where('email', TenantSignupService::normalizeEmail((string) $tenant->getAttribute('admin_email')))
+                ->where('tenant_slug', (string) $tenant->getAttribute('slug'))
+                ->delete();
         } catch (\Exception $e) {
             report($e);
         }

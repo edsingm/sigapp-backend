@@ -279,9 +279,15 @@ class WebhookController extends CashierController
         );
 
         if ($tenant) {
+            // Basil/Clover (API 2025-03-31+) movem o ID da assinatura para
+            // parent.subscription_details.subscription. Mantém fallback para o
+            // campo legado em payloads antigos/reprocessados.
+            $subscriptionId = data_get($invoice, 'parent.subscription_details.subscription')
+                ?? data_get($invoice, 'subscription');
+
             $this->reconcileTenantBillingState(
                 $tenant,
-                $invoice['subscription'] ?? null,
+                $subscriptionId,
                 'invoice.paid',
                 [
                     'invoice_id' => $invoice['id'] ?? null,
@@ -701,14 +707,18 @@ class WebhookController extends CashierController
     }
 
     /**
-     * Handle coupon.redeemed event.
+     * Handle customer.discount.created event.
+     *
+     * Fonte única de contagem de redemptions: dispara tanto no resgate via API
+     * (CouponService::redeem) quanto na aplicação de promotion code no Checkout.
+     * Idempotente pela dedup de webhook_events (processed_at).
      */
-    protected function handleCouponRedeemed(array $payload): Response
+    protected function handleCustomerDiscountCreated(array $payload): Response
     {
-        $couponData = (array) data_get($payload, 'data.object', []);
-        $stripeCouponId = data_get($couponData, 'id');
+        // No customer.discount.created, data.object é um Discount; o cupom fica em coupon.id.
+        $stripeCouponId = data_get($payload, 'data.object.coupon.id');
 
-        if ($stripeCouponId) {
+        if (is_string($stripeCouponId) && $stripeCouponId !== '') {
             $this->couponService->incrementRedemption($stripeCouponId);
         }
 

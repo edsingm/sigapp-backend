@@ -7,6 +7,7 @@ use App\Jobs\RecalculateAiScoresJob;
 use App\Models\Tenant\Terreno;
 use App\Repositories\Tenant\TerrenoRepository;
 use App\Services\AiScoringService;
+use App\Services\ApiResponseService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Gate;
 
@@ -23,26 +24,24 @@ class AiScoringController extends Controller
     public function getScore(int $terrenoId): JsonResponse
     {
         if (Gate::denies('viewAny', Terreno::class)) {
-            return new JsonResponse(['message' => 'Acesso negado.'], 403);
+            return ApiResponseService::forbidden('Acesso negado.');
         }
 
         $terreno = $this->terrenoRepository->findById($terrenoId);
         if (! $terreno) {
-            return new JsonResponse(['message' => 'Terreno não encontrado.'], 404);
+            return ApiResponseService::notFound('Terreno não encontrado.');
         }
 
         if (Gate::denies('view', $terreno)) {
-            return new JsonResponse(['message' => 'Acesso negado.'], 403);
+            return ApiResponseService::forbidden('Acesso negado.');
         }
 
         $result = $this->scoringService->getScore($terreno);
 
-        return new JsonResponse([
-            'data' => [
-                'terreno_id' => $terreno->getKey(),
-                'terreno_nome' => (string) $terreno->getAttribute('nome'),
-                ...$result,
-            ],
+        return ApiResponseService::success([
+            'terreno_id' => $terreno->getKey(),
+            'terreno_nome' => (string) $terreno->getAttribute('nome'),
+            ...$result,
         ]);
     }
 
@@ -52,13 +51,13 @@ class AiScoringController extends Controller
     public function getRanking(): JsonResponse
     {
         if (Gate::denies('viewAny', Terreno::class)) {
-            return new JsonResponse(['message' => 'Acesso negado.'], 403);
+            return ApiResponseService::forbidden('Acesso negado.');
         }
 
         $limit = min(request()->integer('limit', 50), 200);
         $ranking = $this->scoringService->getRanking($limit);
 
-        return new JsonResponse(['data' => $ranking]);
+        return ApiResponseService::success($ranking);
     }
 
     /**
@@ -67,11 +66,11 @@ class AiScoringController extends Controller
     public function recalculateAll(): JsonResponse
     {
         if (Gate::denies('update', Terreno::class)) {
-            return new JsonResponse(['message' => 'Acesso negado.'], 403);
+            return ApiResponseService::forbidden('Acesso negado.');
         }
 
         RecalculateAiScoresJob::dispatch();
 
-        return new JsonResponse(['message' => 'Recálculo de scores enfileirado.'], 202);
+        return ApiResponseService::success(null, 'Recálculo de scores enfileirado.', 202);
     }
 }

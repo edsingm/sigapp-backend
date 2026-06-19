@@ -31,14 +31,7 @@ class RegionaisController extends Controller
         $search = $request->has('q') ? $request->string('q')->toString() : null;
         $regionais = $this->regionalService->list($perPage, $search);
 
-        return RegionalResource::collection($regionais)
-            ->additional([
-                'message' => 'Regionais recuperadas com sucesso',
-                'current_page' => $regionais->currentPage(),
-                'last_page' => $regionais->lastPage(),
-                'total' => $regionais->total(),
-                'per_page' => $regionais->perPage(),
-            ]);
+        return RegionalResource::collection($regionais);
     }
 
     public function forSelect(SelectRegionaisRequest $request): JsonResponse

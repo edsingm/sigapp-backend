@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Billing;
 
+use App\Models\Central\Coupon;
 use App\Models\Central\Dispute;
 use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
@@ -684,6 +685,92 @@ class WebhookHandlerTest extends TestCase
             'id' => $tenant->id,
             'scheduled_plan_id' => null,
         ]);
+    }
+
+    public function test_invoice_paid_reads_subscription_id_from_basil_parent_field(): void
+    {
+        $subscriptionId = 'sub_basil_'.uniqid();
+        $scheduledPlan = Plan::create([
+            'name' => 'Plano Basil',
+            'slug' => 'basil-'.uniqid(),
+            'description' => 'Teste Basil',
+            'stripe_price_id' => 'price_basil',
+            'price' => 9900,
+            'trial_days' => 0,
+            'is_active' => true,
+        ]);
+
+        $tenant = $this->makeTenant([
+            'stripe_subscription_id' => $subscriptionId,
+            'scheduled_plan_id' => $scheduledPlan->id,
+            'database_created' => true, // evita dispatch de provisioning em teste
+        ]);
+
+        $billingMock = Mockery::mock(TenantBillingService::class)->makePartial();
+        $billingMock->shouldReceive('retrieveSubscription')
+            ->with($subscriptionId)
+            ->andReturn((object) [
+                'id' => $subscriptionId,
+                'status' => 'active',
+                'customer' => $tenant->getAttribute('stripe_id'),
+                'items' => (object) [
+                    'data' => [
+                        (object) [
+                            'id' => 'si_test',
+                            'price' => (object) ['id' => 'price_basil', 'product' => 'prod_test'],
+                            'quantity' => 1,
+                        ],
+                    ],
+                ],
+                'trial_end' => null,
+                'cancel_at' => null,
+            ]);
+        $billingMock->shouldReceive('syncPlanFromPriceId')->once()->andReturnNull();
+        $billingMock->shouldReceive('syncSubscription')->once()->andReturnNull();
+        $billingMock->shouldReceive('applyStripeSubscriptionStatus')->andReturn('active');
+
+        $this->app->instance(TenantBillingService::class, $billingMock);
+
+        // Payload Basil/Clover: sem campo legado 'subscription', ID em parent.subscription_details.
+        $this->postWebhook('invoice.paid', [
+            'customer' => $tenant->getAttribute('stripe_id'),
+            'id' => 'in_basil_'.uniqid(),
+            'parent' => [
+                'subscription_details' => ['subscription' => $subscriptionId],
+            ],
+        ])->assertOk();
+
+        // Reconciliação deve ter ocorrido mesmo sem o campo legado.
+        $this->assertDatabaseHas('tenants', [
+            'id' => $tenant->id,
+            'scheduled_plan_id' => null,
+        ]);
+    }
+
+    public function test_customer_discount_created_increments_redemption_once(): void
+    {
+        $coupon = Coupon::create([
+            'stripe_coupon_id' => 'disc_test',
+            'code' => 'PROMO',
+            'name' => 'Promo',
+            'type' => 'percent',
+            'percent_off' => 10,
+            'is_active' => true,
+        ]);
+
+        $eventId = 'evt_discount_'.uniqid();
+        // No customer.discount.created, data.object é um Discount; o cupom fica em coupon.id.
+        $dataObject = [
+            'id' => 'di_test',
+            'customer' => 'cus_test',
+            'coupon' => ['id' => 'disc_test'],
+        ];
+
+        $this->postWebhook('customer.discount.created', $dataObject, ['id' => $eventId])->assertOk();
+        // Reenvio do mesmo event id não deve recontar (idempotência via webhook_events).
+        $this->postWebhook('customer.discount.created', $dataObject, ['id' => $eventId])->assertOk();
+
+        $this->assertSame(1, $coupon->fresh()->times_redeemed);
     }
 
     protected function tearDown(): void

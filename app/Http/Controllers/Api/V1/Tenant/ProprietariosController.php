@@ -8,6 +8,7 @@ use App\Http\Requests\Tenant\UpdateProprietarioRequest;
 use App\Http\Resources\Tenant\ProprietarioResource;
 use App\Models\Tenant\Proprietario;
 use App\Models\Tenant\Terreno;
+use App\Services\ApiResponseService;
 use App\Services\Tenant\LandWorkflowService;
 use App\Services\Tenant\ProprietarioService;
 use Illuminate\Http\JsonResponse;
@@ -42,6 +43,22 @@ class ProprietariosController extends Controller
 
             return $this->respondWithPagination($paginator, ProprietarioResource::class);
         });
+    }
+
+    /**
+     * Listar proprietários em formato enxuto para selects (id + nome).
+     */
+    public function proprietariosForSelect(): JsonResponse
+    {
+        Gate::authorize('viewAny', Proprietario::class);
+
+        $proprietarios = $this->proprietarioService->forSelect()
+            ->map(static fn (Proprietario $proprietario): array => [
+                'id' => $proprietario->getKey(),
+                'nome' => $proprietario->getAttribute('nome'),
+            ])->values();
+
+        return ApiResponseService::success($proprietarios, 'Proprietários recuperados com sucesso');
     }
 
     /**

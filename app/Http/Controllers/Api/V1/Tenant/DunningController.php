@@ -48,9 +48,9 @@ class DunningController extends Controller
             return ApiResponseService::conflict('ACCOUNT_CANCELLED');
         }
 
-        $success = $this->billingService->triggerPaymentRetry($tenant);
+        $invoiceUrl = $this->billingService->getOpenInvoicePaymentUrl($tenant);
 
-        if (! $success) {
+        if ($invoiceUrl === null) {
             return ApiResponseService::error(
                 'PAYMENT_RETRY_ERROR',
                 'PAYMENT_RETRY_FAILED',
@@ -59,6 +59,11 @@ class DunningController extends Controller
             );
         }
 
-        return ApiResponseService::success(null, language()->t('PAYMENT_RETRY_INITIATED'));
+        // Direciona o cliente à página hospedada do Stripe para concluir o pagamento
+        // (cobra/atualiza cartão e resolve SCA nativamente).
+        return ApiResponseService::success(
+            ['invoice_url' => $invoiceUrl],
+            language()->t('PAYMENT_RETRY_INITIATED')
+        );
     }
 }

@@ -27,14 +27,7 @@ class PremissasViabilidadeController extends Controller
 
         $premissas = $this->service->list($perfil, $perPage);
 
-        return PremissasViabilidadeResource::collection($premissas)
-            ->additional([
-                'message' => 'Premissas recuperadas com sucesso',
-                'current_page' => $premissas->currentPage(),
-                'last_page' => $premissas->lastPage(),
-                'total' => $premissas->total(),
-                'per_page' => $premissas->perPage(),
-            ]);
+        return PremissasViabilidadeResource::collection($premissas);
     }
 
     public function show(int $id): JsonResponse

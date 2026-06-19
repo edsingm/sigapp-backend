@@ -20,7 +20,7 @@ class TenantSignupService
      * Cria um tenant pendente com validação de slug, domínio e aceite de contrato.
      *
      * @param  array<string, mixed>  $validated
-     * @return array{tenant: Tenant, contract_acceptance: array<string, mixed>}
+     * @return array{tenant: Tenant, contract_acceptance: array<string, mixed>, trial_eligible: bool}
      *
      * @throws ValidationException
      */
@@ -30,7 +30,7 @@ class TenantSignupService
         $effectiveSlug = Str::slug($requestedSlug);
         $contractConfig = $this->getSignupUsageContractConfig();
 
-        $tenant = DB::transaction(function () use ($validated, $plan, $request, $contractConfig, $requestedSlug, $effectiveSlug) {
+        ['tenant' => $tenant, 'trial_eligible' => $trialEligible] = DB::transaction(function () use ($validated, $plan, $request, $contractConfig, $requestedSlug, $effectiveSlug) {
             $existingTenant = Tenant::where('slug', $effectiveSlug)->lockForUpdate()->first();
 
             if (
@@ -70,9 +70,18 @@ class TenantSignupService
             );
 
             $adminEmail = (string) $validated['admin_email'];
-            $trialEligible = ! DB::table('trial_ledger')
-                ->where('email', $adminEmail)
-                ->exists();
+            $ledgerEmail = self::normalizeEmail($adminEmail);
+
+            // Inserção atômica: com o unique index em trial_ledger.email, apenas o
+            // primeiro signup por email insere a linha (1 linha afetada => elegível).
+            // Requisições concorrentes ou emails repetidos recebem 0 linhas => inelegíveis,
+            // eliminando o race condition do antigo check-then-insert.
+            $trialEligible = DB::table('trial_ledger')->insertOrIgnore([
+                'email' => $ledgerEmail,
+                'tenant_slug' => $effectiveSlug,
+                'granted_at' => now(),
+                'created_at' => now(),
+            ]) === 1;
 
             $tenant = Tenant::create([
                 'name' => $validated['organization_name'],
@@ -90,15 +99,6 @@ class TenantSignupService
 
             $tenant->domains()->create(['domain' => $tenant->slug]);
 
-            if ($trialEligible) {
-                DB::table('trial_ledger')->insert([
-                    'email' => $adminEmail,
-                    'tenant_slug' => $effectiveSlug,
-                    'granted_at' => now(),
-                    'created_at' => now(),
-                ]);
-            }
-
             // WORKAROUND stancl/tenancy: Tenant::create() ignora colunas customizadas
             // que não estão na lista interna do pacote (id, created_at, updated_at, data).
             // Colunas como plan_id, status, etc. são definidas no $fillable mas não são
@@ -109,12 +109,24 @@ class TenantSignupService
                 $tenant->refresh();
             }
 
-            return $tenant;
+            return ['tenant' => $tenant, 'trial_eligible' => $trialEligible];
         });
 
         $contractAcceptance = data_get($tenant->data ?? [], 'signup_contract_acceptance', []);
 
-        return ['tenant' => $tenant, 'contract_acceptance' => $contractAcceptance];
+        return [
+            'tenant' => $tenant,
+            'contract_acceptance' => $contractAcceptance,
+            'trial_eligible' => $trialEligible,
+        ];
+    }
+
+    /**
+     * Normaliza o email para uso como chave do trial_ledger (case/espaços).
+     */
+    public static function normalizeEmail(string $email): string
+    {
+        return Str::lower(trim($email));
     }
 
     /**

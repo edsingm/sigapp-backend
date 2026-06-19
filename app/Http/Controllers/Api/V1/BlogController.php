@@ -26,9 +26,7 @@ class BlogController extends Controller
             min(max($request->integer('per_page', 12), 1), 50),
         );
 
-        return BlogPostSummaryResource::collection($posts)->additional([
-            'success' => true,
-        ])->response();
+        return BlogPostSummaryResource::collection($posts)->response();
     }
 
     /**

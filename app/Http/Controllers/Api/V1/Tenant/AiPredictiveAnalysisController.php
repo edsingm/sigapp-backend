@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Tenant\Terreno;
 use App\Repositories\Tenant\TerrenoRepository;
 use App\Services\AiPredictiveAnalysisService;
+use App\Services\ApiResponseService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Gate;
 
@@ -22,21 +23,21 @@ class AiPredictiveAnalysisController extends Controller
     public function predictApproval(int $terrenoId): JsonResponse
     {
         if (Gate::denies('viewAny', Terreno::class)) {
-            return new JsonResponse(['message' => 'Acesso negado.'], 403);
+            return ApiResponseService::forbidden('Acesso negado.');
         }
 
         $terreno = $this->terrenoRepository->findById($terrenoId);
         if (! $terreno) {
-            return new JsonResponse(['message' => 'Terreno não encontrado.'], 404);
+            return ApiResponseService::notFound('Terreno não encontrado.');
         }
 
         if (Gate::denies('view', $terreno)) {
-            return new JsonResponse(['message' => 'Acesso negado ao terreno.'], 403);
+            return ApiResponseService::forbidden('Acesso negado ao terreno.');
         }
 
         $result = $this->predictiveService->predictApprovalProbability($terreno);
 
-        return new JsonResponse(['data' => $result]);
+        return ApiResponseService::success($result);
     }
 
     /**
@@ -45,21 +46,21 @@ class AiPredictiveAnalysisController extends Controller
     public function estimateVgv(int $terrenoId): JsonResponse
     {
         if (Gate::denies('viewAny', Terreno::class)) {
-            return new JsonResponse(['message' => 'Acesso negado.'], 403);
+            return ApiResponseService::forbidden('Acesso negado.');
         }
 
         $terreno = $this->terrenoRepository->findById($terrenoId);
         if (! $terreno) {
-            return new JsonResponse(['message' => 'Terreno não encontrado.'], 404);
+            return ApiResponseService::notFound('Terreno não encontrado.');
         }
 
         if (Gate::denies('view', $terreno)) {
-            return new JsonResponse(['message' => 'Acesso negado ao terreno.'], 403);
+            return ApiResponseService::forbidden('Acesso negado ao terreno.');
         }
 
         $result = $this->predictiveService->getVgvBenchmark($terreno);
 
-        return new JsonResponse(['data' => $result]);
+        return ApiResponseService::success($result);
     }
 
     /**
@@ -68,11 +69,11 @@ class AiPredictiveAnalysisController extends Controller
     public function stallingForecast(): JsonResponse
     {
         if (Gate::denies('viewAny', Terreno::class)) {
-            return new JsonResponse(['message' => 'Acesso negado.'], 403);
+            return ApiResponseService::forbidden('Acesso negado.');
         }
 
         $result = $this->predictiveService->getStallingForecast();
 
-        return new JsonResponse(['data' => $result]);
+        return ApiResponseService::success($result);
     }
 }

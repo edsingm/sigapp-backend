@@ -88,7 +88,7 @@ class NegotiationApiTest extends TestCase
 
         $this->actingAs($this->admin)->getJson('/api/v1/negociacoes')
             ->assertOk()
-            ->assertJsonStructure(['success', 'data', 'meta']);
+            ->assertJsonStructure(['data', 'links', 'meta']);
 
         $this->actingAs($this->admin)->getJson("/api/v1/negociacoes/{$negotiationId}")
             ->assertOk()

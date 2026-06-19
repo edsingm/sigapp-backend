@@ -60,7 +60,7 @@ class LegalizacaoApiTest extends TestCase
         $this->actingAs($this->admin)
             ->getJson('/api/v1/legalizacoes/eligible-terrenos')
             ->assertOk()
-            ->assertJsonStructure(['success', 'data', 'meta']);
+            ->assertJsonStructure(['data', 'links', 'meta']);
 
         $createResponse = $this->actingAs($this->admin)->postJson('/api/v1/legalizacoes', [
             'terreno_id' => $terreno->id,
@@ -76,7 +76,7 @@ class LegalizacaoApiTest extends TestCase
 
         $this->actingAs($this->admin)->getJson('/api/v1/legalizacoes')
             ->assertOk()
-            ->assertJsonStructure(['success', 'data', 'meta']);
+            ->assertJsonStructure(['data', 'links', 'meta']);
 
         $this->actingAs($this->admin)->getJson("/api/v1/legalizacoes/{$legalizacaoId}")
             ->assertOk()

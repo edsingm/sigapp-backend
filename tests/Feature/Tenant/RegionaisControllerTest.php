@@ -63,7 +63,8 @@ class RegionaisControllerTest extends TestCase
             ->getJson('/api/v1/regionais');
 
         $response->assertOk()
-            ->assertJsonPath('message', 'Regionais recuperadas com sucesso');
+            ->assertJsonStructure(['data', 'links', 'meta'])
+            ->assertJsonPath('data.0.nome', 'Regional A');
     }
 
     public function test_it_shows_a_regional(): void

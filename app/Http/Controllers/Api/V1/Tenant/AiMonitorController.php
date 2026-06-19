@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Http\Controllers\Controller;
 use App\Models\Tenant\Terreno;
+use App\Services\ApiResponseService;
 use App\Services\Tenant\AiMonitorService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,7 +23,7 @@ class AiMonitorController extends Controller
     public function index(Request $request): JsonResponse
     {
         if (Gate::denies('viewAny', Terreno::class)) {
-            return new JsonResponse(['message' => 'Acesso negado.'], 403);
+            return ApiResponseService::forbidden('Acesso negado.');
         }
 
         $focusArea = $request->get('focus_area');
@@ -45,12 +46,10 @@ class AiMonitorController extends Controller
 
         $alerts = $alerts->sortByDesc('severity_score')->values()->take($limit);
 
-        return new JsonResponse([
-            'data' => [
-                'total_alerts' => $alerts->count(),
-                'alerts' => $alerts,
-                'scan_timestamp' => now()->toIso8601String(),
-            ],
+        return ApiResponseService::success([
+            'total_alerts' => $alerts->count(),
+            'alerts' => $alerts,
+            'scan_timestamp' => now()->toIso8601String(),
         ]);
     }
 

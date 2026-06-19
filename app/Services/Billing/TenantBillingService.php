@@ -138,7 +138,16 @@ class TenantBillingService
 
     public function createBillingPortalUrl(Tenant $tenant, ?string $returnUrl = null): string
     {
-        return $tenant->billingPortalUrl($returnUrl);
+        // Quando há uma portal configuration dedicada (troca de plano desabilitada),
+        // enviamos explicitamente para não depender da configuração default do Dashboard,
+        // que permitiria trocar de plano fora do PlanSwapController. Vazio => default.
+        $options = [];
+        $configurationId = config('cashier.portal_configuration_id');
+        if (is_string($configurationId) && $configurationId !== '') {
+            $options['configuration'] = $configurationId;
+        }
+
+        return $tenant->billingPortalUrl($returnUrl, $options);
     }
 
     public function createSetupIntentSecret(Tenant $tenant): string
@@ -533,13 +542,19 @@ class TenantBillingService
     }
 
     /**
-     * Dispara o reprocessamento de uma invoice pendente.
+     * Retorna a URL hospedada da invoice em aberto para o cliente concluir o pagamento.
+     *
+     * O Stripe Billing já re-tenta automaticamente invoices charge_automatically (dunning/
+     * smart retries). Para o "pagar agora" manual, direcionamos o cliente à página hospedada
+     * do Stripe — que cobra o cartão atual, permite trocar o cartão e trata SCA/3DS
+     * nativamente — em vez de cobrar via API server-side (invoices->pay) e ter que orquestrar
+     * requires_action por conta própria. Retorna null quando não há invoice em aberto.
      */
-    public function triggerPaymentRetry(Tenant $tenant): bool
+    public function getOpenInvoicePaymentUrl(Tenant $tenant): ?string
     {
         $tenantStripeId = $tenant->getAttribute('stripe_id');
         if (! is_string($tenantStripeId) || $tenantStripeId === '') {
-            return false;
+            return null;
         }
 
         try {
@@ -553,19 +568,18 @@ class TenantBillingService
 
             if (isset($invoices->data[0])) {
                 $invoice = $invoices->data[0];
-                $invoiceId = $invoice->id ?? '';
 
-                if (($invoice->amount_remaining ?? 0) > 0 && $invoiceId !== '') {
-                    $stripe->invoices->sendInvoice($invoiceId, []);
+                if (($invoice->amount_remaining ?? 0) > 0) {
+                    $hostedUrl = $invoice->hosted_invoice_url ?? null;
 
-                    return true;
+                    return is_string($hostedUrl) && $hostedUrl !== '' ? $hostedUrl : null;
                 }
             }
         } catch (\Throwable) {
-            return false;
+            return null;
         }
 
-        return false;
+        return null;
     }
 
     /**

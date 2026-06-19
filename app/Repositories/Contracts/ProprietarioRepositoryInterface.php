@@ -6,10 +6,16 @@ namespace App\Repositories\Contracts;
 
 use App\Models\Tenant\Proprietario;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 interface ProprietarioRepositoryInterface
 {
     public function paginateForTenant(int $tenantId, int $perPage, ?int $terrenoId = null): LengthAwarePaginator;
+
+    /**
+     * @return Collection<int, Proprietario>
+     */
+    public function forSelect(): Collection;
 
     public function findById(int $id): ?Proprietario;
 

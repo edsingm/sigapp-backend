@@ -67,7 +67,8 @@ class TerrenoProdutosControllerTest extends TestCase
             ->getJson('/api/v1/terreno-produtos');
 
         $response->assertOk()
-            ->assertJsonPath('message', 'Associações terreno-produto recuperadas com sucesso');
+            ->assertJsonStructure(['data', 'links', 'meta'])
+            ->assertJsonPath('data.0.terreno_id', $terreno->id);
     }
 
     public function test_it_shows_a_terreno_produto(): void

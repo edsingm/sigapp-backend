@@ -10,6 +10,7 @@ use App\Http\Resources\CidadeDadosResource;
 use App\Http\Resources\CidadeOpcaoResource;
 use App\Http\Resources\EstadoResource;
 use App\Repositories\CidadeRepository;
+use App\Services\ApiResponseService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
 
@@ -28,10 +29,7 @@ class CidadesController extends Controller
             return $this->cidadeRepository->listStates();
         });
 
-        return response()->json([
-            'success' => true,
-            'data' => EstadoResource::collection($states),
-        ]);
+        return ApiResponseService::success(EstadoResource::collection($states));
     }
 
     /**
@@ -45,10 +43,7 @@ class CidadesController extends Controller
             return $this->cidadeRepository->listByState($stateCode);
         });
 
-        return response()->json([
-            'success' => true,
-            'data' => CidadeOpcaoResource::collection($cities),
-        ]);
+        return ApiResponseService::success(CidadeOpcaoResource::collection($cities));
     }
 
     /**
@@ -58,10 +53,7 @@ class CidadesController extends Controller
     {
         $cidades = $this->cidadeRepository->searchByTerm((string) $request->validated('termo'));
 
-        return response()->json([
-            'status' => 'OK',
-            'data' => CidadeBuscaResource::collection($cidades),
-        ]);
+        return ApiResponseService::success(CidadeBuscaResource::collection($cidades));
     }
 
     /**
@@ -71,15 +63,9 @@ class CidadesController extends Controller
     {
         $cidade = $this->cidadeRepository->findByCode((string) $request->validated('cityCode'));
         if (! $cidade) {
-            return response()->json([
-                'status' => 'ERROR',
-                'message' => language()->t('CITY_NOT_FOUND'),
-            ], 404);
+            return ApiResponseService::notFound('CITY_NOT_FOUND');
         }
 
-        return response()->json([
-            'status' => 'OK',
-            'data' => new CidadeDadosResource($cidade),
-        ]);
+        return ApiResponseService::success(new CidadeDadosResource($cidade));
     }
 }

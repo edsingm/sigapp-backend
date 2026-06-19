@@ -21,6 +21,6 @@ class TimelineController extends Controller
 
         $paginator = $this->timelineService->getForTerreno($id, $page, $perPage);
 
-        return response()->json(TimelineEntryResource::collection($paginator));
+        return TimelineEntryResource::collection($paginator)->response();
     }
 }

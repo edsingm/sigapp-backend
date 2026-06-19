@@ -67,7 +67,10 @@ class PlanSwapController extends Controller
             if ($isUpgrade) {
                 // Upgrade: cobra a diferença proporcional imediatamente no Stripe.
                 // Nunca aceitar 'prorate' do cliente para evitar acesso gratuito a planos superiores.
-                $subscription->swapAndInvoice($stripePriceId);
+                // pendingIfPaymentFails() mantém a troca em pending_update até o pagamento confirmar;
+                // sem isso (default_incomplete), o preço seria aplicado mesmo sem pagamento e o
+                // webhook customer.subscription.updated liberaria o plano superior de graça.
+                $subscription->pendingIfPaymentFails()->swapAndInvoice($stripePriceId);
                 // Aplica o plano imediatamente e cancela qualquer downgrade pendente.
                 $tenant->update(['plan_id' => $newPlan->getKey(), 'scheduled_plan_id' => null]);
             } else {

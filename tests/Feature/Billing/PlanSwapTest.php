@@ -9,6 +9,8 @@ use App\Models\Central\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Laravel\Cashier\Exceptions\IncompletePayment;
+use Laravel\Cashier\Payment;
 use Laravel\Cashier\Subscription;
 use Mockery;
 use Stancl\Tenancy\Tenancy;
@@ -177,6 +179,7 @@ class PlanSwapTest extends TestCase
         $tenant = TenantWithFakeSubscription::find($tenantId);
 
         $subMock = $this->makeSubscriptionMock('price_basic');
+        $subMock->shouldReceive('pendingIfPaymentFails')->once()->andReturnSelf();
         $subMock->shouldReceive('swapAndInvoice')->once()->with('price_pro')->andReturnSelf();
 
         $tenant->fakeSubscription = $subMock;
@@ -201,6 +204,7 @@ class PlanSwapTest extends TestCase
         $tenant = TenantWithFakeSubscription::find($tenantId);
 
         $subMock = $this->makeSubscriptionMock('price_basic');
+        $subMock->shouldReceive('pendingIfPaymentFails')->once()->andReturnSelf();
         $subMock->shouldReceive('swapAndInvoice')->once()->andReturnSelf();
 
         $tenant->fakeSubscription = $subMock;
@@ -210,6 +214,35 @@ class PlanSwapTest extends TestCase
         $json = json_decode($response->getContent(), true);
 
         $this->assertTrue($json['data']['is_upgrade']);
+    }
+
+    public function test_upgrade_with_incomplete_payment_does_not_grant_plan(): void
+    {
+        $planLow = $this->makePlan('Basic', 1, 'price_basic');
+        $planHigh = $this->makePlan('Pro', 10, 'price_pro');
+
+        $tenantId = $this->insertTenant($planLow->id);
+        $tenant = TenantWithFakeSubscription::find($tenantId);
+
+        // Upgrade cujo pagamento exige ação (SCA) ou falha: swapAndInvoice lança
+        // IncompletePayment. Com pendingIfPaymentFails() a troca fica em pending_update
+        // no Stripe e o plano NÃO deve ser concedido localmente.
+        $subMock = $this->makeSubscriptionMock('price_basic');
+        $subMock->shouldReceive('pendingIfPaymentFails')->once()->andReturnSelf();
+        $subMock->shouldReceive('swapAndInvoice')->once()->with('price_pro')
+            ->andThrow(new IncompletePayment(Mockery::mock(Payment::class)));
+
+        $tenant->fakeSubscription = $subMock;
+        app(Tenancy::class)->tenant = $tenant;
+
+        $response = app(PlanSwapController::class)->swap($this->makeSwapRequest($planHigh->slug));
+
+        $this->assertSame(500, $response->getStatusCode());
+        $this->assertDatabaseHas('tenants', [
+            'id' => $tenantId,
+            'plan_id' => $planLow->id, // plano superior NÃO concedido sem pagamento
+            'scheduled_plan_id' => null,
+        ]);
     }
 
     // -------------------------------------------------------------------------

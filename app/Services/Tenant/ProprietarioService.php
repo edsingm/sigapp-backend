@@ -7,6 +7,7 @@ namespace App\Services\Tenant;
 use App\Models\Tenant\Proprietario;
 use App\Repositories\Contracts\ProprietarioRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 class ProprietarioService
 {
@@ -17,6 +18,14 @@ class ProprietarioService
     public function list(int $tenantId, int $perPage, ?int $terrenoId = null): LengthAwarePaginator
     {
         return $this->repository->paginateForTenant($tenantId, $perPage, $terrenoId);
+    }
+
+    /**
+     * @return Collection<int, Proprietario>
+     */
+    public function forSelect(): Collection
+    {
+        return $this->repository->forSelect();
     }
 
     public function findById(int $id): ?Proprietario

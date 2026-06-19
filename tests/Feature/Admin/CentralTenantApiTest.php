@@ -41,10 +41,8 @@ class CentralTenantApiTest extends TestCase
         $response = $this->adminJson('get', '/api/v1/admin/tenants');
 
         $response->assertOk()
-            ->assertJsonPath('success', true)
             ->assertJsonCount(2, 'data')
             ->assertJsonStructure([
-                'success',
                 'data' => [[
                     'id',
                     'name',
@@ -55,6 +53,7 @@ class CentralTenantApiTest extends TestCase
                     'plan',
                     'on_trial',
                 ]],
+                'links',
                 'meta',
             ]);
 

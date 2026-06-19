@@ -7,6 +7,7 @@ namespace App\Repositories;
 use App\Models\Tenant\Proprietario;
 use App\Repositories\Contracts\ProprietarioRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 class ProprietarioRepository implements ProprietarioRepositoryInterface
 {
@@ -21,6 +22,19 @@ class ProprietarioRepository implements ProprietarioRepositoryInterface
         }
 
         return $query->paginate($perPage);
+    }
+
+    /**
+     * @return Collection<int, Proprietario>
+     */
+    public function forSelect(): Collection
+    {
+        /** @var Collection<int, Proprietario> $proprietarios */
+        $proprietarios = Proprietario::query()
+            ->orderBy('nome')
+            ->get(['id', 'nome']);
+
+        return $proprietarios;
     }
 
     public function findById(int $id): ?Proprietario

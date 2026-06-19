@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class ApiResponseService
@@ -56,25 +57,19 @@ class ApiResponseService
     }
 
     /**
-     * Retorna uma resposta paginada.
+     * Retorna uma resposta paginada no formato nativo do Laravel: `{ data, links, meta }`.
+     *
+     * Os itens do paginator são preservados como já estão (models crus ou arrays
+     * pré-transformados por `->through()`), e o envelope nativo de `links`/`meta` é
+     * aplicado pela máquina de Resource Collection. O parâmetro `$message` é mantido
+     * por compatibilidade de assinatura, mas não compõe o corpo (o formato nativo
+     * não possui `message`/`success`).
      */
     public static function paginated(
         LengthAwarePaginator $paginator,
         string $message = 'DATA_RETRIEVED_SUCCESSFULLY'
     ): JsonResponse {
-        return response()->json([
-            'success' => true,
-            'data' => $paginator->items(),
-            'message' => self::translate($message),
-            'meta' => [
-                'current_page' => $paginator->currentPage(),
-                'per_page' => $paginator->perPage(),
-                'total' => $paginator->total(),
-                'last_page' => $paginator->lastPage(),
-                'from' => $paginator->firstItem(),
-                'to' => $paginator->lastItem(),
-            ],
-        ], 200);
+        return JsonResource::collection($paginator)->response();
     }
 
     /**

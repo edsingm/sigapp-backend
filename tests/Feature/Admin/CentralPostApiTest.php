@@ -36,8 +36,8 @@ class CentralPostApiTest extends TestCase
         $this->adminJson('get', '/api/v1/admin/posts')
             ->assertOk()
             ->assertJsonStructure([
-                'success',
                 'data',
+                'links',
                 'meta',
             ]);
 

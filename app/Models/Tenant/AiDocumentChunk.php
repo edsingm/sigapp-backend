@@ -11,6 +11,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Table('ai_document_chunks')]
 #[Fillable(['document_id', 'terreno_id', 'chunk_index', 'content', 'metadata'])]
+/**
+ * @property int $id
+ */
 class AiDocumentChunk extends Model
 {
     use HasFactory;

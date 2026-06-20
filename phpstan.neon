@@ -126,6 +126,9 @@ parameters:
         - '#Call to an undefined static method App\\Models\\Tenant\\.+::first\(\)#'
         - '#Call to an undefined static method App\\Models\\Tenant\\.+::where\(\)#'
         - '#Call to an undefined static method App\\Models\\Tenant\\.+::whereIn\(\)#'
+        - '#Call to an undefined static method App\\Models\\Tenant\\.+::whereNotIn\(\)#'
+        - '#Call to an undefined static method App\\Models\\Tenant\\.+::whereBetween\(\)#'
+        - '#Call to an undefined static method App\\Models\\Tenant\\.+::updateOrCreate\(\)#'
         - '#Call to an undefined static method App\\Models\\Tenant\\.+::whereNotNull\(\)#'
         - '#Call to an undefined static method App\\Models\\Tenant\\.+::query\(\)#'
         - '#Call to an undefined static method App\\Models\\Central\\.+::where\(\)#'
@@ -135,6 +138,8 @@ parameters:
         - '#Call to an undefined static method App\\Models\\Central\\.+::findOrFail\(\)#'
         - '#Call to an undefined static method Spatie\\Permission\\Models\\Role::firstOrCreate\(\)#'
         # Eloquent: propriedades dinâmicas em models do tenant (widening de tipo)
+        - '#Access to an undefined property App\\Models\\Tenant\\AiRecommendationScore::\$\w+#'
+        - '#Access to an undefined property App\\Models\\Tenant\\AiDocumentChunk::\$\w+#'
         - '#Access to an undefined property App\\Models\\Tenant\\Terreno::\$\w+#'
         - '#Access to an undefined property App\\Models\\Tenant\\Viabilidade::\$\w+#'
         - '#Access to an undefined property App\\Models\\Tenant\\Contrato::\$\w+#'
@@ -169,8 +174,19 @@ parameters:
         # Eloquent Model widening (Builder, EloquentCollection returning stdClass from raw queries)
         - '#Parameter \#1 \$callback of method Illuminate\\Support\\Collection<int,stdClass>::map\(\) contains unresolvable type#'
         - '#Return type of call to method Illuminate\\Support\\Collection<int,stdClass>::map\(\) contains unresolvable type#'
+        # Repositórios: raw queries retornam stdClass mas Larastan não infere o modelo Eloquent correto
+        - '#Method App\\Repositories\\Tenant\\AiEmbeddingRepository::searchEmbeddings\(\) should return .+ but returns Illuminate\\Support\\Collection<int, stdClass>#'
+        - '#Method App\\Repositories\\Tenant\\AiInsightRepository::\w+\(\) should return .+ but returns Illuminate\\Support\\Collection<int, stdClass>#'
+        - '#Method App\\Repositories\\Tenant\\AiMonitorRepository::\w+\(\) should return .+ but returns Illuminate\\Support\\Collection<int, stdClass>#'
+        # Collection<Terreno> e Collection<AiDocumentEmbedding>: map() sem Larastan retorna unresolvable
+        - '#Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection<int,App\\Models\\Tenant\\Terreno>::map\(\) contains unresolvable type#'
+        - '#Return type of call to method Illuminate\\Database\\Eloquent\\Collection<int,App\\Models\\Tenant\\Terreno>::map\(\) contains unresolvable type#'
+        - '#Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection<int,App\\Models\\Tenant\\AiDocumentEmbedding>::map\(\) contains unresolvable type#'
+        - '#Return type of call to method Illuminate\\Database\\Eloquent\\Collection<int,App\\Models\\Tenant\\AiDocumentEmbedding>::map\(\) contains unresolvable type#'
         # GetTerrenoGeoAnalysisTool: Builder::find() sem Larastan infere stdClass
-        - '#Parameter \#1 \$terreno of method App\\Ai\\Tools\\GetTerrenoGeoAnalysisTool::build\w+\(\) expects App\\Models\\Tenant\\Terreno, stdClass given#'
+        - '#Parameter \#1 \$terreno of method App\\Services\\Ai\\Tools\\GetTerrenoGeoAnalysisTool::build\w+\(\) expects App\\Models\\Tenant\\Terreno, stdClass given#'
+        # GetTerrenoDetailsTool: método de relação em modelo inferido como stdClass sem Larastan
+        - '#Cannot call method viabilidades\(\) on stdClass#'
         # cURL: URL e cookie jar são sempre não-vazios em runtime mas PHPStan não infere
         - '#Parameter \#2 \$options of function curl_setopt_array expects array\{10002: non-empty-string.+\}, array\{10002: string.+\} given#'
         # ConsentLog usa HasFactory sem ConsentLogFactory (sem factory dedicada neste projeto)
@@ -208,6 +224,8 @@ parameters:
         # Spatie Permission model
         - '#Call to an undefined static method Spatie\\Permission\\Models\\Role::\w+\(\)#'
         - '#Call to an undefined static method Spatie\\Permission\\Models\\Permission::\w+\(\)#'
+        # Scopes definidos via scopeXxx() não são reconhecidos como métodos estáticos pelo PHPStan sem Larastan
+        - '#Call to an undefined static method App\\Models\\Tenant\\AiRecommendationScore::byTerreno\(\)#'
         # LandWorkflowService narrowing from generic Model
         - '#Parameter \#1 \$terreno of method App\\Services\\Tenant\\LandWorkflowService::transition\(\) expects App\\Models\\Tenant\\Terreno, Illuminate\\Database\\Eloquent\\Model given#'
         - '#Parameter \#3 \$user of method App\\Services\\Tenant\\LandWorkflowService::transition\(\) expects App\\Models\\Tenant\\User\|null, Illuminate\\Contracts\\Auth\\Authenticatable\|null given#'

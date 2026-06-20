@@ -1,10 +1,9 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Ai\Tools;
 
-use App\Models\Tenant\AiDocumentChunk;
 use App\Models\Tenant\AiDocumentEmbedding;
-use App\Models\Tenant\Documento;
+use App\Repositories\Tenant\AiEmbeddingRepository;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Laravel\Ai\Embeddings;
@@ -14,6 +13,10 @@ class AiEmbeddingService
     protected const DEFAULT_MAX_CHUNK_CHARS = 1500;
 
     protected const DEFAULT_DIMENSIONS = 1536;
+
+    public function __construct(
+        private readonly AiEmbeddingRepository $repository,
+    ) {}
 
     /**
      * Gera embedding de um texto usando o provider configurado no config/ai.php.
@@ -95,7 +98,7 @@ class AiEmbeddingService
      */
     public function storeEmbeddings(int $chunkId, array $embedding, ?string $provider = null, ?string $model = null): void
     {
-        AiDocumentEmbedding::create([
+        $this->repository->createEmbedding([
             'chunk_id' => $chunkId,
             'embedding' => $embedding,
             'provider' => $provider ?? env('AI_EMBEDDING_PROVIDER', 'openai'),
@@ -109,19 +112,19 @@ class AiEmbeddingService
      */
     public function indexDocument(int $documentId, string $content, array $metadata = []): int
     {
-        $documento = Documento::find($documentId);
+        $documento = $this->repository->findDocumento($documentId);
         if (! $documento) {
             throw new \InvalidArgumentException("Documento {$documentId} não encontrado.");
         }
 
         // Remove chunks antigos
-        AiDocumentChunk::where('document_id', $documentId)->delete();
+        $this->repository->deleteChunksByDocument($documentId);
 
         $chunks = $this->chunkText($content);
         $createdCount = 0;
 
         foreach ($chunks as $index => $chunkContent) {
-            $chunk = AiDocumentChunk::create([
+            $chunk = $this->repository->createChunk([
                 'document_id' => $documentId,
                 'terreno_id' => $documento->terreno_id ?? null,
                 'chunk_index' => $index,
@@ -151,22 +154,12 @@ class AiEmbeddingService
     {
         $queryEmbedding = $this->generateEmbedding($query);
 
-        // Busca embeddings com filtro opcional por terreno
-        $embeddingsQuery = AiDocumentEmbedding::query()
-            ->with(['chunk.documento', 'chunk.terreno'])
-            ->where('model', env('OPENAI_EMBEDDING_MODEL', 'text-embedding-3-small'));
-
-        if ($terrenoId !== null) {
-            $embeddingsQuery->whereHas('chunk', function ($q) use ($terrenoId) {
-                $q->where('terreno_id', $terrenoId);
-            });
-        }
-
         // Para search sem pgvector, limitamos para não carregar tudo
-        $allEmbeddings = $embeddingsQuery
-            ->orderByDesc('created_at')
-            ->limit(200)
-            ->get();
+        $allEmbeddings = $this->repository->searchEmbeddings(
+            env('OPENAI_EMBEDDING_MODEL', 'text-embedding-3-small'),
+            $terrenoId,
+            200,
+        );
 
         // Calcula similaridade de cosseno para cada embedding
         $scored = $allEmbeddings->map(function (AiDocumentEmbedding $embedding) use ($queryEmbedding) {

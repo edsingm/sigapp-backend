@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\UpdateEntitlementRequest;
 use App\Http\Resources\EntitlementResource;
 use App\Services\ApiResponseService;
 use App\Services\EntitlementService;
+use Illuminate\Http\JsonResponse;
 use InvalidArgumentException;
 
 class EntitlementController extends Controller
@@ -16,7 +17,7 @@ class EntitlementController extends Controller
         private readonly EntitlementService $entitlementService
     ) {}
 
-    public function index()
+    public function index(): JsonResponse
     {
         $entitlements = $this->entitlementService->list();
 
@@ -26,7 +27,7 @@ class EntitlementController extends Controller
         );
     }
 
-    public function show(int $entitlement)
+    public function show(int $entitlement): JsonResponse
     {
         try {
             $model = $this->entitlementService->findOrFail($entitlement);
@@ -37,7 +38,7 @@ class EntitlementController extends Controller
         return ApiResponseService::success(new EntitlementResource($model));
     }
 
-    public function store(StoreEntitlementRequest $request)
+    public function store(StoreEntitlementRequest $request): JsonResponse
     {
         try {
             $model = $this->entitlementService->create($request->validated());
@@ -52,7 +53,7 @@ class EntitlementController extends Controller
         );
     }
 
-    public function update(UpdateEntitlementRequest $request, int $entitlement)
+    public function update(UpdateEntitlementRequest $request, int $entitlement): JsonResponse
     {
         try {
             $model = $this->entitlementService->update($entitlement, $request->validated());
@@ -66,7 +67,7 @@ class EntitlementController extends Controller
         );
     }
 
-    public function destroy(int $entitlement)
+    public function destroy(int $entitlement): JsonResponse
     {
         try {
             $this->entitlementService->delete($entitlement);

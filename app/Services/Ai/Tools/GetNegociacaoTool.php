@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Ai\Tools;
+namespace App\Services\Ai\Tools;
 
 use App\Models\Tenant\Negociacao;
 use App\Services\PlanMatrixService;

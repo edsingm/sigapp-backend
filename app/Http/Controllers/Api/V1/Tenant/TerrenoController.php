@@ -29,11 +29,16 @@ class TerrenoController extends Controller
     /**
      * Lista terrenos com filtros e cache.
      */
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
         Gate::authorize('viewAny', Terreno::class);
+        $filters = [
+            'search' => $request->input('search'),
+            'per_page' => (int) $request->input('per_page', 15),
+            'page' => (int) $request->input('page', 1),
+        ];
         $terrenos = $this->service
-            ->listPaginated($request)
+            ->listPaginated($filters, $request->boolean('force_refresh'))
             ->through(fn (Terreno $terreno): array => TerrenoResource::make($terreno)->resolve());
 
         return ApiResponseService::paginated($terrenos);
@@ -42,7 +47,7 @@ class TerrenoController extends Controller
     /**
      * Cria um novo terreno.
      */
-    public function store(StoreTerrenoRequest $request)
+    public function store(StoreTerrenoRequest $request): JsonResponse
     {
         Gate::authorize('create', Terreno::class);
         $terreno = $this->service->create($request->validated(), $request->user());
@@ -56,7 +61,7 @@ class TerrenoController extends Controller
     /**
      * Exibe um terreno específico.
      */
-    public function show(string $terreno)
+    public function show(string $terreno): JsonResponse
     {
         $terreno = $this->service->findOrFail($terreno);
         $this->authorize('view', $terreno);
@@ -69,7 +74,7 @@ class TerrenoController extends Controller
     /**
      * Atualiza um terreno.
      */
-    public function update(UpdateTerrenoRequest $request, string $terreno)
+    public function update(UpdateTerrenoRequest $request, string $terreno): JsonResponse
     {
         $terreno = $this->service->findOrFail($terreno);
         $this->authorize('update', $terreno);
@@ -84,7 +89,7 @@ class TerrenoController extends Controller
     /**
      * Excluir um terreno.
      */
-    public function destroy(string $terreno)
+    public function destroy(string $terreno): JsonResponse
     {
         $terreno = $this->service->findOrFail($terreno);
         $this->authorize('delete', $terreno);
@@ -96,12 +101,12 @@ class TerrenoController extends Controller
     /**
      * Filtrar terrenos com lógica avançada.
      */
-    public function filter(FilterTerrenosRequest $request)
+    public function filter(FilterTerrenosRequest $request): JsonResponse
     {
         Gate::authorize('viewAny', Terreno::class);
 
         try {
-            $paginator = $this->service->filter($request);
+            $paginator = $this->service->filter($request->validated(), $request->boolean('force_refresh'));
 
             return $this->respondWithPagination($paginator, TerrenoResource::class);
         } catch (\Exception $e) {
@@ -120,7 +125,7 @@ class TerrenoController extends Controller
     /**
      * Armazenar uma nova informação (nota) para o terreno.
      */
-    public function storeInfo(StoreTerrenoInfoRequest $request, string $id)
+    public function storeInfo(StoreTerrenoInfoRequest $request, string $id): JsonResponse
     {
         $terreno = $this->service->findOrFail($id);
         $this->authorize('update', $terreno);
@@ -135,7 +140,7 @@ class TerrenoController extends Controller
     /**
      * Obter todas as informações (notas) de um terreno.
      */
-    public function getInformacoes(string $id)
+    public function getInformacoes(string $id): JsonResponse
     {
         $terreno = $this->service->findOrFail($id);
         $this->authorize('view', $terreno);
@@ -148,7 +153,7 @@ class TerrenoController extends Controller
     /**
      * Atualizar uma informação (nota) existente.
      */
-    public function updateInfo(UpdateTerrenoInfoRequest $request, string $infoId)
+    public function updateInfo(UpdateTerrenoInfoRequest $request, string $infoId): JsonResponse
     {
         $info = $this->service->findInfoOrFail($infoId);
         $terreno = $info->terreno;
@@ -164,7 +169,7 @@ class TerrenoController extends Controller
     /**
      * Excluir uma informação (nota).
      */
-    public function destroyInfo(string $infoId)
+    public function destroyInfo(string $infoId): JsonResponse
     {
         $info = $this->service->findInfoOrFail($infoId);
         $terreno = $info->terreno;
@@ -177,7 +182,7 @@ class TerrenoController extends Controller
     /**
      * Importa coordenadas de polígono a partir de um arquivo .kml ou .kmz.
      */
-    public function importKmz(UploadKmzRequest $request, string $id)
+    public function importKmz(UploadKmzRequest $request, string $id): JsonResponse
     {
         $terreno = $this->service->findOrFail($id);
         $this->authorize('update', $terreno);
@@ -201,7 +206,7 @@ class TerrenoController extends Controller
     /**
      * Listar terrenos para seleção.
      */
-    public function forSelect()
+    public function forSelect(): JsonResponse
     {
         Gate::authorize('viewAny', Terreno::class);
 

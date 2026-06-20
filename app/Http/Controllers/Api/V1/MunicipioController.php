@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Services\ApiResponseService;
 use Illuminate\Http\Client\Response;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
@@ -17,17 +18,14 @@ class MunicipioController extends Controller
     public function dadosSidra(string $ibgeCodigo): JsonResponse
     {
         if (! preg_match('/^\d{7}$/', $ibgeCodigo)) {
-            return response()->json([
-                'success' => false,
-                'error' => ['code' => 'INVALID_CODE', 'message' => 'Código IBGE inválido.'],
-            ], 422);
+            return ApiResponseService::error('INVALID_CODE', 'Código IBGE inválido.', null, 422);
         }
 
         $cacheKey = "municipio:sidra:{$ibgeCodigo}";
 
         $data = Cache::remember($cacheKey, self::CACHE_TTL, fn () => $this->fetchSidraData($ibgeCodigo));
 
-        return response()->json(['success' => true, 'data' => $data]);
+        return ApiResponseService::success($data);
     }
 
     /**

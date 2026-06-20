@@ -2,14 +2,12 @@
 
 namespace App\Services\Tenant;
 
-use App\Http\Requests\Tenant\FilterTerrenosRequest;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\TerrenoInfos;
 use App\Models\Tenant\User;
 use App\Repositories\Tenant\TerrenoRepository;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
 
@@ -22,14 +20,16 @@ class TerrenoService
         private readonly TerrenoFilterService $filterService,
     ) {}
 
-    public function listPaginated(FilterTerrenosRequest|Request $request): LengthAwarePaginator
+    /**
+     * @param  array{search?: string|null, per_page?: int, page?: int}  $filters
+     */
+    public function listPaginated(array $filters, bool $forceRefresh = false): LengthAwarePaginator
     {
         $tenantId = tenant('id') ?? 'central';
-        $forceRefresh = $request->boolean('force_refresh', false);
         $filters = [
-            'search' => $request->input('search'),
-            'per_page' => (int) $request->input('per_page', 15),
-            'page' => (int) $request->input('page', 1),
+            'search' => $filters['search'] ?? null,
+            'per_page' => (int) ($filters['per_page'] ?? 15),
+            'page' => (int) ($filters['page'] ?? 1),
         ];
 
         $cacheKey = "tenant:{$tenantId}:terrenos:index:".md5(json_encode($filters));
@@ -47,14 +47,15 @@ class TerrenoService
         return $cacheStore->remember($cacheKey, now()->addMinutes(30), $resolver);
     }
 
-    public function filter(FilterTerrenosRequest $request): LengthAwarePaginator
+    /**
+     * @param  array<string, mixed>  $filters  Filtros já validados (FilterTerrenosRequest::validated()).
+     */
+    public function filter(array $filters, bool $forceRefresh = false): LengthAwarePaginator
     {
         $tenantId = tenant('id') ?? 'central';
-        $forceRefresh = $request->boolean('force_refresh', false);
-        $filters = $request->except(['force_refresh']);
         $cacheKey = "tenant:{$tenantId}:terrenos:filter:".md5(json_encode($filters));
         $cacheStore = Cache::tags(["tenant:{$tenantId}:terrenos"]);
-        $resolver = fn (): LengthAwarePaginator => $this->filterService->filter($request);
+        $resolver = fn (): LengthAwarePaginator => $this->filterService->filter($filters);
 
         if ($forceRefresh) {
             $cacheStore->forget($cacheKey);

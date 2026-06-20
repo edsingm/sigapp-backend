@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Ai\Tools;
+namespace App\Services\Ai\Tools;
 
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Facades\Log;
@@ -102,11 +102,15 @@ class CreatePdfsTool implements Tool
             'tr[class|style],th[class|style|colspan|rowspan],td[class|style|colspan|rowspan],'.
             'strong,em,b,i,hr,br,'.
             'blockquote[class|style],div[class|style],span[class|style],'.
-            'code[class],pre[class]'
+            'code[class],pre[class],img[src|alt|class|style|width|height]'
         );
 
-        // Bloqueia todos os esquemas URI — remove src, href, url() em CSS, etc.
-        $config->set('URI.AllowedSchemes', []);
+        // Permite apenas imagens HTTP/HTTPS/data usadas pelo relatório.
+        $config->set('URI.AllowedSchemes', [
+            'http' => true,
+            'https' => true,
+            'data' => true,
+        ]);
 
         // Desabilita cache em disco durante a geração
         $config->set('Cache.DefinitionImpl', null);

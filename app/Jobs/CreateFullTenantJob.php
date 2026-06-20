@@ -12,6 +12,7 @@ use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\Attributes\Backoff;
+use Illuminate\Queue\Attributes\Timeout;
 use Illuminate\Queue\Attributes\Tries;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
@@ -22,6 +23,7 @@ use Illuminate\Support\Str;
 
 #[Tries(3)]
 #[Backoff(60)]
+#[Timeout(600)]
 class CreateFullTenantJob implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, LogsAudit, Queueable, SerializesModels;
@@ -43,7 +45,6 @@ class CreateFullTenantJob implements ShouldBeUnique, ShouldQueue
      */
     public function handle(): void
     {
-        set_time_limit(0);
         $centralConnection = $this->getCentralConnectionName();
         $this->tenant->setConnection($centralConnection);
         $this->tenant->refresh();

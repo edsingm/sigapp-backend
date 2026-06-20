@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Ai\Tools;
+namespace App\Services\Ai\Tools;
 
 use App\Models\Tenant\Documento;
 use App\Models\Tenant\Terreno;

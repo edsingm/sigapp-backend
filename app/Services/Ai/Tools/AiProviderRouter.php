@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Ai\Tools;
 
-use App\Ai\Agents\SIG_IA;
+use App\Services\Ai\Agents\SIG_IA;
 use Illuminate\Support\Facades\Log;
 
 class AiProviderRouter

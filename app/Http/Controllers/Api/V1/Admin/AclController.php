@@ -8,6 +8,7 @@ use App\Models\Central\PlanRolePermissionTemplate;
 use App\Repositories\Contracts\PlanRepositoryInterface;
 use App\Repositories\Contracts\PlanRolePermissionTemplateRepositoryInterface;
 use App\Services\ApiResponseService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 
@@ -21,7 +22,7 @@ class AclController extends Controller
     /**
      * Obtém o catálogo de permissões do sistema agrupado por módulo.
      */
-    public function catalog()
+    public function catalog(): JsonResponse
     {
         $levels = ['viewer', 'editor', 'manager'];
         $grouped = [];
@@ -61,7 +62,7 @@ class AclController extends Controller
     /**
      * Obtém o modelo de matriz de cargo/permissão para um plano.
      */
-    public function planRoleMatrix(Request $request, int $planId)
+    public function planRoleMatrix(Request $request, int $planId): JsonResponse
     {
         $plan = $this->planRepository->findById($planId);
 

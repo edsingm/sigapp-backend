@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Services;
+namespace App\Services\Ai\Tools;
 
 use App\Models\Tenant\AiRequestLog;
 use App\Repositories\Contracts\AiTelemetryRepositoryInterface;
+use App\Services\PlanMatrixService as ServicesPlanMatrixService;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -18,7 +19,7 @@ class AiTelemetryService
 
     public function __construct(
         private readonly AiTelemetryRepositoryInterface $repository,
-        private readonly PlanMatrixService $planMatrix,
+        private readonly ServicesPlanMatrixService $planMatrix,
     ) {
         $this->priceMap = [
             'deepseek' => [

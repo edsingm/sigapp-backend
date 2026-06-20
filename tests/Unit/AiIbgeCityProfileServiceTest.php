@@ -2,7 +2,7 @@
 
 namespace Tests\Unit;
 
-use App\Services\AiIbgeCityProfileService;
+use App\Services\Ai\Tools\AiIbgeCityProfileService;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 

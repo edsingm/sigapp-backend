@@ -13,6 +13,7 @@ use App\Http\Requests\Tenant\UpdatePermissionRequest;
 use App\Http\Resources\Tenant\Admin\PermissionResource;
 use App\Services\Acl\PermissionService;
 use App\Services\ApiResponseService;
+use Illuminate\Http\JsonResponse;
 use Spatie\Permission\PermissionRegistrar;
 
 class PermissionController extends Controller
@@ -21,7 +22,7 @@ class PermissionController extends Controller
         private readonly PermissionService $permissionService,
     ) {}
 
-    public function index(ListPermissionsRequest $request)
+    public function index(ListPermissionsRequest $request): JsonResponse
     {
         $permissions = $this->permissionService->list($request->validated('search'));
 
@@ -31,7 +32,7 @@ class PermissionController extends Controller
         );
     }
 
-    public function show(ShowPermissionRequest $request, int $id)
+    public function show(ShowPermissionRequest $request, int $id): JsonResponse
     {
         $permission = $this->permissionService->findById($id);
 
@@ -45,7 +46,7 @@ class PermissionController extends Controller
         );
     }
 
-    public function store(StorePermissionRequest $request)
+    public function store(StorePermissionRequest $request): JsonResponse
     {
         $validated = $request->validated();
         $permission = $this->permissionService->create($validated['name']);
@@ -58,7 +59,7 @@ class PermissionController extends Controller
         );
     }
 
-    public function update(UpdatePermissionRequest $request, int $id)
+    public function update(UpdatePermissionRequest $request, int $id): JsonResponse
     {
         $permission = $this->permissionService->findById($id);
 
@@ -86,7 +87,7 @@ class PermissionController extends Controller
         );
     }
 
-    public function destroy(DestroyPermissionRequest $request, int $id)
+    public function destroy(DestroyPermissionRequest $request, int $id): JsonResponse
     {
         $permission = $this->permissionService->findById($id);
 

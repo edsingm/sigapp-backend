@@ -31,6 +31,15 @@ class ServicesArchitectureTest extends TestCase
         'app/Services/Tenant/MobilePushService.php',
         'app/Services/Tenant/LandWorkflowService.php',
         'app/Services/Tenant/TerrenoFilterService.php',
+        'app/Services/AiInsightGeneratorService.php',
+        'app/Services/AiScoringService.php',
+        'app/Services/AiEmbeddingService.php',
+        'app/Services/TenantStatusService.php',
+        'app/Services/TenantPlanService.php',
+        'app/Services/TenantAclSyncService.php',
+        'app/Services/Tenant/AiMonitorService.php',
+        'app/Services/Tenant/ProjetoService.php',
+        'app/Services/Tenant/TerrenoService.php',
     ];
 
     /**
@@ -78,6 +87,33 @@ class ServicesArchitectureTest extends TestCase
                     'Move the queries to a Repository (Contracts/XxxRepositoryInterface + concrete) and inject it.',
                     $relativePath,
                     implode(', ', $violations)
+                )
+            );
+        }
+    }
+
+    public function test_services_do_not_depend_on_http_request(): void
+    {
+        $servicePath = __DIR__.'/../../app/Services';
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($servicePath, \FilesystemIterator::SKIP_DOTS)
+        );
+
+        foreach ($iterator as $file) {
+            if ($file->getExtension() !== 'php') {
+                continue;
+            }
+
+            $contents = file_get_contents($file->getPathname());
+            $this->assertIsString($contents);
+
+            $this->assertStringNotContainsString(
+                'Illuminate\Http\Request',
+                $contents,
+                sprintf(
+                    "Service '%s' must not depend on Illuminate\\Http\\Request. ".
+                    'Extract the needed values in the Controller and pass them as arguments or a DTO.',
+                    $file->getPathname()
                 )
             );
         }

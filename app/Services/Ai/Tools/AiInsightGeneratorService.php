@@ -1,14 +1,11 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Ai\Tools;
 
-use App\Models\Tenant\Cidade;
-use App\Models\Tenant\Terreno;
-use App\Models\Tenant\Viabilidade;
+use App\Repositories\Tenant\AiInsightRepository;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use Throwable;
 
 /**
@@ -24,6 +21,10 @@ use Throwable;
 class AiInsightGeneratorService
 {
     public const VERSION = '1.0.0';
+
+    public function __construct(
+        private readonly AiInsightRepository $repository,
+    ) {}
 
     /**
      * Gera insights automáticos sobre o portfólio.
@@ -109,8 +110,10 @@ class AiInsightGeneratorService
             ->values()
             ->take(10)
             ->mapWithKeys(function (array $item, int $index) {
+                $label = $item['name'] ?? $item['cidade'] ?? $item['label'] ?? $item['responsavel_id'] ?? 'item';
+
                 return [
-                    $index + 1 .'_'.$item['name'] => [
+                    $index + 1 .'_'.$label => [
                         'score' => $item['score'],
                         'details' => $item,
                     ],
@@ -136,9 +139,9 @@ class AiInsightGeneratorService
      */
     protected function conversionRateInsights(): Collection
     {
-        $total = Terreno::whereNotIn('workflow_status_code', ['descartado', 'arquivado'])->count();
-        $finalizados = Terreno::where('workflow_status_code', 'legalizado_finalizado')->count();
-        $descartados = Terreno::where('workflow_status_code', 'descartado')->count();
+        $total = $this->repository->countActive();
+        $finalizados = $this->repository->countByStatus('legalizado_finalizado');
+        $descartados = $this->repository->countByStatus('descartado');
         $ativos = $total;
 
         $conversionRate = ($total + $finalizados + $descartados) > 0
@@ -182,14 +185,7 @@ class AiInsightGeneratorService
     {
         $insights = collect();
 
-        $citiesData = Terreno::query()
-            ->whereNotIn('workflow_status_code', ['descartado', 'arquivado'])
-            ->whereNotNull('cidade_code')
-            ->selectRaw('cidade_code, COUNT(*) as total')
-            ->groupBy('cidade_code')
-            ->orderByDesc('total')
-            ->limit(5)
-            ->get();
+        $citiesData = $this->repository->topCitiesByCount(5);
 
         if ($citiesData->isNotEmpty()) {
             $topCity = $citiesData->first();
@@ -202,16 +198,7 @@ class AiInsightGeneratorService
             ]);
         }
 
-        $topVgvCities = Viabilidade::query()
-            ->withTrashed()
-            ->join('terrenos', 'terrenos.id', '=', 'viabilidades.terreno_id')
-            ->whereNotNull('terrenos.cidade_code')
-            ->whereNotNull('resultados_dre')
-            ->selectRaw('terrenos.cidade_code as cidade, COUNT(*) as total_viabs')
-            ->groupBy('terrenos.cidade_code')
-            ->orderByDesc('total_viabs')
-            ->limit(3)
-            ->get();
+        $topVgvCities = $this->repository->topCitiesByViabilidade(3);
 
         if ($topVgvCities->isNotEmpty()) {
             $insights->push([
@@ -258,12 +245,7 @@ class AiInsightGeneratorService
     {
         $insights = collect();
 
-        $stageCounts = Terreno::query()
-            ->whereNotIn('workflow_status_code', ['descartado', 'arquivado', 'legalizado_finalizado'])
-            ->selectRaw('workflow_stage, COUNT(*) as count')
-            ->groupBy('workflow_stage')
-            ->get()
-            ->mapWithKeys(fn ($row) => [$row->workflow_stage => $row->count]);
+        $stageCounts = $this->repository->stageCounts();
 
         if ($stageCounts->isNotEmpty()) {
             $biggestBottleneck = $stageCounts->sortDesc()->first(fn ($count) => $count > 0);
@@ -298,8 +280,8 @@ class AiInsightGeneratorService
         $insights = collect();
 
         // Cadastros últimos 3 meses vs anteriores
-        $recent3Months = Terreno::where('created_at', '>=', now()->subMonths(3))->count();
-        $previous3Months = Terreno::whereBetween('created_at', [now()->subMonths(6), now()->subMonths(3)])->count();
+        $recent3Months = $this->repository->countCreatedSince(now()->subMonths(3));
+        $previous3Months = $this->repository->countCreatedBetween(now()->subMonths(6), now()->subMonths(3));
 
         if ($previous3Months > 0 && $recent3Months > 0) {
             $growthRate = round((($recent3Months - $previous3Months) / $previous3Months) * 100, 1);
@@ -326,7 +308,7 @@ class AiInsightGeneratorService
         $insights = collect();
 
         $responsaveis = $this->getResponsavelStats();
-        $totalActive = Terreno::whereNotIn('workflow_status_code', ['descartado', 'arquivado', 'legalizado_finalizado'])->count();
+        $totalActive = $this->repository->countFullyActive();
 
         if ($totalActive > 0 && $responsaveis->isNotEmpty()) {
             $topResp = $responsaveis->first();
@@ -353,20 +335,7 @@ class AiInsightGeneratorService
      */
     protected function getTrendsByCity(): array
     {
-        return Terreno::query()
-            ->whereNotIn('workflow_status_code', ['descartado', 'arquivado'])
-            ->whereNotNull('cidade_code')
-            ->selectRaw("
-                cidade_code,
-                COUNT(*) as total_terrenos,
-                COUNT(CASE WHEN workflow_status_code = 'legalizado_finalizado' THEN 1 END) as finalizados,
-                AVG(COALESCE(valor, 0)) as avg_valor,
-                MAX(created_at) as last_cadastro
-            ")
-            ->groupBy('cidade_code')
-            ->orderByDesc('total_terrenos')
-            ->limit(20)
-            ->get()
+        return $this->repository->trendsByCity(20)
             ->map(fn ($row) => [
                 'cidade' => $row->cidade_code,
                 'total_terrenos' => $row->total_terrenos,
@@ -417,17 +386,7 @@ class AiInsightGeneratorService
      */
     protected function getMonthlyTrends(): array
     {
-        $months = Terreno::query()
-            ->selectRaw("
-                TO_CHAR(created_at, 'YYYY-MM') as month,
-                COUNT(*) as cadastros,
-                COUNT(CASE WHEN workflow_stage = 'captacao' THEN 1 END) as captacoes,
-                COUNT(CASE WHEN workflow_status_code IN ('descartado', 'arquivado') THEN 1 END) as descarte
-            ")
-            ->where('created_at', '>=', now()->subMonths(12))
-            ->groupByRaw("TO_CHAR(created_at, 'YYYY-MM')")
-            ->orderByRaw("TO_CHAR(created_at, 'YYYY-MM')")
-            ->get()
+        $months = $this->repository->monthlyTrends(now()->subMonths(12))
             ->map(fn ($row) => [
                 'month' => $row->month,
                 'cadastros' => $row->cadastros,
@@ -481,17 +440,7 @@ class AiInsightGeneratorService
      */
     protected function compareByCity(int $limit): array
     {
-        $data = Terreno::query()
-            ->whereNotIn('workflow_status_code', ['descartado', 'arquivado'])
-            ->whereNotNull('cidade_code')
-            ->selectRaw("
-                cidade_code,
-                COUNT(*) as total,
-                COUNT(CASE WHEN workflow_status_code = 'legalizado_finalizado' THEN 1 END) as finalizados,
-                COUNT(CASE WHEN workflow_status_code = 'descartado' THEN 1 END) as descartados
-            ")
-            ->groupBy('cidade_code')
-            ->get()
+        $data = $this->repository->comparisonByCity()
             ->map(function ($row) {
                 $completionRate = $row->total > 0 ? ($row->finalizados / $row->total) * 100 : 0;
 
@@ -521,20 +470,6 @@ class AiInsightGeneratorService
      */
     protected function getResponsavelStats(): Collection
     {
-        return DB::table('terrenos')
-            ->leftJoin('users', 'users.id', '=', 'terrenos.responsavel_id')
-            ->selectRaw("
-                terrenos.responsavel_id,
-                COALESCE(users.name, 'Sem responsável') as name,
-                COUNT(*) as total,
-                COUNT(CASE WHEN terrenos.workflow_status_code IN ('viabilidade_aprovada', 'aguardando_comite', 'negociacao_minuta', 'contrato_assinado', 'legalizando', 'legalizado_finalizado') THEN 1 END) as aprovados,
-                COUNT(CASE WHEN terrenos.workflow_status_code = 'em_analise' THEN 1 END) as em_analise,
-                COUNT(CASE WHEN terrenos.workflow_status_code IN ('descartado', 'arquivado') THEN 1 END) as descartados
-            ")
-            ->whereNotIn('terrenos.workflow_status_code', ['descartado', 'arquivado'])
-            ->groupBy('terrenos.responsavel_id', 'users.name')
-            ->orderByDesc('total')
-            ->limit(20)
-            ->get();
+        return $this->repository->responsavelStats(20);
     }
 }

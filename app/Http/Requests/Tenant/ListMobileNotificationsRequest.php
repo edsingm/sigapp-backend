@@ -8,7 +8,8 @@ class ListMobileNotificationsRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        // Lista apenas as notificações do próprio usuário autenticado.
+        return $this->user() !== null;
     }
 
     /**

@@ -6903,13 +6903,13 @@ parameters:
 		-
 			rawMessage: 'Parameter #1 $callback of method Illuminate\Support\Collection<int,array<string, mixed>>::average() contains unresolvable type.'
 			identifier: argument.unresolvableType
-			count: 1
+			count: 2
 			path: app/Services/AiInsightGeneratorService.php
 
 		-
 			rawMessage: 'Parameter #1 $callback of method Illuminate\Support\Collection<int,array<string, mixed>>::sortByDesc() contains unresolvable type.'
 			identifier: argument.unresolvableType
-			count: 1
+			count: 2
 			path: app/Services/AiInsightGeneratorService.php
 
 		-

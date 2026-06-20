@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Tenant;
 
-use App\Ai\Agents\SIG_IA;
+use App\Services\Ai\Agents\SIG_IA;
 use Tests\TestCase;
 
 class AiChatStreamingTest extends TestCase

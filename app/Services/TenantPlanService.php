@@ -2,10 +2,10 @@
 
 namespace App\Services;
 
-use App\Models\Central\Entitlement;
-use App\Models\Central\Plan;
 use App\Models\Central\Tenant as TenantModel;
 use App\Models\Central\TenantEntitlement;
+use App\Repositories\Contracts\EntitlementRepositoryInterface;
+use App\Repositories\Contracts\PlanRepositoryInterface;
 use App\Repositories\Contracts\TenantRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use InvalidArgumentException;
@@ -14,6 +14,8 @@ class TenantPlanService
 {
     public function __construct(
         private readonly TenantRepositoryInterface $tenantRepository,
+        private readonly PlanRepositoryInterface $planRepository,
+        private readonly EntitlementRepositoryInterface $entitlementRepository,
     ) {}
 
     /**
@@ -26,7 +28,7 @@ class TenantPlanService
             throw new InvalidArgumentException('Tenant não encontrado.');
         }
 
-        $plan = Plan::find($planId);
+        $plan = $this->planRepository->findById($planId);
 
         if (! $plan || ! $plan->is_active) {
             throw new InvalidArgumentException('Plano não encontrado ou inativo.');
@@ -46,7 +48,7 @@ class TenantPlanService
         }
 
         $currentPlan = $tenant->plan()->first();
-        $newPlan = Plan::find($newPlanId);
+        $newPlan = $this->planRepository->findById($newPlanId);
 
         if (! $newPlan || ! $newPlan->is_active) {
             throw new InvalidArgumentException('Plano não encontrado ou inativo.');
@@ -72,7 +74,7 @@ class TenantPlanService
         }
 
         $currentPlan = $tenant->plan()->first();
-        $newPlan = Plan::find($newPlanId);
+        $newPlan = $this->planRepository->findById($newPlanId);
 
         if (! $newPlan || ! $newPlan->is_active) {
             throw new InvalidArgumentException('Plano não encontrado ou inativo.');
@@ -113,7 +115,7 @@ class TenantPlanService
             throw new InvalidArgumentException('Tenant não encontrado.');
         }
 
-        if (! Entitlement::find($entitlementId)) {
+        if (! $this->entitlementRepository->findById($entitlementId)) {
             throw new InvalidArgumentException('Entitlement não encontrado.');
         }
 

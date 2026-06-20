@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Jobs\RecalculateAiScoresJob;
 use App\Models\Tenant\Terreno;
 use App\Repositories\Tenant\TerrenoRepository;
-use App\Services\AiScoringService;
+use App\Services\Ai\Tools\AiScoringService;
 use App\Services\ApiResponseService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Gate;

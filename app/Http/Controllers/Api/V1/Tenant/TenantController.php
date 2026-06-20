@@ -26,7 +26,7 @@ class TenantController extends Controller
      *
      * GET /api/v1/tenant
      */
-    public function show()
+    public function show(): JsonResponse
     {
         Gate::authorize('viewAny', Terreno::class);
 
@@ -44,7 +44,7 @@ class TenantController extends Controller
      *
      * GET /api/v1/tenant/usage
      */
-    public function usage()
+    public function usage(): JsonResponse
     {
         Gate::authorize('viewAny', Terreno::class);
 

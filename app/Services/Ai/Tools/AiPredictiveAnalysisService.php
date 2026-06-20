@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Services;
+namespace App\Services\Ai\Tools;
 
 use App\Models\Tenant\Terreno;
 use App\Repositories\Contracts\AiPredictiveRepositoryInterface;

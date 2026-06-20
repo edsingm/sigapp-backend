@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Ai\Tools;
+namespace App\Services\Ai\Tools;
 
 use App\Models\Tenant\Documento;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -90,9 +90,9 @@ class GetDocumentosTool implements Tool
                 ];
             })->all(),
             'resumo' => [
-                'por_status' => $documentos->groupBy('status')->map->count()->toArray(),
-                'por_tipo' => $documentos->groupBy('tipo')->map->count()->toArray(),
-                'por_categoria' => $documentos->groupBy('categoria')->map->count()->toArray(),
+                'por_status' => $documentos->groupBy('status')->map(fn ($g) => $g->count())->toArray(),
+                'por_tipo' => $documentos->groupBy('tipo')->map(fn ($g) => $g->count())->toArray(),
+                'por_categoria' => $documentos->groupBy('categoria')->map(fn ($g) => $g->count())->toArray(),
             ],
         ];
 

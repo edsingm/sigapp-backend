@@ -3,7 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Tenant\Documento;
-use App\Services\AiEmbeddingService;
+use App\Services\Ai\Tools\AiEmbeddingService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;

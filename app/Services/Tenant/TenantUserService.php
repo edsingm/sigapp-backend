@@ -8,6 +8,7 @@ use App\Repositories\Tenant\UserRepository;
 use App\Services\Acl\PermissionNameResolver;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Permission;
 
@@ -60,12 +61,25 @@ class TenantUserService
         return $query->orderBy($sort, $order)->paginate($perPage);
     }
 
+    public function findById(int|string $id): ?User
+    {
+        return $this->userRepository->find($id);
+    }
+
     /**
      * @param  array<int, string>  $relations
      */
     public function findWithRelations(int|string $id, array $relations = ['roles', 'department', 'position']): ?User
     {
         return $this->userRepository->findWithRelations($id, $relations);
+    }
+
+    /**
+     * @return Collection<int, User>
+     */
+    public function listForSelect(): Collection
+    {
+        return $this->userRepository->listForSelect();
     }
 
     /**

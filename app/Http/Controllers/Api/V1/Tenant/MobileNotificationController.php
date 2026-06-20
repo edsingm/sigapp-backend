@@ -8,6 +8,7 @@ use App\Http\Resources\Tenant\MobileNotificationResource;
 use App\Services\ApiResponseService;
 use App\Services\Tenant\MobilePushService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class MobileNotificationController extends Controller
@@ -19,7 +20,7 @@ class MobileNotificationController extends Controller
     /**
      * Listar notificações móveis.
      */
-    public function index(ListMobileNotificationsRequest $request)
+    public function index(ListMobileNotificationsRequest $request): JsonResponse
     {
         $perPage = $request->validated('per_page', 20);
 
@@ -38,7 +39,7 @@ class MobileNotificationController extends Controller
     /**
      * Marcar uma notificação como lida.
      */
-    public function read(Request $request, string $id)
+    public function read(Request $request, string $id): JsonResponse
     {
         try {
             $notification = $this->mobilePushService->markAsRead($request->user(), $id);

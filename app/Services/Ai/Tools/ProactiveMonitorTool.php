@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Ai\Tools;
+namespace App\Services\Ai\Tools;
 
 use App\Models\Tenant\Terreno;
 use App\Services\Tenant\LandWorkflowService;
@@ -61,7 +61,7 @@ class ProactiveMonitorTool implements Tool
     }
 
     /**
-     * @return array<int, array{type: string, severity: string, severity_score: int, terrain_id: int, terrain_name: string, message: string, suggestion: string, details: array}>
+     * @return array<int, array{type: string, severity: string, severity_score: int, terrain_id: int, terrain_name: string, message: string, suggestion: string, details: array<string, mixed>}>
      */
     protected function detectStalledTerrains(int $limit): array
     {
@@ -99,7 +99,7 @@ class ProactiveMonitorTool implements Tool
     }
 
     /**
-     * @return array<int, array{type: string, severity: string, severity_score: int, terrain_id: int, terrain_name: string, message: string, suggestion: string, details: array}>
+     * @return array<int, array{type: string, severity: string, severity_score: int, terrain_id: int, terrain_name: string, message: string, suggestion: string, details: array<string, mixed>}>
      */
     protected function detectInconsistencies(int $limit): array
     {

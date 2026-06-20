@@ -9,6 +9,7 @@ use App\Http\Requests\Admin\UpdatePlanRequest;
 use App\Http\Resources\PlanResource;
 use App\Services\ApiResponseService;
 use App\Services\PlanService;
+use Illuminate\Http\JsonResponse;
 use InvalidArgumentException;
 
 class PlanAdminController extends Controller
@@ -17,7 +18,7 @@ class PlanAdminController extends Controller
         private readonly PlanService $planService
     ) {}
 
-    public function index()
+    public function index(): JsonResponse
     {
         $plans = $this->planService->list();
 
@@ -27,7 +28,7 @@ class PlanAdminController extends Controller
         );
     }
 
-    public function show(int $plan)
+    public function show(int $plan): JsonResponse
     {
         try {
             $model = $this->planService->findOrFail($plan);
@@ -39,14 +40,14 @@ class PlanAdminController extends Controller
         return ApiResponseService::success(new PlanResource($model));
     }
 
-    public function store(StorePlanRequest $request)
+    public function store(StorePlanRequest $request): JsonResponse
     {
         $model = $this->planService->create($request->validated());
 
         return ApiResponseService::created(new PlanResource($model));
     }
 
-    public function update(UpdatePlanRequest $request, int $plan)
+    public function update(UpdatePlanRequest $request, int $plan): JsonResponse
     {
         try {
             $model = $this->planService->update($plan, $request->validated());
@@ -60,7 +61,7 @@ class PlanAdminController extends Controller
         );
     }
 
-    public function destroy(int $plan)
+    public function destroy(int $plan): JsonResponse
     {
         try {
             $this->planService->delete($plan);
@@ -75,7 +76,7 @@ class PlanAdminController extends Controller
      * Sincroniza todos os entitlements do plano.
      * Substitui o conjunto atual pelo payload enviado.
      */
-    public function syncEntitlements(SyncPlanEntitlementsRequest $request, int $plan)
+    public function syncEntitlements(SyncPlanEntitlementsRequest $request, int $plan): JsonResponse
     {
         try {
             $model = $this->planService->syncEntitlements($plan, $request->validated()['entitlements']);

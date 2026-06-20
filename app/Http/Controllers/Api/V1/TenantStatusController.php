@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Services\ApiResponseService;
 use App\Services\TenantStatusService;
+use Illuminate\Http\JsonResponse;
 
 class TenantStatusController extends Controller
 {
@@ -20,7 +21,7 @@ class TenantStatusController extends Controller
     /**
      * Obter estatísticas agregadas dos status dos terrenos por workflow.
      */
-    public function index()
+    public function index(): JsonResponse
     {
         $stats = $this->tenantStatusService->getAggregatedStats();
 

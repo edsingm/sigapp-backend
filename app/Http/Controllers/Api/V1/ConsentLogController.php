@@ -4,12 +4,16 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreConsentLogRequest;
-use App\Models\ConsentLog;
 use App\Services\ApiResponseService;
+use App\Services\ConsentLogService;
 use Symfony\Component\HttpFoundation\Response;
 
 class ConsentLogController extends Controller
 {
+    public function __construct(
+        private readonly ConsentLogService $consentLogService,
+    ) {}
+
     /**
      * Registrar consentimento de cookies (LGPD — accountability).
      *
@@ -18,22 +22,16 @@ class ConsentLogController extends Controller
      */
     public function store(StoreConsentLogRequest $request): Response
     {
-        $data = $request->validated();
+        $consentLog = $this->consentLogService->register(
+            $request->validated(),
+            $request->ip(),
+            $request->userAgent(),
+        );
 
-        $consentLog = ConsentLog::query()->updateOrCreate([
-            'consent_id' => $data['consent_id'],
-        ], [
-            'categories' => $data['categories'],
-            'version' => $data['version'],
-            'ip_hash' => hash('sha256', $request->ip() ?? ''),
-            'user_agent' => substr($request->userAgent() ?? '', 0, 500),
-            'consented_at' => $data['timestamp'],
-        ]);
+        $payload = ['consent_id' => $consentLog->getAttribute('consent_id')];
 
-        if ($consentLog->wasRecentlyCreated) {
-            return ApiResponseService::created(['consent_id' => $data['consent_id']]);
-        }
-
-        return ApiResponseService::success(['consent_id' => $data['consent_id']]);
+        return $consentLog->wasRecentlyCreated
+            ? ApiResponseService::created($payload)
+            : ApiResponseService::success($payload);
     }
 }

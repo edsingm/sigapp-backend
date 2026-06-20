@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\DTOs\RequestContext;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\SelectTenantRequest;
@@ -23,7 +24,10 @@ class CentralAuthController extends Controller
      */
     public function login(LoginRequest $request, CentralLoginBrokerService $broker, TenantLoginService $tenantLogin): JsonResponse
     {
-        $tenantIdentifier = $tenantLogin->resolveLocalTenantIdentifier($request);
+        $tenantIdentifier = $tenantLogin->resolveLocalTenantIdentifier(
+            $request->input('tenant_identifier'),
+            $request->header('X-Tenant'),
+        );
 
         if ($tenantIdentifier !== null) {
             $tenant = $this->tenantRepository->findByIdOrSlug($tenantIdentifier);
@@ -58,7 +62,7 @@ class CentralAuthController extends Controller
             (string) $request->validated('email'),
             (string) $request->validated('password'),
             $request->validated('device_name'),
-            $request
+            RequestContext::fromRequest($request)
         );
 
         if (($result['next_action'] ?? null) === 'unauthorized') {
@@ -82,7 +86,7 @@ class CentralAuthController extends Controller
             (string) $data['broker_session_id'],
             (string) $data['tenant_id'],
             $data['device_name'] ?? null,
-            $request
+            RequestContext::fromRequest($request)
         );
 
         if (! $result) {

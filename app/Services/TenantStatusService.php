@@ -3,11 +3,7 @@
 namespace App\Services;
 
 use App\Jobs\RefreshTenantStatsJob;
-use App\Models\Central\Tenant;
-use App\Models\Tenant\Projeto;
-use App\Models\Tenant\Terreno;
-use App\Models\Tenant\User;
-use Illuminate\Database\Eloquent\Collection;
+use App\Repositories\TenantStatsRepository;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -20,6 +16,10 @@ class TenantStatusService
      * TTL em segundos (1 hora). O cache é invalidado pelo RefreshTenantStatsJob.
      */
     private const CACHE_TTL = 3600;
+
+    public function __construct(
+        private readonly TenantStatsRepository $repository,
+    ) {}
 
     /**
      * Retorna estatísticas agregadas de todos os tenants.
@@ -40,7 +40,7 @@ class TenantStatusService
 
         // Retorna dados básicos imediatamente enquanto o Job calcula o resto
         $basicStats = [
-            'total_tenants' => Tenant::query()->count(),
+            'total_tenants' => $this->repository->countTenants(),
             'total_terrenos' => 0,
             'total_projetos' => 0,
             'total_usuarios' => 0,
@@ -61,8 +61,7 @@ class TenantStatusService
      */
     public function refreshStats(): array
     {
-        /** @var Collection<int, Tenant> $tenants */
-        $tenants = Tenant::query()->get(['id', 'slug']);
+        $tenants = $this->repository->allTenants();
         $totalTenants = $tenants->count();
         $totalTerrenos = 0;
         $totalProjetos = 0;
@@ -70,13 +69,7 @@ class TenantStatusService
 
         foreach ($tenants as $tenant) {
             try {
-                $counts = $tenant->run(function () {
-                    return [
-                        'terrenos' => Terreno::query()->count(),
-                        'projetos' => Projeto::query()->count(),
-                        'usuarios' => User::query()->count(),
-                    ];
-                });
+                $counts = $tenant->run(fn () => $this->repository->currentTenantCounts());
 
                 $totalTerrenos += (int) ($counts['terrenos'] ?? 0);
                 $totalProjetos += (int) ($counts['projetos'] ?? 0);

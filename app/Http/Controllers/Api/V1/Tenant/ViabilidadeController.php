@@ -24,6 +24,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Spatie\LaravelPdf\Facades\Pdf;
+use Symfony\Component\HttpFoundation\Response;
 
 class ViabilidadeController extends Controller
 {
@@ -405,10 +406,8 @@ class ViabilidadeController extends Controller
 
     /**
      * Exportar viabilidade para PDF
-     *
-     * @return mixed
      */
-    public function exportPdf(int $id)
+    public function exportPdf(int $id): Response
     {
         try {
             $viabilidade = $this->viabilidadeService->findOrFail($id);

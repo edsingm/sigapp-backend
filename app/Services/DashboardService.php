@@ -36,6 +36,19 @@ class DashboardService
     }
 
     /**
+     * Estatísticas resumidas para o dashboard administrativo simplificado.
+     *
+     * @return array{total_tenants: int, active_tenants: int}
+     */
+    public function basicStats(): array
+    {
+        return [
+            'total_tenants' => $this->repository->countTotalTenants(),
+            'active_tenants' => $this->repository->countActiveTenants(),
+        ];
+    }
+
+    /**
      * @return Collection<int, array{name: string, count: int, price: float}>
      */
     public function tenantsByPlan(): Collection

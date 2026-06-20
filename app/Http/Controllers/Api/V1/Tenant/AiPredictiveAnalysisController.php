@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api\V1\Tenant;
 use App\Http\Controllers\Controller;
 use App\Models\Tenant\Terreno;
 use App\Repositories\Tenant\TerrenoRepository;
-use App\Services\AiPredictiveAnalysisService;
+use App\Services\Ai\Tools\AiPredictiveAnalysisService;
 use App\Services\ApiResponseService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Gate;

@@ -42,7 +42,7 @@ class WebhookController extends CashierController
     /**
      * Manipula webhooks recebidos do Stripe.
      */
-    public function handleWebhook(Request $request)
+    public function handleWebhook(Request $request): Response
     {
         if ($this->requiresSignedWebhook() && ! $this->hasWebhookSecret()) {
             Log::critical('Stripe webhook recusado: STRIPE_WEBHOOK_SECRET ausente fora de local/testing.');

@@ -25,7 +25,7 @@ use Illuminate\Support\Str;
  * manualmente (sem essa tag).
  *
  * Gere o JSON antes com:
- *   php database/dados_teste/enriquecer_terrenos_portal.php
+ *   php artisan portal:enriquecer-terrenos
  *
  * Para rodar em um tenant específico:
  *   php artisan tenants:seed --class=TerrenosPortalSeeder --tenants=TENANT_ID
@@ -55,7 +55,7 @@ class TerrenosPortalSeeder extends Seeder
         $path = database_path('dados_teste/terrenos_portal_enriquecido.json');
 
         if (! is_file($path)) {
-            $this->command?->error("Arquivo não encontrado: {$path}. Rode enriquecer_terrenos_portal.php primeiro.");
+            $this->command?->error("Arquivo não encontrado: {$path}. Rode 'php artisan portal:enriquecer-terrenos' primeiro.");
 
             return;
         }

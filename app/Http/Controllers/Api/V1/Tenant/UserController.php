@@ -6,9 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\StoreTenantUserRequest;
 use App\Http\Requests\Tenant\UpdateTenantUserRequest;
 use App\Http\Resources\UserResource;
-use App\Repositories\Tenant\UserRepository;
 use App\Services\ApiResponseService;
 use App\Services\Tenant\TenantUserService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
@@ -16,7 +16,6 @@ class UserController extends Controller
 {
     public function __construct(
         private readonly TenantUserService $userService,
-        private readonly UserRepository $userRepository,
     ) {}
 
     /**
@@ -24,7 +23,7 @@ class UserController extends Controller
      *
      * GET /api/v1/users
      */
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
         $tenantId = tenant('id') ?? 'central';
         $filters = $request->only(['search', 'role', 'sort', 'order', 'per_page', 'page']);
@@ -48,9 +47,9 @@ class UserController extends Controller
      *
      * GET /api/v1/users/{id}
      */
-    public function show(int $id)
+    public function show(int $id): JsonResponse
     {
-        $user = $this->userRepository->find($id);
+        $user = $this->userService->findById($id);
 
         if (! $user) {
             return ApiResponseService::notFound('Usuário não encontrado');
@@ -64,7 +63,7 @@ class UserController extends Controller
      *
      * POST /api/v1/users
      */
-    public function store(StoreTenantUserRequest $request)
+    public function store(StoreTenantUserRequest $request): JsonResponse
     {
         $user = $this->userService->create($request->validated());
 
@@ -76,9 +75,9 @@ class UserController extends Controller
      *
      * PUT /api/v1/users/{id}
      */
-    public function update(UpdateTenantUserRequest $request, int $id)
+    public function update(UpdateTenantUserRequest $request, int $id): JsonResponse
     {
-        $user = $this->userRepository->find($id);
+        $user = $this->userService->findById($id);
 
         if (! $user) {
             return ApiResponseService::notFound('Usuário não encontrado');
@@ -98,9 +97,9 @@ class UserController extends Controller
      *
      * DELETE /api/v1/users/{id}
      */
-    public function destroy(Request $request, int $id)
+    public function destroy(Request $request, int $id): JsonResponse
     {
-        $user = $this->userRepository->find($id);
+        $user = $this->userService->findById($id);
 
         if (! $user) {
             return ApiResponseService::notFound('Usuário não encontrado');
@@ -123,9 +122,9 @@ class UserController extends Controller
      *
      * GET /api/v1/users/for-select
      */
-    public function usersForSelect()
+    public function usersForSelect(): JsonResponse
     {
-        $users = $this->userRepository->listForSelect();
+        $users = $this->userService->listForSelect();
 
         return ApiResponseService::success($users, 'Usuários carregados com sucesso');
     }

@@ -6,7 +6,6 @@ use App\Models\Tenant\User;
 use App\Models\User as CentralUser;
 use Carbon\Carbon;
 use Illuminate\Contracts\Auth\Authenticatable;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
 class TenantLoginService
@@ -51,18 +50,16 @@ class TenantLoginService
      * Resolve o identificador do tenant a partir do corpo da requisição ou do cabeçalho X-Tenant.
      * Funciona apenas em ambientes local/testing.
      */
-    public function resolveLocalTenantIdentifier(Request $request): ?string
+    public function resolveLocalTenantIdentifier(mixed $fromBody, mixed $fromHeader): ?string
     {
         if (! app()->environment(['local', 'testing'])) {
             return null;
         }
 
-        $fromBody = $request->input('tenant_identifier');
         if (is_string($fromBody) && trim($fromBody) !== '') {
             return trim($fromBody);
         }
 
-        $fromHeader = $request->header('X-Tenant');
         if (is_string($fromHeader) && trim($fromHeader) !== '') {
             return trim($fromHeader);
         }

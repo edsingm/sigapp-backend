@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Ai\Tools;
+namespace App\Services\Ai\Tools;
 
 use App\Models\Tenant\Terreno;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -46,6 +46,7 @@ class ListTerrenosTool implements Tool
                         'viabilidades.updated_at',
                     ]);
                 },
+                'cidade:code,city',
             ])
             ->select([
                 'id',
@@ -94,7 +95,7 @@ class ListTerrenosTool implements Tool
                     'id' => $terreno->id,
                     'nome' => $terreno->nome,
                     'endereco' => $terreno->endereco,
-                    'cidade_code' => $terreno->cidade_code,
+                    'cidade' => $terreno->cidade?->city ?? $terreno->cidade_code,
                     'estado' => $terreno->estado,
                     'area_calculada' => $terreno->area_calculada,
                     'valor' => $terreno->valor,

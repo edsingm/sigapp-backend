@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Services\ApiResponseService;
 use App\Services\Tenant\SubdomainAvailabilityService;
+use Illuminate\Http\JsonResponse;
 
 class PublicTenantController extends Controller
 {
@@ -17,7 +18,7 @@ class PublicTenantController extends Controller
     /**
      * Verificar a disponibilidade de um subdomínio (slug).
      */
-    public function subdomainAvailability(string $subdomain)
+    public function subdomainAvailability(string $subdomain): JsonResponse
     {
         $result = $this->subdomainAvailability->check($subdomain);
 

@@ -118,9 +118,52 @@ class ProjetoRepository implements ProjetoRepositoryInterface
         return $query->orderBy('updated_at', 'desc')->paginate($filters['per_page'] ?? 15);
     }
 
+    public function paginateTerrenosParaNovoProjeto(array $filters): LengthAwarePaginator
+    {
+        $query = Terreno::query()
+            ->select('terrenos.*')
+            ->with(['cidade', 'responsavel', 'proprietarios', 'informacoes'])
+            ->where('workflow_status_code', WorkflowStatus::CONTRATO_ASSINADO->value)
+            ->whereDoesntHave('projetoAtivo');
+
+        if (! empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->where(function (Builder $builder) use ($search) {
+                $builder
+                    ->where('nome', 'like', "%{$search}%")
+                    ->orWhere('endereco', 'like', "%{$search}%");
+            });
+        }
+
+        return $query
+            ->orderByDesc('created_at')
+            ->paginate($filters['per_page'] ?? 10);
+    }
+
     public function create(array $data): Projeto
     {
         return Projeto::create($data);
+    }
+
+    public function update(Projeto $projeto, array $data): Projeto
+    {
+        $projeto->update($data);
+
+        return $projeto;
+    }
+
+    public function forceUpdate(Projeto $projeto, array $data): Projeto
+    {
+        $projeto->forceFill($data)->save();
+
+        return $projeto;
+    }
+
+    public function loadMissing(Projeto $projeto, array $relations): Projeto
+    {
+        $projeto->loadMissing($relations);
+
+        return $projeto;
     }
 
     public function findTerrenoElegivel(int $terrenoId): Terreno

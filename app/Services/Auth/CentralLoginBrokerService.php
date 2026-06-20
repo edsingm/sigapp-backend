@@ -2,12 +2,12 @@
 
 namespace App\Services\Auth;
 
+use App\DTOs\RequestContext;
 use App\Models\Central\CentralLoginBrokerSession;
 use App\Models\Central\LoginTransferTicket;
 use App\Models\Central\Tenant;
 use App\Models\Central\TenantUserDirectory;
 use App\Models\Tenant\User;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -27,7 +27,7 @@ class CentralLoginBrokerService
      *
      * @return array<string, mixed>
      */
-    public function attemptCentralLogin(string $email, string $password, ?string $deviceName, Request $request): array
+    public function attemptCentralLogin(string $email, string $password, ?string $deviceName, RequestContext $context): array
     {
         $startedAt = microtime(true);
         $candidates = $this->directoryService->candidatesForEmail($email);
@@ -35,7 +35,7 @@ class CentralLoginBrokerService
         $durationMs = round((microtime(true) - $startedAt) * 1000, 2);
 
         Log::info('Central broker login attempt completed', [
-            'request_id' => $request->header('X-Request-ID'),
+            'request_id' => $context->requestId,
             'matches_count' => count($matches),
             'candidate_tenants' => $candidates->count(),
             'duration_ms' => $durationMs,
@@ -48,10 +48,10 @@ class CentralLoginBrokerService
         }
 
         if (count($matches) === 1) {
-            return $this->buildRedirectResponse($matches[0], $deviceName, $request);
+            return $this->buildRedirectResponse($matches[0], $deviceName, $context);
         }
 
-        $session = $this->createBrokerSession($email, $deviceName, $request, $matches);
+        $session = $this->createBrokerSession($email, $deviceName, $context, $matches);
 
         return [
             'next_action' => 'choose_tenant',
@@ -73,7 +73,7 @@ class CentralLoginBrokerService
      *
      * @return array<string, mixed>|null
      */
-    public function selectTenant(string $brokerSessionId, string $tenantId, ?string $deviceName, Request $request): ?array
+    public function selectTenant(string $brokerSessionId, string $tenantId, ?string $deviceName, RequestContext $context): ?array
     {
         $session = CentralLoginBrokerSession::find($brokerSessionId);
 
@@ -94,7 +94,7 @@ class CentralLoginBrokerService
             $selected['device_name'] = $deviceName;
         }
 
-        return $this->buildRedirectResponse($selected, $selected['device_name'] ?? null, $request);
+        return $this->buildRedirectResponse($selected, $selected['device_name'] ?? null, $context);
     }
 
     /**
@@ -102,7 +102,7 @@ class CentralLoginBrokerService
      *
      * @return array<string, mixed>|null
      */
-    public function redeemTransferTicket(string $rawTicket, ?string $deviceName, Request $request): ?array
+    public function redeemTransferTicket(string $rawTicket, ?string $deviceName, RequestContext $context): ?array
     {
         $tenant = tenant();
 
@@ -263,14 +263,14 @@ class CentralLoginBrokerService
      * @param  array<string, mixed>  $match
      * @return array<string, mixed>
      */
-    private function buildRedirectResponse(array $match, ?string $deviceName, Request $request): array
+    private function buildRedirectResponse(array $match, ?string $deviceName, RequestContext $context): array
     {
         $ticket = $this->issueTransferTicket(
             tenantId: (string) $match['tenant_id'],
             tenantUserId: (string) $match['tenant_user_id'],
             email: (string) $match['email'],
             deviceName: $deviceName,
-            request: $request
+            context: $context
         );
 
         return [
@@ -289,14 +289,14 @@ class CentralLoginBrokerService
     /**
      * @param  list<array<string, mixed>>  $matches
      */
-    private function createBrokerSession(string $email, ?string $deviceName, Request $request, array $matches): CentralLoginBrokerSession
+    private function createBrokerSession(string $email, ?string $deviceName, RequestContext $context, array $matches): CentralLoginBrokerSession
     {
         return CentralLoginBrokerSession::create([
             'id' => (string) Str::uuid(),
             'email' => $email,
             'device_name' => $deviceName,
-            'ip_address' => $request->ip(),
-            'user_agent' => Str::limit((string) $request->userAgent(), 2000, ''),
+            'ip_address' => $context->ipAddress,
+            'user_agent' => Str::limit((string) $context->userAgent, 2000, ''),
             'tenant_options' => $matches,
             'expires_at' => now()->addSeconds(self::BROKER_SESSION_TTL_SECONDS),
         ]);
@@ -310,7 +310,7 @@ class CentralLoginBrokerService
         string $tenantUserId,
         string $email,
         ?string $deviceName,
-        Request $request
+        RequestContext $context
     ): array {
         $rawTicket = Str::random(96);
         $expiresAt = now()->addSeconds(self::TRANSFER_TICKET_TTL_SECONDS);
@@ -322,8 +322,8 @@ class CentralLoginBrokerService
             'tenant_user_id' => $tenantUserId,
             'email' => $email,
             'device_name' => $deviceName,
-            'ip_address' => $request->ip(),
-            'user_agent' => Str::limit((string) $request->userAgent(), 2000, ''),
+            'ip_address' => $context->ipAddress,
+            'user_agent' => Str::limit((string) $context->userAgent, 2000, ''),
             'expires_at' => $expiresAt,
         ]);
 

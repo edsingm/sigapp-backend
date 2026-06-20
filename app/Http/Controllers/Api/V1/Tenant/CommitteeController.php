@@ -12,6 +12,7 @@ use App\Http\Resources\Tenant\ComiteRevisaoResource;
 use App\Models\Tenant\ComiteRevisao;
 use App\Services\ApiResponseService;
 use App\Services\Tenant\CommitteeService;
+use Illuminate\Http\JsonResponse;
 
 class CommitteeController extends Controller
 {
@@ -22,7 +23,7 @@ class CommitteeController extends Controller
     /**
      * Listar revisões de comitê.
      */
-    public function index(ListCommitteeReviewsRequest $request)
+    public function index(ListCommitteeReviewsRequest $request): JsonResponse
     {
         $result = $this->service->list($request->validated());
         $result->through(
@@ -35,7 +36,7 @@ class CommitteeController extends Controller
     /**
      * Criar uma nova revisão de comitê.
      */
-    public function store(StoreCommitteeReviewRequest $request)
+    public function store(StoreCommitteeReviewRequest $request): JsonResponse
     {
         $review = $this->service->create($request->validated(), $request->user());
 
@@ -45,7 +46,7 @@ class CommitteeController extends Controller
     /**
      * Exibir os detalhes de uma revisão de comitê específica.
      */
-    public function show(ShowCommitteeReviewRequest $request, string $id)
+    public function show(ShowCommitteeReviewRequest $request, string $id): JsonResponse
     {
         return ApiResponseService::success(
             new ComiteRevisaoResource($this->service->showById($id))
@@ -55,7 +56,7 @@ class CommitteeController extends Controller
     /**
      * Criar ou atualizar o parecer de um departamento.
      */
-    public function upsertDepartmentReview(UpsertCommitteeDepartmentReviewRequest $request, string $id)
+    public function upsertDepartmentReview(UpsertCommitteeDepartmentReviewRequest $request, string $id): JsonResponse
     {
         $updated = $this->service->upsertDepartmentReview(
             $this->service->findOrFail($id),
@@ -69,7 +70,7 @@ class CommitteeController extends Controller
     /**
      * Finalizar a decisão do comitê.
      */
-    public function finalize(FinalizeCommitteeDecisionRequest $request, string $id)
+    public function finalize(FinalizeCommitteeDecisionRequest $request, string $id): JsonResponse
     {
         $updated = $this->service->finalize(
             $this->service->findOrFail($id),

@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Ai\Tools;
+namespace App\Services\Ai\Tools;
 
+use App\Models\Central\Cidade;
 use App\Models\Tenant\ComiteRevisao;
 use App\Models\Tenant\Negociacao;
 use App\Models\Tenant\Terreno;
@@ -71,19 +72,22 @@ class GetDashboardSummaryTool implements Tool
             ->sum(fn ($v): float => $v->resultados_dre['indicadores']['vgv_total'] ?? 0);
 
         // Top cidades
-        $topCidades = Terreno::query()
+        $topCidadesRaw = Terreno::query()
             ->selectRaw('COUNT(*) as total, cidade_code, estado')
             ->groupBy('cidade_code', 'estado')
             ->orderByDesc('total')
             ->limit(5)
-            ->get()
-            ->map(fn ($r): array => [
-                'cidade_code' => $r->cidade_code,
-                'estado' => $r->estado,
-                'total' => (int) $r->total,
-            ])
-            ->values()
-            ->all();
+            ->get();
+
+        $cidadeNomes = Cidade::query()
+            ->whereIn('code', $topCidadesRaw->pluck('cidade_code')->filter()->all())
+            ->pluck('city', 'code');
+
+        $topCidades = $topCidadesRaw->map(fn ($r): array => [
+            'cidade' => $cidadeNomes[$r->cidade_code] ?? $r->cidade_code,
+            'estado' => $r->estado,
+            'total' => (int) $r->total,
+        ])->values()->all();
 
         $payload = [
             'terrenos' => [

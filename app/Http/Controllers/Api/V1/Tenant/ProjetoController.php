@@ -14,6 +14,7 @@ use App\Models\Tenant\Terreno;
 use App\Services\ApiResponseService;
 use App\Services\Tenant\ProjetoService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
@@ -28,7 +29,7 @@ class ProjetoController extends Controller
     /**
      * Listar projetos.
      */
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
         Gate::authorize('viewAny', Projeto::class);
 
@@ -60,7 +61,7 @@ class ProjetoController extends Controller
     /**
      * Listar terrenos elegíveis para novos projetos.
      */
-    public function eligibleTerrenos(Request $request)
+    public function eligibleTerrenos(Request $request): JsonResponse
     {
         Gate::authorize('viewAny', Terreno::class);
 
@@ -85,7 +86,7 @@ class ProjetoController extends Controller
     /**
      * Criar um novo projeto.
      */
-    public function store(StoreProjetoRequest $request)
+    public function store(StoreProjetoRequest $request): JsonResponse
     {
         Gate::authorize('create', Projeto::class);
 
@@ -111,7 +112,7 @@ class ProjetoController extends Controller
     /**
      * Exibir os detalhes de um projeto específico.
      */
-    public function show(string $id, Request $request)
+    public function show(string $id, Request $request): JsonResponse
     {
         try {
             $projeto = $this->service->buscar((int) $id);
@@ -136,7 +137,7 @@ class ProjetoController extends Controller
     /**
      * Atualizar um projeto existente.
      */
-    public function update(UpdateProjetoRequest $request, string $id)
+    public function update(UpdateProjetoRequest $request, string $id): JsonResponse
     {
         try {
             $projeto = $this->service->buscar((int) $id);
@@ -164,7 +165,7 @@ class ProjetoController extends Controller
     /**
      * Marcar um projeto como pronto para registro.
      */
-    public function markReady(MarkProjetoReadyRequest $request, string $id)
+    public function markReady(MarkProjetoReadyRequest $request, string $id): JsonResponse
     {
         try {
             $projeto = $this->service->buscar((int) $id);
@@ -196,7 +197,7 @@ class ProjetoController extends Controller
     /**
      * Cancelar um projeto.
      */
-    public function cancel(string $id, Request $request)
+    public function cancel(string $id, Request $request): JsonResponse
     {
         try {
             $projeto = $this->service->buscar((int) $id);

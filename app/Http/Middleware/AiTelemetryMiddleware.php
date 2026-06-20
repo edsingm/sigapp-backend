@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use App\Services\AiTelemetryService;
+use App\Services\Ai\Tools\AiTelemetryService;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;

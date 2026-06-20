@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\PlanResource;
 use App\Repositories\Contracts\PlanRepositoryInterface;
 use App\Services\ApiResponseService;
+use Illuminate\Http\JsonResponse;
 
 class PlanController extends Controller
 {
@@ -15,7 +16,7 @@ class PlanController extends Controller
         private readonly PlanRepositoryInterface $planRepository,
     ) {}
 
-    public function index()
+    public function index(): JsonResponse
     {
         $plans = $this->planRepository->findAllActiveOrdered();
 
@@ -25,7 +26,7 @@ class PlanController extends Controller
         );
     }
 
-    public function show(string $slug)
+    public function show(string $slug): JsonResponse
     {
         $plan = $this->planRepository->findActiveBySlug($slug);
 

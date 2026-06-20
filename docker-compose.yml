@@ -5,6 +5,7 @@ services:
       context: .
       dockerfile: .docker/Dockerfile
       target: dev
+    image: sigapp-backend:1.0-dev
     restart: always
     volumes:
       - .:/var/www:delegated

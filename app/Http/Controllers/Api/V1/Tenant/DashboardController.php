@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Http\Controllers\Controller;
 use App\Models\Tenant\Terreno;
+use App\Services\ApiResponseService;
 use App\Services\Dashboard\DashboardQueryService;
 use App\Traits\HasDashboardCache;
 use Carbon\Carbon;
@@ -86,7 +87,7 @@ class DashboardController extends Controller
 
         $data = $this->cacheDashboardMethod('cards', $request, fn () => $this->dashboard->cards());
 
-        return response()->json(['success' => true, 'data' => $data]);
+        return ApiResponseService::success($data);
     }
 
     /**
@@ -178,7 +179,7 @@ class DashboardController extends Controller
 
         $data = $this->cacheDashboardMethod('vgvAnual', $request, fn () => $this->dashboard->vgvAnual());
 
-        return response()->json(['success' => true, 'data' => $data]);
+        return ApiResponseService::success($data);
     }
 
     /**
@@ -190,7 +191,7 @@ class DashboardController extends Controller
 
         $data = $this->cacheDashboardMethod('unidadesFechadasAnual', $request, fn () => $this->dashboard->unidadesFechadasAnual());
 
-        return response()->json(['success' => true, 'data' => $data]);
+        return ApiResponseService::success($data);
     }
 
     /**
@@ -236,7 +237,7 @@ class DashboardController extends Controller
 
         $data = $this->cacheDashboardMethod('resumoGeral', $request, fn () => $this->dashboard->resumoGeral());
 
-        return response()->json(['success' => true, 'data' => $data]);
+        return ApiResponseService::success($data);
     }
 
     /**
@@ -248,7 +249,7 @@ class DashboardController extends Controller
 
         $data = $this->cacheDashboardMethod('anosDisponiveis', request(), fn () => $this->dashboard->anosDisponiveis());
 
-        return response()->json(['success' => true, 'data' => $data]);
+        return ApiResponseService::success($data);
     }
 
     /**
@@ -270,7 +271,7 @@ class DashboardController extends Controller
             limit: $limit
         ));
 
-        return response()->json(['success' => true, 'data' => $data]);
+        return ApiResponseService::success($data);
     }
 
     /**
@@ -309,62 +310,9 @@ class DashboardController extends Controller
             $cacheStore = $supportsTags ? Cache::tags([$cacheTag]) : Cache::getFacadeRoot();
             $forceRefresh = $this->shouldForceRefresh($request);
 
-            $resolver = function () use ($include, $ano, $mes, $meses, $topLimit, $areaLimit, $responsavelId) {
-                $payload = [];
-
-                if ($this->shouldInclude($include, 'cards')) {
-                    $payload['cards'] = $this->dashboard->cards();
-                }
-
-                if ($this->shouldInclude($include, 'status_chart') || $this->shouldInclude($include, 'anos_disponiveis')) {
-                    $statusData = $this->dashboard->statusChart($ano);
-                    if ($this->shouldInclude($include, 'status_chart')) {
-                        $payload['status_chart'] = $statusData['status_data'];
-                    }
-                    if ($this->shouldInclude($include, 'anos_disponiveis')) {
-                        $payload['anos_disponiveis'] = $statusData['anos_disponiveis'];
-                    }
-                }
-
-                if ($this->shouldInclude($include, 'cadastros_mensais')) {
-                    $payload['cadastros_mensais'] = $this->dashboard->cadastrosMensais(
-                        ano: $ano, meses: $meses, dataInicio: null, dataFim: null
-                    )['cadastros'];
-                }
-
-                if ($this->shouldInclude($include, 'top_cidades')) {
-                    $filtro = ($ano && $mes) ? 'mes' : ($ano ? 'ano' : 'geral');
-                    $payload['top_cidades'] = $this->dashboard->topCidades(
-                        filtro: $filtro, ano: $ano, mes: $mes, limit: $topLimit
-                    );
-                }
-
-                if ($this->shouldInclude($include, 'vgv_anual')) {
-                    $payload['vgv_anual'] = $this->dashboard->vgvAnual();
-                }
-
-                if ($this->shouldInclude($include, 'unidades_fechadas_anual')) {
-                    $payload['unidades_fechadas_anual'] = $this->dashboard->unidadesFechadasAnual();
-                }
-
-                if ($this->shouldInclude($include, 'resumo')) {
-                    $payload['resumo'] = $this->dashboard->resumoGeral();
-                }
-
-                if ($this->shouldInclude($include, 'cadastros_mensais_responsavel')) {
-                    $payload['cadastros_mensais_responsavel'] = $this->dashboard->cadastrosMensaisPorResponsavel(
-                        ano: $ano, meses: $meses, dataInicio: null, dataFim: null, responsavelId: $responsavelId
-                    );
-                }
-
-                if ($this->shouldInclude($include, 'area_opcao_detalhe') && $ano) {
-                    $payload['area_opcao_detalhe'] = $this->dashboard->areaOpcaoDetalhe(ano: $ano, limit: $areaLimit);
-                } elseif ($this->shouldInclude($include, 'area_opcao_detalhe')) {
-                    $payload['area_opcao_detalhe'] = [];
-                }
-
-                return $payload;
-            };
+            $resolver = fn (): array => $this->dashboard->buildOverview(
+                $include, $ano, $mes, $meses, $topLimit, $areaLimit, $responsavelId
+            );
 
             if ($forceRefresh) {
                 $cacheStore->forget($cacheKey);
@@ -413,11 +361,6 @@ class DashboardController extends Controller
             ->unique()
             ->values()
             ->all();
-    }
-
-    private function shouldInclude(array $include, string $key): bool
-    {
-        return in_array('*', $include, true) || in_array($key, $include, true);
     }
 
     /**

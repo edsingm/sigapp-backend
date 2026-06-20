@@ -9,6 +9,7 @@ use App\Http\Resources\AdminPostResource;
 use App\Models\Central\Post;
 use App\Services\Admin\PostAdminService;
 use App\Services\ApiResponseService;
+use Illuminate\Http\JsonResponse;
 
 class PostController extends Controller
 {
@@ -19,7 +20,7 @@ class PostController extends Controller
     /**
      * Lista todos os artigos com paginação.
      */
-    public function index()
+    public function index(): JsonResponse
     {
         $posts = $this->service
             ->paginate(10)
@@ -31,7 +32,7 @@ class PostController extends Controller
     /**
      * Cria um novo artigo.
      */
-    public function store(StoreAdminPostRequest $request)
+    public function store(StoreAdminPostRequest $request): JsonResponse
     {
         $post = $this->service->create($request->validated(), $request->user()->id);
 
@@ -44,7 +45,7 @@ class PostController extends Controller
     /**
      * Exibe os detalhes de um artigo específico.
      */
-    public function show(Post $post)
+    public function show(Post $post): JsonResponse
     {
         return ApiResponseService::success(
             AdminPostResource::make($this->service->show($post))->resolve()
@@ -54,7 +55,7 @@ class PostController extends Controller
     /**
      * Atualiza um artigo existente.
      */
-    public function update(UpdateAdminPostRequest $request, Post $post)
+    public function update(UpdateAdminPostRequest $request, Post $post): JsonResponse
     {
         $post = $this->service->update($post, $request->validated());
 
@@ -67,7 +68,7 @@ class PostController extends Controller
     /**
      * Exclui um artigo.
      */
-    public function destroy(Post $post)
+    public function destroy(Post $post): JsonResponse
     {
         $this->service->delete($post);
 

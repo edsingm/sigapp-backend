@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\DTOs\RequestContext;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ExchangeTicketRequest;
 use App\Http\Requests\LoginRequest;
@@ -39,7 +40,7 @@ class TenantAuthController extends Controller
         $result = $broker->redeemTransferTicket(
             (string) $data['ticket'],
             $data['device_name'] ?? null,
-            $request
+            RequestContext::fromRequest($request)
         );
 
         if (! $result) {

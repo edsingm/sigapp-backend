@@ -431,4 +431,83 @@ class DashboardQueryService
                 'vgv_formatado' => 'R$ '.number_format($item->vgv_total, 2, ',', '.'),
             ]);
     }
+
+    /**
+     * Monta o payload agregado do overview, incluindo apenas as seções pedidas.
+     *
+     * @param  array<int, string>  $include
+     * @return array<string, mixed>
+     */
+    public function buildOverview(
+        array $include,
+        ?string $ano,
+        ?string $mes,
+        int $meses,
+        int $topLimit,
+        int $areaLimit,
+        ?string $responsavelId,
+    ): array {
+        $payload = [];
+
+        if ($this->shouldInclude($include, 'cards')) {
+            $payload['cards'] = $this->cards();
+        }
+
+        if ($this->shouldInclude($include, 'status_chart') || $this->shouldInclude($include, 'anos_disponiveis')) {
+            $statusData = $this->statusChart($ano);
+            if ($this->shouldInclude($include, 'status_chart')) {
+                $payload['status_chart'] = $statusData['status_data'];
+            }
+            if ($this->shouldInclude($include, 'anos_disponiveis')) {
+                $payload['anos_disponiveis'] = $statusData['anos_disponiveis'];
+            }
+        }
+
+        if ($this->shouldInclude($include, 'cadastros_mensais')) {
+            $payload['cadastros_mensais'] = $this->cadastrosMensais(
+                ano: $ano, meses: $meses, dataInicio: null, dataFim: null
+            )['cadastros'];
+        }
+
+        if ($this->shouldInclude($include, 'top_cidades')) {
+            $filtro = ($ano && $mes) ? 'mes' : ($ano ? 'ano' : 'geral');
+            $payload['top_cidades'] = $this->topCidades(
+                filtro: $filtro, ano: $ano, mes: $mes, limit: $topLimit
+            );
+        }
+
+        if ($this->shouldInclude($include, 'vgv_anual')) {
+            $payload['vgv_anual'] = $this->vgvAnual();
+        }
+
+        if ($this->shouldInclude($include, 'unidades_fechadas_anual')) {
+            $payload['unidades_fechadas_anual'] = $this->unidadesFechadasAnual();
+        }
+
+        if ($this->shouldInclude($include, 'resumo')) {
+            $payload['resumo'] = $this->resumoGeral();
+        }
+
+        if ($this->shouldInclude($include, 'cadastros_mensais_responsavel')) {
+            $payload['cadastros_mensais_responsavel'] = $this->cadastrosMensaisPorResponsavel(
+                ano: $ano, meses: $meses, dataInicio: null, dataFim: null, responsavelId: $responsavelId
+            );
+        }
+
+        if ($this->shouldInclude($include, 'area_opcao_detalhe') && $ano) {
+            $payload['area_opcao_detalhe'] = $this->areaOpcaoDetalhe(ano: $ano, limit: $areaLimit);
+        } elseif ($this->shouldInclude($include, 'area_opcao_detalhe')) {
+            $payload['area_opcao_detalhe'] = [];
+        }
+
+        return $payload;
+    }
+
+    /**
+     * @param  array<int, string>  $include
+     */
+    private function shouldInclude(array $include, string $key): bool
+    {
+        return in_array('*', $include, true) || in_array($key, $include, true);
+    }
 }

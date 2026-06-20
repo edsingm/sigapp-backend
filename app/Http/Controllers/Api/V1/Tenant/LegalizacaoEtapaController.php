@@ -15,7 +15,6 @@ use App\Http\Resources\Tenant\LegalizacaoEtapaResource;
 use App\Repositories\Tenant\LegalizacaoEtapaRepository;
 use App\Services\ApiResponseService;
 use App\Services\Tenant\LegalizacaoService;
-use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
@@ -31,21 +30,15 @@ class LegalizacaoEtapaController extends Controller
      */
     public function index(ListLegalizacaoEtapasRequest $request, string $legalizacaoId): JsonResponse|AnonymousResourceCollection
     {
-        try {
-            $legalizacao = $this->legalizacaoService->findOrFail($legalizacaoId);
-            $etapas = $this->etapaRepository->findByLegalizacao(
-                (string) $legalizacao->getKey(),
-                ['dependenciasDestino', 'dependenciasOrigem']
-            );
+        $legalizacao = $this->legalizacaoService->findOrFail($legalizacaoId);
+        $etapas = $this->etapaRepository->findByLegalizacao(
+            (string) $legalizacao->getKey(),
+            ['dependenciasDestino', 'dependenciasOrigem']
+        );
 
-            return ApiResponseService::success(
-                LegalizacaoEtapaResource::collection($etapas)
-            );
-        } catch (AuthorizationException $e) {
-            throw $e;
-        } catch (\Exception $e) {
-            return ApiResponseService::serverError('Erro ao listar etapas');
-        }
+        return ApiResponseService::success(
+            LegalizacaoEtapaResource::collection($etapas)
+        );
     }
 
     /**
@@ -53,28 +46,22 @@ class LegalizacaoEtapaController extends Controller
      */
     public function store(StoreLegalizacaoEtapaRequest $request, string $legalizacaoId): JsonResponse
     {
-        try {
-            $legalizacao = $this->legalizacaoService->findOrFail($legalizacaoId);
-            $dados = $request->validated();
-            $dados['legalizacao_id'] = $legalizacao->getKey();
-            $dados['created_by'] = $request->user()->id;
-            $dados['updated_by'] = $request->user()->id;
+        $legalizacao = $this->legalizacaoService->findOrFail($legalizacaoId);
+        $dados = $request->validated();
+        $dados['legalizacao_id'] = $legalizacao->getKey();
+        $dados['created_by'] = $request->user()->id;
+        $dados['updated_by'] = $request->user()->id;
 
-            if (! isset($dados['ordem'])) {
-                $dados['ordem'] = $this->legalizacaoService->proximaOrdem((int) $legalizacao->getKey());
-            }
-
-            $etapa = $this->legalizacaoService->adicionarEtapa($legalizacao, $dados);
-
-            return ApiResponseService::created(
-                new LegalizacaoEtapaResource($etapa),
-                'Etapa criada com sucesso'
-            );
-        } catch (AuthorizationException $e) {
-            throw $e;
-        } catch (\Exception $e) {
-            return ApiResponseService::serverError('Erro ao criar etapa');
+        if (! isset($dados['ordem'])) {
+            $dados['ordem'] = $this->legalizacaoService->proximaOrdem((int) $legalizacao->getKey());
         }
+
+        $etapa = $this->legalizacaoService->adicionarEtapa($legalizacao, $dados);
+
+        return ApiResponseService::created(
+            new LegalizacaoEtapaResource($etapa),
+            'Etapa criada com sucesso'
+        );
     }
 
     /**
@@ -82,21 +69,15 @@ class LegalizacaoEtapaController extends Controller
      */
     public function show(ShowLegalizacaoEtapaRequest $request, string $legalizacaoId, string $id): JsonResponse
     {
-        try {
-            $etapa = $this->etapaRepository->findByIdAndLegalizacao(
-                $id,
-                $legalizacaoId,
-                ['dependenciasDestino', 'dependenciasOrigem']
-            );
+        $etapa = $this->etapaRepository->findByIdAndLegalizacao(
+            $id,
+            $legalizacaoId,
+            ['dependenciasDestino', 'dependenciasOrigem']
+        );
 
-            return ApiResponseService::success(
-                new LegalizacaoEtapaResource($etapa)
-            );
-        } catch (AuthorizationException $e) {
-            throw $e;
-        } catch (\Exception $e) {
-            return ApiResponseService::notFound('Etapa não encontrada');
-        }
+        return ApiResponseService::success(
+            new LegalizacaoEtapaResource($etapa)
+        );
     }
 
     /**
@@ -104,22 +85,16 @@ class LegalizacaoEtapaController extends Controller
      */
     public function update(UpdateLegalizacaoEtapaRequest $request, string $legalizacaoId, string $id): JsonResponse
     {
-        try {
-            $etapa = $this->etapaRepository->findByIdAndLegalizacao($id, $legalizacaoId);
-            $dados = $request->validated();
-            $dados['updated_by'] = $request->user()->id;
+        $etapa = $this->etapaRepository->findByIdAndLegalizacao($id, $legalizacaoId);
+        $dados = $request->validated();
+        $dados['updated_by'] = $request->user()->id;
 
-            $etapa = $this->legalizacaoService->atualizarEtapa($etapa, $dados);
+        $etapa = $this->legalizacaoService->atualizarEtapa($etapa, $dados);
 
-            return ApiResponseService::success(
-                new LegalizacaoEtapaResource($etapa),
-                'Etapa atualizada com sucesso'
-            );
-        } catch (AuthorizationException $e) {
-            throw $e;
-        } catch (\Exception $e) {
-            return ApiResponseService::serverError('Erro ao atualizar etapa');
-        }
+        return ApiResponseService::success(
+            new LegalizacaoEtapaResource($etapa),
+            'Etapa atualizada com sucesso'
+        );
     }
 
     /**
@@ -127,16 +102,10 @@ class LegalizacaoEtapaController extends Controller
      */
     public function destroy(DestroyLegalizacaoEtapaRequest $request, string $legalizacaoId, string $id): JsonResponse
     {
-        try {
-            $etapa = $this->etapaRepository->findByIdAndLegalizacao($id, $legalizacaoId);
-            $this->legalizacaoService->removerEtapa($etapa);
+        $etapa = $this->etapaRepository->findByIdAndLegalizacao($id, $legalizacaoId);
+        $this->legalizacaoService->removerEtapa($etapa);
 
-            return ApiResponseService::noContent();
-        } catch (AuthorizationException $e) {
-            throw $e;
-        } catch (\Exception $e) {
-            return ApiResponseService::serverError('Erro ao excluir etapa');
-        }
+        return ApiResponseService::noContent();
     }
 
     /**
@@ -144,21 +113,15 @@ class LegalizacaoEtapaController extends Controller
      */
     public function reorder(ReorderEtapasRequest $request, string $legalizacaoId): JsonResponse
     {
-        try {
-            $legalizacao = $this->legalizacaoService->findOrFail($legalizacaoId);
-            $this->legalizacaoService->reordenarEtapas($legalizacao, $request->validated()['etapas']);
+        $legalizacao = $this->legalizacaoService->findOrFail($legalizacaoId);
+        $this->legalizacaoService->reordenarEtapas($legalizacao, $request->validated()['etapas']);
 
-            $etapas = $this->etapaRepository->findByLegalizacao((string) $legalizacao->getKey());
+        $etapas = $this->etapaRepository->findByLegalizacao((string) $legalizacao->getKey());
 
-            return ApiResponseService::success(
-                LegalizacaoEtapaResource::collection($etapas),
-                'Etapas reordenadas com sucesso'
-            );
-        } catch (AuthorizationException $e) {
-            throw $e;
-        } catch (\Exception $e) {
-            return ApiResponseService::serverError('Erro ao reordenar etapas');
-        }
+        return ApiResponseService::success(
+            LegalizacaoEtapaResource::collection($etapas),
+            'Etapas reordenadas com sucesso'
+        );
     }
 
     /**
@@ -166,22 +129,16 @@ class LegalizacaoEtapaController extends Controller
      */
     public function updateStatus(UpdateStatusEtapaRequest $request, string $legalizacaoId, string $id): JsonResponse
     {
-        try {
-            $etapa = $this->etapaRepository->findByIdAndLegalizacao($id, $legalizacaoId);
-            $status = $this->normalizarStatus($request->validated()['status']);
-            $etapa = $this->legalizacaoService->atualizarStatusEtapa($etapa, $status);
+        $etapa = $this->etapaRepository->findByIdAndLegalizacao($id, $legalizacaoId);
+        $status = $this->normalizarStatus($request->validated()['status']);
+        $etapa = $this->legalizacaoService->atualizarStatusEtapa($etapa, $status);
 
-            LegalizacaoEtapaStatusUpdated::dispatch($etapa, $status, $request->user());
+        LegalizacaoEtapaStatusUpdated::dispatch($etapa, $status, $request->user());
 
-            return ApiResponseService::success(
-                new LegalizacaoEtapaResource($etapa),
-                'Status atualizado com sucesso'
-            );
-        } catch (AuthorizationException $e) {
-            throw $e;
-        } catch (\Exception $e) {
-            return ApiResponseService::serverError('Erro ao atualizar status');
-        }
+        return ApiResponseService::success(
+            new LegalizacaoEtapaResource($etapa),
+            'Status atualizado com sucesso'
+        );
     }
 
     private function normalizarStatus(string $status): string

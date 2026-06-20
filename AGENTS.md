@@ -2,6 +2,8 @@
 
 Este arquivo contém as regras obrigatórias que todas as IAs (Cursor, Claude, Copilot, Gemini, etc.) devem seguir ao trabalhar neste projeto Laravel.
 
+> **Nota sobre convenção vs. regra oficial:** o Laravel, por padrão, não impõe uma arquitetura em camadas (Controller → Service → Repository). A própria documentação oficial e os exemplos do framework usam o Eloquent diretamente em Controllers. As regras deste documento que vão além do que o Laravel exige por padrão (ex: Repository obrigatório, Service obrigatório) são **convenções deste projeto**, adotadas deliberadamente para testabilidade e desacoplamento — não confunda com "regra do Laravel". Isso é sinalizado explicitamente nas seções abaixo onde relevante.
+
 ---
 
 ## 🎯 Visão Geral do Projeto
@@ -13,10 +15,11 @@ Este arquivo contém as regras obrigatórias que todas as IAs (Cursor, Claude, C
 | **Banco de dados** | MySQL 8+ / PostgreSQL 15+ (com `pgvector` para busca semântica) |
 | **Autenticação** | Laravel Sanctum |
 | **Testes** | PHPUnit 13 |
-| **Análise estática** | PHPStan (nível 8) |
-| **Padrão de código** | PSR-2 + PSR-4 |
-| **Arquitetura** | Controller → Service → Repository |
-| **AI SDK** | Laravel AI (`laravel/ai`) — provider-agnóstico (OpenRouter configurado) |
+| **Formatação de código** | Laravel Pint (aplica PSR-12 automaticamente) |
+| **Análise estática** | PHPStan nível 8 + Larastan (extensão obrigatória para entender Eloquent) |
+| **Padrão de código** | PSR-12 + PSR-4 |
+| **Arquitetura** | Controller → Service → Repository (convenção deste projeto — ver nota acima) |
+| **AI SDK** | Laravel AI (`laravel/ai`) — provider-agnóstico, first-party, requer Laravel 13+ |
 
 ---
 
@@ -25,7 +28,8 @@ Este arquivo contém as regras obrigatórias que todas as IAs (Cursor, Claude, C
 ### 1. PHP e Padrões de Código
 
 - PHP mínimo: **8.3** — use sempre os recursos modernos da linguagem
-- Seguir **PSR-2** (estilo) e **PSR-4** (autoload) rigorosamente
+- Seguir **PSR-12** (estilo) e **PSR-4** (autoload) rigorosamente. *(PSR-2 foi formalmente descontinuado e substituído por PSR-12 desde 2019 — não usar PSR-2 como referência.)*
+- A formatação é aplicada automaticamente via **Laravel Pint** (`./vendor/bin/pint`) — nunca formate manualmente nem discuta estilo em code review, o Pint é a fonte da verdade
 - **Sempre declare tipos** em propriedades, parâmetros e retornos de método — nunca omita
 - Use **enums** (PHP 8.1+) ao invés de constantes mágicas ou strings avulsas
 - Use **readonly properties** e **constructor promotion** onde aplicável
@@ -49,7 +53,9 @@ function processOrder(Order $order, float $discount): OrderResult
 
 ### 2. Arquitetura: Controller → Service → Repository
 
-A separação de responsabilidades é **inegociável**. Cada camada tem uma única função:
+> ⚠️ **Importante:** esta separação em 3 camadas é uma **convenção deste projeto**, não uma exigência do Laravel. O Laravel é deliberadamente desacoplado de uma arquitetura específica — o Eloquent já funciona como uma implementação de Active Record, e a documentação oficial usa Models diretamente em Controllers em boa parte dos exemplos. Adotamos a camada de Repository aqui para: (1) centralizar regras de consulta reutilizáveis, (2) facilitar mocks em testes unitários de Service sem tocar no banco, e (3) isolar o projeto de mudanças no Eloquent. Se um Controller/Service simples só precisa de uma query trivial, **não crie um Repository só para cumprir a regra** — isso seria abstração especulativa (ver Simplicidade). Use bom senso: Repository compensa quando a consulta é reutilizada em mais de um lugar ou quando precisa ser mockada em teste.
+
+A separação de responsabilidades é **a regra deste projeto** para módulos não-triviais. Cada camada tem uma única função:
 
 | Camada | Responsabilidade |
 |---|---|
@@ -62,10 +68,10 @@ A separação de responsabilidades é **inegociável**. Cada camada tem uma úni
 
 #### Regras de camada
 
-- **Controllers devem ser thin**: nunca conter lógica de negócio, queries Eloquent diretas ou condicionais complexas
+- **Controllers devem ser thin**: nunca conter lógica de negócio, queries Eloquent diretas ou condicionais complexas — isto sim é convenção amplamente adotada e alinhada com o próprio Laravel (FormRequests, Resources e Route Model Binding existem exatamente para manter Controllers magros)
 - **Services devem ser thin também**: orquestram chamadas a repositories e outros services — não contêm queries
 - **Repositories são o único lugar** onde Eloquent é usado diretamente
-- **Models não devem conter lógica de negócio** — apenas relações, casts, accessors/mutators e escopos locais
+- **Models concentram o acesso a dados e suas regras intrínsecas** (relações, casts, accessors/mutators, escopos locais). Lógica de *negócio* (regras que envolvem múltiplas entidades, eventos, notificações) vai para Services — mas isso não significa que o Model deve ser "anêmico": scopes, accessors e métodos que descrevem o próprio dado (ex: `$post->isPublished()`) pertencem ao Model, é assim que o Eloquent foi desenhado para ser usado
 
 ```php
 // ✅ Estrutura correta de um Controller
@@ -155,7 +161,7 @@ routes/
 tests/
   Feature/                → testes de integração (HTTP, banco)
   Unit/                   → testes unitários (services, helpers)
-  Architecture/           → testes de arquitetura com Pest
+  Architecture/           → testes de arquitetura (ver seção 12)
 ```
 
 > ⚠️ **Nunca crie pastas fora desta estrutura sem aprovação explícita.**
@@ -169,7 +175,7 @@ tests/
 - Sempre defina `$fillable` **explicitamente** — nunca use `$guarded = []` em produção
 - Sempre defina `$casts` para tipos não-string (datas, booleans, enums, JSON)
 - Use **Enums** nativos do PHP nos casts do Eloquent
-- Nunca coloque lógica de negócio em accessors/mutators — use Services
+- Lógica que envolve apenas o próprio dado (formatação, estado derivado, escopos de consulta) pertence ao Model; lógica que orquestra múltiplas entidades, side-effects (eventos, emails, filas) vai para Services
 - Use `#[UseResource]` attribute (Laravel 12+) para vincular resources ao model quando conveniente
 - Use **PHP Attributes** modernos do Laravel 13 para configuração declarativa de models (`#[Table]`, `#[Connection]`, `#[Scope]`, etc.) quando aplicável
 
@@ -473,7 +479,7 @@ class SendWelcomeEmail implements ShouldQueue
 
 ### 12. Testes
 
-- **Framework**: PHPUnit 13 — o projeto usa PHPUnit diretamente, não Pest PHP
+- **Framework**: PHPUnit 13 — o projeto usa PHPUnit diretamente, classes estendendo `TestCase`, não Pest PHP
 - Toda funcionalidade nova **deve ter testes** antes de ser considerada concluída
 - Use `RefreshDatabase` em testes que interagem com o banco
 - Use `actingAs()` para testar rotas autenticadas
@@ -498,75 +504,102 @@ tests/
     Repositories/
       PostRepositoryTest.php
   Architecture/
-    ArchTest.php
+    LayerBoundariesTest.php
 ```
 
-#### Testes de arquitetura com PHPUnit
+#### Padrão Arrange-Act-Assert (PHPUnit nativo)
 
 ```php
-// tests/Architecture/ArchTest.php
-test('controllers não devem usar Eloquent diretamente')
-    ->expect('App\Http\Controllers')
-    ->not->toUse(['Illuminate\Database\Eloquent\Model']);
+// tests/Feature/Posts/CreatePostTest.php
+final class CreatePostTest extends TestCase
+{
+    use RefreshDatabase;
 
-test('models devem existir apenas na pasta Models')
-    ->expect('App\Models')
-    ->toExtend('Illuminate\Database\Eloquent\Model');
+    public function test_cria_um_post_autenticado_com_dados_validos(): void
+    {
+        // Arrange
+        $user = User::factory()->create();
+        $payload = [
+            'title'   => 'Meu Post',
+            'content' => 'Conteúdo do post',
+            'status'  => PostStatus::Draft->value,
+        ];
 
-test('services não devem depender de Request')
-    ->expect('App\Services')
-    ->not->toUse('Illuminate\Http\Request');
+        // Act
+        $response = $this
+            ->actingAs($user)
+            ->postJson('/api/v1/posts', $payload);
 
-test('repositories não devem conter lógica de negócio')
-    ->expect('App\Repositories')
-    ->not->toUse('App\Services');
+        // Assert
+        $response->assertCreated()
+                 ->assertJsonStructure(['data' => ['id', 'title', 'slug', 'status']]);
+
+        $this->assertDatabaseHas('posts', [
+            'title'   => 'Meu Post',
+            'user_id' => $user->id,
+        ]);
+    }
+
+    public function test_rejeita_criacao_de_post_sem_autenticacao(): void
+    {
+        $response = $this->postJson('/api/v1/posts', ['title' => 'Test']);
+
+        $response->assertUnauthorized();
+    }
+}
 ```
 
-#### Padrão Arrange-Act-Assert
+#### Testes de arquitetura
+
+O PHPUnit puro não tem um equivalente nativo ao plugin de arquitetura do Pest (`->expect()->toUse()`). Como este projeto usa PHPUnit, conformidade arquitetural é verificada de uma das duas formas — escolha uma e documente no `composer.json`:
+
+**Opção A — teste PHPUnit com reflexão (sem dependência extra, recomendado para regras simples):**
 
 ```php
-// ✅ Feature test bem escrito
-it('cria um post autenticado com dados válidos', function () {
-    // Arrange
-    $user = User::factory()->create();
-    $payload = [
-        'title'   => 'Meu Post',
-        'content' => 'Conteúdo do post',
-        'status'  => PostStatus::Draft->value,
-    ];
+// tests/Architecture/LayerBoundariesTest.php
+final class LayerBoundariesTest extends TestCase
+{
+    public function test_controllers_nao_usam_eloquent_diretamente(): void
+    {
+        foreach (glob(app_path('Http/Controllers/**/*.php')) as $file) {
+            $contents = file_get_contents($file);
+            $this->assertStringNotContainsString(
+                'Illuminate\Database\Eloquent\Model',
+                $contents,
+                "Controller {$file} não deve referenciar Eloquent\\Model diretamente."
+            );
+        }
+    }
 
-    // Act
-    $response = $this
-        ->actingAs($user)
-        ->postJson('/api/v1/posts', $payload);
-
-    // Assert
-    $response->assertCreated()
-             ->assertJsonStructure(['data' => ['id', 'title', 'slug', 'status']]);
-
-    $this->assertDatabaseHas('posts', ['title' => 'Meu Post', 'user_id' => $user->id]);
-});
-
-it('rejeita criação de post sem autenticação', function () {
-    $response = $this->postJson('/api/v1/posts', ['title' => 'Test']);
-
-    $response->assertUnauthorized();
-});
+    public function test_services_nao_dependem_de_request(): void
+    {
+        foreach (glob(app_path('Services/**/*.php')) as $file) {
+            $contents = file_get_contents($file);
+            $this->assertStringNotContainsString(
+                'Illuminate\Http\Request',
+                $contents,
+                "Service {$file} não deve depender de Illuminate\\Http\\Request."
+            );
+        }
+    }
+}
 ```
+
+**Opção B — [Deptrac](https://github.com/qossmic/deptrac) (recomendado se as regras de camada crescerem):** ferramenta dedicada e independente de framework de testes para checar dependências entre camadas, com `deptrac.yaml` declarando as camadas (`Controller`, `Service`, `Repository`, `Model`) e quais podem depender de quais. Rodada separadamente do `php artisan test`, no CI.
 
 ---
 
 ### 13. Performance e Cache
 
 - Use `Cache::remember()` para dados que mudam raramente
-- Use **tags de cache** para invalidar grupos de cache de forma precisa
+- Use **tags de cache** para invalidar grupos de cache de forma precisa — **atenção:** tags de cache só são suportadas pelos drivers **Redis** e **Memcached**; os drivers `database`, `file` e `array` não suportam `Cache::tags()` e lançam exceção se usados. Confirme o driver configurado (`CACHE_STORE` no `.env`) antes de usar tags
 - Configure `config:cache`, `route:cache` e `view:cache` no pipeline de deploy
 - Use `select()` explícito — nunca `SELECT *` em queries que alimentam listagens
 - Use `paginate()` em vez de `get()` para listagens públicas
 - Use `with()` para eager loading — monitore N+1 com **Laravel Telescope** ou **Debugbar** em desenvolvimento
 
 ```php
-// ✅ Cache com tags para invalidação precisa
+// ✅ Cache com tags para invalidação precisa (apenas Redis/Memcached)
 public function getPublishedPosts(): Collection
 {
     return Cache::tags(['posts', 'published'])
@@ -584,11 +617,15 @@ Cache::tags(['posts', 'published'])->flush();
 ### 14. Análise Estática
 
 - **PHPStan no nível 8** é obrigatório — o CI deve falhar se houver erros
+- **Larastan** (`composer require --dev larastan/larastan`) é obrigatório junto com o PHPStan — o PHPStan puro não entende a magia do Eloquent (relações, `$casts`, scopes, magic methods) e gera falsos positivos massivos sem essa extensão
 - Rode `./vendor/bin/phpstan analyse` antes de todo commit
 - Nunca use `// @phpstan-ignore-next-line` sem um comentário explicando o motivo
 
-```bash
+```neon
 # phpstan.neon
+includes:
+    - vendor/larastan/larastan/extension.neon
+
 parameters:
     level: 8
     paths:
@@ -646,15 +683,17 @@ Schedule::command('backup:run')->dailyAt('02:00');
 5. **Toda mutação de dados passa por FormRequest** (validação + autorização) antes de chegar ao Controller
 6. **Toda resposta de API passa por um Resource** — nunca retorne Models brutos
 7. `APP_DEBUG=false` e **nunca** commite `.env` — use `.env.example`
-8. **PHPStan nível 8** deve passar sem erros antes de qualquer merge
-9. Cada **Job deve ter `failed()`** implementado
-10. Toda funcionalidade nova deve ter **testes Feature** cobrindo o happy path e pelo menos um cenário de erro
+8. **PHPStan nível 8 + Larastan** devem passar sem erros antes de qualquer merge
+9. **Laravel Pint** deve passar sem alterações pendentes (`./vendor/bin/pint --test`) antes de qualquer merge
+10. Cada **Job deve ter `failed()`** implementado
+11. Toda funcionalidade nova deve ter **testes Feature** cobrindo o happy path e pelo menos um cenário de erro
 
 ---
 
 ## 📋 Checklist antes de cada PR
 
-- [ ] PHPStan nível 8 passa sem erros (`./vendor/bin/phpstan analyse`)
+- [ ] PHPStan nível 8 + Larastan passam sem erros (`./vendor/bin/phpstan analyse`)
+- [ ] Laravel Pint não acusa nenhuma alteração pendente (`./vendor/bin/pint --test`)
 - [ ] Todos os testes passam (`php artisan test`)
 - [ ] Testes de arquitetura passam (sem Eloquent em Controllers, sem Request em Services)
 - [ ] Toda nova rota está versionada (`/api/v1/...`) e nomeada
@@ -666,7 +705,8 @@ Schedule::command('backup:run')->dailyAt('02:00');
 - [ ] Novos Jobs têm `$tries`, `$timeout` e `failed()` definidos
 - [ ] `.env.example` atualizado com as novas variáveis (sem valores sensíveis)
 - [ ] Migrations têm `down()` funcional
+- [ ] Se usou `Cache::tags()`, confirmou que o driver configurado é Redis ou Memcached
 
 ---
 
-**Última atualização:** Maio 2026
+**Última atualização:** Junho 2026 (revisado — PSR-12, Pint, Larastan, PHPUnit/Pest corrigido, limites de Cache::tags(), e nota de convenção vs. regra oficial do Laravel adicionada)

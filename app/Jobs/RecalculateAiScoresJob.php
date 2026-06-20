@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Services\AiScoringService;
+use App\Services\Ai\Tools\AiScoringService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -15,9 +15,16 @@ class RecalculateAiScoresJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $tries = 1;
+    /**
+     * O scoring é idempotente (updateOrCreate por terreno), então é seguro
+     * reexecutar em falhas transitórias.
+     */
+    public int $tries = 3;
 
     public int $timeout = 300;
+
+    /** @var array<int, int> */
+    public array $backoff = [60, 180, 300];
 
     public function handle(AiScoringService $service): void
     {

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Ai\Tools;
+namespace App\Services\Ai\Tools;
 
 use App\Models\Tenant\Terreno;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -37,6 +37,7 @@ class GetTerrenoDetailsTool implements Tool
 
         $terreno = Terreno::query()
             ->with([
+                'cidade:code,city',
                 'viabilidadeAtual' => static function ($query): void {
                     $query->select([
                         'viabilidades.id',
@@ -111,7 +112,7 @@ class GetTerrenoDetailsTool implements Tool
             'endereco' => $terreno->endereco,
             'cep' => $terreno->cep,
             'bairro' => $terreno->bairro,
-            'cidade_code' => $terreno->cidade_code,
+            'cidade' => $terreno->cidade?->city ?? $terreno->cidade_code,
             'estado' => $terreno->estado,
             'distrito' => $terreno->distrito,
             'zona' => $terreno->zona,

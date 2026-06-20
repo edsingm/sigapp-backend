@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\Admin\CentralUserService;
 use App\Services\ApiResponseService;
 use App\Traits\LogsAudit;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class UserController extends Controller
@@ -23,7 +24,7 @@ class UserController extends Controller
     /**
      * Lista todos os usuários (admins).
      */
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
         $users = $this->userService
             ->paginate((int) $request->integer('per_page', 15))
@@ -35,7 +36,7 @@ class UserController extends Controller
     /**
      * Cria um novo usuário administrativo.
      */
-    public function store(StoreUserRequest $request)
+    public function store(StoreUserRequest $request): JsonResponse
     {
         $user = $this->userService->create([
             ...$request->validated(),
@@ -55,7 +56,7 @@ class UserController extends Controller
     /**
      * Exibe um usuário.
      */
-    public function show(User $user)
+    public function show(User $user): JsonResponse
     {
         return ApiResponseService::success(
             CentralUserResource::make($user)->resolve(),
@@ -66,7 +67,7 @@ class UserController extends Controller
     /**
      * Atualiza um usuário.
      */
-    public function update(UpdateUserRequest $request, User $user)
+    public function update(UpdateUserRequest $request, User $user): JsonResponse
     {
         $user = $this->userService->update($user, $request->validated());
 
@@ -83,7 +84,7 @@ class UserController extends Controller
     /**
      * Exclui um usuário.
      */
-    public function destroy(Request $request, User $user)
+    public function destroy(Request $request, User $user): JsonResponse
     {
         if (! $this->userService->delete($user, $request->user())) {
             return ApiResponseService::error('SELF_DELETION', 'Não é possível excluir a si mesmo');

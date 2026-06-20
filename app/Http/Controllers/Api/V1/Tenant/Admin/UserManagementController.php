@@ -10,6 +10,7 @@ use App\Http\Resources\Tenant\UserResource;
 use App\Services\Acl\PermissionNameResolver;
 use App\Services\ApiResponseService;
 use App\Services\Tenant\TenantUserService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class UserManagementController extends Controller
@@ -22,7 +23,7 @@ class UserManagementController extends Controller
     /**
      * Lista usuários do tenant com busca opcional, filtro de função e ordenação.
      */
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
         $users = $this->userService->list(
             search: $request->filled('search') ? $request->string('search')->toString() : null,
@@ -40,7 +41,7 @@ class UserManagementController extends Controller
     /**
      * Exibe um único usuário.
      */
-    public function show(int $id)
+    public function show(int $id): JsonResponse
     {
         $user = $this->userService->findWithRelations($id);
 
@@ -54,7 +55,7 @@ class UserManagementController extends Controller
     /**
      * Cria um usuário do tenant.
      */
-    public function store(StoreUserRequest $request)
+    public function store(StoreUserRequest $request): JsonResponse
     {
         $user = $this->userService->create($request->validated());
 
@@ -64,7 +65,7 @@ class UserManagementController extends Controller
     /**
      * Atualiza um usuário do tenant.
      */
-    public function update(UpdateUserRequest $request, int $id)
+    public function update(UpdateUserRequest $request, int $id): JsonResponse
     {
         $user = $this->userService->findWithRelations($id);
 
@@ -92,7 +93,7 @@ class UserManagementController extends Controller
     /**
      * Exclui um usuário do tenant.
      */
-    public function destroy(Request $request, int $id)
+    public function destroy(Request $request, int $id): JsonResponse
     {
         $user = $this->userService->findWithRelations($id);
 
@@ -112,7 +113,7 @@ class UserManagementController extends Controller
     /**
      * Atualiza as permissões diretas no nível de módulo para um usuário.
      */
-    public function updateModulePermissions(UpdateUserModulePermissionsRequest $request, int $id)
+    public function updateModulePermissions(UpdateUserModulePermissionsRequest $request, int $id): JsonResponse
     {
         $user = $this->userService->findWithRelations($id);
 

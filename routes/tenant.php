@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\Tenant\Admin\RoleController as AdminRoleControll
 use App\Http\Controllers\Api\V1\Tenant\Admin\UserManagementController as AdminUserManagementController;
 use App\Http\Controllers\Api\V1\Tenant\AiController;
 use App\Http\Controllers\Api\V1\Tenant\AiMonitorController;
+use App\Http\Controllers\Api\V1\Tenant\AiTerrenoReportController;
 use App\Http\Controllers\Api\V1\Tenant\AiPredictiveAnalysisController;
 use App\Http\Controllers\Api\V1\Tenant\AiScoringController;
 use App\Http\Controllers\Api\V1\Tenant\AiTaskController;
@@ -277,6 +278,8 @@ Route::middleware([
                     Route::get('/ai/budget', [AiController::class, 'budgetStatus']);
                     Route::post('/ai/sig-ai', [AiController::class, 'chat'])
                         ->middleware('ai.rate_limit', 'ai.budget');
+                    Route::post('/ai/terrenos/{id}/relatorio-pdf', [AiTerrenoReportController::class, 'generate'])
+                        ->whereNumber('id');
 
                     // AI Scoring
                     Route::prefix('ai/scoring')->group(function () {

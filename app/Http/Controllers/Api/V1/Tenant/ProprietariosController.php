@@ -80,11 +80,10 @@ class ProprietariosController extends Controller
             $this->workflowService->syncReadiness($terreno, $request->user(), 'owner_created');
         }
 
-        return response()->json([
-            'success' => true,
-            'data' => new ProprietarioResource($proprietario),
-            'message' => 'Proprietário criado com sucesso!',
-        ], 201);
+        return ApiResponseService::created(
+            new ProprietarioResource($proprietario),
+            'Proprietário criado com sucesso!'
+        );
     }
 
     /**
@@ -96,10 +95,7 @@ class ProprietariosController extends Controller
 
         $proprietario = $this->proprietarioService->findWithRelations((int) $proprietario->getKey());
 
-        return response()->json([
-            'success' => true,
-            'data' => new ProprietarioResource($proprietario),
-        ]);
+        return ApiResponseService::success(new ProprietarioResource($proprietario));
     }
 
     /**
@@ -119,11 +115,10 @@ class ProprietariosController extends Controller
             $this->workflowService->syncReadiness($terreno, $request->user(), 'owner_updated');
         }
 
-        return response()->json([
-            'success' => true,
-            'data' => new ProprietarioResource($proprietario),
-            'message' => 'Proprietário atualizado com sucesso!',
-        ]);
+        return ApiResponseService::success(
+            new ProprietarioResource($proprietario),
+            'Proprietário atualizado com sucesso!'
+        );
     }
 
     /**
@@ -141,9 +136,6 @@ class ProprietariosController extends Controller
             $this->workflowService->syncReadiness($terreno, request()->user(), 'owner_deleted');
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Proprietário removido com sucesso!',
-        ]);
+        return ApiResponseService::success(null, 'Proprietário removido com sucesso!');
     }
 }

@@ -2,9 +2,9 @@
 
 namespace Tests\Unit;
 
-use App\Services\AiDataRedactor;
-use App\Services\AiProviderRouter;
-use App\Services\AiTelemetryService;
+use App\Services\Ai\Tools\AiDataRedactor;
+use App\Services\Ai\Tools\AiProviderRouter;
+use App\Services\Ai\Tools\AiTelemetryService;
 use Mockery;
 use Tests\TestCase;
 

@@ -5,8 +5,8 @@ namespace App\Services\Signup;
 use App\Exceptions\SignupSlugReservedException;
 use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
+use App\Services\Billing\TenantBillingService;
 use App\Traits\LogsAudit;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -16,6 +16,10 @@ class TenantSignupService
 {
     use LogsAudit;
 
+    public function __construct(
+        private readonly TenantBillingService $billingService,
+    ) {}
+
     /**
      * Cria um tenant pendente com validação de slug, domínio e aceite de contrato.
      *
@@ -24,13 +28,13 @@ class TenantSignupService
      *
      * @throws ValidationException
      */
-    public function createPendingTenant(array $validated, Plan $plan, Request $request): array
+    public function createPendingTenant(array $validated, Plan $plan, ?string $ipAddress = null, ?string $userAgent = null): array
     {
         $requestedSlug = (string) ($validated['slug'] ?? '');
         $effectiveSlug = Str::slug($requestedSlug);
         $contractConfig = $this->getSignupUsageContractConfig();
 
-        ['tenant' => $tenant, 'trial_eligible' => $trialEligible] = DB::transaction(function () use ($validated, $plan, $request, $contractConfig, $requestedSlug, $effectiveSlug) {
+        ['tenant' => $tenant, 'trial_eligible' => $trialEligible] = DB::transaction(function () use ($validated, $plan, $ipAddress, $userAgent, $contractConfig, $requestedSlug, $effectiveSlug) {
             $existingTenant = Tenant::where('slug', $effectiveSlug)->lockForUpdate()->first();
 
             if (
@@ -64,7 +68,8 @@ class TenantSignupService
             $contractAcceptance = $this->buildContractAcceptancePayload(
                 validated: $validated,
                 contractConfig: $contractConfig,
-                request: $request,
+                ipAddress: $ipAddress,
+                userAgent: $userAgent,
                 requestedSlug: $requestedSlug,
                 effectiveSlug: $effectiveSlug,
             );
@@ -130,6 +135,41 @@ class TenantSignupService
     }
 
     /**
+     * Remove um tenant órfão criado quando o checkout do Stripe falha:
+     * customer do Stripe, registro do trial_ledger deste signup e o próprio tenant.
+     */
+    public function cleanupFailedSignup(Tenant $tenant): void
+    {
+        try {
+            $stripeId = $tenant->getAttribute('stripe_id');
+            if (is_string($stripeId) && $stripeId !== '') {
+                $this->billingService->deleteCustomer($stripeId);
+            }
+        } catch (\Exception $e) {
+            report($e);
+        }
+
+        try {
+            // Remove a linha do trial_ledger criada por ESTE signup. Filtra por
+            // tenant_slug para nunca afetar a elegibilidade de um cadastro anterior
+            // com o mesmo email (cujo registro tem outro slug).
+            DB::table('trial_ledger')
+                ->where('email', self::normalizeEmail((string) $tenant->getAttribute('admin_email')))
+                ->where('tenant_slug', (string) $tenant->getAttribute('slug'))
+                ->delete();
+        } catch (\Exception $e) {
+            report($e);
+        }
+
+        try {
+            $tenant->domains()->delete();
+            $tenant->delete();
+        } catch (\Exception $e) {
+            report($e);
+        }
+    }
+
+    /**
      * Armazena o ID da sessão de checkout do Stripe nos dados do tenant.
      * Salva em campo separado do contract acceptance (dados billing vs dados legais).
      */
@@ -176,7 +216,8 @@ class TenantSignupService
     public function buildContractAcceptancePayload(
         array $validated,
         array $contractConfig,
-        Request $request,
+        ?string $ipAddress,
+        ?string $userAgent,
         string $requestedSlug,
         string $effectiveSlug,
     ): array {
@@ -191,8 +232,8 @@ class TenantSignupService
             'accepted_by_name' => $validated['admin_name'] ?? null,
             'accepted_by_email' => $validated['admin_email'] ?? null,
             'accepted_in_capacity' => 'organization_admin_signup',
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
+            'ip_address' => $ipAddress,
+            'user_agent' => $userAgent,
             'organization_name' => $validated['organization_name'] ?? null,
             'plan_slug' => $validated['plan_slug'] ?? null,
             'tenant_slug_requested' => $requestedSlug,

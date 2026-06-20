@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Ai\Tools;
+namespace App\Services\Ai\Tools;
 
 use App\Models\Tenant\Terreno;
-use App\Services\AiAnomalyDetectionService;
+use App\Services\Ai\Tools\AiAnomalyDetectionService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Facades\Gate;
 use Laravel\Ai\Contracts\Tool;

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Ai\Tools;
+namespace App\Services\Ai\Tools;
 
 use App\Models\Tenant\Terreno;
 use App\Services\Tenant\Area\PolygonCalculator;
@@ -37,6 +37,7 @@ class GetTerrenoGeoAnalysisTool implements Tool
         }
 
         $terreno = Terreno::query()
+            ->with('cidade:code,city')
             ->select([
                 'id', 'nome', 'endereco', 'bairro', 'cidade_code', 'estado', 'cep',
                 'polygon_coords', 'area_calculada', 'area_calculo_status',
@@ -66,7 +67,7 @@ class GetTerrenoGeoAnalysisTool implements Tool
             'nome' => $terreno->nome,
             'endereco' => $terreno->endereco,
             'bairro' => $terreno->bairro,
-            'cidade_code' => $terreno->cidade_code,
+            'cidade' => $terreno->cidade?->city ?? $terreno->cidade_code,
             'estado' => $terreno->estado,
         ];
 

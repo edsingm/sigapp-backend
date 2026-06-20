@@ -2,17 +2,17 @@
 
 namespace Tests\Unit;
 
-use App\Ai\Agents\SIG_IA;
-use App\Ai\Tools\AnalyzeDocumentTool;
-use App\Ai\Tools\SearchDocumentsTool;
-use App\Services\AiEmbeddingService;
+use App\Services\Ai\Agents\SIG_IA;
+use App\Services\Ai\Tools\AnalyzeDocumentTool;
+use App\Services\Ai\Tools\SearchDocumentsTool;
+use App\Services\Ai\Tools\AiEmbeddingService;
 use Tests\TestCase;
 
 class AiEmbeddingServiceTest extends TestCase
 {
     public function test_chunk_text_returns_single_chunk_when_small(): void
     {
-        $service = new AiEmbeddingService;
+        $service = app(AiEmbeddingService::class);
         $chunks = $service->chunkText('Texto curto');
 
         $this->assertCount(1, $chunks);
@@ -21,7 +21,7 @@ class AiEmbeddingServiceTest extends TestCase
 
     public function test_chunk_text_splits_long_text(): void
     {
-        $service = new AiEmbeddingService;
+        $service = app(AiEmbeddingService::class);
         // Cria texto com parágrafos longos
         $longText = str_repeat('Lorem ipsum. ', 500);
         $chunks = $service->chunkText($longText, 1500);
@@ -35,7 +35,7 @@ class AiEmbeddingServiceTest extends TestCase
 
     public function test_chunk_text_respects_paragraph_boundaries(): void
     {
-        $service = new AiEmbeddingService;
+        $service = app(AiEmbeddingService::class);
         $text = "Primeiro parágrafo.\n\nSegundo parágrafo.\n\nTerceiro parágrafo.";
         $chunks = $service->chunkText($text, 100);
 
@@ -44,7 +44,7 @@ class AiEmbeddingServiceTest extends TestCase
 
     public function test_cosine_similarity_identical_vectors(): void
     {
-        $service = new AiEmbeddingService;
+        $service = app(AiEmbeddingService::class);
         $vector = [1.0, 0.0, 0.0, 1.0];
 
         $similarity = $service->cosineSimilarity($vector, $vector);
@@ -54,7 +54,7 @@ class AiEmbeddingServiceTest extends TestCase
 
     public function test_cosine_similarity_orthogonal_vectors(): void
     {
-        $service = new AiEmbeddingService;
+        $service = app(AiEmbeddingService::class);
         $a = [1.0, 0.0];
         $b = [0.0, 1.0];
 
@@ -65,7 +65,7 @@ class AiEmbeddingServiceTest extends TestCase
 
     public function test_cosine_similarity_empty_vectors(): void
     {
-        $service = new AiEmbeddingService;
+        $service = app(AiEmbeddingService::class);
 
         $this->assertEquals(0.0, $service->cosineSimilarity([], []));
     }
@@ -83,7 +83,7 @@ class AiEmbeddingServiceTest extends TestCase
 
     public function test_search_documents_tool_has_description_and_schema(): void
     {
-        $service = new AiEmbeddingService;
+        $service = app(AiEmbeddingService::class);
         $tool = new SearchDocumentsTool($service);
 
         $this->assertNotEmpty($tool->description());

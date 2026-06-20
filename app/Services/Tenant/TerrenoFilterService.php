@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Tenant;
 
-use App\Http\Requests\Tenant\FilterTerrenosRequest;
 use App\Repositories\Contracts\TerrenoFilterRepositoryInterface;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class TerrenoFilterService
 {
@@ -15,9 +15,11 @@ class TerrenoFilterService
 
     /**
      * Aplica filtros avançados na consulta de terrenos e retorna os resultados paginados.
+     *
+     * @param  array<string, mixed>  $filters  Filtros já validados (FilterTerrenosRequest::validated()).
      */
-    public function filter(FilterTerrenosRequest $request)
+    public function filter(array $filters): LengthAwarePaginator
     {
-        return $this->repository->search($request->validated());
+        return $this->repository->search($filters);
     }
 }

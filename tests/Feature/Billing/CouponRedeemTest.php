@@ -30,9 +30,7 @@ class TestableCouponService extends CouponService
 
 class CouponTestStripeClient extends StripeClient
 {
-    public function __construct(public SubscriptionService $subscriptions)
-    {
-    }
+    public function __construct(public SubscriptionService $subscriptions) {}
 }
 
 class CouponRedeemTest extends TestCase

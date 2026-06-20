@@ -15,7 +15,6 @@ use App\Services\Billing\TenantBillingService;
 use App\Services\Signup\TenantSignupService;
 use App\Traits\LogsAudit;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Stancl\Tenancy\Exceptions\TenantDatabaseAlreadyExistsException;
@@ -51,7 +50,7 @@ class SignupController extends Controller
 
         try {
             ['tenant' => $tenant, 'contract_acceptance' => $contractAcceptance, 'trial_eligible' => $trialEligible] =
-                $this->signupService->createPendingTenant($validated, $plan, $request);
+                $this->signupService->createPendingTenant($validated, $plan, $request->ip(), $request->userAgent());
 
             $this->auditContractAcceptance($tenant, $plan, $validated, $contractAcceptance);
             $this->auditSignupStarted($tenant, $plan, $validated);
@@ -89,7 +88,7 @@ class SignupController extends Controller
 
             // Se o tenant foi criado mas o Stripe falhou, remove o tenant órfão
             if ($tenant) {
-                $this->cleanupFailedSignup($tenant);
+                $this->signupService->cleanupFailedSignup($tenant);
             }
 
             $this->audit('tenant.signup_failed', 'Signup falhou: '.Str::limit($e->getMessage(), 200), [
@@ -163,41 +162,6 @@ class SignupController extends Controller
             'ip_address' => $contractAcceptance['ip_address'] ?? null,
             'user_agent' => $contractAcceptance['user_agent'] ?? null,
         ]);
-    }
-
-    /**
-     * Remove tenant órfão criado durante falha no Stripe.
-     */
-    private function cleanupFailedSignup(Tenant $tenant): void
-    {
-        try {
-            // Remove customer do Stripe se foi criado
-            $stripeId = $tenant->getAttribute('stripe_id');
-            if (is_string($stripeId) && $stripeId !== '') {
-                $this->billingService->deleteCustomer($stripeId);
-            }
-        } catch (\Exception $e) {
-            report($e);
-        }
-
-        try {
-            // Remove a linha do trial_ledger criada por ESTE signup. Filtra por
-            // tenant_slug para nunca afetar a elegibilidade de um cadastro anterior
-            // com o mesmo email (cujo registro tem outro slug).
-            DB::table('trial_ledger')
-                ->where('email', TenantSignupService::normalizeEmail((string) $tenant->getAttribute('admin_email')))
-                ->where('tenant_slug', (string) $tenant->getAttribute('slug'))
-                ->delete();
-        } catch (\Exception $e) {
-            report($e);
-        }
-
-        try {
-            $tenant->domains()->delete();
-            $tenant->delete();
-        } catch (\Exception $e) {
-            report($e);
-        }
     }
 
     private function auditSignupStarted(Tenant $tenant, Plan $plan, array $validated): void

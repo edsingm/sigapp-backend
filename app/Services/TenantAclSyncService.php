@@ -4,9 +4,7 @@ namespace App\Services;
 
 use App\Enums\Common\ModulesEnum;
 use App\Enums\Common\RolesEnum;
-use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\PermissionRegistrar;
+use App\Repositories\Tenant\AclSyncRepository;
 
 class TenantAclSyncService
 {
@@ -15,6 +13,10 @@ class TenantAclSyncService
         'editor' => ['viewer', 'editor'],
         'manager' => ['viewer', 'editor', 'manager'],
     ];
+
+    public function __construct(
+        private readonly AclSyncRepository $repository,
+    ) {}
 
     /**
      * Sincroniza as permissões e funções do sistema para o contexto do tenant atual,
@@ -39,8 +41,7 @@ class TenantAclSyncService
 
         $synced = 0;
         foreach ($allPermissions as $name) {
-            $permission = Permission::firstOrCreate(['name' => $name, 'guard_name' => 'web']);
-            if ($permission->wasRecentlyCreated) {
+            if ($this->repository->ensurePermission($name)) {
                 $synced++;
             }
         }
@@ -49,7 +50,7 @@ class TenantAclSyncService
         $rolesSynced = 0;
 
         foreach (RolesEnum::cases() as $roleEnum) {
-            Role::firstOrCreate(['name' => $roleEnum->value, 'guard_name' => 'web']);
+            $this->repository->ensureRole($roleEnum->value);
 
             $templatePath = database_path('rbacTemplates/'.strtolower($roleEnum->value).'.json');
 
@@ -58,14 +59,19 @@ class TenantAclSyncService
             }
 
             $template = json_decode(file_get_contents($templatePath), true);
-            $role = Role::where('name', $roleEnum->value)->where('guard_name', 'web')->first();
+            $role = $this->repository->findRole($roleEnum->value);
+
+            if ($role === null) {
+                continue;
+            }
+
             $permissions = $this->resolvePermissions($template['permissions']);
 
-            $role->syncPermissions($permissions);
+            $this->repository->syncRolePermissions($role, $permissions);
             $rolesSynced++;
         }
 
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $this->repository->forgetCachedPermissions();
 
         return [
             'tenant_id' => (string) $tenant->id,

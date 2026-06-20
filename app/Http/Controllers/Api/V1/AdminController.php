@@ -6,18 +6,17 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
-use App\Repositories\Contracts\CentralUserRepositoryInterface;
-use App\Repositories\Contracts\DashboardRepositoryInterface;
 use App\Services\ApiResponseService;
+use App\Services\Auth\AdminAuthService;
+use App\Services\DashboardService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 
 class AdminController extends Controller
 {
     public function __construct(
-        private readonly CentralUserRepositoryInterface $centralUserRepository,
-        private readonly DashboardRepositoryInterface $dashboardRepository,
+        private readonly AdminAuthService $adminAuthService,
+        private readonly DashboardService $dashboardService,
     ) {}
 
     /**
@@ -27,17 +26,11 @@ class AdminController extends Controller
      */
     public function login(LoginRequest $request): JsonResponse
     {
-        $credentials = $request->validated();
-
         $requestId = $request->header('X-Request-ID');
 
-        $user = $this->centralUserRepository->findByEmail($credentials['email']);
+        $result = $this->adminAuthService->attempt($request->validated());
 
-        if (
-            ! $user
-            || ! Hash::check($credentials['password'], (string) $user->getAttribute('password'))
-            || ! (bool) $user->getAttribute('is_admin')
-        ) {
+        if ($result === null) {
             Log::warning('Login de administrador rejeitado', [
                 'request_id' => $requestId,
                 'status' => 'rejected',
@@ -53,27 +46,14 @@ class AdminController extends Controller
 
         Log::info('Login de administrador aceito', [
             'request_id' => $requestId,
-            'user_id' => $user->getKey(),
+            'user_id' => $result['user']->getKey(),
             'status' => 'accepted',
         ]);
 
-        if ($request->has('device_name')) {
-            $user->tokens()->where('name', $credentials['device_name'])->delete();
-        }
-
-        $tokenResult = $user->createToken(
-            $credentials['device_name'] ?? 'admin-token',
-            ['admin'], // Adiciona habilidade específica para admin
-            now()->addHours(12)
-        );
-
-        $accessToken = $tokenResult->accessToken;
-        $expiresAt = $accessToken->getAttribute('expires_at');
-
         return ApiResponseService::success([
-            'user' => $user,
-            'token' => $tokenResult->plainTextToken,
-            'expires_at' => $expiresAt instanceof \DateTimeInterface ? $expiresAt->format(\DateTimeInterface::ATOM) : null,
+            'user' => $result['user'],
+            'token' => $result['token'],
+            'expires_at' => $result['expires_at'],
         ], language()->t('LOGIN_SUCCESS'));
     }
 
@@ -85,11 +65,8 @@ class AdminController extends Controller
     public function dashboard(): JsonResponse
     {
         return ApiResponseService::success([
-            'stats' => [
-                'total_tenants' => $this->dashboardRepository->countTotalTenants(),
-                'active_tenants' => $this->dashboardRepository->countActiveTenants(),
-            ],
-            'recent_tenants' => $this->dashboardRepository->recentTenantsSimple(5),
+            'stats' => $this->dashboardService->basicStats(),
+            'recent_tenants' => $this->dashboardService->recentTenantsSimple(5),
         ], language()->t('DASHBOARD_DATA_RETRIEVED'));
     }
 }

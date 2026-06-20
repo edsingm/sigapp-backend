@@ -31,9 +31,7 @@ class TestableBillingService extends TenantBillingService
 
 class PaymentRetryStripeClient extends StripeClient
 {
-    public function __construct(public InvoiceService $invoices)
-    {
-    }
+    public function __construct(public InvoiceService $invoices) {}
 }
 
 class PaymentRetryTest extends TestCase

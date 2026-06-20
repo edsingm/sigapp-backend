@@ -18,7 +18,6 @@ use App\Models\Tenant\Terreno;
 use App\Models\Tenant\User;
 use App\Repositories\Contracts\ProjetoRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -49,24 +48,7 @@ class ProjetoService
      */
     public function listarTerrenosElegiveis(array $filters = []): LengthAwarePaginator
     {
-        $query = Terreno::query()
-            ->select('terrenos.*')
-            ->with(['cidade', 'responsavel', 'proprietarios', 'informacoes'])
-            ->where('workflow_status_code', WorkflowStatus::CONTRATO_ASSINADO->value)
-            ->whereDoesntHave('projetoAtivo');
-
-        if (! empty($filters['search'])) {
-            $search = $filters['search'];
-            $query->where(function (Builder $builder) use ($search) {
-                $builder
-                    ->where('nome', 'like', "%{$search}%")
-                    ->orWhere('endereco', 'like', "%{$search}%");
-            });
-        }
-
-        return $query
-            ->orderByDesc('created_at')
-            ->paginate($filters['per_page'] ?? 10);
+        return $this->repository->paginateTerrenosParaNovoProjeto($filters);
     }
 
     /**
@@ -170,7 +152,7 @@ class ProjetoService
             $payload['status'] = $data['status'];
         }
 
-        $projeto->update($payload);
+        $this->repository->update($projeto, $payload);
 
         $this->refreshStatus($projeto);
 
@@ -182,7 +164,7 @@ class ProjetoService
      */
     public function cancelar(Projeto $projeto): Projeto
     {
-        $projeto->update([
+        $this->repository->update($projeto, [
             'status' => ProjetoStatus::CANCELADO,
             'updated_by' => Auth::id(),
         ]);
@@ -203,7 +185,7 @@ class ProjetoService
         }
 
         return DB::transaction(function () use ($projeto) {
-            $projeto->update([
+            $this->repository->update($projeto, [
                 'status' => ProjetoStatus::FINALIZADO,
                 'updated_by' => Auth::id(),
             ]);
@@ -276,17 +258,17 @@ class ProjetoService
             return $projeto;
         }
 
-        $projeto->loadMissing([
+        $this->repository->loadMissing($projeto, [
             'terreno.legalizacao',
         ]);
 
         $resolvedStatus = $this->resolveStatusFromRelations($projeto->terreno);
 
         if ($projeto->status !== $resolvedStatus) {
-            $projeto->forceFill([
+            $this->repository->forceUpdate($projeto, [
                 'status' => $resolvedStatus,
                 'updated_by' => Auth::id() ?? $projeto->updated_by,
-            ])->save();
+            ]);
         }
 
         return $projeto;

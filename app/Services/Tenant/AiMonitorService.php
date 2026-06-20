@@ -5,11 +5,16 @@ namespace App\Services\Tenant;
 use App\Models\Tenant\Legalizacao;
 use App\Models\Tenant\Task;
 use App\Models\Tenant\Terreno;
+use App\Repositories\Tenant\AiMonitorRepository;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 
 class AiMonitorService
 {
+    public function __construct(
+        private readonly AiMonitorRepository $repository,
+    ) {}
+
     /**
      * Detecta terrenos que estão parados (sem atualização > 30 dias).
      *
@@ -19,15 +24,7 @@ class AiMonitorService
     {
         $threshold = now()->subDays(30);
 
-        /** @var Collection<int, Terreno> $terrains */
-        $terrains = Terreno::query()
-            ->whereNotIn('workflow_status_code', ['descartado', 'arquivado', 'legalizado_finalizado'])
-            ->where(function ($q) use ($threshold) {
-                $q->whereNull('workflow_status_changed_at')
-                    ->orWhere('updated_at', '<', $threshold);
-            })
-            ->limit($limit)
-            ->get();
+        $terrains = $this->repository->stalledTerrains($limit, $threshold);
 
         return $terrains->map(function (Terreno $t): array {
             $updatedAt = $t->getAttribute('updated_at');
@@ -58,12 +55,7 @@ class AiMonitorService
      */
     public function detectInconsistencies(int $limit): Collection
     {
-        /** @var Collection<int, Terreno> $terrains */
-        $terrains = Terreno::query()
-            ->with(['viabilidadeAtual', 'comiteAtual'])
-            ->whereNotIn('workflow_status_code', ['descartado', 'arquivado', 'legalizado_finalizado'])
-            ->limit($limit)
-            ->get();
+        $terrains = $this->repository->terrenosWithInconsistencies($limit);
 
         $alerts = collect();
 
@@ -127,12 +119,7 @@ class AiMonitorService
     {
         $alerts = collect();
 
-        /** @var Collection<int, Terreno> $terrains */
-        $terrains = Terreno::query()
-            ->with(['tasks', 'legalizacao.etapas'])
-            ->whereNotIn('workflow_status_code', ['descartado', 'arquivado', 'legalizado_finalizado'])
-            ->limit($limit)
-            ->get();
+        $terrains = $this->repository->terrenosWithOverdueItems($limit);
 
         $terrains->each(function (Terreno $t) use (&$alerts): void {
             /** @var \Illuminate\Database\Eloquent\Collection<int, Task> $tasks */

@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Tenant\Terreno;
-use App\Services\AiScoringService;
+use App\Services\Ai\Tools\AiScoringService;
 use Illuminate\Console\Command;
 
 class RecalculateAiScoresCommand extends Command

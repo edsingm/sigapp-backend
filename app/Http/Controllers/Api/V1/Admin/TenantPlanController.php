@@ -12,6 +12,7 @@ use App\Services\ApiResponseService;
 use App\Services\TenantPlanService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Http\JsonResponse;
 use InvalidArgumentException;
 
 class TenantPlanController extends Controller
@@ -23,7 +24,7 @@ class TenantPlanController extends Controller
     /**
      * Atribui um plano ao tenant, substituindo o plano atual.
      */
-    public function assignPlan(AssignTenantPlanRequest $request, string $id)
+    public function assignPlan(AssignTenantPlanRequest $request, string $id): JsonResponse
     {
         try {
             $tenant = $this->tenantPlanService->assignPlan($id, $request->validated()['plan_id']);
@@ -42,7 +43,7 @@ class TenantPlanController extends Controller
     /**
      * Realiza upgrade de plano (novo plano deve ter sort_order superior ao atual).
      */
-    public function upgradePlan(AssignTenantPlanRequest $request, string $id)
+    public function upgradePlan(AssignTenantPlanRequest $request, string $id): JsonResponse
     {
         try {
             $tenant = $this->tenantPlanService->upgradePlan($id, $request->validated()['plan_id']);
@@ -61,7 +62,7 @@ class TenantPlanController extends Controller
     /**
      * Realiza downgrade de plano (novo plano deve ter sort_order inferior ao atual).
      */
-    public function downgradePlan(AssignTenantPlanRequest $request, string $id)
+    public function downgradePlan(AssignTenantPlanRequest $request, string $id): JsonResponse
     {
         try {
             $tenant = $this->tenantPlanService->downgradePlan($id, $request->validated()['plan_id']);
@@ -80,7 +81,7 @@ class TenantPlanController extends Controller
     /**
      * Lista os entitlements extras de um tenant.
      */
-    public function extraEntitlements(string $id)
+    public function extraEntitlements(string $id): JsonResponse
     {
         try {
             $extras = $this->tenantPlanService->listExtraEntitlements($id);
@@ -94,7 +95,7 @@ class TenantPlanController extends Controller
     /**
      * Adiciona um entitlement extra ao tenant.
      */
-    public function addExtraEntitlement(AddTenantEntitlementRequest $request, string $id)
+    public function addExtraEntitlement(AddTenantEntitlementRequest $request, string $id): JsonResponse
     {
         $data = $request->validated();
 
@@ -119,7 +120,7 @@ class TenantPlanController extends Controller
     /**
      * Atualiza o valor e/ou preço de um entitlement extra do tenant.
      */
-    public function updateExtraEntitlement(UpdateTenantEntitlementRequest $request, string $id, int $entitlementId)
+    public function updateExtraEntitlement(UpdateTenantEntitlementRequest $request, string $id, int $entitlementId): JsonResponse
     {
         try {
             $record = $this->tenantPlanService->updateExtraEntitlement(
@@ -139,7 +140,7 @@ class TenantPlanController extends Controller
     /**
      * Remove um entitlement extra do tenant.
      */
-    public function removeExtraEntitlement(string $id, int $entitlementId)
+    public function removeExtraEntitlement(string $id, int $entitlementId): JsonResponse
     {
         try {
             $this->tenantPlanService->removeExtraEntitlement($id, $entitlementId);

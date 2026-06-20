@@ -10,6 +10,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Table('ai_recommendation_scores')]
 #[Fillable(['terreno_id', 'score', 'tier', 'factors', 'version'])]
+/**
+ * @property int $id
+ * @property int $terreno_id
+ * @property string|float $score
+ * @property string $tier
+ * @property array<string, mixed>|null $factors
+ * @property int $version
+ * @property \Carbon\Carbon|null $updated_at
+ * @property-read Terreno|null $terreno
+ */
 class AiRecommendationScore extends Model
 {
     use HasFactory;

@@ -15,6 +15,7 @@ use App\Http\Resources\Tenant\Admin\RoleResource;
 use App\Http\Resources\Tenant\Admin\RoleSelectResource;
 use App\Services\Acl\RoleService;
 use App\Services\ApiResponseService;
+use Illuminate\Http\JsonResponse;
 use Spatie\Permission\PermissionRegistrar;
 
 class RoleController extends Controller
@@ -23,7 +24,7 @@ class RoleController extends Controller
         private readonly RoleService $roleService,
     ) {}
 
-    public function forSelect()
+    public function forSelect(): JsonResponse
     {
         $roles = $this->roleService->forSelect();
 
@@ -33,7 +34,7 @@ class RoleController extends Controller
         );
     }
 
-    public function index(ListRolesRequest $request)
+    public function index(ListRolesRequest $request): JsonResponse
     {
         $roles = $this->roleService->list($request->validated('search'));
         $usersPerRole = collect($roles)->mapWithKeys(fn ($role) => [
@@ -49,7 +50,7 @@ class RoleController extends Controller
         return ApiResponseService::success($payload, 'Roles recuperadas com sucesso');
     }
 
-    public function show(ShowRoleRequest $request, int $id)
+    public function show(ShowRoleRequest $request, int $id): JsonResponse
     {
         $role = $this->roleService->findById($id);
 
@@ -64,7 +65,7 @@ class RoleController extends Controller
         return ApiResponseService::success($resource, 'Role recuperada com sucesso');
     }
 
-    public function store(StoreRoleRequest $request)
+    public function store(StoreRoleRequest $request): JsonResponse
     {
         $validated = $request->validated();
         $role = $this->roleService->create(
@@ -80,7 +81,7 @@ class RoleController extends Controller
         );
     }
 
-    public function update(UpdateRoleRequest $request, int $id)
+    public function update(UpdateRoleRequest $request, int $id): JsonResponse
     {
         $role = $this->roleService->findById($id);
 
@@ -127,7 +128,7 @@ class RoleController extends Controller
         );
     }
 
-    public function destroy(DestroyRoleRequest $request, int $id)
+    public function destroy(DestroyRoleRequest $request, int $id): JsonResponse
     {
         $role = $this->roleService->findById($id);
 

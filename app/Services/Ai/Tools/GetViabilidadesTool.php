@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Ai\Tools;
+namespace App\Services\Ai\Tools;
 
 use App\Models\Tenant\Viabilidade;
 use App\Services\PlanMatrixService;
@@ -43,7 +43,12 @@ class GetViabilidadesTool implements Tool
         }
 
         $query = Viabilidade::query()
-            ->with(['terreno:id,nome,endereco,cidade_code,estado'])
+            ->with([
+                'terreno' => static function ($q): void {
+                    $q->select(['id', 'nome', 'endereco', 'cidade_code', 'estado'])
+                      ->with('cidade:code,city');
+                },
+            ])
             ->select([
                 'id',
                 'terreno_id',
@@ -90,7 +95,7 @@ class GetViabilidadesTool implements Tool
                     'terreno' => $viabilidade->terreno ? [
                         'nome' => $viabilidade->terreno->nome,
                         'endereco' => $viabilidade->terreno->endereco,
-                        'cidade_code' => $viabilidade->terreno->cidade_code,
+                        'cidade' => $viabilidade->terreno->cidade?->city ?? $viabilidade->terreno->cidade_code,
                         'estado' => $viabilidade->terreno->estado,
                     ] : null,
                     'version' => $viabilidade->version,

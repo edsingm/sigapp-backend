@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\BlogPostDetailResource;
 use App\Http\Resources\BlogPostSummaryResource;
+use App\Services\ApiResponseService;
 use App\Services\BlogService;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -35,13 +36,11 @@ class BlogController extends Controller
     public function show(string $slug): Response
     {
         $payload = $this->blogService->showPublished($slug);
+        $request = request();
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'post' => BlogPostDetailResource::make($payload['post'])->resolve($request = request()),
-                'related' => BlogPostSummaryResource::collection($payload['related'])->resolve($request),
-            ],
+        return ApiResponseService::success([
+            'post' => BlogPostDetailResource::make($payload['post'])->resolve($request),
+            'related' => BlogPostSummaryResource::collection($payload['related'])->resolve($request),
         ]);
     }
 
@@ -50,9 +49,8 @@ class BlogController extends Controller
      */
     public function categories(): Response
     {
-        return response()->json([
-            'success' => true,
-            'data' => $this->blogService->categories()->values()->all(),
-        ]);
+        return ApiResponseService::success(
+            $this->blogService->categories()->values()->all()
+        );
     }
 }

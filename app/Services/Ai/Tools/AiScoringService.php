@@ -1,12 +1,9 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Ai\Tools;
 
-use App\Models\Tenant\AiRecommendationScore;
-use App\Models\Tenant\ComiteRevisao;
-use App\Models\Tenant\Legalizacao;
 use App\Models\Tenant\Terreno;
-use App\Models\Tenant\Viabilidade;
+use App\Repositories\Tenant\AiScoringRepository;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -18,6 +15,10 @@ use Illuminate\Support\Facades\Log;
 class AiScoringService
 {
     public const CURRENT_VERSION = 1;
+
+    public function __construct(
+        private readonly AiScoringRepository $repository,
+    ) {}
 
     // Pesos por fator (total = 100)
     protected const WEIGHT_VIABILIDADE_APROVADA = 25;
@@ -149,19 +150,16 @@ class AiScoringService
     {
         $results = [];
 
-        Terreno::with(['viabilidadeAtual', 'comiteAtual'])->chunkById(100, function ($terrenos) use (&$results): void {
+        $this->repository->chunkAllTerrenos(100, function ($terrenos) use (&$results): void {
             foreach ($terrenos as $terreno) {
                 $result = $this->score($terreno);
 
-                AiRecommendationScore::updateOrCreate(
-                    ['terreno_id' => $terreno->id],
-                    [
-                        'score' => $result['score'],
-                        'tier' => $result['tier'],
-                        'factors' => $result['factors'],
-                        'version' => $result['version'],
-                    ]
-                );
+                $this->repository->upsertScore($terreno->id, [
+                    'score' => $result['score'],
+                    'tier' => $result['tier'],
+                    'factors' => $result['factors'],
+                    'version' => $result['version'],
+                ]);
 
                 $results[] = [
                     'terreno_id' => $terreno->id,
@@ -186,22 +184,7 @@ class AiScoringService
     {
         $limit ??= 50;
 
-        return AiRecommendationScore::with('terreno:id,nome,cidade_code,estado')
-            ->orderByDesc('score')
-            ->limit($limit)
-            ->get()
-            ->map(fn (AiRecommendationScore $s): array => [
-                'terreno_id' => $s->terreno_id,
-                'terreno' => $s->terreno ? [
-                    'nome' => $s->terreno->nome,
-                    'cidade_code' => $s->terreno->cidade_code,
-                    'estado' => $s->terreno->estado,
-                ] : null,
-                'score' => (float) $s->score,
-                'tier' => $s->tier,
-                'updated_at' => optional($s->updated_at)?->toAtomString(),
-            ])
-            ->toArray();
+        return $this->repository->getRanking($limit);
     }
 
     /**
@@ -209,10 +192,7 @@ class AiScoringService
      */
     public function getScore(Terreno $terreno): array
     {
-        $saved = AiRecommendationScore::byTerreno($terreno->id)
-            ->where('version', self::CURRENT_VERSION)
-            ->latest()
-            ->first();
+        $saved = $this->repository->getLatestScore($terreno->id, self::CURRENT_VERSION);
 
         if ($saved) {
             return [
@@ -225,15 +205,12 @@ class AiScoringService
 
         $result = $this->score($terreno);
 
-        AiRecommendationScore::updateOrCreate(
-            ['terreno_id' => $terreno->id],
-            [
-                'score' => $result['score'],
-                'tier' => $result['tier'],
-                'factors' => $result['factors'],
-                'version' => $result['version'],
-            ]
-        );
+        $this->repository->upsertScore($terreno->id, [
+            'score' => $result['score'],
+            'tier' => $result['tier'],
+            'factors' => $result['factors'],
+            'version' => $result['version'],
+        ]);
 
         return $result;
     }
@@ -376,24 +353,17 @@ class AiScoringService
         $score = self::WEIGHT_SEM_PENDENCIAS;
 
         // Comitê com pendências
-        $pendenciasComite = ComiteRevisao::where('terreno_id', $terreno->id)
-            ->where('status', 'em_andamento')
-            ->first();
+        $pendenciasComite = $this->repository->findActiveCommitteeByTerreno($terreno->id);
 
         if ($pendenciasComite) {
-            $pendenciaCount = $pendenciasComite->pendencias()
-                ->where('status', '!=', 'resolvida')
-                ->count();
+            $pendenciaCount = $this->repository->countUnresolvedCommitteePendencias($pendenciasComite);
             $score -= min($score * 0.5, $pendenciaCount * 2);
         }
 
         // Legalização com etapas atrasadas
-        $legalizacao = Legalizacao::where('terreno_id', $terreno->id)->first();
+        $legalizacao = $this->repository->findLegalizacaoByTerreno($terreno->id);
         if ($legalizacao) {
-            $atrasadas = $legalizacao->etapas()
-                ->where('prazo_fim', '<', now())
-                ->whereNotIn('status', ['concluida', 'cancelada'])
-                ->count();
+            $atrasadas = $this->repository->countOverdueLegalizacaoEtapas($legalizacao);
             $score -= min($score * 0.5, $atrasadas * 2);
         }
 

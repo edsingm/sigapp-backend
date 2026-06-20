@@ -12,7 +12,6 @@ use App\Services\Billing\TenantBillingService;
 use App\Services\Signup\TenantSignupService;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Mockery;
 use Mockery\MockInterface;
@@ -55,11 +54,6 @@ class TrialEligibilityTest extends TestCase
             'admin_password' => 'secret123',
             'plan_slug' => 'pro',
         ], $overrides);
-    }
-
-    private function request(): Request
-    {
-        return Request::create('/api/v1/signup', 'POST');
     }
 
     /**
@@ -129,7 +123,7 @@ class TrialEligibilityTest extends TestCase
         $plan = $this->makePlan();
         $service = app(TenantSignupService::class);
 
-        $result = $service->createPendingTenant($this->validatedData(), $plan, $this->request());
+        $result = $service->createPendingTenant($this->validatedData(), $plan);
 
         $this->assertTrue($result['trial_eligible']);
         $this->assertNotNull($result['tenant']->getAttribute('trial_ends_at'));
@@ -143,13 +137,12 @@ class TrialEligibilityTest extends TestCase
         $service = app(TenantSignupService::class);
 
         // Primeiro cadastro consome a elegibilidade.
-        $service->createPendingTenant($this->validatedData(['admin_email' => 'dono@example.com']), $plan, $this->request());
+        $service->createPendingTenant($this->validatedData(['admin_email' => 'dono@example.com']), $plan);
 
         // Segundo cadastro: mesmo email com casing/espaços diferentes.
         $result = $service->createPendingTenant(
             $this->validatedData(['admin_email' => '  Dono@Example.COM ']),
             $plan,
-            $this->request(),
         );
 
         $this->assertFalse($result['trial_eligible']);

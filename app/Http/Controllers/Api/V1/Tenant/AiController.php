@@ -5,9 +5,9 @@ namespace App\Http\Controllers\Api\V1\Tenant;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\ChatAiRequest;
 use App\Repositories\AiConversationRepository;
-use App\Services\AiDataRedactor;
-use App\Services\AiProviderRouter;
-use App\Services\AiTelemetryService;
+use App\Services\Ai\Tools\AiDataRedactor;
+use App\Services\Ai\Tools\AiProviderRouter;
+use App\Services\Ai\Tools\AiTelemetryService;
 use App\Services\ApiResponseService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Ai\Contracts\ConversationStore;
 use Laravel\Ai\Exceptions\RateLimitedException;
+use Symfony\Component\HttpFoundation\Response;
 
 class AiController extends Controller
 {
@@ -67,7 +68,7 @@ class AiController extends Controller
         AiTelemetryService $telemetryService,
         AiProviderRouter $providerRouter,
         AiDataRedactor $redactor
-    ): mixed {
+    ): Response {
         $user = Auth::id();
         $message = $request->string('message')->toString();
         $conversationId = $request->input('conversation_id');

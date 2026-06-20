@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Tenant;
 
+use App\Services\Acl\PermissionNameResolver;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -9,7 +10,15 @@ class UpdatePremissasViabilidadeRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        $user = $this->user();
+
+        if (! $user) {
+            return false;
+        }
+
+        return $user->isAdmin() || $user->hasPermissionTo(
+            app(PermissionNameResolver::class)->forRequest('configurations', null, $this->method())
+        );
     }
 
     /**

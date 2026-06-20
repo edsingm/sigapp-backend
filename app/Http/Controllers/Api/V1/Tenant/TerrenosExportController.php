@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\FilterTerrenosRequest;
 use App\Models\Tenant\Terreno;
 use App\Services\Tenant\TerrenoExportService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -16,6 +17,9 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
 use Spatie\LaravelPdf\Facades\Pdf;
+use Spatie\LaravelPdf\PdfBuilder;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 class TerrenosExportController extends Controller
 {
@@ -23,7 +27,7 @@ class TerrenosExportController extends Controller
         private readonly TerrenoExportService $exportService,
     ) {}
 
-    public function exportPdf(FilterTerrenosRequest $request): mixed
+    public function exportPdf(FilterTerrenosRequest $request): PdfBuilder
     {
         Gate::authorize('export', Terreno::class);
 
@@ -41,7 +45,7 @@ class TerrenosExportController extends Controller
             ->name('listagem-terrenos-'.now()->format('Y-m-d').'.pdf');
     }
 
-    public function exportSinglePdf(int $id): mixed
+    public function exportSinglePdf(int $id): PdfBuilder|JsonResponse
     {
         Gate::authorize('export', Terreno::class);
 
@@ -64,7 +68,7 @@ class TerrenosExportController extends Controller
             ->name('detalhe-terreno-'.$terreno->getKey().'-'.Str::slug((string) $terreno->getAttribute('nome')).'.pdf');
     }
 
-    public function exportExcel(FilterTerrenosRequest $request): mixed
+    public function exportExcel(FilterTerrenosRequest $request): BinaryFileResponse
     {
         Gate::authorize('export', Terreno::class);
 
@@ -73,7 +77,7 @@ class TerrenosExportController extends Controller
         return Excel::download(new TerrenosExport($filters), 'listagem-terrenos-'.now()->format('Y-m-d').'.xlsx');
     }
 
-    public function checklistPdf(Request $request, int $id): mixed
+    public function checklistPdf(Request $request, int $id): Response
     {
         Gate::authorize('export', Terreno::class);
 

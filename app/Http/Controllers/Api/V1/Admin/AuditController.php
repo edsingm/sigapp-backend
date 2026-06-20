@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Http\Controllers\Controller;
 use App\Repositories\AuditLogRepository;
 use App\Services\ApiResponseService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AuditController extends Controller
@@ -16,7 +17,7 @@ class AuditController extends Controller
     /**
      * Lista todos os logs de auditoria.
      */
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
         $action = $request->has('action') ? $request->get('action') : null;
         $userId = $request->has('user_id') ? (int) $request->get('user_id') : null;

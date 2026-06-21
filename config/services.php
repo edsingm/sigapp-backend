@@ -60,4 +60,8 @@ return [
         'key' => env('OPENTOPOGRAPHY_KEY'),
     ],
 
+    'serper' => [
+        'key' => env('SERPER_API_KEY'),
+    ],
+
 ];

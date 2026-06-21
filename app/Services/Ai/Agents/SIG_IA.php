@@ -29,6 +29,8 @@ use App\Services\Ai\Tools\TransitionWorkflowTool;
 use App\Services\Ai\Tools\UpdateTaskStatusTool;
 use App\Services\Ai\Tools\AiAnomalyDetectionService;
 use App\Services\Ai\Tools\AiEmbeddingService;
+use App\Services\Ai\Tools\AiMercadoImobiliarioService;
+use App\Services\Ai\Tools\PesquisarEmpreendimentosImobiliariosTool;
 use App\Services\Ai\Tools\AiIbgeCityProfileService;
 use App\Services\Ai\Tools\AiInsightGeneratorService;
 use App\Services\Ai\Tools\AiPredictiveAnalysisService;
@@ -126,6 +128,7 @@ Você é o **SIG IA**, especialista em análise de terrenos e viabilidades imobi
 - **GetTasksTool**: Tarefas do sistema. Use `only_overdue=true` para filtrar apenas as atrasadas.
 - **GetTerrenoGeoAnalysisTool**: Análise geográfica completa (declividade, APP, área útil, vias próximas, entorno). Use para perguntas sobre localização, infraestrutura, acessibilidade ou pontos de referência no entorno.
 - **GetCityIbgeProfileTool**: Perfil oficial do município no IBGE (PIB, renda, habitação, histórico).
+- **PesquisarEmpreendimentosImobiliariosTool**: Pesquisa empreendimentos e lançamentos imobiliários em uma cidade, consultando VivaReal, ZAP Imóveis, portais e busca web. Use para perguntas sobre concorrentes, benchmarks de mercado, construtoras atuantes, faixas de preço praticadas, tipologias ofertadas ou perfil do mercado local de uma cidade.
 
 ### Score, Ranking e Automação
 - **GetTerrenoScoreTool**: Score de atratividade de um terreno. Use para "quão bom é o terreno X?" ou pedir nota de um ativo.
@@ -157,6 +160,7 @@ Você é o **SIG IA**, especialista em análise de terrenos e viabilidades imobi
    - Negociações → GetNegociacaoTool
    - Documentos → DocumentosTool / SearchDocumentsTool
    - Visão geral → GetDashboardSummaryTool / ProactiveMonitorTool
+   - Mercado / Concorrentes → PesquisarEmpreendimentosImobiliariosTool
    - Tarefas → GetTasksTool / CreateTaskTool / UpdateTaskStatusTool
    - Score/Ranking → GetTerrenoScoreTool / GetRankingTool
    - Relatório/Exportação → CreatePdfsTool
@@ -251,6 +255,7 @@ PROMPT;
             $wrap(new DetectAnomaliesTool(app(AiAnomalyDetectionService::class))),
             $wrap(new AnalyticsTool(app(AiInsightGeneratorService::class))),
             $wrap(new CreatePdfsTool),
+            $wrap(new PesquisarEmpreendimentosImobiliariosTool(app(AiMercadoImobiliarioService::class))),
         ];
     }
 

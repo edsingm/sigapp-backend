@@ -4,7 +4,6 @@ use App\Exceptions\DomainException;
 use App\Http\Middleware\AddTenantContextToLogs;
 use App\Http\Middleware\AiBudgetCheck;
 use App\Http\Middleware\AiRateLimit;
-use App\Http\Middleware\AiTelemetryMiddleware;
 use App\Http\Middleware\ApiRequestLogger;
 use App\Http\Middleware\CheckFeature;
 use App\Http\Middleware\CheckSubscriptionStatus;
@@ -57,7 +56,6 @@ return Application::configure(basePath: dirname(__DIR__))
             'check.feature' => CheckFeature::class,
             'ai.rate_limit' => AiRateLimit::class,
             'ai.budget' => AiBudgetCheck::class,
-            'ai.telemetry' => AiTelemetryMiddleware::class,
         ]);
 
         // Register the 'tenant' middleware group

@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -18,7 +19,13 @@ class AiConversationRepository
             ->where('user_id', $userId)
             ->orderByDesc('updated_at')
             ->limit($limit)
-            ->get(['id', 'title', 'created_at', 'updated_at']);
+            ->get(['id', 'title', 'created_at', 'updated_at'])
+            ->map(function (object $row): object {
+                $row->created_at = $row->created_at ? Carbon::parse($row->created_at)->toISOString() : null;
+                $row->updated_at = $row->updated_at ? Carbon::parse($row->updated_at)->toISOString() : null;
+
+                return $row;
+            });
     }
 
     public function conversationExists(string $conversationId, int|string|null $userId): bool
@@ -40,6 +47,11 @@ class AiConversationRepository
             ->where('conversation_id', $conversationId)
             ->whereIn('role', ['user', 'assistant'])
             ->orderBy('created_at')
-            ->get(['id', 'role', 'content', 'created_at']);
+            ->get(['id', 'role', 'content', 'created_at'])
+            ->map(function (object $row): object {
+                $row->created_at = $row->created_at ? Carbon::parse($row->created_at)->toISOString() : null;
+
+                return $row;
+            });
     }
 }

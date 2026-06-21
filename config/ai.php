@@ -41,7 +41,7 @@ return [
 
     'models' => [
         'deepseek' => [
-            'agent' => env('AI_DEEPSEEK_AGENT_MODEL', 'deepseek-chat'),
+            'agent' => env('AI_DEEPSEEK_AGENT_MODEL', 'deepseek-v4-flash'),
         ],
         'gemini' => [
             'agent' => env('AI_GEMINI_AGENT_MODEL', 'gemini-2.5-flash-native-audio-dialog'),

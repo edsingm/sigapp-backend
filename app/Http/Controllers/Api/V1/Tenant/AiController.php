@@ -121,8 +121,9 @@ class AiController extends Controller
                 $usage = $streamedResponse->usage ?? null;
                 $promptTokens = $usage->promptTokens ?? 0;
                 $completionTokens = $usage->completionTokens ?? 0;
+                $cacheReadInputTokens = $usage->cacheReadInputTokens ?? 0;
                 $totalTokens = $promptTokens + $completionTokens;
-                $estimatedCost = $telemetryService->estimateCost($provider, $model, $promptTokens, $completionTokens);
+                $estimatedCost = $telemetryService->estimateCost($provider, $model, $promptTokens, $completionTokens, $cacheReadInputTokens);
                 $toolCalls = $streamedResponse->events
                     ->where('type', 'tool-call')
                     ->map(fn ($event) => ['tool' => $event->tool ?? 'unknown', 'input' => $event->input ?? []])

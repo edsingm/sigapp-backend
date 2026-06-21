@@ -11,7 +11,10 @@ class AiDataRedactor
         'cpf' => '/\b(\d{3})\.(\d{3})\.(\d{3})-(\d{2})\b/',
         'cnpj' => '/\b(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})-(\d{2})\b/',
         'email' => '/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/',
-        'telefone' => '/\b(\(?\d{2}\)?[\s-]?)?9?\d{4}[\s-]?\d{4}\b/',
+        // DDD obrigatório (2 dígitos) + número. Lookbehind/lookahead em vez de \b
+        // para incluir o "(" inicial no match e não deixar resíduos no texto.
+        // Exige mínimo 10 dígitos totais — evita falso-positivo em IDs/áreas de 8 dígitos.
+        'telefone' => '/(?<![0-9])\(?\d{2}\)?[\s.-]?9?\d{4}[\s.-]?\d{4}(?![0-9])/',
         'telefone_int' => '/\b\+?\d{1,3}[\s.-]?\(?\d{2}\)?[\s.-]?\d{4,5}[\s.-]?\d{4}\b/',
     ];
 

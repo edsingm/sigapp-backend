@@ -19,6 +19,9 @@ class AiMercadoImobiliarioService
 
     private const SERPER_NEWS = 'https://google.serper.dev/news';
 
+    // Páginas a percorrer por busca (cada página = ~10 resultados, 1 crédito Serper)
+    private const SERPER_MAX_PAGINAS = 5;
+
     /**
      * Pesquisa empreendimentos imobiliários consultando OLX e busca web.
      * Resultados são cacheados por 24h por cidade+estado+anos.
@@ -60,8 +63,9 @@ class AiMercadoImobiliarioService
             Log::warning('AiMercadoImobiliario: OLX falhou', ['error' => $e->getMessage()]);
         }
 
-        // Fontes 2 e 3: Serper (web + news) — somente se chave configurada
+        // Fontes 2, 3 e 4: Serper (web + construtoras + news) — somente se chave configurada
         if (config('services.serper.key')) {
+            // Busca geral por empreendimentos e lançamentos
             try {
                 $items = $this->buscarSerperWeb($cidade, $estado, $anos);
                 $empreendimentos = array_merge($empreendimentos, $items);
@@ -73,6 +77,31 @@ class AiMercadoImobiliarioService
                 Log::warning('AiMercadoImobiliario: Serper web falhou', ['error' => $e->getMessage()]);
             }
 
+            // Busca específica por construtoras e incorporadoras ativas na cidade
+            try {
+                $items = $this->buscarSerperConstrutoras($cidade, $estado);
+                $empreendimentos = array_merge($empreendimentos, $items);
+                if ($items !== []) {
+                    $fontesConsultadas[] = 'Construtoras (Google)';
+                }
+            } catch (\Throwable $e) {
+                $erros[] = 'Construtoras: '.$e->getMessage();
+                Log::warning('AiMercadoImobiliario: Serper construtoras falhou', ['error' => $e->getMessage()]);
+            }
+
+            // Busca por segmento econômico/popular (MCMV) — construtoras como Pacaembu, MRV, Tenda
+            try {
+                $items = $this->buscarSerperSegmentoPopular($cidade, $estado);
+                $empreendimentos = array_merge($empreendimentos, $items);
+                if ($items !== []) {
+                    $fontesConsultadas[] = 'Segmento Popular/MCMV (Google)';
+                }
+            } catch (\Throwable $e) {
+                $erros[] = 'Segmento Popular: '.$e->getMessage();
+                Log::warning('AiMercadoImobiliario: Serper popular falhou', ['error' => $e->getMessage()]);
+            }
+
+            // Notícias recentes sobre lançamentos na cidade
             try {
                 $items = $this->buscarSerperNews($cidade, $estado, $anos);
                 $empreendimentos = array_merge($empreendimentos, $items);
@@ -94,9 +123,7 @@ class AiMercadoImobiliarioService
             'total_encontrados' => count($empreendimentos),
             'fontes_consultadas' => $fontesConsultadas,
             'erros_de_consulta' => $erros ?: null,
-            'observacao_serper' => ! config('services.serper.key')
-                ? 'Configure SERPER_API_KEY para ampliar a cobertura com resultados do Google.'
-                : null,
+            'aviso_cobertura' => $this->gerarAvisoCobertura((bool) config('services.serper.key'), $empreendimentos),
             'empreendimentos' => $empreendimentos,
         ];
     }
@@ -144,40 +171,21 @@ class AiMercadoImobiliarioService
         );
     }
 
-    // ── Fonte 2: Serper — busca web ───────────────────────────────────
+    // ── Fonte 2: Serper — busca web geral ─────────────────────────────
 
     /**
+     * Busca ampla por empreendimentos, lançamentos e construtoras.
+     * Sem aspas exatas (que sufocam o Google) e com paginação para
+     * captar o máximo de resultados orgânicos.
+     *
      * @return array<int, array<string, mixed>>
      */
     private function buscarSerperWeb(string $cidade, ?string $estado, int $anos): array
     {
         $localidade = $estado ? "{$cidade} {$estado}" : $cidade;
-        $anoAtual = now()->year;
-        $anoInicio = $anoAtual - $anos;
-        $query = "lançamento imobiliário empreendimento construtora \"{$localidade}\" {$anoInicio}..{$anoAtual}";
+        $query = "lançamentos apartamentos casas empreendimentos {$localidade} construtora incorporadora";
 
-        $response = Http::withHeaders([
-            'X-API-KEY' => (string) config('services.serper.key'),
-            'Content-Type' => 'application/json',
-        ])
-            ->timeout(15)
-            ->post(self::SERPER_SEARCH, [
-                'q' => $query,
-                'gl' => 'br',
-                'hl' => 'pt-br',
-                'num' => 10,
-            ]);
-
-        if (! $response->successful()) {
-            return [];
-        }
-
-        $organic = data_get($response->json(), 'organic', []);
-
-        return array_values(array_map(
-            fn (array $item) => $this->normalizarSerper($item, $cidade, $estado, 'Busca Web'),
-            (array) $organic
-        ));
+        return $this->serperSearch($query, $cidade, $estado, 'Busca Web');
     }
 
     // ── Fonte 3: Serper — notícias ────────────────────────────────────
@@ -188,31 +196,153 @@ class AiMercadoImobiliarioService
     private function buscarSerperNews(string $cidade, ?string $estado, int $anos): array
     {
         $localidade = $estado ? "{$cidade} {$estado}" : $cidade;
-        $query = "lançamento imobiliário novo empreendimento \"{$localidade}\"";
+        $query = "lançamento imobiliário novo empreendimento {$localidade}";
 
-        $response = Http::withHeaders([
-            'X-API-KEY' => (string) config('services.serper.key'),
-            'Content-Type' => 'application/json',
-        ])
-            ->timeout(15)
-            ->post(self::SERPER_NEWS, [
+        $itens = [];
+
+        for ($page = 1; $page <= self::SERPER_MAX_PAGINAS; $page++) {
+            $response = $this->serperHttp()->post(self::SERPER_NEWS, [
                 'q' => $query,
                 'gl' => 'br',
                 'hl' => 'pt-br',
-                'num' => 10,
+                'page' => $page,
                 'tbs' => "cdr:1,cd_min:01/01/{$this->anoMinimo($anos)},cd_max:31/12/".now()->year,
             ]);
 
-        if (! $response->successful()) {
-            return [];
+            if (! $response->successful()) {
+                break;
+            }
+
+            $news = (array) data_get($response->json(), 'news', []);
+            if ($news === []) {
+                break;
+            }
+
+            foreach ($news as $item) {
+                $itens[] = $this->normalizarSerper((array) $item, $cidade, $estado, 'Notícias');
+            }
         }
 
-        $news = data_get($response->json(), 'news', []);
+        return $itens;
+    }
 
-        return array_values(array_map(
-            fn (array $item) => $this->normalizarSerper($item, $cidade, $estado, 'Notícias'),
-            (array) $news
-        ));
+    // ── Fonte extra: Serper construtoras ─────────────────────────────
+
+    /**
+     * Busca construtoras e incorporadoras ativas na cidade via Google.
+     * Cobre empresas que vendem pelo site próprio e não aparecem em portais.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function buscarSerperConstrutoras(string $cidade, ?string $estado): array
+    {
+        $localidade = $estado ? "{$cidade} {$estado}" : $cidade;
+        $query = "construtora incorporadora loteadora loteamento condominio empreendimento residencial {$localidade}";
+
+        return $this->serperSearch($query, $cidade, $estado, 'Site de Construtora');
+    }
+
+    // ── Fonte extra: Serper segmento popular/MCMV ────────────────────
+
+    /**
+     * Busca empreendimentos do segmento popular e MCMV.
+     * Construtoras populares (Pacaembu, MRV, Tenda, Cury) raramente
+     * listam nos portais — vendem via MCMV/CEF e site próprio.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function buscarSerperSegmentoPopular(string $cidade, ?string $estado): array
+    {
+        $localidade = $estado ? "{$cidade} {$estado}" : $cidade;
+        $query = "Minha Casa Minha Vida MCMV casas apartamentos {$localidade} construtora";
+
+        return $this->serperSearch($query, $cidade, $estado, 'Segmento Popular/MCMV');
+    }
+
+    // ── Helper: busca paginada no endpoint /search ───────────────────
+
+    /**
+     * Executa uma busca no Serper paginando até SERPER_MAX_PAGINAS,
+     * retornando TODOS os resultados orgânicos encontrados.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function serperSearch(string $query, string $cidade, ?string $estado, string $fonte): array
+    {
+        $itens = [];
+
+        for ($page = 1; $page <= self::SERPER_MAX_PAGINAS; $page++) {
+            $response = $this->serperHttp()->post(self::SERPER_SEARCH, [
+                'q' => $query,
+                'gl' => 'br',
+                'hl' => 'pt-br',
+                'page' => $page,
+            ]);
+
+            if (! $response->successful()) {
+                break;
+            }
+
+            $organic = (array) data_get($response->json(), 'organic', []);
+            if ($organic === []) {
+                break;
+            }
+
+            foreach ($organic as $item) {
+                $itens[] = $this->normalizarSerper((array) $item, $cidade, $estado, $fonte);
+            }
+        }
+
+        return $itens;
+    }
+
+    private function serperHttp(): PendingRequest
+    {
+        return Http::withHeaders([
+            'X-API-KEY' => (string) config('services.serper.key'),
+            'Content-Type' => 'application/json',
+        ])->timeout(15);
+    }
+
+    // ── Aviso de cobertura ────────────────────────────────────────────
+
+    /**
+     * Gera aviso explícito para o agente sobre lacunas de cobertura.
+     * O agente deve comunicar essas limitações proativamente ao usuário.
+     *
+     * @param array<int, array<string, mixed>> $empreendimentos
+     */
+    private function gerarAvisoCobertura(bool $serperAtivo, array $empreendimentos): string
+    {
+        $avisos = [];
+
+        if (! $serperAtivo) {
+            $avisos[] = 'SERPER_API_KEY não configurada: cobertura limitada ao OLX/ZAP. '
+                .'Construtoras que vendem pelo site próprio (Pacaembu, MRV, Tenda, Cury, Tegra, etc.) '
+                .'não são detectadas sem a busca web.';
+        }
+
+        $temPopular = collect($empreendimentos)->contains(
+            fn (array $e) => Str::contains(strtolower($e['fonte'] ?? ''), ['popular', 'mcmv'])
+        );
+
+        if (! $temPopular) {
+            $avisos[] = 'IMPORTANTE: O segmento econômico/popular (MCMV) pode estar subrepresentado. '
+                .'Grandes construtoras populares como Pacaembu, MRV, Tenda e Cury atuam via CEF/MCMV '
+                .'e não listam empreendimentos em portais como OLX. '
+                .'Recomende ao usuário verificar diretamente os sites dessas construtoras '
+                .'e a lista de empreendimentos habilitados na CEF para a cidade.';
+        }
+
+        if ($empreendimentos === []) {
+            $avisos[] = 'Nenhum empreendimento encontrado nas fontes consultadas. '
+                .'Isso não significa ausência de mercado — pode indicar que as construtoras ativas '
+                .'na cidade operam fora dos canais pesquisados. '
+                .'Informe o usuário e sugira busca manual em ADEMI, SINDUSCON ou CEF local.';
+        }
+
+        return implode(' | ', $avisos) ?: 'Cobertura incluiu portais e busca web. '
+            .'Construtoras sem presença digital podem não ter sido detectadas.';
     }
 
     // ── Normalizadores ────────────────────────────────────────────────

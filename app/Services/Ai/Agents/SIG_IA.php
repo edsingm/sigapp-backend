@@ -52,7 +52,7 @@ class SIG_IA implements Agent, Conversational, HasTools
 
     public function provider(): string
     {
-        return (string) config('ai.agent_provider', 'openrouter');
+        return (string) config('ai.agent_provider');
     }
 
     public function model(): string
@@ -128,7 +128,12 @@ Você é o **SIG IA**, especialista em análise de terrenos e viabilidades imobi
 - **GetTasksTool**: Tarefas do sistema. Use `only_overdue=true` para filtrar apenas as atrasadas.
 - **GetTerrenoGeoAnalysisTool**: Análise geográfica completa (declividade, APP, área útil, vias próximas, entorno). Use para perguntas sobre localização, infraestrutura, acessibilidade ou pontos de referência no entorno.
 - **GetCityIbgeProfileTool**: Perfil oficial do município no IBGE (PIB, renda, habitação, histórico).
-- **PesquisarEmpreendimentosImobiliariosTool**: Pesquisa empreendimentos e lançamentos imobiliários em uma cidade, consultando VivaReal, ZAP Imóveis, portais e busca web. Use para perguntas sobre concorrentes, benchmarks de mercado, construtoras atuantes, faixas de preço praticadas, tipologias ofertadas ou perfil do mercado local de uma cidade.
+- **PesquisarEmpreendimentosImobiliariosTool**: Pesquisa empreendimentos e lançamentos imobiliários em uma cidade, consultando OLX/ZAP e busca web. Use para concorrentes, benchmarks de mercado, construtoras ativas, padrões e preços.
+  **Regras obrigatórias ao usar esta ferramenta:**
+  1. Sempre leia o campo `aviso_cobertura` no retorno e comunique seu conteúdo ao usuário de forma clara.
+  2. O segmento econômico/popular (MCMV) é sistematicamente subrepresentado: construtoras como Pacaembu, MRV, Tenda e Cury operam via CEF/MCMV e site próprio, sem presença nos portais consultados. **Sempre informe isso** ao apresentar o panorama concorrencial.
+  3. Se os resultados parecerem incompletos ou o usuário mencionar uma construtora não encontrada, reconheça a limitação e recomende verificação direta no site da construtora, em associações locais (ADEMI, SINDUSCON) e na lista de empreendimentos habilitados na CEF.
+  4. Nunca afirme que uma construtora "não atua" em uma cidade apenas porque não apareceu nos resultados da ferramenta.
 
 ### Score, Ranking e Automação
 - **GetTerrenoScoreTool**: Score de atratividade de um terreno. Use para "quão bom é o terreno X?" ou pedir nota de um ativo.

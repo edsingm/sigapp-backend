@@ -16,7 +16,7 @@ class PesquisarEmpreendimentosImobiliariosTool implements Tool
 
     public function description(): Stringable|string
     {
-        return 'Pesquisa empreendimentos imobiliários e lançamentos em uma cidade específica, consultando múltiplas fontes do mercado imobiliário brasileiro (VivaReal, ZAP Imóveis, busca web e portais). Use para análise de concorrentes, benchmarks de mercado imobiliário local, identificação de lançamentos recentes, perfil de construtoras/incorporadoras atuantes na região, e comparação de padrões, tipologias e faixas de preço praticadas.';
+        return 'Pesquisa empreendimentos imobiliários, lançamentos e projetos em obras em uma cidade específica, consultando OLX/ZAP e busca web. ATENÇÃO: construtoras do segmento econômico/popular (Pacaembu, MRV, Tenda, Cury, etc.) vendem via MCMV/CEF e site próprio, não aparecem em portais — o campo "aviso_cobertura" no retorno indica explicitamente quais segmentos podem estar subrepresentados e deve ser comunicado ao usuário. Use para análise de concorrentes, benchmarks de mercado, identificação de construtoras ativas e comparação de padrões e preços.';
     }
 
     public function handle(Request $request): Stringable|string

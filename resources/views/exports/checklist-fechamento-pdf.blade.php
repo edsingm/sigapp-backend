@@ -17,7 +17,7 @@
             font-size: 11px;
             color: #1f2937;
         }
-        .header-bg { background-color: #1e3a8a; } /* Dark Blue like Excel header often is */
+        .header-bg { background-color: #0b1e39; }
         .section-header {
             background-color: #f3f4f6;
             font-weight: bold;
@@ -74,6 +74,9 @@
                 <p class="text-sm opacity-80">Análise de Áreas - Novos Negócios</p>
             </div>
             <div class="text-right text-xs">
+                <div style="background:white;border-radius:8px;padding:3px 8px;display:inline-block;margin-bottom:6px;">
+                    <svg viewBox="0 0 188 58" width="90" height="28" xmlns="http://www.w3.org/2000/svg" aria-label="SIGAPP"><text x="4" y="47" font-family="Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-weight="900" font-size="48" fill="#2e6bff" letter-spacing="-2.5">SIG</text><rect x="87" y="7" width="96" height="44" rx="11" fill="#0b1e39"/><text x="135" y="39" font-family="Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-weight="800" font-size="26" fill="white" text-anchor="middle" letter-spacing="1.5">APP</text></svg>
+                </div>
                 <p>Data: {{ now()->format('d/m/Y') }}</p>
                 <p>Responsável: {{ auth()->user()->name ?? 'Sistema' }}</p>
             </div>

@@ -18,8 +18,8 @@
             margin: 0;
             padding: 0;
         }
-        .bg-primary { background-color: #7c3aed; }
-        .text-primary { color: #7c3aed; }
+        .bg-primary { background-color: #2e6bff; }
+        .text-primary { color: #2e6bff; }
         .badge {
             display: inline-block;
             padding: 4px 12px;
@@ -46,9 +46,12 @@
         <div class="flex justify-between items-start">
             <div>
                 <h1 class="text-3xl font-bold uppercase tracking-tight">{{ $area->nome }}</h1>
-                <p class="text-purple-100 mt-1">Relatório Detalhado de Prospecção</p>
+                <p class="text-blue-100 mt-1">Relatório Detalhado de Prospecção</p>
             </div>
             <div class="text-right">
+                <div style="background:white;border-radius:8px;padding:3px 8px;display:inline-block;margin-bottom:6px;">
+                    <svg viewBox="0 0 188 58" width="90" height="28" xmlns="http://www.w3.org/2000/svg" aria-label="SIGAPP"><text x="4" y="47" font-family="Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-weight="900" font-size="48" fill="#2e6bff" letter-spacing="-2.5">SIG</text><rect x="87" y="7" width="96" height="44" rx="11" fill="#0b1e39"/><text x="135" y="39" font-family="Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-weight="800" font-size="26" fill="white" text-anchor="middle" letter-spacing="1.5">APP</text></svg>
+                </div>
                 <p class="text-sm opacity-80">ID da Área: #{{ $area->id }}</p>
                 <p class="text-sm opacity-80">Gerado em: {{ $dataGeracao }}</p>
                 <p class="text-sm opacity-80">Gerado por: {{ $geradoPor }}</p>
@@ -80,7 +83,7 @@
                 // Criar o polígono
                 const polygon = L.polygon(coords, {
                     color: '#fff',
-                    fillColor: '#7c3aed',
+                    fillColor: '#2e6bff',
                     fillOpacity: 0.4,
                     weight: 2
                 }).addTo(map);
@@ -223,7 +226,7 @@
 
     <!-- Footer -->
     <div class="p-8 border-t border-zinc-100 text-center mt-auto">
-        <p class="text-[10px] text-zinc-400">LRG Construtora - Documento gerado eletronicamente para fins de análise interna.</p>
+        <p class="text-[10px] text-zinc-400">SIGAPP - Documento gerado eletronicamente para fins de análise interna.</p>
         <p class="text-[10px] text-zinc-400">Página 1 de 1</p>
     </div>
 </body>

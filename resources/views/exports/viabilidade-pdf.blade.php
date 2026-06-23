@@ -36,7 +36,7 @@
             align-items: flex-start;
             margin-bottom: 24px;
             padding-bottom: 16px;
-            border-bottom: 3px solid #6366f1;
+            border-bottom: 3px solid #2e6bff;
         }
         
         .header-brand {
@@ -46,16 +46,8 @@
         }
         
         .header-logo {
-            width: 48px;
-            height: 48px;
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-            border-radius: 10px;
             display: flex;
             align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 800;
-            font-size: 18px;
         }
         
         .header-info h1 {
@@ -77,7 +69,7 @@
         .header-meta .doc-number {
             font-size: 18px;
             font-weight: 700;
-            color: #6366f1;
+            color: #2e6bff;
             margin-bottom: 4px;
         }
         
@@ -90,7 +82,7 @@
             display: inline-block;
             margin-top: 6px;
             padding: 3px 10px;
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            background: linear-gradient(135deg, #1e8a5b 0%, #15694a 100%);
             color: white;
             border-radius: 12px;
             font-size: 8px;
@@ -135,7 +127,7 @@
         .area-stat-value {
             font-size: 16px;
             font-weight: 700;
-            color: #6366f1;
+            color: #2e6bff;
         }
         
         .area-stat-label {
@@ -164,7 +156,7 @@
             content: '';
             width: 4px;
             height: 16px;
-            background: linear-gradient(180deg, #6366f1 0%, #8b5cf6 100%);
+            background: linear-gradient(180deg, #2e6bff 0%, #1a4db5 100%);
             border-radius: 2px;
         }
         
@@ -192,11 +184,11 @@
             left: 0;
             width: 100%;
             height: 3px;
-            background: linear-gradient(90deg, #6366f1, #8b5cf6);
+            background: linear-gradient(90deg, #2e6bff, #1a4db5);
         }
         
         .kpi-card.highlight {
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            background: linear-gradient(135deg, #2e6bff 0%, #1a4db5 100%);
             border: none;
         }
         
@@ -224,7 +216,7 @@
             color: #1e293b;
         }
         
-        .kpi-value.positive { color: #059669; }
+        .kpi-value.positive { color: #15694a; }
         .kpi-value.negative { color: #dc2626; }
         
         .kpi-subtitle {
@@ -278,7 +270,7 @@
         }
         
         .dre-table thead th {
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            background: linear-gradient(135deg, #2e6bff 0%, #1a4db5 100%);
             color: white;
             text-align: left;
             padding: 10px 12px;
@@ -336,7 +328,7 @@
         }
         
         .dre-table .final-result {
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            background: linear-gradient(135deg, #2e6bff 0%, #1a4db5 100%);
             color: white;
             font-weight: 700;
         }
@@ -448,7 +440,7 @@
         /* Utilities */
         .text-right { text-align: right; }
         .font-bold { font-weight: 700; }
-        .text-positive { color: #059669; }
+        .text-positive { color: #15694a; }
         .text-negative { color: #dc2626; }
     </style>
 </head>
@@ -457,7 +449,9 @@
         <!-- Header -->
         <div class="header">
             <div class="header-brand">
-                <div class="header-logo">LRG</div>
+                <div class="header-logo">
+                    <svg viewBox="0 0 188 58" width="120" height="37" xmlns="http://www.w3.org/2000/svg" aria-label="SIGAPP"><text x="4" y="47" font-family="Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-weight="900" font-size="48" fill="#2e6bff" letter-spacing="-2.5">SIG</text><rect x="87" y="7" width="96" height="44" rx="11" fill="#0b1e39"/><text x="135" y="39" font-family="Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-weight="800" font-size="26" fill="white" text-anchor="middle" letter-spacing="1.5">APP</text></svg>
+                </div>
                 <div class="header-info">
                     <h1>Estudo de Viabilidade Econômica</h1>
                     <p>Análise Financeira de Empreendimento Imobiliário</p>
@@ -605,7 +599,7 @@
                         <td>Outros Impostos</td>
                         <td>{{ number_format($viabilidade->outros_impostos ?? 0, 2, ',', '.') }}%</td>
                     </tr>
-                    <tr style="font-weight: 700; color: #6366f1;">
+                    <tr style="font-weight: 700; color: #2e6bff;">
                         <td>Total Tributos</td>
                         <td>{{ number_format(($viabilidade->pis_cofins ?? 0) + ($viabilidade->iss ?? 0) + ($viabilidade->outros_impostos ?? 0), 2, ',', '.') }}%</td>
                     </tr>
@@ -1004,8 +998,8 @@
                     <!-- Grid lines -->
                     <defs>
                         <linearGradient id="saldoGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" style="stop-color:#10b981;stop-opacity:0.3" />
-                            <stop offset="100%" style="stop-color:#10b981;stop-opacity:0.05" />
+                            <stop offset="0%" style="stop-color:#1e8a5b;stop-opacity:0.3" />
+                            <stop offset="100%" style="stop-color:#1e8a5b;stop-opacity:0.05" />
                         </linearGradient>
                     </defs>
                     
@@ -1036,27 +1030,27 @@
                     <path d="{{ $saldoAreaPath }}" fill="url(#saldoGradient)" />
                     
                     <!-- Lines -->
-                    <path d="{{ $receitaPath }}" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="{{ $custoPath }}" fill="none" stroke="#f43f5e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6,3"/>
-                    <path d="{{ $saldoPath }}" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="{{ $receitaPath }}" fill="none" stroke="#2e6bff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="{{ $custoPath }}" fill="none" stroke="#d93933" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6,3"/>
+                    <path d="{{ $saldoPath }}" fill="none" stroke="#1e8a5b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
                     
                     <!-- End points -->
-                    <circle cx="{{ $scaleX(12) }}" cy="{{ $scaleY(end($pontos)['receita']) }}" r="4" fill="#6366f1"/>
-                    <circle cx="{{ $scaleX(12) }}" cy="{{ $scaleY(end($pontos)['custo']) }}" r="4" fill="#f43f5e"/>
-                    <circle cx="{{ $scaleX(12) }}" cy="{{ $scaleY(end($pontos)['saldo']) }}" r="4" fill="#10b981"/>
+                    <circle cx="{{ $scaleX(12) }}" cy="{{ $scaleY(end($pontos)['receita']) }}" r="4" fill="#2e6bff"/>
+                    <circle cx="{{ $scaleX(12) }}" cy="{{ $scaleY(end($pontos)['custo']) }}" r="4" fill="#d93933"/>
+                    <circle cx="{{ $scaleX(12) }}" cy="{{ $scaleY(end($pontos)['saldo']) }}" r="4" fill="#1e8a5b"/>
                 </svg>
                 
                 <div class="chart-legend">
                     <div class="chart-legend-item">
-                        <div class="chart-legend-color" style="background: #6366f1;"></div>
+                        <div class="chart-legend-color" style="background: #2e6bff;"></div>
                         <span>Receita Acumulada</span>
                     </div>
                     <div class="chart-legend-item">
-                        <div class="chart-legend-color" style="background: #f43f5e;"></div>
+                        <div class="chart-legend-color" style="background: #d93933;"></div>
                         <span>Custos Acumulados</span>
                     </div>
                     <div class="chart-legend-item">
-                        <div class="chart-legend-color" style="background: #10b981;"></div>
+                        <div class="chart-legend-color" style="background: #1e8a5b;"></div>
                         <span>Saldo do Projeto</span>
                     </div>
                 </div>
@@ -1066,7 +1060,7 @@
         <!-- Footer -->
         <div class="footer">
             <div class="footer-left">
-                <strong>LRG Construtora</strong> — Sistema Interno de Gestão (SIG)<br>
+                <strong>SIGAPP</strong> — Sistema Interno de Gestão<br>
                 Documento gerado eletronicamente. Válido sem assinatura.
             </div>
             <div class="footer-right">

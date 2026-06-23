@@ -9,18 +9,18 @@
         }
 
         :root {
-            --primary: #2f8f5b;
-            --primary-strong: #246f47;
-            --primary-soft: #eaf5ef;
-            --text: #1f2a24;
-            --muted: #64756a;
-            --border: #d5e2da;
-            --table-head: #f3f8f5;
-            --table-stripe: #fafcfb;
-            --success: #257949;
-            --danger: #b93d3d;
-            --warning: #a76c12;
-            --info: #2a6f9f;
+            --primary: #2e6bff;
+            --primary-strong: #1a4db5;
+            --primary-soft: #eef2f8;
+            --text: #0b1e39;
+            --muted: #54627a;
+            --border: #e5eaf3;
+            --table-head: #f4f6fb;
+            --table-stripe: #f8fafd;
+            --success: #1e8a5b;
+            --danger: #d93933;
+            --warning: #e0a436;
+            --info: #2e6bff;
         }
 
         * {
@@ -159,9 +159,14 @@
 <body>
     <div class="doc-header">
         <h1>{{ $title }}</h1>
-        <div class="doc-meta">
-            Gerado por IA em {{ now()->format('d/m/Y H:i') }}<br>
-            Documento confidencial
+        <div style="text-align:right;">
+            <div style="background:white;border-radius:8px;padding:4px 10px;display:inline-block;margin-bottom:6px;">
+                <svg viewBox="0 0 188 58" width="100" height="31" xmlns="http://www.w3.org/2000/svg" aria-label="SIGAPP"><text x="4" y="47" font-family="Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-weight="900" font-size="48" fill="#2e6bff" letter-spacing="-2.5">SIG</text><rect x="87" y="7" width="96" height="44" rx="11" fill="#0b1e39"/><text x="135" y="39" font-family="Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-weight="800" font-size="26" fill="white" text-anchor="middle" letter-spacing="1.5">APP</text></svg>
+            </div>
+            <div class="doc-meta">
+                Gerado por IA em {{ now()->format('d/m/Y H:i') }}<br>
+                Documento confidencial
+            </div>
         </div>
     </div>
 

@@ -11,19 +11,19 @@
         }
 
         :root {
-            --primary: #2f8f5b;
-            --primary-strong: #246f47;
-            --primary-soft: #eaf5ef;
-            --text: #1f2a24;
-            --muted: #64756a;
-            --border: #d5e2da;
-            --table-head: #f3f8f5;
-            --table-stripe: #fafcfb;
-            --success: #257949;
-            --danger: #b93d3d;
-            --warning: #a76c12;
-            --info: #2a6f9f;
-            --neutral: #5f6d64;
+            --primary: #2e6bff;
+            --primary-strong: #1a4db5;
+            --primary-soft: #eef2f8;
+            --text: #0b1e39;
+            --muted: #54627a;
+            --border: #e5eaf3;
+            --table-head: #f4f6fb;
+            --table-stripe: #f8fafd;
+            --success: #1e8a5b;
+            --danger: #d93933;
+            --warning: #e0a436;
+            --info: #2e6bff;
+            --neutral: #54627a;
         }
 
         * {
@@ -130,7 +130,7 @@
         .filters-box {
             border: 1px solid var(--border);
             border-radius: 10px;
-            background: #fcfefd;
+            background: #f8fafd;
             margin-bottom: 10px;
             padding: 8px 10px;
         }
@@ -152,10 +152,10 @@
         .filter-chip {
             display: inline-block;
             padding: 3px 7px;
-            border: 1px solid #cfe1d6;
+            border: 1px solid #c5d5f5;
             border-radius: 999px;
-            background: #f4fbf7;
-            color: #2b6e48;
+            background: #eef2f8;
+            color: #1a4db5;
             font-size: 8px;
             font-weight: 600;
         }
@@ -181,7 +181,7 @@
 
         .report-table thead th {
             background: var(--table-head);
-            color: #2f3f36;
+            color: #2c3a52;
             text-transform: uppercase;
             letter-spacing: 0.35px;
             font-size: 7.5px;
@@ -199,8 +199,8 @@
         .report-table tbody td {
             padding: 6px;
             vertical-align: top;
-            border-bottom: 1px solid #e9f0ec;
-            border-right: 1px solid #e9f0ec;
+            border-bottom: 1px solid #e5eaf3;
+            border-right: 1px solid #e5eaf3;
         }
 
         .report-table tbody td:last-child {
@@ -293,7 +293,7 @@
 
         .units {
             font-weight: 700;
-            color: #255d3f;
+            color: #1e8a5b;
         }
 
         .empty-row {
@@ -346,7 +346,10 @@
                     <h1>Relatório de Terrenos</h1>
                     <p>{{ $companyName }} · Gestão de Prospecção</p>
                 </div>
-                <div class="meta">
+                <div class="meta" style="align-items:flex-end;">
+                    <div style="background:white;border-radius:8px;padding:3px 8px;display:inline-block;margin-bottom:5px;">
+                        <svg viewBox="0 0 188 58" width="90" height="28" xmlns="http://www.w3.org/2000/svg" aria-label="SIGAPP"><text x="4" y="47" font-family="Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-weight="900" font-size="48" fill="#2e6bff" letter-spacing="-2.5">SIG</text><rect x="87" y="7" width="96" height="44" rx="11" fill="#0b1e39"/><text x="135" y="39" font-family="Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-weight="800" font-size="26" fill="white" text-anchor="middle" letter-spacing="1.5">APP</text></svg>
+                    </div>
                     <span>Gerado em: {{ $dataGeracao }}</span>
                     <span>Total de registros: {{ $totalTerrenos }}</span>
                     <span>Ambiente: {{ app()->environment() }}</span>

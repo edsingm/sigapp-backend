@@ -88,6 +88,7 @@ class FilterTerrenosRequest extends FormRequest
 
         $dateFields = [
             'created_at',
+            'updated_at',
             'data_apresentacao',
             'data_negociacao',
             'data_contrato',

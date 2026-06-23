@@ -33,7 +33,7 @@ class TerrenoFilterRepository implements TerrenoFilterRepositoryInterface
 
         $nome = $filters['nome'] ?? null;
         if ($nome !== null && $nome !== '') {
-            $query->whereRaw('LOWER(nome) LIKE ?', [Str::lower($nome).'%']);
+            $query->whereRaw("unaccent(nome) ILIKE unaccent(?)", ['%' . $nome . '%']);
         }
 
         $workflowStatuses = $filters['workflow_statuses'] ?? null;

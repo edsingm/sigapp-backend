@@ -25,15 +25,15 @@ class ServicesArchitectureTest extends TestCase
      * @var array<int, string>
      */
     private array $migratedServices = [
-        'app/Services/AiAnomalyDetectionService.php',
-        'app/Services/AiPredictiveAnalysisService.php',
-        'app/Services/AiTelemetryService.php',
+        'app/Services/Ai/Tools/AiAnomalyDetectionService.php',
+        'app/Services/Ai/Tools/AiPredictiveAnalysisService.php',
+        'app/Services/Ai/Tools/AiTelemetryService.php',
         'app/Services/Tenant/MobilePushService.php',
         'app/Services/Tenant/LandWorkflowService.php',
         'app/Services/Tenant/TerrenoFilterService.php',
-        'app/Services/AiInsightGeneratorService.php',
-        'app/Services/AiScoringService.php',
-        'app/Services/AiEmbeddingService.php',
+        'app/Services/Ai/Tools/AiInsightGeneratorService.php',
+        'app/Services/Ai/Tools/AiScoringService.php',
+        'app/Services/Ai/Tools/AiEmbeddingService.php',
         'app/Services/TenantStatusService.php',
         'app/Services/TenantPlanService.php',
         'app/Services/TenantAclSyncService.php',

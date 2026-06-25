@@ -3,13 +3,11 @@
 namespace Tests\Unit;
 
 use App\Services\Ai\Agents\SIG_IA;
-use App\Services\Ai\Tools\AnalyzeDocumentTool;
 use App\Services\Ai\Tools\CompareAreasTool;
 use App\Services\Ai\Tools\CreatePdfsTool;
 use App\Services\Ai\Tools\CreateTaskTool;
 use App\Services\Ai\Tools\DetectAnomaliesTool;
-use App\Services\Ai\Tools\EstimateVgvTool;
-use App\Services\Ai\Tools\GenerateInsightsTool;
+use App\Services\Ai\Tools\DocumentosTool;
 use App\Services\Ai\Tools\GetCityIbgeProfileTool;
 use App\Services\Ai\Tools\GetComiteTool;
 use App\Services\Ai\Tools\GetDashboardSummaryTool;
@@ -27,9 +25,14 @@ use App\Services\Ai\Tools\ListTerrenosTool;
 use App\Services\Ai\Tools\PredictStallingTool;
 use App\Services\Ai\Tools\PredictViabilityTool;
 use App\Services\Ai\Tools\ProactiveMonitorTool;
+use App\Services\Ai\Tools\PesquisarEmpreendimentosImobiliariosTool;
+use App\Services\Ai\Tools\RedactingToolDecorator;
 use App\Services\Ai\Tools\SearchDocumentsTool;
 use App\Services\Ai\Tools\TransitionWorkflowTool;
 use App\Services\Ai\Tools\UpdateTaskStatusTool;
+use App\Services\Ai\Tools\AnalyticsTool;
+use App\Services\Ai\Tools\EstimateVgvTool;
+use App\Services\Ai\Tools\GenerateInsightsTool;
 use App\Services\Ai\Tools\AiAnomalyDetectionService;
 use App\Services\Ai\Tools\AiIbgeCityProfileService;
 use App\Services\Ai\Tools\AiInsightGeneratorService;
@@ -39,6 +42,7 @@ use App\Services\Tenant\Area\PolygonCalculator;
 use App\Services\Tenant\Geo\GeoProximityService;
 use App\Services\Tenant\LandWorkflowService;
 use Laravel\Ai\Contracts\Tool;
+use Laravel\Ai\Providers\Tools\ProviderTool;
 use Laravel\Ai\Tools\Request;
 use RuntimeException;
 use Spatie\LaravelPdf\Facades\Pdf;
@@ -67,12 +71,11 @@ class AiToolsTest extends TestCase
             GetLegalizacaoTool::class,
             GetComiteTool::class,
             GetNegociacaoTool::class,
-            GetDocumentosTool::class,
+            DocumentosTool::class,
             GetDashboardSummaryTool::class,
             GetTasksTool::class,
             GetCityIbgeProfileTool::class,
             SearchDocumentsTool::class,
-            AnalyzeDocumentTool::class,
             GetTerrenoScoreTool::class,
             GetRankingTool::class,
             CreateTaskTool::class,
@@ -83,13 +86,12 @@ class AiToolsTest extends TestCase
             EstimateVgvTool::class,
             PredictStallingTool::class,
             DetectAnomaliesTool::class,
-            GenerateInsightsTool::class,
-            GetTrendsTool::class,
-            CompareAreasTool::class,
+            AnalyticsTool::class,
             CreatePdfsTool::class,
+            PesquisarEmpreendimentosImobiliariosTool::class,
         ];
 
-        $actual = $tools->map(fn ($t) => $t::class)->sort()->values();
+        $actual = $tools->map(fn ($t) => $this->toolClass($t))->sort()->values();
         sort($expected);
 
         $this->assertEquals($expected, $actual->toArray());
@@ -352,5 +354,12 @@ class AiToolsTest extends TestCase
 
         $this->assertSame(true, $options['reasoning']['enabled'] ?? false);
         $this->assertSame(true, $options['reasoning']['exclude'] ?? false);
+    }
+
+    private function toolClass(Tool|ProviderTool $tool): string
+    {
+        return $tool instanceof RedactingToolDecorator
+            ? $tool->inner()::class
+            : $tool::class;
     }
 }

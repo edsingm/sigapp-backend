@@ -34,7 +34,7 @@ class AiPredictiveAnalysisService
      * - Tempo médio de aprovação/reprovação
      * - Motivos mais comuns de reprovação
      *
-     * @return array{approval_probability: float, confidence: float, reason: string, benchmarks: array, risk_factors: array}
+     * @return array<string, mixed>
      */
     public function predictApprovalProbability(Terreno $terreno): array
     {
@@ -70,7 +70,7 @@ class AiPredictiveAnalysisService
     /**
      * Estatísticas de aprovação do tenant.
      *
-     * @return array{total: int, aprovadas: int, reprovadas: int, pendentes: int, approval_rate: float, avg_days_to_approval: float, avg_days_to_rejection: float, top_rejection_reasons: array}
+     * @return array<string, mixed>
      */
     public function getTenantApprovalStats(): array
     {
@@ -298,7 +298,7 @@ class AiPredictiveAnalysisService
     /**
      * Benchmark de VGV para terrenos similares.
      *
-     * @return array{min: float, max: float, avg: float, median: float, p25: float, p75: float, count: int, currency_formatted: array}
+     * @return array<string, mixed>
      */
     public function getVgvBenchmark(Terreno $terreno): array
     {
@@ -312,7 +312,10 @@ class AiPredictiveAnalysisService
             ];
         }
 
-        $values = $similarViabilities->pluck('vgv')->sort()->values();
+        $values = $similarViabilities->pluck('vgv')
+            ->map(fn (mixed $value): float => (float) $value)
+            ->sort()
+            ->values();
         $count = $values->count();
         $sum = $values->sum();
         $avg = $sum / max(1, $count);
@@ -410,7 +413,7 @@ class AiPredictiveAnalysisService
                 }
 
                 // Viabilidade reprovada
-                $viab = $t->viabilidades()->withTrashed()->latest()->first();
+                $viab = $this->repository->getLatestViabilidadeForTerreno($t->id);
                 if ($viab && in_array($viab->approval_status, ['reprovada', 'reprovada_comite'], true)) {
                     $riskScore += 30;
                     $reasons[] = 'Viabilidade reprovada';
@@ -445,6 +448,8 @@ class AiPredictiveAnalysisService
 
     /**
      * Calcula o desvio padrão de uma coleção.
+     *
+     * @param  Collection<int, float|int>  $values
      */
     protected function standardDeviation(Collection $values): float
     {

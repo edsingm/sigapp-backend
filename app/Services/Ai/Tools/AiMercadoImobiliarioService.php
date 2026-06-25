@@ -19,6 +19,8 @@ class AiMercadoImobiliarioService
 
     /**
      * Pesquisa empreendimentos imobiliários.
+     *
+     * @return array<string, mixed>
      */
     public function pesquisar(string $cidade, ?string $estado = null, int $anos = 5): array
     {
@@ -34,6 +36,9 @@ class AiMercadoImobiliarioService
 
     // ==================== ORQUESTRADOR ====================
 
+    /**
+     * @return array<string, mixed>
+     */
     private function executarPesquisa(string $cidade, ?string $estado, int $anos): array
     {
         $empreendimentos = [];
@@ -111,6 +116,9 @@ class AiMercadoImobiliarioService
 
     // ==================== BUSCAS SERPER ====================
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     private function buscarSerperWeb(string $cidade, ?string $estado, int $anos): array
     {
         $localidade = $estado ? "{$cidade} {$estado}" : $cidade;
@@ -122,6 +130,9 @@ class AiMercadoImobiliarioService
         return $this->serperSearch($query, $cidade, $estado, 'Busca Web', $anos);
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     private function buscarSerperConstrutoras(string $cidade, ?string $estado): array
     {
         $localidade = $estado ? "{$cidade} {$estado}" : $cidade;
@@ -130,6 +141,9 @@ class AiMercadoImobiliarioService
         return $this->serperSearch($query, $cidade, $estado, 'Site de Construtora');
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     private function buscarSerperSegmentoPopular(string $cidade, ?string $estado): array
     {
         $localidade = $estado ? "{$cidade} {$estado}" : $cidade;
@@ -138,6 +152,9 @@ class AiMercadoImobiliarioService
         return $this->serperSearch($query, $cidade, $estado, 'Segmento Popular/MCMV');
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     private function buscarSerperNews(string $cidade, ?string $estado, int $anos): array
     {
         $localidade = $estado ? "{$cidade} {$estado}" : $cidade;
@@ -167,6 +184,9 @@ class AiMercadoImobiliarioService
         return $itens;
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     private function serperSearch(string $query, string $cidade, ?string $estado, string $fonte, ?int $anos = null): array
     {
         $itens = [];
@@ -209,6 +229,10 @@ class AiMercadoImobiliarioService
 
     // ==================== FILTRO DE RELEVÂNCIA ====================
 
+    /**
+     * @param  array<int, array<string, mixed>>  $itens
+     * @return array<int, array<string, mixed>>
+     */
     private function filtrarResultadosRelevantes(array $itens, string $cidade, ?string $estado): array
     {
         $cidadeLower = Str::lower($cidade);
@@ -227,6 +251,10 @@ class AiMercadoImobiliarioService
 
     // ==================== NORMALIZAÇÃO SERPER ====================
 
+    /**
+     * @param  array<string, mixed>  $item
+     * @return array<string, mixed>
+     */
     private function normalizarSerper(array $item, string $cidade, ?string $estado, string $fonte): array
     {
         $title = trim((string)($item['title'] ?? ''));
@@ -266,17 +294,23 @@ class AiMercadoImobiliarioService
         return 'Não identificado';
     }
 
+    /**
+     * @return array<int, string>
+     */
     private function extrairTipologiaDoTexto(string $texto): array
     {
         preg_match_all('/(\d+)\s*(?:quartos?|qtos?)/i', $texto, $matches);
-        $tipos = array_unique($matches[1] ?? []);
+        $tipos = array_unique($matches[1]);
         return array_map(fn($q) => $q . ' quartos', $tipos);
     }
 
+    /**
+     * @return array{min: float, max: float, media: float}|null
+     */
     private function extrairAreaDoTexto(string $texto): ?array
     {
         preg_match_all('/(\d+(?:[.,]\d+)?)\s*m²/i', $texto, $matches);
-        $valores = array_map('floatval', $matches[1] ?? []);
+        $valores = array_map('floatval', $matches[1]);
 
         if (empty($valores)) return null;
 
@@ -287,6 +321,9 @@ class AiMercadoImobiliarioService
         ];
     }
 
+    /**
+     * @return array{min: int, max: null, moeda: string}|null
+     */
     private function extrairPrecoDoTexto(string $texto): ?array
     {
         if (!preg_match('/R\$\s*([\d.,]+)/i', $texto, $match)) {
@@ -327,6 +364,9 @@ class AiMercadoImobiliarioService
         };
     }
 
+    /**
+     * @param  array<string, mixed>  $item
+     */
     private function calcularScoreSerper(array $item, string $fonte): int
     {
         $score = 45;
@@ -345,6 +385,10 @@ class AiMercadoImobiliarioService
 
     // ==================== DEDUPLICAÇÃO ====================
 
+    /**
+     * @param  array<int, array<string, mixed>>  $empreendimentos
+     * @return array<int, array<string, mixed>>
+     */
     private function deduplicar(array $empreendimentos): array
     {
         $seen = [];
@@ -372,11 +416,14 @@ class AiMercadoImobiliarioService
         $remover = ['residencial', 'condomínio', 'condominio', 'loteamento', 'empreendimento', 'torre', 'fase', 'inc', 'ltda'];
         $nome = preg_replace('/\b(' . implode('|', $remover) . ')\b/u', '', $nome);
 
-        return trim(preg_replace('/\s+/', ' ', $nome));
+        return trim(preg_replace('/\s+/', ' ', $nome) ?? '');
     }
 
     // ==================== OLX ====================
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     private function buscarOlx(string $cidade, ?string $estado): array
     {
         $params = ['q' => $cidade];
@@ -407,6 +454,10 @@ class AiMercadoImobiliarioService
         ));
     }
 
+    /**
+     * @param  array<string, mixed>  $ad
+     * @return array<string, mixed>|null
+     */
     private function normalizarOlx(array $ad): ?array
     {
         $subject = trim((string)($ad['subject'] ?? ''));
@@ -450,6 +501,9 @@ class AiMercadoImobiliarioService
 
     // ==================== HELPERS DE NORMALIZAÇÃO (OLX) ====================
 
+    /**
+     * @return array<int, string>
+     */
     private function normalizarTipologia(string $rooms): array
     {
         if ($rooms === '') return [];
@@ -461,6 +515,9 @@ class AiMercadoImobiliarioService
         return [(int)$rooms . ' quartos'];
     }
 
+    /**
+     * @return array{min: float, max: float, media: float}|null
+     */
     private function normalizarArea(string $size): ?array
     {
         if ($size === '') return null;
@@ -477,6 +534,9 @@ class AiMercadoImobiliarioService
         ];
     }
 
+    /**
+     * @return array{min: int, max: null, moeda: string}|null
+     */
     private function normalizarPrecoOlx(string $raw): ?array
     {
         if ($raw === '') return null;
@@ -526,6 +586,9 @@ class AiMercadoImobiliarioService
 
     // ==================== OUTROS MÉTODOS ====================
 
+    /**
+     * @param  array<int, array<string, mixed>>  $empreendimentos
+     */
     private function gerarAvisoCobertura(bool $serperAtivo, array $empreendimentos): string
     {
         $avisos = [];

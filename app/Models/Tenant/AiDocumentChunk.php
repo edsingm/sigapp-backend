@@ -13,6 +13,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable(['document_id', 'terreno_id', 'chunk_index', 'content', 'metadata'])]
 /**
  * @property int $id
+ * @property string $content
+ * @property array<string, mixed>|null $metadata
+ * @property int $chunk_index
+ * @property Documento|null $documento
+ * @property Terreno|null $terreno
  */
 class AiDocumentChunk extends Model
 {

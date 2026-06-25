@@ -42,4 +42,6 @@ interface AiPredictiveRepositoryInterface
     public function getActiveTerrainsForRiskAnalysis(int $limit): Collection;
 
     public function getLatestStageChange(int $terrenoId): ?StatusHistory;
+
+    public function getLatestViabilidadeForTerreno(int $terrenoId): ?Viabilidade;
 }

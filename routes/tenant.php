@@ -115,12 +115,17 @@ Route::middleware([
             // Billing — troca de plano e atualização de método de pagamento
             // Acessíveis mesmo com assinatura suspensa (tenant pode reativar/atualizar sem bloqueio)
             Route::middleware('tenant.admin')->group(function () {
-                Route::post('/tenant/subscription/swap', [PlanSwapController::class, 'swap']);
-                Route::post('/tenant/billing/setup-intent', [TenantController::class, 'createSetupIntent']);
-                Route::post('/tenant/billing/payment-method', [TenantController::class, 'updateDefaultPaymentMethod']);
-                Route::post('/tenant/billing/coupon/redeem', [TenantCouponController::class, 'redeem']);
+                Route::post('/tenant/subscription/swap', [PlanSwapController::class, 'swap'])
+                    ->middleware('tenant.admin');
+                Route::post('/tenant/billing/setup-intent', [TenantController::class, 'createSetupIntent'])
+                    ->middleware('tenant.admin');
+                Route::post('/tenant/billing/payment-method', [TenantController::class, 'updateDefaultPaymentMethod'])
+                    ->middleware('tenant.admin');
+                Route::post('/tenant/billing/coupon/redeem', [TenantCouponController::class, 'redeem'])
+                    ->middleware('tenant.admin');
                 Route::get('/tenant/billing/payment-status', [DunningController::class, 'status']);
-                Route::post('/tenant/billing/retry-payment', [DunningController::class, 'retryPayment']);
+                Route::post('/tenant/billing/retry-payment', [DunningController::class, 'retryPayment'])
+                    ->middleware('tenant.admin');
             });
 
             Route::middleware(CheckSubscriptionStatus::class)->group(function () {
@@ -146,9 +151,11 @@ Route::middleware([
                     ->group(function () {
                         Route::post('users', [AdminUserManagementController::class, 'store'])
                             ->middleware('enforce.limits:users')
+                            ->middleware('tenant.admin')
                             ->name('tenant-admin.users.store');
                         Route::apiResource('users', AdminUserManagementController::class)->except(['store']);
                         Route::put('users/{id}/module-permissions', [AdminUserManagementController::class, 'updateModulePermissions'])
+                            ->middleware('tenant.admin')
                             ->name('tenant-admin.users.module-permissions');
                         Route::get('roles/select', [AdminRoleController::class, 'forSelect'])
                             ->name('tenant-admin.roles.select');

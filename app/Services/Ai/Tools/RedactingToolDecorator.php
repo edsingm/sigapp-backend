@@ -21,6 +21,11 @@ class RedactingToolDecorator implements Tool
         private readonly AiDataRedactor $redactor,
     ) {}
 
+    public function inner(): Tool
+    {
+        return $this->inner;
+    }
+
     public function name(): string
     {
         return is_callable([$this->inner, 'name'])

@@ -42,8 +42,8 @@ class AiBudgetCheck
                 'AI_BUDGET_EXCEEDED',
                 'O orçamento mensal de IA foi excedido. Faça upgrade do plano ou aguarde o próximo ciclo.',
                 [
-                    'budget_usd' => number_format($budgetStatus['budget_usd'], 2),
-                    'spent_usd' => number_format($budgetStatus['spent_usd'], 6),
+                    'budget_usd' => number_format((float) $budgetStatus['budget_usd'], 2),
+                    'spent_usd' => number_format((float) $budgetStatus['spent_usd'], 6),
                     'usage_percent' => $budgetStatus['usage_percent'],
                 ],
                 402,

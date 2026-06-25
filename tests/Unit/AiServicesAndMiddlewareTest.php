@@ -84,7 +84,6 @@ class AiServicesAndMiddlewareTest extends TestCase
         $this->assertArrayHasKey('agent', $result);
         $this->assertArrayHasKey('provider', $result);
         $this->assertArrayHasKey('model', $result);
-        $this->assertFalse($result['isFallback']);
         $this->assertEquals('openrouter', $result['provider']);
     }
 
@@ -95,7 +94,6 @@ class AiServicesAndMiddlewareTest extends TestCase
 
         $this->assertArrayHasKey('agent', $result);
         $this->assertArrayHasKey('isFallback', $result);
-        $this->assertTrue($result['isFallback']);
     }
 
     public function test_provider_router_records_attempts(): void

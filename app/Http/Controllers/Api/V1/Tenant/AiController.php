@@ -69,9 +69,19 @@ class AiController extends Controller
         AiProviderRouter $providerRouter,
         AiDataRedactor $redactor
     ): Response {
-        $user = Auth::id();
+        $userId = Auth::id();
+        $authUser = Auth::user();
         $message = $request->string('message')->toString();
         $conversationId = $request->input('conversation_id');
+
+        if (! $authUser) {
+            return ApiResponseService::error(
+                'UNAUTHENTICATED',
+                'Usuário não autenticado.',
+                null,
+                401
+            );
+        }
 
         // Redact data sensível da mensagem
         $message = $redactor->redactPrompt($message);
@@ -79,13 +89,13 @@ class AiController extends Controller
         try {
             // Conversa existente: verificar ownership
             if ($conversationId) {
-                if (! $this->conversationRepository->conversationExists($conversationId, $user)) {
+                if (! $this->conversationRepository->conversationExists($conversationId, $userId)) {
                     return ApiResponseService::notFound('Conversa não encontrada.');
                 }
             } else {
                 // Nova conversa: criar registro
                 $store = resolve(ConversationStore::class);
-                $conversationId = $store->storeConversation($user, Str::limit($message, 60));
+                $conversationId = $store->storeConversation($userId, Str::limit($message, 60));
             }
         } catch (\Throwable $e) {
             Log::error('AI conversation setup failed: '.$e->getMessage());
@@ -105,10 +115,10 @@ class AiController extends Controller
         $startTime = microtime(true);
 
         try {
-            $streamable = $agent->continue($conversationId, Auth::user())->stream($message);
+            $streamable = $agent->continue($conversationId, $authUser)->stream($message);
 
             $streamable->then(function ($streamedResponse) use (
-                $user,
+                $userId,
                 $conversationId,
                 $agentRoute,
                 $startTime,
@@ -133,7 +143,7 @@ class AiController extends Controller
                 $providerRouter->recordAttempt($provider, $model, true);
 
                 $telemetryService->logRequest([
-                    'user_id' => $user,
+                    'user_id' => $userId,
                     'conversation_id' => $conversationId,
                     'provider' => $provider,
                     'model' => $model,
@@ -151,7 +161,7 @@ class AiController extends Controller
 
             $response = response()->stream(function () use (
                 $streamable,
-                $user,
+                $userId,
                 $conversationId,
                 $agentRoute,
                 $startTime,
@@ -190,7 +200,7 @@ class AiController extends Controller
                     // send a friendly message instead of a blank response
                     if (! $hasTextContent) {
                         Log::warning('AI stream produced no text content', [
-                            'user_id' => $user,
+                            'user_id' => $userId,
                             'conversation_id' => $conversationId,
                             'provider' => $agentRoute['provider'],
                             'model' => $agentRoute['model'],
@@ -207,7 +217,7 @@ class AiController extends Controller
                     $duration = (int) ((microtime(true) - $startTime) * 1000);
                     $providerRouter->recordAttempt($agentRoute['provider'], $agentRoute['model'], false, 'Rate limit exceeded');
                     $telemetryService->logRequest([
-                        'user_id' => $user,
+                        'user_id' => $userId,
                         'conversation_id' => $conversationId,
                         'provider' => $agentRoute['provider'],
                         'model' => $agentRoute['model'],
@@ -222,7 +232,7 @@ class AiController extends Controller
                     $duration = (int) ((microtime(true) - $startTime) * 1000);
                     $providerRouter->recordAttempt($agentRoute['provider'], $agentRoute['model'], false, $e->getMessage());
                     $telemetryService->logRequest([
-                        'user_id' => $user,
+                        'user_id' => $userId,
                         'conversation_id' => $conversationId,
                         'provider' => $agentRoute['provider'],
                         'model' => $agentRoute['model'],
@@ -233,7 +243,7 @@ class AiController extends Controller
                     ]);
 
                     Log::error('AI stream error: '.$e->getMessage(), [
-                        'user_id' => $user,
+                        'user_id' => $userId,
                         'conversation_id' => $conversationId,
                         'provider' => $agentRoute['provider'],
                         'model' => $agentRoute['model'],
@@ -261,7 +271,7 @@ class AiController extends Controller
             );
 
             $telemetryService->logRequest([
-                'user_id' => $user,
+                'user_id' => $userId,
                 'conversation_id' => $conversationId,
                 'provider' => $agentRoute['provider'],
                 'model' => $agentRoute['model'],

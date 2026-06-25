@@ -115,4 +115,15 @@ class AiPredictiveRepository implements AiPredictiveRepositoryInterface
 
         return $history;
     }
+
+    public function getLatestViabilidadeForTerreno(int $terrenoId): ?Viabilidade
+    {
+        /** @var Viabilidade|null $viabilidade */
+        $viabilidade = Viabilidade::withTrashed()
+            ->where('terreno_id', $terrenoId)
+            ->latest()
+            ->first();
+
+        return $viabilidade;
+    }
 }

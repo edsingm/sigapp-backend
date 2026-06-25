@@ -9,6 +9,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * @property int $prompt_tokens
+ * @property int $completion_tokens
+ * @property int $total_tokens
+ * @property numeric-string|float $estimated_cost_usd
+ * @property int $duration_ms
+ * @property string $status
+ */
 #[Table('ai_request_logs')]
 #[Fillable(['user_id', 'conversation_id', 'provider', 'model', 'prompt_tokens', 'completion_tokens', 'total_tokens', 'estimated_cost_usd', 'duration_ms', 'tool_calls_count', 'tool_calls', 'status', 'error_message', 'ip_address'])]
 class AiRequestLog extends Model

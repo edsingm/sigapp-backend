@@ -29,7 +29,7 @@ class AiAnomalyDetectionService
     /**
      * Escaneia o portfólio e retorna todas as anomalias detectadas.
      *
-     * @return array{total_anomalies: int, categories: array, anomalies: array}
+     * @return array<string, mixed>
      */
     public function scanPortfolio(?string $category = null, int $limit = 100): array
     {
@@ -64,7 +64,7 @@ class AiAnomalyDetectionService
         return [
             'total_anomalies' => $sorted->count(),
             'categories' => $byCategory,
-            'anomalies' => $sorted,
+            'anomalies' => $sorted->all(),
             'version' => self::VERSION,
             'scan_timestamp' => now()->toIso8601String(),
         ];
@@ -73,7 +73,7 @@ class AiAnomalyDetectionService
     /**
      * Detecta inconsistências entre workflow_stage e dados reais.
      *
-     * @return Collection<int, array>
+     * @return Collection<int, array<string, mixed>>
      */
     public function detectWorkflowInconsistencies(int $limit): Collection
     {
@@ -166,7 +166,7 @@ class AiAnomalyDetectionService
     /**
      * Detecta anomalias financeiras — VGV desproporcional ao valor do terreno.
      *
-     * @return Collection<int, array>
+     * @return Collection<int, array<string, mixed>>
      */
     public function detectFinancialAnomalies(int $limit): Collection
     {
@@ -236,7 +236,7 @@ class AiAnomalyDetectionService
     /**
      * Detecta terrenos duplicados ou muito similares.
      *
-     * @return Collection<int, array>
+     * @return Collection<int, array<string, mixed>>
      */
     public function detectDuplicateTerrains(int $limit): Collection
     {
@@ -283,7 +283,7 @@ class AiAnomalyDetectionService
     /**
      * Detecta problemas de qualidade de dados.
      *
-     * @return Collection<int, array>
+     * @return Collection<int, array<string, mixed>>
      */
     public function detectDataQualityIssues(int $limit): Collection
     {
@@ -367,7 +367,7 @@ class AiAnomalyDetectionService
                 'type' => $matchPoints >= 6 ? 'exact_duplicate' : 'high_similarity',
                 'description' => match (true) {
                     $matchPoints >= 7 => 'endereço e nome muito similares',
-                    $matchPoints >= 5 => 'dados similares na mesma cidade',
+                    $matchPoints === 5 => 'dados similares na mesma cidade',
                     default => 'alta similaridade',
                 },
                 'severity' => $matchPoints >= 6 ? 'high' : 'medium',

@@ -3,9 +3,12 @@
 namespace Tests\Unit;
 
 use App\Services\Ai\Agents\SIG_IA;
-use App\Services\Ai\Tools\AnalyzeDocumentTool;
+use App\Services\Ai\Tools\DocumentosTool;
+use App\Services\Ai\Tools\RedactingToolDecorator;
 use App\Services\Ai\Tools\SearchDocumentsTool;
 use App\Services\Ai\Tools\AiEmbeddingService;
+use Laravel\Ai\Contracts\Tool;
+use Laravel\Ai\Providers\Tools\ProviderTool;
 use Tests\TestCase;
 
 class AiEmbeddingServiceTest extends TestCase
@@ -75,10 +78,14 @@ class AiEmbeddingServiceTest extends TestCase
         $agent = new SIG_IA;
         $tools = collect($agent->tools());
 
-        $classNames = $tools->map(fn ($t) => class_basename($t));
+        $classNames = $tools->map(
+            fn (Tool|ProviderTool $tool) => class_basename(
+                $tool instanceof RedactingToolDecorator ? $tool->inner() : $tool
+            )
+        );
 
         $this->assertTrue($classNames->contains('SearchDocumentsTool'), 'SearchDocumentsTool deve estar registrada');
-        $this->assertTrue($classNames->contains('AnalyzeDocumentTool'), 'AnalyzeDocumentTool deve estar registrada');
+        $this->assertTrue($classNames->contains('DocumentosTool'), 'DocumentosTool deve estar registrada');
     }
 
     public function test_search_documents_tool_has_description_and_schema(): void
@@ -91,7 +98,7 @@ class AiEmbeddingServiceTest extends TestCase
 
     public function test_analyze_document_tool_has_description_and_schema(): void
     {
-        $tool = new AnalyzeDocumentTool;
+        $tool = new DocumentosTool;
 
         $this->assertNotEmpty($tool->description());
     }

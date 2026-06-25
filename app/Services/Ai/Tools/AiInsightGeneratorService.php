@@ -29,7 +29,7 @@ class AiInsightGeneratorService
     /**
      * Gera insights automáticos sobre o portfólio.
      *
-     * @return array{total_insights: int, insights: array, generated_at: string}
+     * @return array<string, mixed>
      */
     public function generateInsights(int $limit = 20): array
     {
@@ -58,7 +58,7 @@ class AiInsightGeneratorService
 
         return [
             'total_insights' => $sorted->count(),
-            'insights' => $sorted,
+            'insights' => $sorted->all(),
             'version' => self::VERSION,
             'generated_at' => now()->toIso8601String(),
         ];
@@ -67,7 +67,7 @@ class AiInsightGeneratorService
     /**
      * Analisa tendências por região, cidade e responsável.
      *
-     * @return array{by_city: array, by_state: array, by_responsavel: array, monthly_trend: array}
+     * @return array<string, mixed>
      */
     public function getTrends(?string $dimension = null): array
     {
@@ -93,7 +93,7 @@ class AiInsightGeneratorService
     /**
      * Compara performance entre áreas/responsáveis.
      *
-     * @return array{comparison: array, ranking: array, summary: array}
+     * @return array<string, mixed>
      */
     public function compareAreas(?string $dimension = 'responsavel', int $limit = 20): array
     {
@@ -123,9 +123,9 @@ class AiInsightGeneratorService
         return [
             'dimension' => $dimension,
             'comparison' => $comparison,
-            'ranking' => $ranking,
+            'ranking' => $ranking->all(),
             'summary' => [
-                'total_items' => count($comparison['items'] ?? []),
+                'total_items' => count($comparison['items']),
                 'best_performer' => $ranking->first()['details'] ?? null,
                 'worst_performer' => $ranking->reverse()->first()['details'] ?? null,
             ],
@@ -135,7 +135,7 @@ class AiInsightGeneratorService
     // ── Insights ─────────────────────────────────────────────────────
 
     /**
-     * @return Collection<int, array>
+     * @return Collection<int, array<string, mixed>>
      */
     protected function conversionRateInsights(): Collection
     {
@@ -179,7 +179,7 @@ class AiInsightGeneratorService
     }
 
     /**
-     * @return Collection<int, array>
+     * @return Collection<int, array<string, mixed>>
      */
     protected function topCitiesInsights(): Collection
     {
@@ -214,7 +214,7 @@ class AiInsightGeneratorService
     }
 
     /**
-     * @return Collection<int, array>
+     * @return Collection<int, array<string, mixed>>
      */
     protected function topResponsaveisInsights(): Collection
     {
@@ -239,7 +239,7 @@ class AiInsightGeneratorService
     }
 
     /**
-     * @return Collection<int, array>
+     * @return Collection<int, array<string, mixed>>
      */
     protected function bottleneckInsights(): Collection
     {
@@ -273,7 +273,7 @@ class AiInsightGeneratorService
     }
 
     /**
-     * @return Collection<int, array>
+     * @return Collection<int, array<string, mixed>>
      */
     protected function temporalEvolutionInsights(): Collection
     {
@@ -301,7 +301,7 @@ class AiInsightGeneratorService
     }
 
     /**
-     * @return Collection<int, array>
+     * @return Collection<int, array<string, mixed>>
      */
     protected function riskConcentrationInsights(): Collection
     {
@@ -331,7 +331,7 @@ class AiInsightGeneratorService
     // ── Trends ───────────────────────────────────────────────────────
 
     /**
-     * @return array<int, array>
+     * @return array<int, array<string, mixed>>
      */
     protected function getTrendsByCity(): array
     {
@@ -364,12 +364,12 @@ class AiInsightGeneratorService
     }
 
     /**
-     * @return array<int, array>
+     * @return array<int, array<string, mixed>>
      */
     protected function getTrendsByResponsavel(): array
     {
         return $this->getResponsavelStats()
-            ->map(fn ($row) => [
+            ->map(fn (object $row) => [
                 'responsavel_id' => $row->responsavel_id,
                 'name' => $row->name,
                 'total_terrenos' => $row->total,
@@ -382,7 +382,7 @@ class AiInsightGeneratorService
     }
 
     /**
-     * @return array<int, array>
+     * @return array<int, array<string, mixed>>
      */
     protected function getMonthlyTrends(): array
     {
@@ -401,13 +401,13 @@ class AiInsightGeneratorService
     // ── Comparisons ──────────────────────────────────────────────────
 
     /**
-     * @return array{items: array, metrics: array}
+     * @return array{items: array<int, array<string, mixed>>, metrics: array<string, mixed>}
      */
     protected function compareByResponsavel(int $limit): array
     {
         $stats = $this->getResponsavelStats();
 
-        $items = $stats->map(function ($row) {
+        $items = $stats->map(function (object $row): array {
             $approvalRate = $row->total > 0 ? ($row->aprovados / $row->total) * 100 : 0;
             $discardRate = $row->total > 0 ? ($row->descartados / $row->total) * 100 : 0;
 
@@ -422,24 +422,34 @@ class AiInsightGeneratorService
                 'discard_rate' => round($discardRate, 1),
                 'score' => round(($approvalRate * 0.6) + min(40, $row->total * 2), 1),
             ];
-        })->sortByDesc('score')->values()->all();
+        })->values()->all();
+
+        usort(
+            $items,
+            fn ($a, $b): int => (float) $b['score'] <=> (float) $a['score']
+        );
+
+        $avgApprovalRate = collect($items)
+            ->map(fn (array $item): float => (float) $item['approval_rate'])
+            ->average() ?? 0;
 
         return [
             'items' => $items,
             'metrics' => [
                 'total_responsaveis' => count($items),
                 'avg_approval_rate' => count($items) > 0
-                    ? round(collect($items)->average('approval_rate'), 1)
+                    ? round((float) $avgApprovalRate, 1)
                     : 0,
             ],
         ];
     }
 
     /**
-     * @return array{items: array, metrics: array}
+     * @return array{items: array<int, array<string, mixed>>, metrics: array<string, mixed>}
      */
     protected function compareByCity(int $limit): array
     {
+        /** @var array<int, array<string, mixed>> $data */
         $data = $this->repository->comparisonByCity()
             ->map(function ($row) {
                 $completionRate = $row->total > 0 ? ($row->finalizados / $row->total) * 100 : 0;
@@ -452,21 +462,30 @@ class AiInsightGeneratorService
                     'completion_rate' => round($completionRate, 1),
                     'score' => round(($completionRate * 0.7) + min(30, $row->total * 1.5), 1),
                 ];
-            })->sortByDesc('score')->values()->all();
+            })->values()->all();
+
+        usort(
+            $data,
+            fn ($a, $b): int => (float) $b['score'] <=> (float) $a['score']
+        );
+
+        $avgCompletionRate = collect($data)
+            ->map(fn (array $item): float => (float) $item['completion_rate'])
+            ->average() ?? 0;
 
         return [
             'items' => $data,
             'metrics' => [
                 'total_cities' => count($data),
                 'avg_completion_rate' => count($data) > 0
-                    ? round(collect($data)->average('completion_rate') ?? 0, 1)
+                    ? round((float) $avgCompletionRate, 1)
                     : 0,
             ],
         ];
     }
 
     /**
-     * @return Collection<int, object>
+     * @return Collection<int, object{responsavel_id: int|null, name: string, total: int, aprovados: int, em_analise: int, descartados: int}>
      */
     protected function getResponsavelStats(): Collection
     {

@@ -154,7 +154,7 @@ class AiInsightRepository
     /**
      * Estatísticas de terrenos por responsável.
      *
-     * @return SupportCollection<int, object>
+     * @return SupportCollection<int, object{responsavel_id: int|null, name: string, total: int, aprovados: int, em_analise: int, descartados: int}>
      */
     public function responsavelStats(int $limit): SupportCollection
     {

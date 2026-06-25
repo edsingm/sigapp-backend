@@ -14,6 +14,8 @@ class AiTelemetryService
 {
     /**
      * Preços por 1M tokens (USD). Configurável via env.
+     *
+     * @var array<string, array<string, float>>
      */
     protected array $priceMap = [];
 
@@ -46,6 +48,8 @@ class AiTelemetryService
 
     /**
      * Registra um log de requisição de IA.
+     *
+     * @param  array<string, mixed>  $data
      */
     public function logRequest(array $data): AiRequestLog
     {
@@ -125,6 +129,8 @@ class AiTelemetryService
 
     /**
      * Estatísticas de uso no período.
+     *
+     * @return array<string, mixed>
      */
     public function getUsageStats(Carbon $from, ?Carbon $to = null): array
     {
@@ -152,6 +158,9 @@ class AiTelemetryService
 
     /**
      * Group usage by provider.
+     *
+     * @param  Collection<int, AiRequestLog>  $logs
+     * @return array<string, array<string, int|float>>
      */
     protected function groupByProvider(Collection $logs): array
     {
@@ -166,6 +175,8 @@ class AiTelemetryService
 
     /**
      * Calcula percentil de uma coleção ordenada.
+     *
+     * @param  Collection<int, mixed>  $values
      */
     protected function percentile(Collection $values, int $percentile): int
     {
@@ -213,6 +224,8 @@ class AiTelemetryService
 
     /**
      * Retorna o orçamento atual e o gasto.
+     *
+     * @return array<string, int|float|bool>
      */
     public function getBudgetStatus(): array
     {

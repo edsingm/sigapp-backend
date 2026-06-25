@@ -43,7 +43,7 @@ class RecalculateAiScoresCommand extends Command
             )
         );
 
-        $this->info("{$results['total']} terrenos classificados.");
+        $this->info(count($results).' terrenos classificados.');
 
         return Command::SUCCESS;
     }

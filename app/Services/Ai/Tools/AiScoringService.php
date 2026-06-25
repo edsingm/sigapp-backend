@@ -52,6 +52,8 @@ class AiScoringService
 
     /**
      * Calcula score para um terreno individual.
+     *
+     * @return array<string, mixed>
      */
     public function score(Terreno $terreno): array
     {
@@ -145,6 +147,8 @@ class AiScoringService
 
     /**
      * Calcula score para todos os terrenos de um tenant.
+     *
+     * @return array<int, array<string, mixed>>
      */
     public function scoreAll(): array
     {
@@ -179,6 +183,8 @@ class AiScoringService
 
     /**
      * Retorna ranking de terrenos ordenado por score.
+     *
+     * @return array<int, array<string, mixed>>
      */
     public function getRanking(?int $limit = null): array
     {
@@ -189,6 +195,8 @@ class AiScoringService
 
     /**
      * Retorna score individual salvo; calcula e persiste apenas se não existir.
+     *
+     * @return array<string, mixed>
      */
     public function getScore(Terreno $terreno): array
     {

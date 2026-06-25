@@ -4,12 +4,12 @@ namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\ListMobileNotificationsRequest;
+use App\Http\Requests\Tenant\ReadMobileNotificationRequest;
 use App\Http\Resources\Tenant\MobileNotificationResource;
 use App\Services\ApiResponseService;
 use App\Services\Tenant\MobilePushService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class MobileNotificationController extends Controller
 {
@@ -39,7 +39,7 @@ class MobileNotificationController extends Controller
     /**
      * Marcar uma notificação como lida.
      */
-    public function read(Request $request, string $id): JsonResponse
+    public function read(ReadMobileNotificationRequest $request, string $id): JsonResponse
     {
         try {
             $notification = $this->mobilePushService->markAsRead($request->user(), $id);

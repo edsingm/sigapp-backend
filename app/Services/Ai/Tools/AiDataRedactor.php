@@ -6,6 +6,8 @@ class AiDataRedactor
 {
     /**
      * Patterns de dados sensíveis para redação antes de envio ao LLM.
+     *
+     * @var array<string, string>
      */
     protected array $patterns = [
         'cpf' => '/\b(\d{3})\.(\d{3})\.(\d{3})-(\d{2})\b/',
@@ -23,17 +25,20 @@ class AiDataRedactor
      */
     public function redactText(string $content): string
     {
-        $content = preg_replace($this->patterns['cpf'], '***.***.***-**', $content);
-        $content = preg_replace($this->patterns['cnpj'], '**.***.***/****-**', $content);
-        $content = preg_replace($this->patterns['email'], '[email redacted]', $content);
-        $content = preg_replace($this->patterns['telefone'], '[telefone redacted]', $content);
-        $content = preg_replace($this->patterns['telefone_int'], '[telefone redacted]', $content);
+        $content = preg_replace($this->patterns['cpf'], '***.***.***-**', $content) ?? $content;
+        $content = preg_replace($this->patterns['cnpj'], '**.***.***/****-**', $content) ?? $content;
+        $content = preg_replace($this->patterns['email'], '[email redacted]', $content) ?? $content;
+        $content = preg_replace($this->patterns['telefone'], '[telefone redacted]', $content) ?? $content;
+        $content = preg_replace($this->patterns['telefone_int'], '[telefone redacted]', $content) ?? $content;
 
         return $content;
     }
 
     /**
      * Redacta campos sensíveis de um payload de tool.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
      */
     public function redactPayload(array $data): array
     {

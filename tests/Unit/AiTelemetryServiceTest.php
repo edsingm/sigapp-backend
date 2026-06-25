@@ -11,6 +11,7 @@ use App\Services\PlanMatrixService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Mockery;
+use Mockery\MockInterface;
 use Tests\TestCase;
 
 /**
@@ -19,14 +20,14 @@ use Tests\TestCase;
  */
 class AiTelemetryServiceTest extends TestCase
 {
-    private AiTelemetryRepositoryInterface $repo;
-    private PlanMatrixService $planMatrix;
+    private AiTelemetryRepositoryInterface&MockInterface $repo;
+    private PlanMatrixService&MockInterface $planMatrix;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->repo = Mockery::mock(AiTelemetryRepositoryInterface::class);
-        $this->planMatrix = Mockery::mock(PlanMatrixService::class);
+        $this->repo = $this->mockTelemetryRepository();
+        $this->planMatrix = $this->mockPlanMatrix();
     }
 
     protected function tearDown(): void
@@ -210,6 +211,7 @@ class AiTelemetryServiceTest extends TestCase
             'status' => 'success',
         ]);
 
+        $this->assertIsArray($capturedData);
         // total_tokens deve ser prompt + completion quando não fornecido explicitamente
         $this->assertSame(1500, $capturedData['total_tokens']);
     }
@@ -234,6 +236,7 @@ class AiTelemetryServiceTest extends TestCase
             'total_tokens' => 9999, // valor explícito — deve prevalecer
         ]);
 
+        $this->assertIsArray($capturedData);
         $this->assertSame(9999, $capturedData['total_tokens']);
     }
 
@@ -259,6 +262,7 @@ class AiTelemetryServiceTest extends TestCase
             // estimated_cost_usd não fornecido → deve ser calculado
         ]);
 
+        $this->assertIsArray($capturedData);
         // $3.00 input + $15.00 output = $18.00
         $this->assertEqualsWithDelta(18.00, (float) $capturedData['estimated_cost_usd'], 0.000001);
     }
@@ -284,6 +288,7 @@ class AiTelemetryServiceTest extends TestCase
             'estimated_cost_usd' => 0.001, // custo explícito — deve prevalecer
         ]);
 
+        $this->assertIsArray($capturedData);
         $this->assertEqualsWithDelta(0.001, (float) $capturedData['estimated_cost_usd'], 0.0000001);
     }
 
@@ -303,6 +308,7 @@ class AiTelemetryServiceTest extends TestCase
         $service = $this->makeService();
         $service->logRequest([]); // nenhum campo — tudo default
 
+        $this->assertIsArray($capturedData);
         $this->assertSame(0, $capturedData['prompt_tokens']);
         $this->assertSame(0, $capturedData['completion_tokens']);
         $this->assertSame(0, $capturedData['total_tokens']);
@@ -330,6 +336,7 @@ class AiTelemetryServiceTest extends TestCase
             'error_message' => 'Timeout ao chamar o provider',
         ]);
 
+        $this->assertIsArray($capturedData);
         $this->assertSame('error', $capturedData['status']);
         $this->assertSame('Timeout ao chamar o provider', $capturedData['error_message']);
     }
@@ -424,6 +431,28 @@ class AiTelemetryServiceTest extends TestCase
     private function makeService(): AiTelemetryService
     {
         return new AiTelemetryService($this->repo, $this->planMatrix);
+    }
+
+    private function mockTelemetryRepository(): AiTelemetryRepositoryInterface&MockInterface
+    {
+        $mock = Mockery::mock(AiTelemetryRepositoryInterface::class);
+
+        if (! $mock instanceof AiTelemetryRepositoryInterface) {
+            throw new \RuntimeException('Mock de telemetria inválido.');
+        }
+
+        return $mock;
+    }
+
+    private function mockPlanMatrix(): PlanMatrixService&MockInterface
+    {
+        $mock = Mockery::mock(PlanMatrixService::class);
+
+        if (! $mock instanceof PlanMatrixService) {
+            throw new \RuntimeException('Mock da matriz de plano inválido.');
+        }
+
+        return $mock;
     }
 
     /**

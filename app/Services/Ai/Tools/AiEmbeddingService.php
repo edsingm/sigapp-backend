@@ -20,6 +20,8 @@ class AiEmbeddingService
 
     /**
      * Gera embedding de um texto usando o provider configurado no config/ai.php.
+     *
+     * @return array<int, float|int>
      */
     public function generateEmbedding(string $text): array
     {
@@ -40,6 +42,8 @@ class AiEmbeddingService
 
     /**
      * Divide texto em chunks de tamanho controlado.
+     *
+     * @return list<string>
      */
     public function chunkText(string $text, int $maxChars = self::DEFAULT_MAX_CHUNK_CHARS): array
     {
@@ -48,7 +52,7 @@ class AiEmbeddingService
         }
 
         $chunks = [];
-        $paragraphs = preg_split('/\n\n+/', $text);
+        $paragraphs = preg_split('/\n\n+/', $text) ?: [];
         $current = '';
 
         foreach ($paragraphs as $paragraph) {
@@ -64,7 +68,7 @@ class AiEmbeddingService
                     $current = '';
                 }
 
-                $sentences = preg_split('/(?<=[.!?])\s+/', $paragraph);
+                $sentences = preg_split('/(?<=[.!?])\s+/', $paragraph) ?: [];
                 foreach ($sentences as $sentence) {
                     if (mb_strlen($current.' '.$sentence) > $maxChars && $current !== '') {
                         $chunks[] = trim($current);
@@ -95,6 +99,8 @@ class AiEmbeddingService
 
     /**
      * Armazena embeddings para um chunk.
+     *
+     * @param  array<int, float|int>  $embedding
      */
     public function storeEmbeddings(int $chunkId, array $embedding, ?string $provider = null, ?string $model = null): void
     {
@@ -109,6 +115,8 @@ class AiEmbeddingService
 
     /**
      * Indexa um documento completo: chunking + embeddings.
+     *
+     * @param  array<string, mixed>  $metadata
      */
     public function indexDocument(int $documentId, string $content, array $metadata = []): int
     {
@@ -149,6 +157,8 @@ class AiEmbeddingService
     /**
      * Busca chunks similares a uma query por similaridade de cosseno.
      * Sem pgvector: carrega vetores e calcula na aplicação.
+     *
+     * @return Collection<int, array<string, mixed>>
      */
     public function searchSimilar(string $query, ?int $terrenoId = null, int $limit = 10): Collection
     {
@@ -161,43 +171,64 @@ class AiEmbeddingService
             200,
         );
 
-        // Calcula similaridade de cosseno para cada embedding
-        $scored = $allEmbeddings->map(function (AiDocumentEmbedding $embedding) use ($queryEmbedding) {
-            $storedVector = $embedding->embedding;
+        /** @var array<int, array<string, mixed>> $scored */
+        $scored = [];
+
+        foreach ($allEmbeddings as $embedding) {
+            $storedVector = $embedding->getAttribute('embedding');
             if (! is_array($storedVector) || empty($storedVector)) {
-                return null;
+                continue;
             }
 
             $similarity = $this->cosineSimilarity($queryEmbedding, $storedVector);
+            $chunk = $embedding->chunk()->first();
 
-            return [
-                'chunk_id' => $embedding->chunk_id,
-                'content' => $embedding->chunk->content ?? '',
-                'document' => $embedding->chunk->documento ? [
-                    'id' => $embedding->chunk->documento->id,
-                    'nome' => $embedding->chunk->documento->nome,
-                    'tipo' => $embedding->chunk->documento->tipo_label ?? $embedding->chunk->documento->tipo,
-                    'categoria' => $embedding->chunk->documento->categoria_label ?? $embedding->chunk->documento->categoria,
+            $this->insertScoredResult($scored, [
+                'chunk_id' => $embedding->getAttribute('chunk_id'),
+                'content' => $chunk?->content ?? '',
+                'document' => $chunk?->documento ? [
+                    'id' => $chunk->documento->id,
+                    'nome' => $chunk->documento->nome,
+                    'tipo' => $chunk->documento->tipo_label ?? $chunk->documento->tipo,
+                    'categoria' => $chunk->documento->categoria_label ?? $chunk->documento->categoria,
                 ] : null,
-                'terreno' => $embedding->chunk->terreno ? [
-                    'id' => $embedding->chunk->terreno->id,
-                    'nome' => $embedding->chunk->terreno->nome,
+                'terreno' => $chunk?->terreno ? [
+                    'id' => $chunk->terreno->id,
+                    'nome' => $chunk->terreno->nome,
                 ] : null,
                 'score' => round($similarity, 4),
-                'metadata' => $embedding->chunk->metadata,
-                'chunk_index' => $embedding->chunk->chunk_index,
-            ];
-        })->filter();
+                'metadata' => $chunk?->metadata,
+                'chunk_index' => $chunk?->chunk_index,
+            ]);
+        }
 
-        // Ordena por score e limita
-        return $scored
-            ->sortByDesc('score')
-            ->take($limit)
-            ->values();
+        return collect(array_slice($scored, 0, $limit))->values();
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $results
+     * @param  array<string, mixed>  $result
+     */
+    private function insertScoredResult(array &$results, array $result): void
+    {
+        $score = (float) $result['score'];
+
+        foreach ($results as $index => $existing) {
+            if ($score > (float) $existing['score']) {
+                array_splice($results, $index, 0, [$result]);
+
+                return;
+            }
+        }
+
+        $results[] = $result;
     }
 
     /**
      * Calcula similaridade de cosseno entre dois vetores.
+     *
+     * @param  array<int, float|int>  $a
+     * @param  array<int, float|int>  $b
      */
     public function cosineSimilarity(array $a, array $b): float
     {

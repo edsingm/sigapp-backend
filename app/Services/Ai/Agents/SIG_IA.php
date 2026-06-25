@@ -64,6 +64,22 @@ class SIG_IA implements Agent, Conversational, HasTools
         );
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    public function providerOptions(string $provider): array
+    {
+        return match ($provider) {
+            'openrouter' => [
+                'reasoning' => [
+                    'enabled' => true,
+                    'exclude' => true,
+                ],
+            ],
+            default => [],
+        };
+    }
+
     // Item 4: injeta data atual e usuário logado no início do prompt.
     // Para Anthropic, este bloco dinâmico é enviado separado do bloco estático
     // cacheado (ver providerOptions), mantendo o cache quente mesmo com data mutável.
@@ -76,7 +92,10 @@ class SIG_IA implements Agent, Conversational, HasTools
     {
         $lines = ['### Contexto da Sessão', '- Data atual: ' . now()->format('d/m/Y')];
 
-        $userName = $this->conversationUser?->name;
+        $userName = is_object($this->conversationUser) &&
+            property_exists($this->conversationUser, 'name')
+                ? $this->conversationUser->name
+                : null;
         if ($userName) {
             $lines[] = "- Usuário: {$userName}";
         }

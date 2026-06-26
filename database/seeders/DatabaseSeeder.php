@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             PlanSeeder::class,
             EntitlementSeeder::class,
             PlanRolePermissionTemplateSeeder::class,
+            ModulesSeeder::class,
             CentralAdminSeeder::class,
             CidadesSeeder::class,
         ]);

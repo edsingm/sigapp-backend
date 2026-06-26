@@ -114,7 +114,7 @@ class CleanupPendingTenantsJob implements ShouldQueue
                 // Usa Notification::route() porque o model já foi deletado.
                 if ($adminEmail) {
                     try {
-                        $signupUrl = rtrim((string) config('app.frontend_url', config('app.url')), '/')
+                        $signupUrl = rtrim((string) config('app.landing_url', config('app.url')), '/')
                             .'/cadastro'
                             .($planSlug ? '?plan='.$planSlug : '');
 

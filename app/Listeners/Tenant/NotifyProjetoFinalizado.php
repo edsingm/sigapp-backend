@@ -19,6 +19,7 @@ class NotifyProjetoFinalizado
             'title' => 'Projeto finalizado',
             'body' => "O projeto {$event->projeto->nome} foi finalizado após a legalização.",
             'type' => 'projeto.finalizado',
+            'category' => 'projeto.finalizado',
             'entity_type' => 'projeto',
             'entity_id' => (string) $event->projeto->id,
             'target_route' => "/projetos/{$event->projeto->id}",

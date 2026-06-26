@@ -12,11 +12,13 @@ use App\Events\Tenant\ViabilidadeDecided;
 use App\Events\Tenant\ViabilidadeSubmitted;
 use App\Events\Tenant\WorkflowTransitioned;
 use App\Listeners\Tenant\CreateCommitteeObservationTask;
+use App\Listeners\Tenant\NotifyContratoSigned;
 use App\Listeners\Tenant\NotifyLegalizacaoEtapaUpdate;
 use App\Listeners\Tenant\NotifyOverdueLegalizacaoEtapa;
 use App\Listeners\Tenant\NotifyProjetoFinalizado;
 use App\Listeners\Tenant\NotifyViabilidadeDecision;
 use App\Listeners\Tenant\NotifyViabilidadeSubmission;
+use App\Listeners\Tenant\NotifyWorkflowTransitioned;
 use App\Listeners\Tenant\RecordContractSignedActivity;
 use App\Listeners\Tenant\RecordWorkflowActivity;
 use App\Listeners\Tenant\RecordWorkflowStatusHistory;
@@ -38,6 +40,7 @@ class EventServiceProvider extends ServiceProvider
             RecordWorkflowActivity::class,
             CreateCommitteeObservationTask::class,
             TransitionRelatedProjetos::class,
+            NotifyWorkflowTransitioned::class,
             SendWorkflowTransitionedEmail::class,
         ],
         ViabilidadeSubmitted::class => [
@@ -50,6 +53,7 @@ class EventServiceProvider extends ServiceProvider
         ],
         ContratoSigned::class => [
             RecordContractSignedActivity::class,
+            NotifyContratoSigned::class,
             SendContratoSignedEmail::class,
         ],
         LegalizacaoEtapaStatusUpdated::class => [

@@ -33,6 +33,7 @@ use App\Repositories\Contracts\EntitlementRepositoryInterface;
 use App\Repositories\Contracts\LandWorkflowRepositoryInterface;
 use App\Repositories\Contracts\MobileDeviceInstallationRepositoryInterface;
 use App\Repositories\Contracts\MobileNotificationRepositoryInterface;
+use App\Repositories\Contracts\NotificationPreferenceRepositoryInterface;
 use App\Repositories\Contracts\PermissionRepositoryInterface;
 use App\Repositories\Contracts\PlanRepositoryInterface;
 use App\Repositories\Contracts\PlanRolePermissionTemplateRepositoryInterface;
@@ -55,6 +56,7 @@ use App\Repositories\DomainRepository;
 use App\Repositories\EntitlementRepository;
 use App\Repositories\MobileDeviceInstallationRepository;
 use App\Repositories\MobileNotificationRepository;
+use App\Repositories\NotificationPreferenceRepository;
 use App\Repositories\PermissionRepository;
 use App\Repositories\PlanRepository;
 use App\Repositories\PlanRolePermissionTemplateRepository;
@@ -115,6 +117,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(TerrenoFilterRepositoryInterface::class, TerrenoFilterRepository::class);
         $this->app->bind(MobileDeviceInstallationRepositoryInterface::class, MobileDeviceInstallationRepository::class);
         $this->app->bind(MobileNotificationRepositoryInterface::class, MobileNotificationRepository::class);
+        $this->app->bind(NotificationPreferenceRepositoryInterface::class, NotificationPreferenceRepository::class);
         $this->app->bind(LandWorkflowRepositoryInterface::class, LandWorkflowRepository::class);
     }
 

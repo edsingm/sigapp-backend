@@ -24,6 +24,7 @@ class NotifyViabilidadeSubmission
                 'title' => 'Viabilidade aguardando aprovação',
                 'body' => "A viabilidade do terreno {$event->terreno->nome} aguarda decisão.",
                 'type' => 'viabilidade.solicitar_aprovacao',
+                'category' => 'viabilidade.submetida',
                 'entity_type' => 'viabilidade',
                 'entity_id' => (string) $event->viabilidade->id,
                 'target_route' => "/terrenos/{$event->viabilidade->terreno_id}",

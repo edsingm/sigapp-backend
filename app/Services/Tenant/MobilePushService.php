@@ -12,6 +12,7 @@ use App\Models\Tenant\User;
 use App\Repositories\Contracts\MobileDeviceInstallationRepositoryInterface;
 use App\Repositories\Contracts\MobileNotificationRepositoryInterface;
 use App\Repositories\Tenant\LegalizacaoEtapaRepository;
+use App\Notifications\NotificationCatalog;
 use App\Repositories\Tenant\UserRepository;
 use App\Services\Acl\PermissionNameResolver;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -27,6 +28,7 @@ class MobilePushService
         private readonly MobileNotificationRepositoryInterface $notificationRepository,
         private readonly UserRepository $userRepository,
         private readonly LegalizacaoEtapaRepository $legalizacaoEtapaRepository,
+        private readonly NotificationPreferenceService $preferences,
     ) {}
 
     /**
@@ -80,45 +82,85 @@ class MobilePushService
     }
 
     /**
+     * Retorna a quantidade de notificações não lidas do usuário.
+     */
+    public function unreadCount(User $user): int
+    {
+        return $this->notificationRepository->countUnreadForUser($user->id);
+    }
+
+    /**
+     * Marca todas as notificações do usuário como lidas e retorna o total afetado.
+     */
+    public function markAllAsRead(User $user): int
+    {
+        return $this->notificationRepository->markAllAsReadForUser($user->id);
+    }
+
+    /**
+     * Remove uma notificação do usuário.
+     */
+    public function delete(User $user, string $notificationId): void
+    {
+        $this->notificationRepository->deleteForUser($user->id, $notificationId);
+    }
+
+    /**
      * Envia notificações para uma lista de usuários.
      */
     public function notifyUsers(iterable $users, array $payload, ?string $dedupeKey = null): Collection
     {
         $notifications = collect();
+        $category = isset($payload['category']) ? (string) $payload['category'] : null;
 
         foreach ($users as $user) {
             if (! $user instanceof User) {
                 continue;
             }
 
-            $resolvedDedupeKey = $dedupeKey ? "{$dedupeKey}:user:{$user->id}" : null;
+            $wantsInApp = $category === null
+                || $this->preferences->isEnabled($user, $category, NotificationCatalog::CHANNEL_IN_APP);
+            $wantsPush = $category === null
+                || $this->preferences->isEnabled($user, $category, NotificationCatalog::CHANNEL_PUSH);
 
-            if ($resolvedDedupeKey) {
-                $existing = $this->notificationRepository->findByDedupeKey($user->id, $resolvedDedupeKey);
-
-                if ($existing) {
-                    $notifications->push($existing);
-
-                    continue;
-                }
+            if (! $wantsInApp && ! $wantsPush) {
+                continue;
             }
 
-            $notification = $this->notificationRepository->create([
-                'user_id' => $user->id,
-                'title' => (string) $payload['title'],
-                'body' => (string) $payload['body'],
-                'type' => (string) $payload['type'],
-                'entity_type' => $payload['entity_type'] ?? null,
-                'entity_id' => isset($payload['entity_id']) ? (string) $payload['entity_id'] : null,
-                'tenant_slug' => tenant('slug'),
-                'target_route' => $payload['target_route'] ?? null,
-                'payload' => $payload['payload'] ?? [],
-                'dedupe_key' => $resolvedDedupeKey,
-                'sent_at' => now(),
-            ]);
+            $resolvedDedupeKey = $dedupeKey ? "{$dedupeKey}:user:{$user->id}" : null;
+            $notification = null;
 
-            $this->dispatchExpoPush($user, $notification);
-            $notifications->push($notification);
+            if ($wantsInApp) {
+                if ($resolvedDedupeKey) {
+                    $existing = $this->notificationRepository->findByDedupeKey($user->id, $resolvedDedupeKey);
+
+                    if ($existing) {
+                        $notifications->push($existing);
+
+                        continue;
+                    }
+                }
+
+                $notification = $this->notificationRepository->create([
+                    'user_id' => $user->id,
+                    'title' => (string) $payload['title'],
+                    'body' => (string) $payload['body'],
+                    'type' => (string) $payload['type'],
+                    'entity_type' => $payload['entity_type'] ?? null,
+                    'entity_id' => isset($payload['entity_id']) ? (string) $payload['entity_id'] : null,
+                    'tenant_slug' => tenant('slug'),
+                    'target_route' => $payload['target_route'] ?? null,
+                    'payload' => $payload['payload'] ?? [],
+                    'dedupe_key' => $resolvedDedupeKey,
+                    'sent_at' => now(),
+                ]);
+
+                $notifications->push($notification);
+            }
+
+            if ($wantsPush) {
+                $this->dispatchExpoPush($user, $this->buildPushMessage($payload), $notification);
+            }
         }
 
         return $notifications;
@@ -184,6 +226,7 @@ class MobilePushService
                     $etapa->legalizacao?->terreno?->nome ?? 'terreno sem nome',
                 ),
                 'type' => 'legalizacao.etapa.atrasada',
+                'category' => 'legalizacao.etapa.atrasada',
                 'entity_type' => 'legalizacao_etapa',
                 'entity_id' => (string) $etapa->id,
                 'target_route' => $etapa->legalizacao?->terreno_id
@@ -216,10 +259,36 @@ class MobilePushService
     }
 
     /**
-     * Realiza o envio técnico das notificações via API do Expo.
+     * Monta a mensagem de push a partir do payload da notificação.
+     *
+     * @return array{title: string, body: string, data: array<string, mixed>}
      */
-    protected function dispatchExpoPush(User $user, MobileNotification $notification): void
+    protected function buildPushMessage(array $payload): array
     {
+        return [
+            'title' => (string) $payload['title'],
+            'body' => (string) $payload['body'],
+            'data' => [
+                'type' => (string) $payload['type'],
+                'entity_id' => isset($payload['entity_id']) ? (string) $payload['entity_id'] : null,
+                'tenant_slug' => tenant('slug'),
+                'target_route' => $payload['target_route'] ?? null,
+            ],
+        ];
+    }
+
+    /**
+     * Realiza o envio técnico das notificações via API do Expo.
+     *
+     * @param  array{title: string, body: string, data: array<string, mixed>}  $message
+     */
+    protected function dispatchExpoPush(User $user, array $message, ?MobileNotification $notification = null): void
+    {
+        // Respeita a janela de silêncio do usuário (a notificação permanece no inbox).
+        if ($this->preferences->isWithinQuietHours($user)) {
+            return;
+        }
+
         $tokens = $this->deviceRepository->getTokensForUser($user->id);
 
         if ($tokens->isEmpty()) {
@@ -231,18 +300,7 @@ class MobilePushService
 
         $messages = [];
         foreach ($tokens as $token) {
-            $messages[] = [
-                'to' => $token,
-                'sound' => 'default',
-                'title' => $notification->title,
-                'body' => $notification->body,
-                'data' => [
-                    'type' => $notification->type,
-                    'entity_id' => $notification->entity_id,
-                    'tenant_slug' => $notification->tenant_slug,
-                    'target_route' => $notification->target_route,
-                ],
-            ];
+            $messages[] = array_merge(['to' => $token, 'sound' => 'default'], $message);
         }
 
         try {
@@ -257,19 +315,23 @@ class MobilePushService
             $response = $request->post($endpoint, $messages);
 
             if (! $response->successful()) {
-                $this->notificationRepository->recordDeliveryError($notification, $response->body());
+                if ($notification) {
+                    $this->notificationRepository->recordDeliveryError($notification, $response->body());
+                }
 
                 Log::warning('Expo push delivery failed', [
-                    'notification_id' => $notification->id,
+                    'notification_id' => $notification?->id,
                     'status' => $response->status(),
                     'body' => $response->body(),
                 ]);
             }
         } catch (\Throwable $exception) {
-            $this->notificationRepository->recordDeliveryError($notification, $exception->getMessage());
+            if ($notification) {
+                $this->notificationRepository->recordDeliveryError($notification, $exception->getMessage());
+            }
 
             Log::warning('Expo push dispatch exception', [
-                'notification_id' => $notification->id,
+                'notification_id' => $notification?->id,
                 'error' => $exception->getMessage(),
             ]);
         }

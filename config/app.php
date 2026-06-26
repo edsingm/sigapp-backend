@@ -58,7 +58,7 @@ return [
 
     'frontend_url' => env('FRONTEND_URL', 'http://localhost:8080'),
 
-    'landing_url' => env('LANDING_URL', 'http://localhost:4321'),
+    'landing_url' => env('LANDING_URL', 'http://localhost:8081'),
 
     /*
     |--------------------------------------------------------------------------

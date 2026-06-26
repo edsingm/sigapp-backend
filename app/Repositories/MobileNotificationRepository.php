@@ -7,6 +7,8 @@ namespace App\Repositories;
 use App\Models\Tenant\MobileNotification;
 use App\Repositories\Contracts\MobileNotificationRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Carbon;
 
 class MobileNotificationRepository implements MobileNotificationRepositoryInterface
 {
@@ -16,6 +18,15 @@ class MobileNotificationRepository implements MobileNotificationRepositoryInterf
             ->where('user_id', $userId)
             ->latest()
             ->paginate($perPage);
+    }
+
+    public function createdSinceForUser(int $userId, Carbon $since): Collection
+    {
+        return MobileNotification::query()
+            ->where('user_id', $userId)
+            ->where('created_at', '>=', $since)
+            ->latest()
+            ->get();
     }
 
     public function findForUser(int $userId, string $notificationId): MobileNotification
@@ -58,5 +69,30 @@ class MobileNotificationRepository implements MobileNotificationRepositoryInterf
         $fresh = $notification->fresh();
 
         return $fresh;
+    }
+
+    public function countUnreadForUser(int $userId): int
+    {
+        return MobileNotification::query()
+            ->where('user_id', $userId)
+            ->whereNull('read_at')
+            ->count();
+    }
+
+    public function markAllAsReadForUser(int $userId): int
+    {
+        return MobileNotification::query()
+            ->where('user_id', $userId)
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+    }
+
+    public function deleteForUser(int $userId, string $notificationId): void
+    {
+        $notification = MobileNotification::query()
+            ->where('user_id', $userId)
+            ->findOrFail($notificationId);
+
+        $notification->delete();
     }
 }

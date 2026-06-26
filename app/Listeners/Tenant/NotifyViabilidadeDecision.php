@@ -24,6 +24,7 @@ class NotifyViabilidadeDecision
                     ? "A viabilidade do terreno {$event->terreno->nome} foi aprovada."
                     : "A viabilidade do terreno {$event->terreno->nome} foi reprovada.",
                 'type' => $approved ? 'viabilidade.aprovada' : 'viabilidade.reprovada',
+                'category' => 'viabilidade.decidida',
                 'entity_type' => 'viabilidade',
                 'entity_id' => (string) $event->viabilidade->id,
                 'target_route' => "/terrenos/{$event->viabilidade->terreno_id}",

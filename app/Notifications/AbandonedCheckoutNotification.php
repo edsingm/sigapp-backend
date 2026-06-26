@@ -27,7 +27,7 @@ class AbandonedCheckoutNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         $newSignupUrl = $this->signupUrl
-            ?? rtrim((string) config('app.frontend_url', config('app.url')), '/').'/cadastro';
+            ?? rtrim((string) config('app.landing_url', config('app.url')), '/').'/cadastro';
 
         return (new MailMessage)
             ->subject('SIG.APP — Sua conta foi removida')

@@ -28,6 +28,7 @@ use App\Http\Controllers\Api\V1\Tenant\LegalizacaoController;
 use App\Http\Controllers\Api\V1\Tenant\LegalizacaoEtapaController;
 use App\Http\Controllers\Api\V1\Tenant\MobileDeviceController;
 use App\Http\Controllers\Api\V1\Tenant\MobileNotificationController;
+use App\Http\Controllers\Api\V1\Tenant\NotificationPreferenceController;
 use App\Http\Controllers\Api\V1\Tenant\NegotiationController;
 use App\Http\Controllers\Api\V1\Tenant\PlanSwapController;
 use App\Http\Controllers\Api\V1\Tenant\PremissasViabilidadeController;
@@ -102,6 +103,11 @@ Route::middleware([
 
             // Locale
             Route::put('/locale', [LanguageController::class, 'set']);
+
+            // Preferências de notificação do usuário
+            Route::get('/me/notification-preferences', [NotificationPreferenceController::class, 'index']);
+            Route::put('/me/notification-preferences', [NotificationPreferenceController::class, 'update']);
+            Route::put('/me/notification-settings', [NotificationPreferenceController::class, 'updateSettings']);
 
             // Bootstrap: modules, plan and user RBAC for navbar/feature gating
             Route::get('/start', [ModulesController::class, 'index']);
@@ -380,7 +386,10 @@ Route::middleware([
                     Route::post('/devices', [MobileDeviceController::class, 'store']);
                     Route::delete('/devices/{installationId}', [MobileDeviceController::class, 'destroy']);
                     Route::get('/notifications', [MobileNotificationController::class, 'index']);
+                    Route::get('/notifications/unread-count', [MobileNotificationController::class, 'unreadCount']);
+                    Route::post('/notifications/read-all', [MobileNotificationController::class, 'readAll']);
                     Route::post('/notifications/{id}/read', [MobileNotificationController::class, 'read']);
+                    Route::delete('/notifications/{id}', [MobileNotificationController::class, 'destroy']);
                 });
 
                 // Legalizações

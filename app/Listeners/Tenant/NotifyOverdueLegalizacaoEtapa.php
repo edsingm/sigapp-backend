@@ -35,6 +35,7 @@ class NotifyOverdueLegalizacaoEtapa
                 $etapa->legalizacao?->terreno?->nome ?? 'terreno sem nome',
             ),
             'type' => 'legalizacao.etapa.atrasada',
+            'category' => 'legalizacao.etapa.atrasada',
             'entity_type' => 'legalizacao_etapa',
             'entity_id' => (string) $etapa->id,
             'target_route' => $etapa->legalizacao?->terreno_id

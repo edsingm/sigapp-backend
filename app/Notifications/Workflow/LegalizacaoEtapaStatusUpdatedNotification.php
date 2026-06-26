@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Notifications\Workflow;
 
+use App\Notifications\Workflow\Concerns\RespectsEmailPreference;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -11,6 +12,7 @@ use Illuminate\Notifications\Notification;
 class LegalizacaoEtapaStatusUpdatedNotification extends Notification
 {
     use Queueable;
+    use RespectsEmailPreference;
 
     public function __construct(
         private readonly string $etapaTitulo,
@@ -19,12 +21,9 @@ class LegalizacaoEtapaStatusUpdatedNotification extends Notification
         private readonly ?int $terrenoId,
     ) {}
 
-    /**
-     * @return array<int, string>
-     */
-    public function via(object $notifiable): array
+    protected function notificationCategory(): string
     {
-        return ['mail'];
+        return 'legalizacao.etapa.status';
     }
 
     public function toMail(object $notifiable): MailMessage

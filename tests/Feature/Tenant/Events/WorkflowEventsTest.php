@@ -13,11 +13,13 @@ use App\Events\Tenant\ViabilidadeDecided;
 use App\Events\Tenant\ViabilidadeSubmitted;
 use App\Events\Tenant\WorkflowTransitioned;
 use App\Listeners\Tenant\CreateCommitteeObservationTask;
+use App\Listeners\Tenant\NotifyContratoSigned;
 use App\Listeners\Tenant\NotifyLegalizacaoEtapaUpdate;
 use App\Listeners\Tenant\NotifyOverdueLegalizacaoEtapa;
 use App\Listeners\Tenant\NotifyProjetoFinalizado;
 use App\Listeners\Tenant\NotifyViabilidadeDecision;
 use App\Listeners\Tenant\NotifyViabilidadeSubmission;
+use App\Listeners\Tenant\NotifyWorkflowTransitioned;
 use App\Listeners\Tenant\RecordContractSignedActivity;
 use App\Listeners\Tenant\RecordWorkflowActivity;
 use App\Listeners\Tenant\RecordWorkflowStatusHistory;
@@ -49,6 +51,7 @@ class WorkflowEventsTest extends TestCase
         $this->assertContains(RecordWorkflowActivity::class, $listen[WorkflowTransitioned::class]);
         $this->assertContains(CreateCommitteeObservationTask::class, $listen[WorkflowTransitioned::class]);
         $this->assertContains(TransitionRelatedProjetos::class, $listen[WorkflowTransitioned::class]);
+        $this->assertContains(NotifyWorkflowTransitioned::class, $listen[WorkflowTransitioned::class]);
 
         $this->assertArrayHasKey(ViabilidadeSubmitted::class, $listen);
         $this->assertContains(NotifyViabilidadeSubmission::class, $listen[ViabilidadeSubmitted::class]);
@@ -58,6 +61,7 @@ class WorkflowEventsTest extends TestCase
 
         $this->assertArrayHasKey(ContratoSigned::class, $listen);
         $this->assertContains(RecordContractSignedActivity::class, $listen[ContratoSigned::class]);
+        $this->assertContains(NotifyContratoSigned::class, $listen[ContratoSigned::class]);
 
         $this->assertArrayHasKey(LegalizacaoEtapaStatusUpdated::class, $listen);
         $this->assertContains(NotifyLegalizacaoEtapaUpdate::class, $listen[LegalizacaoEtapaStatusUpdated::class]);
@@ -433,6 +437,81 @@ class WorkflowEventsTest extends TestCase
         $permissions->method('forModel')->willReturn('viabilidade.approve');
 
         $listener = new NotifyViabilidadeSubmission($pushService, $permissions);
+        $listener->handle($event);
+    }
+
+    public function test_notify_contrato_signed_listener_calls_push_with_permission(): void
+    {
+        $contract = new Contrato;
+        $contract->id = 7;
+
+        $terreno = new Terreno;
+        $terreno->id = 1;
+        $terreno->nome = 'Test Terreno';
+
+        $actor = new User;
+        $actor->id = 5;
+
+        $event = new ContratoSigned($contract, $terreno, $actor);
+
+        $pushService = $this->createMock(MobilePushService::class);
+        $pushService->expects($this->once())
+            ->method('notifyUsersWithPermission')
+            ->with(
+                $this->callback(fn ($v) => is_string($v)),
+                $this->callback(function (array $payload) {
+                    return $payload['type'] === 'contrato.assinado'
+                        && $payload['category'] === 'contrato.assinado'
+                        && str_contains($payload['body'], 'Test Terreno');
+                }),
+                $actor
+            );
+
+        $permissions = $this->createMock(PermissionNameResolver::class);
+        $permissions->method('forModel')->willReturn('contrato.view');
+
+        $listener = new NotifyContratoSigned($pushService, $permissions);
+        $listener->handle($event);
+    }
+
+    public function test_notify_workflow_transitioned_listener_calls_push_with_permission(): void
+    {
+        $terreno = new Terreno;
+        $terreno->id = 1;
+        $terreno->nome = 'Test Terreno';
+
+        $actor = new User;
+        $actor->id = 5;
+
+        $event = new WorkflowTransitioned(
+            $terreno,
+            WorkflowStatus::EM_ANALISE->value,
+            'captacao',
+            WorkflowStatus::AGUARDANDO_VIABILIDADE->value,
+            'viabilidade',
+            'Aprovado',
+            $actor,
+            null,
+            null,
+        );
+
+        $pushService = $this->createMock(MobilePushService::class);
+        $pushService->expects($this->once())
+            ->method('notifyUsersWithPermission')
+            ->with(
+                $this->callback(fn ($v) => is_string($v)),
+                $this->callback(function (array $payload) {
+                    return $payload['type'] === 'workflow.transicao'
+                        && $payload['category'] === 'workflow.transicao'
+                        && str_contains($payload['body'], 'Aprovado');
+                }),
+                $actor
+            );
+
+        $permissions = $this->createMock(PermissionNameResolver::class);
+        $permissions->method('forModel')->willReturn('terreno.update');
+
+        $listener = new NotifyWorkflowTransitioned($pushService, $permissions);
         $listener->handle($event);
     }
 }

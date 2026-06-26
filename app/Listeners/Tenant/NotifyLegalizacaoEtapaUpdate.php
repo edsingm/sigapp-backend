@@ -20,6 +20,7 @@ class NotifyLegalizacaoEtapaUpdate
                 'title' => 'Etapa de legalização atualizada',
                 'body' => "A etapa {$event->etapa->titulo} foi atualizada para {$event->status}.",
                 'type' => 'legalizacao.etapa.status_atualizado',
+                'category' => 'legalizacao.etapa.status',
                 'entity_type' => 'legalizacao_etapa',
                 'entity_id' => (string) $event->etapa->id,
                 'target_route' => $event->etapa->legalizacao?->terreno_id

@@ -52,4 +52,40 @@ class MobileNotificationController extends Controller
             return ApiResponseService::notFound('Notificação não encontrada');
         }
     }
+
+    /**
+     * Retornar a quantidade de notificações não lidas.
+     */
+    public function unreadCount(ReadMobileNotificationRequest $request): JsonResponse
+    {
+        return ApiResponseService::success(
+            ['unread_count' => $this->mobilePushService->unreadCount($request->user())],
+            'Contagem de não lidas carregada com sucesso'
+        );
+    }
+
+    /**
+     * Marcar todas as notificações como lidas.
+     */
+    public function readAll(ReadMobileNotificationRequest $request): JsonResponse
+    {
+        return ApiResponseService::success(
+            ['marked' => $this->mobilePushService->markAllAsRead($request->user())],
+            'Notificações marcadas como lidas'
+        );
+    }
+
+    /**
+     * Remover uma notificação.
+     */
+    public function destroy(ReadMobileNotificationRequest $request, string $id): JsonResponse
+    {
+        try {
+            $this->mobilePushService->delete($request->user(), $id);
+
+            return ApiResponseService::noContent();
+        } catch (ModelNotFoundException) {
+            return ApiResponseService::notFound('Notificação não encontrada');
+        }
+    }
 }

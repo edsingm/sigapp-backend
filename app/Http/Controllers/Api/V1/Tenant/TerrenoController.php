@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\FilterTerrenosRequest;
+use App\Http\Requests\Tenant\RecalculateAreaRequest;
 use App\Http\Requests\Tenant\StoreTerrenoInfoRequest;
 use App\Http\Requests\Tenant\StoreTerrenoRequest;
 use App\Http\Requests\Tenant\UpdateTerrenoInfoRequest;
@@ -216,10 +217,9 @@ class TerrenoController extends Controller
     /**
      * Recalcula a área útil de um terreno de forma assíncrona.
      */
-    public function recalculateArea(string $terreno): JsonResponse
+    public function recalculateArea(RecalculateAreaRequest $request, string $terreno): JsonResponse
     {
         $terreno = $this->service->findOrFail($terreno);
-        Gate::authorize('update', $terreno);
 
         if (empty($terreno->polygon_coords)) {
             return ApiResponseService::error(

@@ -14,7 +14,7 @@ return [
     */
 
     'default' => 'openai',
-    'agent_provider' => env('AI_PROVIDER', 'openrouter'),
+    'agent_provider' => env('AI_PROVIDER'),
     'default_for_images' => 'gemini',
     'default_for_audio' => 'gemini',
     'default_for_transcription' => 'openai',

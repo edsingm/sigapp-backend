@@ -2,6 +2,7 @@
 
 namespace App\Models\Tenant;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -17,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $tier
  * @property array<string, mixed>|null $factors
  * @property int $version
- * @property \Carbon\Carbon|null $updated_at
+ * @property Carbon|null $updated_at
  * @property-read Terreno|null $terreno
  */
 class AiRecommendationScore extends Model

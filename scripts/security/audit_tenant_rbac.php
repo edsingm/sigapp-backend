@@ -294,5 +294,5 @@ if (! is_dir(dirname($reportFile))) {
 file_put_contents($reportFile, implode("\n", $lines)."\n");
 
 echo "RBAC audit written to {$reportFile}\n";
-echo "Mutable routes: ".count($rows)."\n";
-echo "Needs review: ".count($uncovered)."\n";
+echo 'Mutable routes: '.count($rows)."\n";
+echo 'Needs review: '.count($uncovered)."\n";

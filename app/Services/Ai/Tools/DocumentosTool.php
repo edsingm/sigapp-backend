@@ -43,30 +43,30 @@ class DocumentosTool implements Tool
         }
 
         $payload = [
-            'id'              => $documento->id,
-            'terreno_id'      => $documento->terreno_id,
-            'nome'            => $documento->nome,
-            'tipo'            => $documento->tipo,
-            'tipo_label'      => $documento->tipo_label ?? $documento->tipo,
-            'categoria'       => $documento->categoria,
+            'id' => $documento->id,
+            'terreno_id' => $documento->terreno_id,
+            'nome' => $documento->nome,
+            'tipo' => $documento->tipo,
+            'tipo_label' => $documento->tipo_label ?? $documento->tipo,
+            'categoria' => $documento->categoria,
             'categoria_label' => $documento->categoria_label ?? $documento->categoria,
-            'descricao'       => $documento->descricao,
-            'status'          => $documento->status,
-            'status_label'    => $documento->status_label ?? $documento->status,
-            'tamanho_bytes'   => (int) ($documento->tamanho ?? 0),
-            'file_path'       => $documento->file_path,
-            'ai_analysis'     => [
+            'descricao' => $documento->descricao,
+            'status' => $documento->status,
+            'status_label' => $documento->status_label ?? $documento->status,
+            'tamanho_bytes' => (int) ($documento->tamanho ?? 0),
+            'file_path' => $documento->file_path,
+            'ai_analysis' => [
                 'tipo_detectado' => $documento->tipo ?? 'desconhecido',
-                'sugestao_acao'  => match ($documento->tipo ?? '') {
-                    'matricula'          => 'Verificar se a matrícula está atualizada com a última transmissão.',
-                    'escritura'          => 'Conferir dados do proprietário e área com o terreno.',
-                    'iptu'               => 'Validar valor venal e área com matrícula.',
-                    'planta'             => 'Analisar se a planta corresponde ao polígono do terreno.',
-                    'laudo_ambiental'    => 'Verificar restrições e apontamentos.',
-                    'contrato'           => 'Revisar cláusulas, prazos e valores.',
-                    'procuracao'         => 'Verificar validade e poderes outorgados.',
-                    'certidao_negativa'  => 'Confirmar que não há débitos ou impedimentos.',
-                    default              => 'Documento sem classificação específica. Revisar conteúdo.',
+                'sugestao_acao' => match ($documento->tipo ?? '') {
+                    'matricula' => 'Verificar se a matrícula está atualizada com a última transmissão.',
+                    'escritura' => 'Conferir dados do proprietário e área com o terreno.',
+                    'iptu' => 'Validar valor venal e área com matrícula.',
+                    'planta' => 'Analisar se a planta corresponde ao polígono do terreno.',
+                    'laudo_ambiental' => 'Verificar restrições e apontamentos.',
+                    'contrato' => 'Revisar cláusulas, prazos e valores.',
+                    'procuracao' => 'Verificar validade e poderes outorgados.',
+                    'certidao_negativa' => 'Confirmar que não há débitos ou impedimentos.',
+                    default => 'Documento sem classificação específica. Revisar conteúdo.',
                 },
             ],
             'created_at' => optional($documento->created_at)?->toAtomString(),
@@ -131,24 +131,24 @@ class DocumentosTool implements Tool
                 $bytes = (int) ($d->tamanho ?? 0);
 
                 return [
-                    'id'              => $d->id,
-                    'terreno_id'      => $d->terreno_id,
-                    'nome'            => $d->nome,
-                    'tipo'            => $d->tipo,
-                    'tipo_label'      => $d->tipo_label ?? $d->tipo,
-                    'categoria'       => $d->categoria,
+                    'id' => $d->id,
+                    'terreno_id' => $d->terreno_id,
+                    'nome' => $d->nome,
+                    'tipo' => $d->tipo,
+                    'tipo_label' => $d->tipo_label ?? $d->tipo,
+                    'categoria' => $d->categoria,
                     'categoria_label' => $d->categoria_label ?? $d->categoria,
-                    'descricao'       => $d->descricao,
-                    'tamanho_bytes'   => $bytes,
+                    'descricao' => $d->descricao,
+                    'tamanho_bytes' => $bytes,
                     'tamanho_formatado' => self::formatBytes($bytes),
-                    'status'          => $d->status,
-                    'status_label'    => $d->status_label ?? $d->status,
-                    'created_at'      => optional($d->created_at)?->toAtomString(),
+                    'status' => $d->status,
+                    'status_label' => $d->status_label ?? $d->status,
+                    'created_at' => optional($d->created_at)?->toAtomString(),
                 ];
             })->all(),
             'resumo' => [
-                'por_status'    => $documentos->groupBy('status')->map(fn ($g) => $g->count())->toArray(),
-                'por_tipo'      => $documentos->groupBy('tipo')->map(fn ($g) => $g->count())->toArray(),
+                'por_status' => $documentos->groupBy('status')->map(fn ($g) => $g->count())->toArray(),
+                'por_tipo' => $documentos->groupBy('tipo')->map(fn ($g) => $g->count())->toArray(),
                 'por_categoria' => $documentos->groupBy('categoria')->map(fn ($g) => $g->count())->toArray(),
             ],
         ];
@@ -172,11 +172,11 @@ class DocumentosTool implements Tool
     {
         return [
             'document_id' => $schema->integer()->description('Se informado, analisa o documento específico; caso contrário, lista documentos.'),
-            'terreno_id'  => $schema->integer(),
-            'tipo'        => $schema->string(),
-            'categoria'   => $schema->string(),
-            'status'      => $schema->string(),
-            'limit'       => $schema->integer(),
+            'terreno_id' => $schema->integer(),
+            'tipo' => $schema->string(),
+            'categoria' => $schema->string(),
+            'status' => $schema->string(),
+            'limit' => $schema->integer(),
         ];
     }
 }

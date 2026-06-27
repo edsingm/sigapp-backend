@@ -27,20 +27,20 @@ class AiTelemetryService
             // DeepSeek diferencia cache hit ($0.0028) e cache miss ($0.14) no input.
             // AI_DEEPSEEK_INPUT_PRICE_PER_M é reaproveitado como preço de cache hit.
             'deepseek' => [
-                'input_cache_hit'  => (float) env('AI_DEEPSEEK_INPUT_PRICE_PER_M', 0.0028),
+                'input_cache_hit' => (float) env('AI_DEEPSEEK_INPUT_PRICE_PER_M', 0.0028),
                 'input_cache_miss' => (float) env('AI_DEEPSEEK_INPUT_CACHE_MISS_PRICE_PER_M', 0.14),
-                'output'           => (float) env('AI_DEEPSEEK_OUTPUT_PRICE_PER_M', 0.28),
+                'output' => (float) env('AI_DEEPSEEK_OUTPUT_PRICE_PER_M', 0.28),
             ],
             'openrouter' => [
-                'input'  => (float) env('AI_OPENROUTER_INPUT_PRICE_PER_M', 0.00),
+                'input' => (float) env('AI_OPENROUTER_INPUT_PRICE_PER_M', 0.00),
                 'output' => (float) env('AI_OPENROUTER_OUTPUT_PRICE_PER_M', 0.00),
             ],
             'anthropic' => [
-                'input'  => (float) env('AI_ANTHROPIC_INPUT_PRICE_PER_M', 3.00),
+                'input' => (float) env('AI_ANTHROPIC_INPUT_PRICE_PER_M', 3.00),
                 'output' => (float) env('AI_ANTHROPIC_OUTPUT_PRICE_PER_M', 15.00),
             ],
             'openai' => [
-                'input'  => (float) env('AI_OPENAI_INPUT_PRICE_PER_M', 2.50),
+                'input' => (float) env('AI_OPENAI_INPUT_PRICE_PER_M', 2.50),
                 'output' => (float) env('AI_OPENAI_OUTPUT_PRICE_PER_M', 10.00),
             ],
         ];
@@ -95,7 +95,7 @@ class AiTelemetryService
 
         if (isset($prices['input_cache_miss'])) {
             $cacheMissTokens = max(0, $promptTokens - $cacheReadInputTokens);
-            $cacheHitPrice   = $prices['input_cache_hit'] ?? $prices['input_cache_miss'];
+            $cacheHitPrice = $prices['input_cache_hit'] ?? $prices['input_cache_miss'];
             $inputCost = ($cacheMissTokens / 1_000_000) * $prices['input_cache_miss']
                        + ($cacheReadInputTokens / 1_000_000) * $cacheHitPrice;
         } else {

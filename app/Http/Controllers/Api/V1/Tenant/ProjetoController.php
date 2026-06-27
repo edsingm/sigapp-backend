@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Events\Tenant\ProjetoFinalizado;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Tenant\CancelProjetoRequest;
 use App\Http\Requests\Tenant\MarkProjetoReadyRequest;
 use App\Http\Requests\Tenant\StoreProjetoRequest;
 use App\Http\Requests\Tenant\UpdateProjetoRequest;
@@ -197,11 +198,10 @@ class ProjetoController extends Controller
     /**
      * Cancelar um projeto.
      */
-    public function cancel(string $id, Request $request): JsonResponse
+    public function cancel(string $id, CancelProjetoRequest $request): JsonResponse
     {
         try {
             $projeto = $this->service->buscar((int) $id);
-            Gate::authorize('cancel', $projeto);
 
             $projeto = $this->service->cancelar($projeto);
             $this->flushProjetoCaches();

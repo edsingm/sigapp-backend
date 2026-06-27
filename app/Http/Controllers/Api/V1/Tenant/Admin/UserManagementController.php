@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Tenant\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Tenant\Admin\DestroyUserRequest;
 use App\Http\Requests\Tenant\StoreUserRequest;
 use App\Http\Requests\Tenant\UpdateUserModulePermissionsRequest;
 use App\Http\Requests\Tenant\UpdateUserRequest;
@@ -93,7 +94,7 @@ class UserManagementController extends Controller
     /**
      * Exclui um usuário do tenant.
      */
-    public function destroy(Request $request, int $id): JsonResponse
+    public function destroy(DestroyUserRequest $request, int $id): JsonResponse
     {
         $user = $this->userService->findWithRelations($id);
 

@@ -33,7 +33,7 @@ class AnalyticsTool implements Tool
         $result = match ($type) {
             'trends' => $this->insightService->getTrends($dimension),
             'compare' => $this->insightService->compareAreas($dimension ?? 'responsavel', $limit),
-            default  => $this->insightService->generateInsights($limit),
+            default => $this->insightService->generateInsights($limit),
         };
 
         return json_encode($result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT)
@@ -43,9 +43,9 @@ class AnalyticsTool implements Tool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'type'      => $schema->string()->required()->description('insights | trends | compare'),
+            'type' => $schema->string()->required()->description('insights | trends | compare'),
             'dimension' => $schema->string()->description('Para trends: city | responsavel | monthly. Para compare: responsavel | cidade.'),
-            'limit'     => $schema->integer(),
+            'limit' => $schema->integer(),
         ];
     }
 }

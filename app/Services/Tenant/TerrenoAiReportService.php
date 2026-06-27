@@ -2,6 +2,8 @@
 
 namespace App\Services\Tenant;
 
+use App\Models\Tenant\Terreno;
+use App\Services\Ai\Tools\AiProviderRouter;
 use App\Services\Ai\Tools\CompareAreasTool;
 use App\Services\Ai\Tools\DetectAnomaliesTool;
 use App\Services\Ai\Tools\EstimateVgvTool;
@@ -21,8 +23,6 @@ use App\Services\Ai\Tools\GetTrendsTool;
 use App\Services\Ai\Tools\GetViabilidadesTool;
 use App\Services\Ai\Tools\PredictViabilityTool;
 use App\Services\Ai\Tools\ProactiveMonitorTool;
-use App\Models\Tenant\Terreno;
-use App\Services\Ai\Tools\AiProviderRouter;
 use Illuminate\Support\Str;
 use Laravel\Ai\Tools\Request as AiToolRequest;
 use League\CommonMark\GithubFlavoredMarkdownConverter;
@@ -308,7 +308,6 @@ class TerrenoAiReportService
     }
 
     /**
-     * @param  mixed  $polygon
      * @return array<int, array{lat: float, lng: float}>
      */
     private function normalizePolygon(mixed $polygon): array

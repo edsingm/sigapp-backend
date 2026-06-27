@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Tenant\DestroyTenantUserRequest;
 use App\Http\Requests\Tenant\StoreTenantUserRequest;
 use App\Http\Requests\Tenant\UpdateTenantUserRequest;
 use App\Http\Resources\UserResource;
@@ -97,7 +98,7 @@ class UserController extends Controller
      *
      * DELETE /api/v1/users/{id}
      */
-    public function destroy(Request $request, int $id): JsonResponse
+    public function destroy(DestroyTenantUserRequest $request, int $id): JsonResponse
     {
         $user = $this->userService->findById($id);
 

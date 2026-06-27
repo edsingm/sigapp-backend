@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\DestroyAdminUserRequest;
 use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\UpdateUserRequest;
 use App\Http\Resources\CentralUserResource;
@@ -84,7 +85,7 @@ class UserController extends Controller
     /**
      * Exclui um usuário.
      */
-    public function destroy(Request $request, User $user): JsonResponse
+    public function destroy(DestroyAdminUserRequest $request, User $user): JsonResponse
     {
         if (! $this->userService->delete($user, $request->user())) {
             return ApiResponseService::error('SELF_DELETION', 'Não é possível excluir a si mesmo');

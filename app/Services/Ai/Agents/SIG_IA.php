@@ -2,7 +2,14 @@
 
 namespace App\Services\Ai\Agents;
 
+use App\Services\Ai\Tools\AiAnomalyDetectionService;
 use App\Services\Ai\Tools\AiDataRedactor;
+use App\Services\Ai\Tools\AiEmbeddingService;
+use App\Services\Ai\Tools\AiIbgeCityProfileService;
+use App\Services\Ai\Tools\AiInsightGeneratorService;
+use App\Services\Ai\Tools\AiMercadoImobiliarioService;
+use App\Services\Ai\Tools\AiPredictiveAnalysisService;
+use App\Services\Ai\Tools\AiScoringService;
 use App\Services\Ai\Tools\AnalyticsTool;
 use App\Services\Ai\Tools\CreatePdfsTool;
 use App\Services\Ai\Tools\CreateTaskTool;
@@ -21,23 +28,16 @@ use App\Services\Ai\Tools\GetTerrenoGeoAnalysisTool;
 use App\Services\Ai\Tools\GetTerrenoScoreTool;
 use App\Services\Ai\Tools\GetViabilidadesTool;
 use App\Services\Ai\Tools\ListTerrenosTool;
+use App\Services\Ai\Tools\PesquisarEmpreendimentosImobiliariosTool;
 use App\Services\Ai\Tools\PredictStallingTool;
 use App\Services\Ai\Tools\PredictViabilityTool;
 use App\Services\Ai\Tools\ProactiveMonitorTool;
+use App\Services\Ai\Tools\RedactingToolDecorator;
 use App\Services\Ai\Tools\SearchDocumentsTool;
 use App\Services\Ai\Tools\TransitionWorkflowTool;
 use App\Services\Ai\Tools\UpdateTaskStatusTool;
-use App\Services\Ai\Tools\AiAnomalyDetectionService;
-use App\Services\Ai\Tools\AiEmbeddingService;
-use App\Services\Ai\Tools\AiMercadoImobiliarioService;
-use App\Services\Ai\Tools\PesquisarEmpreendimentosImobiliariosTool;
-use App\Services\Ai\Tools\AiIbgeCityProfileService;
-use App\Services\Ai\Tools\AiInsightGeneratorService;
-use App\Services\Ai\Tools\AiPredictiveAnalysisService;
-use App\Services\Ai\Tools\AiScoringService;
 use App\Services\Tenant\Area\PolygonCalculator;
 use App\Services\Tenant\Geo\GeoProximityService;
-use App\Services\Ai\Tools\RedactingToolDecorator;
 use App\Services\Tenant\LandWorkflowService;
 use Laravel\Ai\Concerns\RemembersConversations;
 use Laravel\Ai\Contracts\Agent;
@@ -70,12 +70,7 @@ class SIG_IA implements Agent, Conversational, HasTools
     public function providerOptions(string $provider): array
     {
         return match ($provider) {
-            'openrouter' => [
-                'reasoning' => [
-                    'enabled' => true,
-                    'exclude' => true,
-                ],
-            ],
+
             default => [],
         };
     }
@@ -85,12 +80,12 @@ class SIG_IA implements Agent, Conversational, HasTools
     // cacheado (ver providerOptions), mantendo o cache quente mesmo com data mutável.
     public function instructions(): string
     {
-        return $this->sessionContext() . "\n\n" . $this->staticInstructions();
+        return $this->sessionContext()."\n\n".$this->staticInstructions();
     }
 
     private function sessionContext(): string
     {
-        $lines = ['### Contexto da Sessão', '- Data atual: ' . now()->format('d/m/Y')];
+        $lines = ['### Contexto da Sessão', '- Data atual: '.now()->format('d/m/Y')];
 
         $userName = is_object($this->conversationUser) &&
             property_exists($this->conversationUser, 'name')
@@ -150,9 +145,8 @@ Você é o **SIG IA**, especialista em análise de terrenos e viabilidades imobi
 - **PesquisarEmpreendimentosImobiliariosTool**: Pesquisa empreendimentos e lançamentos imobiliários em uma cidade, consultando OLX/ZAP e busca web. Use para concorrentes, benchmarks de mercado, construtoras ativas, padrões e preços.
   **Regras obrigatórias ao usar esta ferramenta:**
   1. Sempre leia o campo `aviso_cobertura` no retorno e comunique seu conteúdo ao usuário de forma clara.
-  2. O segmento econômico/popular (MCMV) é sistematicamente subrepresentado: construtoras como Pacaembu, MRV, Tenda e Cury operam via CEF/MCMV e site próprio, sem presença nos portais consultados. **Sempre informe isso** ao apresentar o panorama concorrencial.
-  3. Se os resultados parecerem incompletos ou o usuário mencionar uma construtora não encontrada, reconheça a limitação e recomende verificação direta no site da construtora, em associações locais (ADEMI, SINDUSCON) e na lista de empreendimentos habilitados na CEF.
-  4. Nunca afirme que uma construtora "não atua" em uma cidade apenas porque não apareceu nos resultados da ferramenta.
+  2. Se os resultados parecerem incompletos ou o usuário mencionar uma construtora não encontrada, reconheça a limitação e recomende verificação direta no site da construtora, em associações locais (ADEMI, SINDUSCON) e na lista de empreendimentos habilitados na CEF.
+  3. Nunca afirme que uma construtora "não atua" em uma cidade apenas porque não apareceu nos resultados da ferramenta.
 
 ### Score, Ranking e Automação
 - **GetTerrenoScoreTool**: Score de atratividade de um terreno. Use para "quão bom é o terreno X?" ou pedir nota de um ativo.
@@ -287,6 +281,4 @@ PROMPT;
     {
         return 60;
     }
-
-
 }

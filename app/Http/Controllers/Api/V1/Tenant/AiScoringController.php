@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Tenant\RecalculateAiScoresRequest;
 use App\Jobs\RecalculateAiScoresJob;
 use App\Models\Tenant\Terreno;
 use App\Repositories\Tenant\TerrenoRepository;
@@ -63,12 +64,8 @@ class AiScoringController extends Controller
     /**
      * Enfileira recálculo de scores de todos os terrenos do tenant.
      */
-    public function recalculateAll(): JsonResponse
+    public function recalculateAll(RecalculateAiScoresRequest $request): JsonResponse
     {
-        if (Gate::denies('update', Terreno::class)) {
-            return ApiResponseService::forbidden('Acesso negado.');
-        }
-
         RecalculateAiScoresJob::dispatch();
 
         return ApiResponseService::success(null, 'Recálculo de scores enfileirado.', 202);

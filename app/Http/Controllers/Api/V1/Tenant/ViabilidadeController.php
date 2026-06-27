@@ -8,6 +8,7 @@ use App\Http\Requests\Tenant\CompareViabilidadesRequest;
 use App\Http\Requests\Tenant\DecideViabilidadeApprovalRequest;
 use App\Http\Requests\Tenant\DestroyViabilidadeRequest;
 use App\Http\Requests\Tenant\DuplicateViabilidadeRequest;
+use App\Http\Requests\Tenant\GerarDreRequest;
 use App\Http\Requests\Tenant\RecalculateViabilidadeRequest;
 use App\Http\Requests\Tenant\RestoreViabilidadeRequest;
 use App\Http\Requests\Tenant\SubmitViabilidadeApprovalRequest;
@@ -316,11 +317,10 @@ class ViabilidadeController extends Controller
     /**
      * Gerar DRE para uma viabilidade específica
      */
-    public function gerarDre(int $id): JsonResponse
+    public function gerarDre(GerarDreRequest $request, int $id): JsonResponse
     {
         try {
             $viabilidade = $this->viabilidadeService->findOrFail($id);
-            $this->authorize('gerarDre', $viabilidade);
 
             $resultado = $this->viabilidadeService->buscarViabilidadeComDre($id);
 

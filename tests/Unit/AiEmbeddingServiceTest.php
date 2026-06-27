@@ -3,10 +3,10 @@
 namespace Tests\Unit;
 
 use App\Services\Ai\Agents\SIG_IA;
+use App\Services\Ai\Tools\AiEmbeddingService;
 use App\Services\Ai\Tools\DocumentosTool;
 use App\Services\Ai\Tools\RedactingToolDecorator;
 use App\Services\Ai\Tools\SearchDocumentsTool;
-use App\Services\Ai\Tools\AiEmbeddingService;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Providers\Tools\ProviderTool;
 use Tests\TestCase;

@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 class AiProviderRouter
 {
     /**
-     * @var list<array{provider: string, model: string, success: bool, error: string|null, timestamp: \Illuminate\Support\Carbon}>
+     * @var list<array{provider: string, model: string, success: bool, error: string|null, timestamp: Carbon}>
      */
     protected array $attempts = [];
 
@@ -85,7 +85,7 @@ class AiProviderRouter
     /**
      * Retorna as tentativas realizadas.
      *
-     * @return list<array{provider: string, model: string, success: bool, error: string|null, timestamp: \Illuminate\Support\Carbon}>
+     * @return list<array{provider: string, model: string, success: bool, error: string|null, timestamp: Carbon}>
      */
     public function getAttempts(): array
     {

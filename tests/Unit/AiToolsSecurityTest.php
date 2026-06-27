@@ -2,11 +2,11 @@
 
 namespace Tests\Unit;
 
+use App\Models\Central\Tenant;
 use App\Services\Ai\Tools\GetComiteTool;
 use App\Services\Ai\Tools\GetLegalizacaoTool;
 use App\Services\Ai\Tools\GetNegociacaoTool;
 use App\Services\Ai\Tools\GetViabilidadesTool;
-use App\Models\Central\Tenant;
 use App\Services\PlanMatrixService;
 use Laravel\Ai\Tools\Request;
 use Mockery;

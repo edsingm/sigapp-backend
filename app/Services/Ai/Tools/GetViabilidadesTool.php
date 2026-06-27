@@ -46,7 +46,7 @@ class GetViabilidadesTool implements Tool
             ->with([
                 'terreno' => static function ($q): void {
                     $q->select(['id', 'nome', 'endereco', 'cidade_code', 'estado'])
-                      ->with('cidade:code,city');
+                        ->with('cidade:code,city');
                 },
             ])
             ->select([

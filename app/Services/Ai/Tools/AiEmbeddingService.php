@@ -2,7 +2,6 @@
 
 namespace App\Services\Ai\Tools;
 
-use App\Models\Tenant\AiDocumentEmbedding;
 use App\Repositories\Tenant\AiEmbeddingRepository;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;

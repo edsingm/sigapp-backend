@@ -3,7 +3,6 @@
 namespace App\Services\Ai\Tools;
 
 use App\Models\Tenant\Terreno;
-use App\Services\Ai\Tools\AiScoringService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Facades\Gate;
 use Laravel\Ai\Contracts\Tool;

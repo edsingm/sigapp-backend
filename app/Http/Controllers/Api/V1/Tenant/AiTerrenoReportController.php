@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Api\V1\Tenant;
 
-use App\Services\Ai\Tools\CreatePdfsTool;
 use App\Http\Controllers\Controller;
-use App\Models\Tenant\Terreno;
+use App\Http\Requests\Tenant\GenerateTerrenoReportRequest;
 use App\Repositories\Tenant\TerrenoRepository;
+use App\Services\Ai\Tools\CreatePdfsTool;
 use App\Services\ApiResponseService;
 use App\Services\Tenant\TerrenoAiReportService;
 use Illuminate\Http\JsonResponse;
@@ -21,12 +21,8 @@ class AiTerrenoReportController extends Controller
         private readonly CreatePdfsTool $pdfTool,
     ) {}
 
-    public function generate(Request $request, int $id): JsonResponse
+    public function generate(GenerateTerrenoReportRequest $request, int $id): JsonResponse
     {
-        if (Gate::denies('viewAny', Terreno::class)) {
-            return ApiResponseService::forbidden('Acesso negado.');
-        }
-
         $terreno = $this->terrenoRepository->findById($id);
         if (! $terreno) {
             return ApiResponseService::notFound('Terreno não encontrado.');

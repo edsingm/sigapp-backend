@@ -9,7 +9,6 @@ use App\Models\Tenant\TerrenoProduto;
 use App\Repositories\Contracts\TerrenoFilterRepositoryInterface;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class TerrenoFilterRepository implements TerrenoFilterRepositoryInterface
 {
@@ -33,7 +32,7 @@ class TerrenoFilterRepository implements TerrenoFilterRepositoryInterface
 
         $nome = $filters['nome'] ?? null;
         if ($nome !== null && $nome !== '') {
-            $query->whereRaw("unaccent(nome) ILIKE unaccent(?)", ['%' . $nome . '%']);
+            $query->whereRaw('unaccent(nome) ILIKE unaccent(?)', ['%'.$nome.'%']);
         }
 
         $workflowStatuses = $filters['workflow_statuses'] ?? null;

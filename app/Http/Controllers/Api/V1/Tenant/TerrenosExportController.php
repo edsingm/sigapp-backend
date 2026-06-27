@@ -6,11 +6,11 @@ namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Exports\Tenant\TerrenosExport;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Tenant\ExportChecklistPdfRequest;
 use App\Http\Requests\Tenant\FilterTerrenosRequest;
 use App\Models\Tenant\Terreno;
 use App\Services\Tenant\TerrenoExportService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
@@ -77,10 +77,8 @@ class TerrenosExportController extends Controller
         return Excel::download(new TerrenosExport($filters), 'listagem-terrenos-'.now()->format('Y-m-d').'.xlsx');
     }
 
-    public function checklistPdf(Request $request, int $id): Response
+    public function checklistPdf(ExportChecklistPdfRequest $request, int $id): Response
     {
-        Gate::authorize('export', Terreno::class);
-
         try {
             Log::info("Iniciando geração de checklist PDF para o terreno ID: $id");
 
@@ -90,13 +88,7 @@ class TerrenosExportController extends Controller
                 return response()->json(['message' => 'Terreno não encontrado'], 404);
             }
 
-            $extraData = $request->only([
-                'status',
-                'observacoes',
-                'checklist',
-                'responsavel',
-                'data',
-            ]);
+            $extraData = $request->validated();
 
             $data = [
                 'terreno' => $terreno,

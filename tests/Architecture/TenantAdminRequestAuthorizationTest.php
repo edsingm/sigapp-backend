@@ -27,12 +27,29 @@ class TenantAdminRequestAuthorizationTest extends TestCase
             self::ROOT_PATH.'app/Http/Requests/Tenant/UpdateUserModulePermissionsRequest.php',
             self::ROOT_PATH.'app/Http/Requests/Tenant/StorePremissasViabilidadeRequest.php',
             self::ROOT_PATH.'app/Http/Requests/Tenant/UpdatePremissasViabilidadeRequest.php',
+            self::ROOT_PATH.'app/Http/Requests/Tenant/StoreVeiculoRequest.php',
+            self::ROOT_PATH.'app/Http/Requests/Tenant/UpdateVeiculoRequest.php',
+            self::ROOT_PATH.'app/Http/Requests/Tenant/SalvarTermoDeUsoVersaoRequest.php',
         ];
     }
 
     public function test_tenant_admin_requests_do_not_use_trivial_authorization(): void
     {
         foreach (self::requestFiles() as $file) {
+            $contents = file_get_contents($file);
+
+            $this->assertIsString($contents);
+            $this->assertStringNotContainsString('return true;', $contents, "Trivial authorization found in {$file}");
+        }
+    }
+
+    public function test_authenticated_tenant_requests_do_not_use_trivial_authorization(): void
+    {
+        $requests = [
+            self::ROOT_PATH.'app/Http/Requests/Tenant/StoreRequisicaoVeiculoRequest.php',
+        ];
+
+        foreach ($requests as $file) {
             $contents = file_get_contents($file);
 
             $this->assertIsString($contents);

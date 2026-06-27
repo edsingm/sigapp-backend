@@ -13,6 +13,7 @@ use App\Models\Tenant\MobileDeviceInstallation;
 use App\Models\Tenant\NotificationPreference;
 use App\Models\Tenant\User;
 use App\Notifications\EmailDigestNotification;
+use App\Notifications\Workflow\ViabilidadeDecidedNotification;
 use App\Services\Tenant\MobilePushService;
 use App\Services\Tenant\NotificationPreferenceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -203,7 +204,7 @@ class NotificationPreferenceTest extends TestCase
 
     public function test_workflow_notification_respects_email_preference(): void
     {
-        $notification = new \App\Notifications\Workflow\ViabilidadeDecidedNotification('Terreno X', 'aprovada', 1);
+        $notification = new ViabilidadeDecidedNotification('Terreno X', 'aprovada', 1);
 
         // Default habilitado.
         $this->assertSame(['mail'], $notification->via($this->user));
@@ -260,7 +261,7 @@ class NotificationPreferenceTest extends TestCase
 
     public function test_digest_suppresses_immediate_email_only_when_in_inbox(): void
     {
-        $notification = new \App\Notifications\Workflow\ViabilidadeDecidedNotification('Terreno X', 'aprovada', 1);
+        $notification = new ViabilidadeDecidedNotification('Terreno X', 'aprovada', 1);
 
         // Instant (default): e-mail imediato.
         $this->assertSame(['mail'], $notification->via($this->user));

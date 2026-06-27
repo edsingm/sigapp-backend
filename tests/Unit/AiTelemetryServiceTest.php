@@ -21,6 +21,7 @@ use Tests\TestCase;
 class AiTelemetryServiceTest extends TestCase
 {
     private AiTelemetryRepositoryInterface&MockInterface $repo;
+
     private PlanMatrixService&MockInterface $planMatrix;
 
     protected function setUp(): void
@@ -196,6 +197,7 @@ class AiTelemetryServiceTest extends TestCase
             ->once()
             ->withArgs(function (array $data) use (&$capturedData) {
                 $capturedData = $data;
+
                 return true;
             })
             ->andReturn($fakeLog);
@@ -225,6 +227,7 @@ class AiTelemetryServiceTest extends TestCase
             ->once()
             ->withArgs(function (array $data) use (&$capturedData) {
                 $capturedData = $data;
+
                 return true;
             })
             ->andReturn($fakeLog);
@@ -249,6 +252,7 @@ class AiTelemetryServiceTest extends TestCase
             ->once()
             ->withArgs(function (array $data) use (&$capturedData) {
                 $capturedData = $data;
+
                 return true;
             })
             ->andReturn($fakeLog);
@@ -276,6 +280,7 @@ class AiTelemetryServiceTest extends TestCase
             ->once()
             ->withArgs(function (array $data) use (&$capturedData) {
                 $capturedData = $data;
+
                 return true;
             })
             ->andReturn($fakeLog);
@@ -301,6 +306,7 @@ class AiTelemetryServiceTest extends TestCase
             ->once()
             ->withArgs(function (array $data) use (&$capturedData) {
                 $capturedData = $data;
+
                 return true;
             })
             ->andReturn($fakeLog);
@@ -326,6 +332,7 @@ class AiTelemetryServiceTest extends TestCase
             ->once()
             ->withArgs(function (array $data) use (&$capturedData) {
                 $capturedData = $data;
+
                 return true;
             })
             ->andReturn($fakeLog);
@@ -464,6 +471,7 @@ class AiTelemetryServiceTest extends TestCase
         foreach ($attributes as $key => $value) {
             $log->$key = $value;
         }
+
         return $log;
     }
 }

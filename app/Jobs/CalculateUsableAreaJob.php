@@ -60,6 +60,7 @@ class CalculateUsableAreaJob implements ShouldBeUnique, ShouldQueue
             $result = $calculator->calculate($terreno);
 
             $terreno->update([
+                'area_calculada' => $result['area_util'],
                 'area_total' => $result['area_total'],
                 'area_declividade' => $result['area_declividade'],
                 'area_app' => $result['area_app'],

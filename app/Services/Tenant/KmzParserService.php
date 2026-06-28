@@ -78,6 +78,8 @@ class KmzParserService
      */
     public function parseKml(string $kmlContent): array
     {
+        $kmlContent = $this->sanitizeKml($kmlContent);
+
         libxml_use_internal_errors(true);
         $xml = simplexml_load_string($kmlContent);
 
@@ -102,6 +104,25 @@ class KmzParserService
         }
 
         return $this->parseCoordinateString(trim($rawCoords));
+    }
+
+    /**
+     * Limpa problemas comuns em KMLs gerados por ferramentas CAD (ex: Metrica TOPO CAD):
+     * 1. Injeta namespace gx: faltante para elementos <gx:altitudeMode> etc.
+     * 2. Remove linhas de código JavaScript injetadas erroneamente no XML.
+     */
+    private function sanitizeKml(string $kml): string
+    {
+        // Injeta xmlns:gx quando o arquivo usa gx: mas não declara o namespace
+        if (str_contains($kml, 'gx:') && ! str_contains($kml, 'xmlns:gx=')) {
+            $gxNs = 'xmlns:gx="http://www.google.com/kml/ext/2.2"';
+            $kml = preg_replace('/<kml\b/', "<kml {$gxNs}", $kml, 1) ?? $kml;
+        }
+
+        // Remove linhas de JavaScript injetadas fora de tags XML (artefato de exportadores CAD)
+        $kml = (string) preg_replace('/^[^<\n]*\bvar\s+\w+\s*=\s*new\b[^\n]*$/m', '', $kml);
+
+        return $kml;
     }
 
     /**

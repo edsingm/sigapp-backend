@@ -140,6 +140,7 @@ class CalculateUsableAreaJobTest extends TestCase
         $this->assertEquals('success', $terreno->area_calculo_status, 'status should be success');
         $this->assertNotNull($terreno->area_calculada_em, 'area_calculada_em should be set');
         $this->assertGreaterThan(0.0, $terreno->area_util, 'area_util should be > 0');
+        $this->assertEquals($terreno->area_util, $terreno->area_calculada);
         Http::assertNotSent(fn ($request) => str_contains($request->url(), 'nominatim.openstreetmap.org'));
         Http::assertNotSent(fn ($request) => str_contains($request->url(), 'servicodados.ibge.gov.br'));
     }
@@ -159,6 +160,7 @@ class CalculateUsableAreaJobTest extends TestCase
         $this->assertEquals('success', $terreno->area_calculo_status);
         $this->assertEquals(0.0, $terreno->area_total);
         $this->assertEquals(0.0, $terreno->area_util);
+        $this->assertEquals(0.0, $terreno->area_calculada);
     }
 
     public function test_job_handles_missing_terreno_gracefully(): void

@@ -103,6 +103,7 @@ class PremissasViabilidadeService
             'meses_lancamento' => $this->intAttribute($premissa, 'meses_lancamento'),
             'meses_entrega' => $this->intAttribute($premissa, 'meses_entrega'),
             'meses_pos_obra' => $this->intAttribute($premissa, 'meses_pos_obra'),
+            'variavel_correcao' => $this->floatAttribute($premissa, 'variavel_correcao'),
             'obra_ate_lancamento' => $this->floatAttribute($premissa, 'obra_ate_lancamento'),
             'data_lancamento_padrao' => Carbon::now()->addYears(2),
         ];

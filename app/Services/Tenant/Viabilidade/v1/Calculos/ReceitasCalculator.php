@@ -244,7 +244,7 @@ class ReceitasCalculator
             $valorPorUnidade = $this->resolverAvaliacaoCefUnitario($avaliacaoCef, $preco);
             $totalRecursoTerrenos += $valorPorUnidade * $unidades;
 
-            $dataLancamento = $datas['dataLancamento'];
+            $dataLancamento = $datas['dataLancamento']->copy()->startOfMonth();
             foreach ($curvaVendas as $mesIndex => $percentualVenda) {
                 if ($percentualVenda <= 0) {
                     continue;

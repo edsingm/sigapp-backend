@@ -12,8 +12,10 @@ use App\Services\Tenant\Viabilidade\v1\Calculos\ReceitasCalculator;
 use App\Services\Tenant\Viabilidade\v1\CurvaService;
 use App\Services\Tenant\Viabilidade\v1\ImpostosService;
 use App\Services\Tenant\Viabilidade\v1\PremissasViabilidadeService;
+use App\Services\Tenant\Viabilidade\v1\ViabilidadeFluxoContext;
 use App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService;
 use Carbon\Carbon;
+use Carbon\CarbonPeriod;
 use Tests\TestCase;
 
 /**
@@ -296,6 +298,57 @@ class ViabilidadeUnificadoServiceTest extends TestCase
         $this->assertEqualsWithDelta(1.0, $method->invoke($calculator, 1), 0.000001);
         $this->assertEqualsWithDelta(0.01, $method->invoke($calculator, 1, 0.0, true), 0.000001);
         $this->assertEqualsWithDelta(0.045, $method->invoke($calculator, 4.5, 0.0, true), 0.000001);
+    }
+
+    public function test_fluxo_mensal_ancora_periodos_no_inicio_do_mes(): void
+    {
+        $property = new \ReflectionProperty(ViabilidadeUnificadoService::class, 'fluxoMensalCalculator');
+        $property->setAccessible(true);
+        $calculator = $property->getValue($this->service);
+
+        $method = new \ReflectionMethod(FluxoMensalCalculator::class, 'calcularPeriodos');
+        $method->setAccessible(true);
+
+        $datas = $method->invoke($calculator, Carbon::create(2028, 6, 29), $this->makeParams());
+        $periodo = CarbonPeriod::create($datas['inicioIncorporacao'], '1 month', $datas['fimPos']);
+        $meses = array_map(
+            static fn (Carbon $data): string => $data->format('Y-m'),
+            $periodo->toArray(),
+        );
+
+        $this->assertSame('2028-06', $datas['dataLancamento']->format('Y-m'));
+        $this->assertContains('2027-02', $meses);
+        $this->assertCount(120, $meses);
+    }
+
+    public function test_fluxo_mensal_distribui_vendas_em_fevereiro_sem_empurrar_para_marco(): void
+    {
+        $receitasCalculator = new ReceitasCalculator(new CurvaService);
+        $ctx = new ViabilidadeFluxoContext;
+        $datas = $this->makeDatas();
+        $datas['dataLancamento'] = Carbon::create(2028, 6, 29);
+
+        $dadosProdutos = $this->makeDadosProdutos([
+            'totalUnidades' => 2095,
+            'totalUnidadesConstrutora' => 2095,
+            'produtos' => [
+                [
+                    ...$this->makeDadosProdutos()['produtos'][0],
+                    'quantidade_unidades' => 2095,
+                    'curva_vendas' => [
+                        10, 9, 8.1, 7.3, 6.6, 5.9, 5.3,
+                        3.4, 3.4, 3.4, 3.4, 3.4, 2.4,
+                        3.4, 3.4, 3.4, 3.4, 3.4, 3.4, 3.4, 3.4,
+                    ],
+                ],
+            ],
+        ]);
+
+        $receitasCalculator->inicializarValorMedicaoTotal($dadosProdutos, $datas, $ctx);
+
+        $this->assertArrayHasKey('2029-02', $ctx->vendasPorMes);
+        $this->assertEqualsWithDelta(72.1, $ctx->vendasPorMes['2029-02'], 0.01);
+        $this->assertEqualsWithDelta(72.1, $ctx->vendasPorMes['2029-03'], 0.01);
     }
 
     // =========================================================================

@@ -291,6 +291,73 @@ class ViabilidadeApiTest extends TestCase
         $this->assertSame(5, (int) $viabilidade->marketing_inicio_antes_lancamento);
     }
 
+    public function test_show_retorna_payload_completo_para_edicao_da_viabilidade(): void
+    {
+        $terrenoProduto = $this->createViabilityFixture();
+        $viabilidade = Viabilidade::create([
+            'terreno_id' => $terrenoProduto->getAttribute('terreno_id'),
+            'version' => 1,
+            'is_current' => true,
+            'created_by' => $this->admin->id,
+            'updated_by' => $this->admin->id,
+            'premissas_snapshot' => [
+                'form_values' => [
+                    'terreno_id' => $terrenoProduto->getAttribute('terreno_id'),
+                    'meses_entrega' => 4,
+                    'meses_pos_obra' => 36,
+                    'variavel_correcao' => 2.7545,
+                    'incorp_ri' => 31.5,
+                    'incorp_entrega' => 14.25,
+                    'incorp_ate_lancamento' => 82.0,
+                    'obra_ate_lancamento' => 3.5,
+                    'parcelamento_comissao_terreno' => 9,
+                    'taxa_juros_pj' => 11.75,
+                    'carencia_pj_meses' => 7,
+                    'amortizacao_pj_parcelas' => 21,
+                    'inadimplencia' => 12.5,
+                    'atraso_meses' => 3,
+                    'taxa_perda' => 2.25,
+                    'produtos' => [
+                        [
+                            'id' => $terrenoProduto->getKey(),
+                            'unidades' => 13,
+                            'valor' => 265000,
+                            'permuta' => 15000,
+                            'pgto_por_lote' => 4200,
+                            'custo_m2' => 1950,
+                            'custo_infra' => 330,
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        $this->actingAs($this->admin)
+            ->getJson("/api/v1/viabilidades/{$viabilidade->id}")
+            ->assertOk()
+            ->assertJsonPath('data.viabilidade.meses_entrega', 4)
+            ->assertJsonPath('data.viabilidade.meses_pos_obra', 36)
+            ->assertJsonPath('data.viabilidade.variavel_correcao', 2.7545)
+            ->assertJsonPath('data.viabilidade.incorp_ri', 31.5)
+            ->assertJsonPath('data.viabilidade.incorp_entrega', 14.25)
+            ->assertJsonPath('data.viabilidade.incorp_ate_lancamento', 82)
+            ->assertJsonPath('data.viabilidade.obra_ate_lancamento', 3.5)
+            ->assertJsonPath('data.viabilidade.parcelamento_comissao_terreno', 9)
+            ->assertJsonPath('data.viabilidade.taxa_juros_pj', 11.75)
+            ->assertJsonPath('data.viabilidade.carencia_pj_meses', 7)
+            ->assertJsonPath('data.viabilidade.amortizacao_pj_parcelas', 21)
+            ->assertJsonPath('data.viabilidade.inadimplencia', 12.5)
+            ->assertJsonPath('data.viabilidade.atraso_meses', 3)
+            ->assertJsonPath('data.viabilidade.taxa_perda', 2.25)
+            ->assertJsonPath('data.viabilidade.produtos.0.id', $terrenoProduto->getKey())
+            ->assertJsonPath('data.viabilidade.produtos.0.unidades', 13)
+            ->assertJsonPath('data.viabilidade.produtos.0.valor', 265000)
+            ->assertJsonPath('data.viabilidade.produtos.0.permuta', 15000)
+            ->assertJsonPath('data.viabilidade.produtos.0.pgto_por_lote', 4200)
+            ->assertJsonPath('data.viabilidade.produtos.0.custo_m2', 1950)
+            ->assertJsonPath('data.viabilidade.produtos.0.custo_infra', 330);
+    }
+
     private function createViabilityFixture(): TerrenoProduto
     {
         $corretor = CorretorExterno::create([

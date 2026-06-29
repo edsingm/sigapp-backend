@@ -16,10 +16,16 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class ViabilidadeService
 {
+    /**
+     * @var list<string>|null
+     */
+    private static ?array $viabilidadeColumns = null;
+
     public function __construct(
         private readonly ViabilidadeUnificadoService $unificadoService,
         private readonly LandWorkflowService $workflowService,
@@ -76,11 +82,12 @@ class ViabilidadeService
             $this->validarDados($dados);
             $terreno = $this->repository->findTerrenoOrFail($dados['terreno_id']);
             $nextVersion = $this->repository->nextVersionForTerreno((int) $dados['terreno_id']);
+            $payload = $this->prepararPayloadPersistencia($dados);
 
             $this->repository->clearCurrentForTerreno((int) $dados['terreno_id']);
 
             $viabilidade = $this->repository->create([
-                ...collect($dados)->except(['produtos'])->toArray(),
+                ...$payload,
                 'version' => $nextVersion,
                 'is_current' => true,
                 'created_by' => $actor?->id,
@@ -117,12 +124,13 @@ class ViabilidadeService
         return DB::transaction(function () use ($viabilidade, $dados, $actor) {
             $actor ??= Auth::user();
             $viabilidade = $viabilidade instanceof Viabilidade ? $viabilidade : $this->repository->findOrFail($viabilidade);
+            $payload = $this->prepararPayloadPersistencia($dados, $viabilidade);
 
             // Se houver validação específica de update, chamar aqui
             // $this->validarDados($dados); // Opcional, dependendo da regra
 
             $viabilidade = $this->repository->update($viabilidade, [
-                ...collect($dados)->except(['produtos'])->toArray(),
+                ...$payload,
                 'updated_by' => $actor?->id,
             ]);
 
@@ -309,6 +317,64 @@ class ViabilidadeService
                 'dre_resultados' => $dreResultados,
             ];
         });
+    }
+
+    /**
+     * @param  array<string, mixed>  $dados
+     * @return array<string, mixed>
+     */
+    private function prepararPayloadPersistencia(array $dados, ?Viabilidade $viabilidade = null): array
+    {
+        $payload = collect($dados)
+            ->except(['produtos', 'medicao_contratacao'])
+            ->toArray();
+
+        $aliasMap = [
+            'incorp_ri' => 'incorporacao_ri',
+            'incorp_entrega' => 'incorporacao_entrega',
+            'incorp_ate_lancamento' => 'incorporacao_ate_lancamento',
+        ];
+
+        foreach ($aliasMap as $source => $target) {
+            if (array_key_exists($source, $payload)) {
+                $payload[$target] = $payload[$source];
+                unset($payload[$source]);
+            }
+        }
+
+        $snapshotAtual = $viabilidade?->getAttribute('premissas_snapshot');
+        $snapshotBase = is_array($snapshotAtual) ? $snapshotAtual : [];
+        $formValuesAtuais = $snapshotBase['form_values'] ?? [];
+        $formValues = is_array($formValuesAtuais)
+            ? [...$formValuesAtuais, ...$dados]
+            : $dados;
+
+        $payload['premissas_snapshot'] = [
+            ...$snapshotBase,
+            'form_values' => $formValues,
+        ];
+
+        $columns = $this->viabilidadeColumns();
+
+        return array_filter(
+            $payload,
+            static fn (string $key): bool => in_array($key, $columns, true),
+            ARRAY_FILTER_USE_KEY
+        );
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function viabilidadeColumns(): array
+    {
+        if (self::$viabilidadeColumns === null) {
+            /** @var list<string> $columns */
+            $columns = Schema::getColumnListing('viabilidades');
+            self::$viabilidadeColumns = $columns;
+        }
+
+        return self::$viabilidadeColumns;
     }
 
     public function registrarAprovacao(Viabilidade $viabilidade, string $decision, ?string $comments = null, ?User $actor = null): void

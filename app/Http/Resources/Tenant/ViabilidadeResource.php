@@ -6,6 +6,7 @@ use App\Enums\PerfilFinanciamento;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\User;
 use App\Models\Tenant\Viabilidade;
+use App\Services\Tenant\Viabilidade\v1\PremissasViabilidadeService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -18,6 +19,11 @@ class ViabilidadeResource extends JsonResource
     private const DEFAULT_INCLUDES = [];
 
     /**
+     * @var array<string, array<string, mixed>>
+     */
+    private static array $defaultsCache = [];
+
+    /**
      * Transformar o recurso em um array.
      *
      * @return array<string, mixed>
@@ -28,6 +34,9 @@ class ViabilidadeResource extends JsonResource
         $perfilFinanciamento = $this->getAttribute('perfil_financiamento');
         $terreno = $this->relationLoaded('terreno') ? $this->resource->getRelation('terreno') : null;
         $updatedBy = $this->relationLoaded('updatedBy') ? $this->resource->getRelation('updatedBy') : null;
+        $perfil = $perfilFinanciamento instanceof PerfilFinanciamento
+            ? $perfilFinanciamento->value
+            : 'cef';
 
         $data = [
             'id' => $this->id,
@@ -41,11 +50,18 @@ class ViabilidadeResource extends JsonResource
             'prazo_obra' => (int) $this->prazo_obra,
             'prazo_lancamento' => (int) $this->prazo_lancamento,
             'prazo_incorporacao' => (int) $this->prazo_incorporacao,
+            'meses_entrega' => $this->resolveIntValue([], 'meses_entrega', 'mesesEntrega', 'meses_entrega'),
+            'meses_pos_obra' => $this->resolveIntValue([], 'meses_pos_obra', 'mesesPosObra', 'meses_pos_obra'),
             'pis_cofins' => (float) $this->pis_cofins,
             'iss' => (float) $this->iss,
             'outros_impostos' => (float) $this->outros_impostos,
             'comissao' => (float) $this->comissao,
             'incorporacao' => (float) $this->incorporacao,
+            'variavel_correcao' => $this->resolveFloatValue([], 'variavel_correcao', null, 'variavel_correcao'),
+            'incorp_ri' => $this->resolveFloatValue(['incorporacao_ri'], 'incorp_ri', 'incorporacaoRi', 'incorp_ri', true),
+            'incorp_entrega' => $this->resolveFloatValue(['incorporacao_entrega'], 'incorp_entrega', 'incorporacaoEntrega', 'incorp_entrega', true),
+            'incorp_ate_lancamento' => $this->resolveFloatValue(['incorporacao_ate_lancamento'], 'incorp_ate_lancamento', 'incorporacaoAteLancamento', 'incorp_ate_lancamento', true),
+            'obra_ate_lancamento' => $this->resolveFloatValue([], 'obra_ate_lancamento', 'obraAteLancamento', 'obra_ate_lancamento', true),
             'area_comum' => (float) $this->area_comum,
             'contrapartidas' => (float) $this->contrapartidas,
             'canteiro_mensal' => (float) $this->canteiro_mensal,
@@ -72,6 +88,7 @@ class ViabilidadeResource extends JsonResource
             'pagamento_comissao_venda' => (float) $this->pagamento_comissao_venda,
             'pagamento_comissao_desligamento' => (float) $this->pagamento_comissao_desligamento,
             'parcelamento_comissao_meses' => (int) $this->parcelamento_comissao_meses,
+            'parcelamento_comissao_terreno' => $this->resolveIntValue([], 'parcelamento_comissao_terreno', 'parcelamentoComissaoTerreno', 'parcelamento_comissao_terreno'),
             'marketing' => (float) $this->marketing,
             'marketing_lancamento' => (float) $this->marketing_lancamento,
             'marketing_inicio_antes_lancamento' => (int) $this->marketing_inicio_antes_lancamento,
@@ -83,14 +100,19 @@ class ViabilidadeResource extends JsonResource
             'produtos_cef' => (float) $this->produtos_cef,
             'outras_despesas_financeiras' => (float) $this->outras_despesas_financeiras,
             'despesas_onerosas_bancos' => (float) $this->despesas_onerosas_bancos,
+            'taxa_juros_pj' => $this->resolveFloatValue(['taxa_juros_pj'], 'taxa_juros_pj', 'taxaJurosPj', 'taxa_juros_pj', true),
+            'carencia_pj_meses' => $this->resolveIntValue(['carencia_pj_meses'], 'carencia_pj_meses', 'carenciaPjMeses', 'carencia_pj_meses'),
+            'amortizacao_pj_parcelas' => $this->resolveIntValue(['amortizacao_pj_parcelas'], 'amortizacao_pj_parcelas', 'amortizacaoPjParcelas', 'amortizacao_pj_parcelas'),
             'percentual_antecipacao_pj' => (float) $this->percentual_antecipacao_pj,
             'aporte_adicional_mensal' => (float) $this->aporte_adicional_mensal,
             'devolucao_aporte_percentual' => (float) $this->devolucao_aporte_percentual,
             'distribuicao_lucros_percentual_obra' => (float) $this->distribuicao_lucros_percentual_obra,
             'taxa_exposicao_aplicada' => (float) $this->taxa_exposicao_aplicada,
-            'perfil_financiamento' => $perfilFinanciamento instanceof PerfilFinanciamento
-                ? $perfilFinanciamento->value
-                : 'cef',
+            'inadimplencia' => $this->resolveFloatValue([], 'inadimplencia', 'inadimplencia', 'inadimplencia', true),
+            'atraso_meses' => $this->resolveIntValue([], 'atraso_meses', 'atrasoMeses', 'atraso_meses'),
+            'taxa_perda' => $this->resolveFloatValue([], 'taxa_perda', 'taxaPerda', 'taxa_perda', true),
+            'produtos' => $this->resolveProdutos(),
+            'perfil_financiamento' => $perfil,
             'status' => $this->status,
             'approval_status' => $this->approval_status ?? ($this->status === 'ativo' ? 'aprovada' : 'pendente'),
             'approval_requested_at' => $this->approval_requested_at?->toIso8601String(),
@@ -144,6 +166,194 @@ class ViabilidadeResource extends JsonResource
         }
 
         return $data;
+    }
+
+    /**
+     * @param  list<string>  $attributes
+     * @return array{0: mixed, 1: string|null}
+     */
+    private function resolveValue(
+        array $attributes,
+        ?string $formKey,
+        ?string $snapshotParamKey,
+        ?string $defaultKey
+    ): array {
+        foreach ($attributes as $attribute) {
+            $value = $this->getAttribute($attribute);
+            if ($value !== null) {
+                return [$value, 'attribute'];
+            }
+        }
+
+        $formValues = $this->snapshotFormValues();
+        if ($formKey !== null && array_key_exists($formKey, $formValues) && $formValues[$formKey] !== null) {
+            return [$formValues[$formKey], 'form'];
+        }
+
+        $snapshotParams = $this->snapshotParametros();
+        if ($snapshotParamKey !== null && array_key_exists($snapshotParamKey, $snapshotParams) && $snapshotParams[$snapshotParamKey] !== null) {
+            return [$snapshotParams[$snapshotParamKey], 'param'];
+        }
+
+        $defaults = $this->resolvedDefaults();
+        if ($defaultKey !== null && array_key_exists($defaultKey, $defaults)) {
+            return [$defaults[$defaultKey], 'default'];
+        }
+
+        return [null, null];
+    }
+
+    /**
+     * @param  list<string>  $attributes
+     */
+    private function resolveFloatValue(
+        array $attributes,
+        ?string $formKey,
+        ?string $snapshotParamKey,
+        ?string $defaultKey,
+        bool $snapshotParamIsFraction = false
+    ): float {
+        [$value, $source] = $this->resolveValue($attributes, $formKey, $snapshotParamKey, $defaultKey);
+
+        if ($value === null) {
+            return 0.0;
+        }
+
+        $resolved = (float) $value;
+
+        if ($source === 'param' && $snapshotParamIsFraction) {
+            return $resolved * 100;
+        }
+
+        return $resolved;
+    }
+
+    /**
+     * @param  list<string>  $attributes
+     */
+    private function resolveIntValue(
+        array $attributes,
+        ?string $formKey,
+        ?string $snapshotParamKey,
+        ?string $defaultKey
+    ): int {
+        [$value] = $this->resolveValue($attributes, $formKey, $snapshotParamKey, $defaultKey);
+
+        return $value === null ? 0 : (int) $value;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function resolveProdutos(): array
+    {
+        $formValues = $this->snapshotFormValues();
+        $produtos = $formValues['produtos'] ?? null;
+
+        if (is_array($produtos)) {
+            /** @var list<array<string, mixed>> $items */
+            $items = array_values(collect($produtos)
+                ->filter(fn (mixed $produto): bool => is_array($produto))
+                ->map(function (array $produto): array {
+                    return [
+                        'id' => (int) ($produto['id'] ?? 0),
+                        'unidades' => (float) ($produto['unidades'] ?? 0),
+                        'valor' => (float) ($produto['valor'] ?? 0),
+                        'permuta' => (float) ($produto['permuta'] ?? 0),
+                        'pgto_por_lote' => (float) ($produto['pgto_por_lote'] ?? 0),
+                        'custo_m2' => (float) ($produto['custo_m2'] ?? 0),
+                        'custo_infra' => (float) ($produto['custo_infra'] ?? 0),
+                        '_nome' => $produto['_nome'] ?? null,
+                        '_area_privativa' => isset($produto['_area_privativa'])
+                            ? (float) $produto['_area_privativa']
+                            : null,
+                    ];
+                })
+                ->values()
+                ->all());
+
+            return $items;
+        }
+
+        $resultadosDre = $this->getAttribute('resultados_dre');
+        $produtosDre = is_array($resultadosDre) && is_array($resultadosDre['produtos'] ?? null)
+            ? $resultadosDre['produtos']
+            : [];
+
+        /** @var list<array<string, mixed>> $items */
+        $items = array_values(collect($produtosDre)
+            ->filter(fn (mixed $produto): bool => is_array($produto))
+            ->map(function (array $produto): array {
+                return [
+                    'id' => (int) ($produto['terreno_produto_id'] ?? $produto['id'] ?? 0),
+                    'unidades' => (float) ($produto['quantidade_unidades'] ?? 0),
+                    'valor' => (float) ($produto['preco'] ?? 0),
+                    'permuta' => (float) ($produto['permutas'] ?? 0),
+                    'pgto_por_lote' => (float) ($produto['pgto_por_lote'] ?? 0),
+                    'custo_m2' => (float) ($produto['custo_m2'] ?? 0),
+                    'custo_infra' => (float) ($produto['custo_infraestrutura'] ?? 0),
+                    '_nome' => $produto['nome'] ?? null,
+                    '_area_privativa' => isset($produto['metragem'])
+                        ? (float) $produto['metragem']
+                        : null,
+                ];
+            })
+            ->values()
+            ->all());
+
+        return $items;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function snapshot(): array
+    {
+        $snapshot = $this->getAttribute('premissas_snapshot');
+
+        return is_array($snapshot) ? $snapshot : [];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function snapshotFormValues(): array
+    {
+        $snapshot = $this->snapshot();
+
+        return is_array($snapshot['form_values'] ?? null)
+            ? $snapshot['form_values']
+            : [];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function snapshotParametros(): array
+    {
+        $snapshot = $this->snapshot();
+
+        return is_array($snapshot['parametros'] ?? null)
+            ? $snapshot['parametros']
+            : [];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function resolvedDefaults(): array
+    {
+        $perfilFinanciamento = $this->getAttribute('perfil_financiamento');
+        $perfil = $perfilFinanciamento instanceof PerfilFinanciamento
+            ? $perfilFinanciamento->value
+            : 'cef';
+
+        if (! array_key_exists($perfil, self::$defaultsCache)) {
+            self::$defaultsCache[$perfil] = app(PremissasViabilidadeService::class)
+                ->resolverDefaults($perfil);
+        }
+
+        return self::$defaultsCache[$perfil];
     }
 
     /**

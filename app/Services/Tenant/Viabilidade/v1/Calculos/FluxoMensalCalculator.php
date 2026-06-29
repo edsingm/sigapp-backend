@@ -224,7 +224,7 @@ class FluxoMensalCalculator
      */
     private function calcularPeriodos(Carbon $dataInicio, array $params): array
     {
-        $dataLancamento = $dataInicio->copy();
+        $dataLancamento = $dataInicio->copy()->startOfMonth();
         $inicioIncorporacao = $dataLancamento->copy()->subMonths($params['mesesIncorporacao']);
         $fimLancamento = $dataLancamento->copy()->addMonths($params['mesesLancamento'] - 1);
         $inicioObra = $fimLancamento->copy()->addMonth();

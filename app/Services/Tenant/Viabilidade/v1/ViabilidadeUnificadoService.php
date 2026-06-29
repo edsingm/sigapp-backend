@@ -185,8 +185,16 @@ class ViabilidadeUnificadoService
             ? $perfilValue->value
             : 'cef';
         $dataLancamentoViabilidade = $v?->getAttribute('data_lancamento');
-
         $defaults = $this->premissasService->resolverDefaults($perfilStr);
+        $snapshot = is_array($v?->getAttribute('premissas_snapshot'))
+            ? $v->getAttribute('premissas_snapshot')
+            : [];
+        $formValues = is_array($snapshot['form_values'] ?? null)
+            ? $snapshot['form_values']
+            : [];
+        $snapshotParams = is_array($snapshot['parametros'] ?? null)
+            ? $snapshot['parametros']
+            : [];
 
         return [
             'percentualImpostos' => ((($v->pis_cofins ?? $defaults['pis_cofins']) + ($v->iss ?? $defaults['iss']) + ($v->outros_impostos ?? $defaults['outros_impostos'])) / 100),
@@ -225,7 +233,7 @@ class ViabilidadeUnificadoService
             'pagamentoComissaoDesligamento' => ($v->pagamento_comissao_desligamento ?? $defaults['pagamento_comissao_desligamento']) / 100,
             'pagamentoComissaoVenda' => ($v->pagamento_comissao_venda ?? $defaults['pagamento_comissao_venda']) / 100,
             'parcelamentoComissaoMeses' => (int) ($v->parcelamento_comissao_meses ?? $defaults['parcelamento_comissao_meses']),
-            'parcelamentoComissaoTerreno' => (int) ($defaults['parcelamento_comissao_terreno'] ?? 1),
+            'parcelamentoComissaoTerreno' => $this->resolverInteiro($v, $formValues, $snapshotParams, $defaults, [], 'parcelamento_comissao_terreno', 'parcelamentoComissaoTerreno', 'parcelamento_comissao_terreno'),
             'percentualMarketing' => ($v->marketing ?? $defaults['marketing']) / 100,
             'marketingLancamento' => ($v->marketing_lancamento ?? $defaults['marketing_lancamento']) / 100,
             'custoItbiIptu' => ($v->itbi_iptu ?? $defaults['itbi_iptu']) / 100,
@@ -239,30 +247,30 @@ class ViabilidadeUnificadoService
             'mesesObra' => (int) ($v->prazo_obra ?? $defaults['prazo_obra']),
             'mesesIncorporacao' => (int) ($v->prazo_incorporacao ?? $defaults['meses_incorporacao']),
             'mesesLancamento' => (int) ($v->prazo_lancamento ?? $defaults['meses_lancamento']),
-            'mesesEntrega' => (int) $defaults['meses_entrega'],
-            'mesesPosObra' => (int) $defaults['meses_pos_obra'],
+            'mesesEntrega' => $this->resolverInteiro($v, $formValues, $snapshotParams, $defaults, [], 'meses_entrega', 'mesesEntrega', 'meses_entrega'),
+            'mesesPosObra' => $this->resolverInteiro($v, $formValues, $snapshotParams, $defaults, [], 'meses_pos_obra', 'mesesPosObra', 'meses_pos_obra'),
             'compraTerreno' => (float) ($v->compra_terreno ?? $defaults['compra_terreno']),
-            'taxaJurosPj' => $defaults['taxa_juros_pj'] / 100,
-            'carenciaPjMeses' => (int) $defaults['carencia_pj_meses'],
-            'amortizacaoPjParcelas' => (int) $defaults['amortizacao_pj_parcelas'],
+            'taxaJurosPj' => $this->resolverPercentual($v, $formValues, $snapshotParams, $defaults, ['taxa_juros_pj'], 'taxa_juros_pj', 'taxaJurosPj', 'taxa_juros_pj'),
+            'carenciaPjMeses' => $this->resolverInteiro($v, $formValues, $snapshotParams, $defaults, ['carencia_pj_meses'], 'carencia_pj_meses', 'carenciaPjMeses', 'carencia_pj_meses'),
+            'amortizacaoPjParcelas' => $this->resolverInteiro($v, $formValues, $snapshotParams, $defaults, ['amortizacao_pj_parcelas'], 'amortizacao_pj_parcelas', 'amortizacaoPjParcelas', 'amortizacao_pj_parcelas'),
             'percentualAntecipacaoPj' => ($v->percentual_antecipacao_pj ?? $defaults['percentual_antecipacao_pj']) / 100,
             'aporteAdicionalMensal' => (float) ($v->aporte_adicional_mensal ?? $defaults['aporte_adicional_mensal']),
             'devolucaoAportePercentual' => ($v->devolucao_aporte_percentual ?? $defaults['devolucao_aporte_percentual']) / 100,
             'distribuicaoLucrosPercentualObra' => ($v->distribuicao_lucros_percentual_obra ?? $defaults['distribuicao_lucros_percentual_obra']) / 100,
             'taxaExposicaoAplicada' => ($v->taxa_exposicao_aplicada ?? $defaults['taxa_exposicao_aplicada']) / 100,
-            'incorporacaoRi' => $defaults['incorp_ri'] / 100,
-            'incorporacaoEntrega' => $defaults['incorp_entrega'] / 100,
-            'incorporacaoAteLancamento' => $defaults['incorp_ate_lancamento'] / 100,
-            'obraAteLancamento' => $defaults['obra_ate_lancamento'] / 100,
+            'incorporacaoRi' => $this->resolverPercentual($v, $formValues, $snapshotParams, $defaults, ['incorporacao_ri'], 'incorp_ri', 'incorporacaoRi', 'incorp_ri'),
+            'incorporacaoEntrega' => $this->resolverPercentual($v, $formValues, $snapshotParams, $defaults, ['incorporacao_entrega'], 'incorp_entrega', 'incorporacaoEntrega', 'incorp_entrega'),
+            'incorporacaoAteLancamento' => $this->resolverPercentual($v, $formValues, $snapshotParams, $defaults, ['incorporacao_ate_lancamento'], 'incorp_ate_lancamento', 'incorporacaoAteLancamento', 'incorp_ate_lancamento'),
+            'obraAteLancamento' => $this->resolverPercentual($v, $formValues, $snapshotParams, $defaults, [], 'obra_ate_lancamento', 'obraAteLancamento', 'obra_ate_lancamento'),
             'marketingInicioAntesLancamento' => (int) ($v->marketing_inicio_antes_lancamento ?? $defaults['marketing_inicio_antes_lancamento']),
             'custoMedicaoContratacao' => (float) ($v->custo_contratacao_cef ?? $defaults['custo_contratacao_cef'] ?? 0),
             'perfilFinanciamento' => PerfilFinanciamento::tryFrom($perfilStr),
             'dataLancamento' => $dataLancamentoViabilidade !== null
                 ? Carbon::parse($dataLancamentoViabilidade)
                 : $defaults['data_lancamento_padrao'],
-            'inadimplencia' => (float) $defaults['inadimplencia'],
-            'atrasoMeses' => (int) $defaults['atraso_meses'],
-            'taxaPerda' => (float) $defaults['taxa_perda'],
+            'inadimplencia' => $this->resolverPercentual($v, $formValues, $snapshotParams, $defaults, [], 'inadimplencia', 'inadimplencia', 'inadimplencia', true),
+            'atrasoMeses' => $this->resolverInteiro($v, $formValues, $snapshotParams, $defaults, [], 'atraso_meses', 'atrasoMeses', 'atraso_meses'),
+            'taxaPerda' => $this->resolverPercentual($v, $formValues, $snapshotParams, $defaults, [], 'taxa_perda', 'taxaPerda', 'taxa_perda', true),
         ];
     }
 
@@ -272,7 +280,11 @@ class ViabilidadeUnificadoService
      */
     private function salvarSnapshot(Viabilidade $viabilidade, array $resultado): void
     {
+        $snapshotAtual = $viabilidade->getAttribute('premissas_snapshot');
+        $snapshotBase = is_array($snapshotAtual) ? $snapshotAtual : [];
+
         $viabilidade->setAttribute('premissas_snapshot', [
+            ...$snapshotBase,
             'calculado_em' => now()->toDateTimeString(),
             'parametros' => $resultado['parametros_utilizados'] ?? [],
             'indicadores' => $resultado['indicadores'] ?? [],
@@ -281,5 +293,78 @@ class ViabilidadeUnificadoService
         ]);
 
         $viabilidade->saveQuietly();
+    }
+
+    /**
+     * @param  array<string, mixed>  $formValues
+     * @param  array<string, mixed>  $snapshotParams
+     * @param  array<string, mixed>  $defaults
+     * @param  list<string>  $modelAttributes
+     */
+    private function resolverPercentual(
+        ?Viabilidade $viabilidade,
+        array $formValues,
+        array $snapshotParams,
+        array $defaults,
+        array $modelAttributes,
+        string $formKey,
+        string $snapshotParamKey,
+        string $defaultKey,
+        bool $defaultJaFracionado = false
+    ): float {
+        foreach ($modelAttributes as $attribute) {
+            $value = $viabilidade?->getAttribute($attribute);
+            if ($value !== null) {
+                return ((float) $value) / 100;
+            }
+        }
+
+        if (array_key_exists($formKey, $formValues) && $formValues[$formKey] !== null) {
+            return ((float) $formValues[$formKey]) / 100;
+        }
+
+        if (array_key_exists($snapshotParamKey, $snapshotParams) && $snapshotParams[$snapshotParamKey] !== null) {
+            return (float) $snapshotParams[$snapshotParamKey];
+        }
+
+        $default = $defaults[$defaultKey] ?? 0;
+
+        return $defaultJaFracionado
+            ? (float) $default
+            : ((float) $default) / 100;
+    }
+
+    /**
+     * @param  array<string, mixed>  $formValues
+     * @param  array<string, mixed>  $snapshotParams
+     * @param  array<string, mixed>  $defaults
+     * @param  list<string>  $modelAttributes
+     */
+    private function resolverInteiro(
+        ?Viabilidade $viabilidade,
+        array $formValues,
+        array $snapshotParams,
+        array $defaults,
+        array $modelAttributes,
+        string $formKey,
+        string $snapshotParamKey,
+        string $defaultKey
+    ): int {
+        foreach ($modelAttributes as $attribute) {
+            $value = $viabilidade?->getAttribute($attribute);
+            if ($value !== null) {
+                return (int) $value;
+            }
+        }
+
+        if (array_key_exists($formKey, $formValues) && $formValues[$formKey] !== null) {
+            return (int) $formValues[$formKey];
+        }
+
+        if (array_key_exists($snapshotParamKey, $snapshotParams) && $snapshotParams[$snapshotParamKey] !== null) {
+            return (int) $snapshotParams[$snapshotParamKey];
+        }
+
+        return (int) ($defaults[$defaultKey] ?? 0);
     }
 }

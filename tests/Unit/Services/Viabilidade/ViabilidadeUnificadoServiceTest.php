@@ -282,6 +282,22 @@ class ViabilidadeUnificadoServiceTest extends TestCase
         ];
     }
 
+    public function test_fluxo_mensal_normaliza_percentuais_do_produto_em_fracao_e_percentual(): void
+    {
+        $property = new \ReflectionProperty(ViabilidadeUnificadoService::class, 'fluxoMensalCalculator');
+        $property->setAccessible(true);
+        $calculator = $property->getValue($this->service);
+
+        $method = new \ReflectionMethod(FluxoMensalCalculator::class, 'normalizarPercentual');
+        $method->setAccessible(true);
+
+        $this->assertEqualsWithDelta(0.09, $method->invoke($calculator, 0.09), 0.000001);
+        $this->assertEqualsWithDelta(0.09, $method->invoke($calculator, 9), 0.000001);
+        $this->assertEqualsWithDelta(1.0, $method->invoke($calculator, 1), 0.000001);
+        $this->assertEqualsWithDelta(0.01, $method->invoke($calculator, 1, 0.0, true), 0.000001);
+        $this->assertEqualsWithDelta(0.045, $method->invoke($calculator, 4.5, 0.0, true), 0.000001);
+    }
+
     // =========================================================================
     // calcularDre — Estrutura do retorno
     // =========================================================================

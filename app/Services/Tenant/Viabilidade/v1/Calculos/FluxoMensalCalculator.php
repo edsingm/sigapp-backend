@@ -312,14 +312,14 @@ class FluxoMensalCalculator
             $precoProduto = $produto['preco'] ?? 0;
             $fin = $produto['financeiro'];
 
-            $percentualSinal = ($fin['sinal'] ?? 2) / 100;
-            $percentualObra = ($fin['parcela_obra'] ?? 9) / 100;
-            $percentualPos = ($fin['parcela_posChave'] ?? 9) / 100;
+            $percentualSinal = $this->normalizarPercentual($fin['sinal'] ?? null, 0.02);
+            $percentualObra = $this->normalizarPercentual($fin['parcela_obra'] ?? null, 0.09);
+            $percentualPos = $this->normalizarPercentual($fin['parcela_posChave'] ?? null, 0.09);
             $qtdParcelasPos = max(1, (int) ($fin['qtde_parcelas_posChave'] ?? $prazoPosChave));
 
-            $taxaCorrecaoObraAnual = ((float) ($fin['correcao_anualObra'] ?? 0)) / 100;
-            $taxaCorrecaoPosAnual = ((float) ($fin['correcao_anualPosChave'] ?? 4.5)) / 100;
-            $jurosMensalPos = ((float) ($fin['juros_mensalPosChave'] ?? 1)) / 100;
+            $taxaCorrecaoObraAnual = $this->normalizarPercentual($fin['correcao_anualObra'] ?? null, 0.0, true);
+            $taxaCorrecaoPosAnual = $this->normalizarPercentual($fin['correcao_anualPosChave'] ?? null, 0.045, true);
+            $jurosMensalPos = $this->normalizarPercentual($fin['juros_mensalPosChave'] ?? null, 0.01, true);
 
             $r_obra = $taxaCorrecaoObraAnual > 0
                 ? pow(1 + $taxaCorrecaoObraAnual, 1 / 12.0) - 1
@@ -417,7 +417,7 @@ class FluxoMensalCalculator
             $unidadesConstrutora = max(1, $unidadesProduto - $permutasProduto);
             $precoProduto = $produto['preco'] ?? 0;
             $fin = $produto['financeiro'];
-            $percentualSinal = ($fin['sinal'] ?? 2) / 100;
+            $percentualSinal = $this->normalizarPercentual($fin['sinal'] ?? null, 0.02);
             $baloesAnuais = $produto['baloes_anuais'] ?? [];
             $balaoEntregaModo = $produto['balao_entrega_modo'] ?? 'saldo_restante';
 
@@ -590,11 +590,32 @@ class FluxoMensalCalculator
         $unidadesTotais = max(1, $dadosProdutos['totalUnidadesConstrutora'] ?? $dadosProdutos['totalUnidades'] ?? 1);
         $ctx->demandaMinima = 0.0;
         foreach ($dadosProdutos['produtos'] as $produto) {
-            $demandaPct = ($produto['demanda_minCef'] ?? 0) / 100;
+            $demandaPct = $this->normalizarPercentual($produto['demanda_minCef'] ?? null);
             $ctx->demandaMinima += $unidadesTotais * $demandaPct;
         }
 
         $this->receitasCalculator->inicializarValorMedicaoTotal($dadosProdutos, $datas, $ctx);
+    }
+
+    private function normalizarPercentual(
+        mixed $valor,
+        float $fallback = 0.0,
+        bool $umComoPercentual = false
+    ): float {
+        if ($valor === null || $valor === '') {
+            return $fallback;
+        }
+
+        $percentual = (float) $valor;
+        if ($percentual <= 0.0) {
+            return 0.0;
+        }
+
+        if ($percentual < 1.0 || ($percentual === 1.0 && ! $umComoPercentual)) {
+            return $percentual;
+        }
+
+        return $percentual / 100;
     }
 
     /**

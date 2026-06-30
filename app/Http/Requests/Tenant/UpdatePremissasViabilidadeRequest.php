@@ -30,7 +30,6 @@ class UpdatePremissasViabilidadeRequest extends FormRequest
             'nome' => 'sometimes|required|string|max:255',
             'perfil_financiamento' => 'sometimes|required|string|in:cef,proprio',
             'ativo' => 'sometimes|boolean',
-            'versao' => 'sometimes|integer|min:1',
             'vigente_em' => 'nullable|date',
             'encerrada_em' => 'nullable|date|after:vigente_em',
             'pis_cofins' => 'nullable|numeric|min:0|max:100',

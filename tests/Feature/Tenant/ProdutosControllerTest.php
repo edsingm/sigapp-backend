@@ -116,6 +116,40 @@ class ProdutosControllerTest extends TestCase
             ->assertJsonPath('data.name', 'Updated');
     }
 
+    public function test_it_records_and_lists_produto_history(): void
+    {
+        $produto = Produto::create([
+            'name' => 'Produto auditado',
+            'm2_cost' => 1000,
+            'created_by' => $this->adminUser->id,
+            'updated_by' => $this->adminUser->id,
+        ]);
+
+        $this->actingAs($this->adminUser)
+            ->putJson("/api/v1/produtos/{$produto->id}", [
+                'name' => 'Produto auditado',
+                'm2_cost' => 1200,
+            ])
+            ->assertOk();
+
+        $this->actingAs($this->adminUser)
+            ->putJson("/api/v1/produtos/{$produto->id}", [
+                'status' => 'inativo',
+            ])
+            ->assertOk();
+
+        $response = $this->actingAs($this->adminUser)
+            ->getJson("/api/v1/produtos/{$produto->id}/historico");
+
+        $response->assertOk()
+            ->assertJsonPath('data.current.id', $produto->id)
+            ->assertJsonPath('data.current.updated_by_user.name', 'Admin Test')
+            ->assertJsonCount(2, 'data.entries')
+            ->assertJsonPath('data.entries.0.changed_by_user.name', 'Admin Test')
+            ->assertJsonPath('data.entries.1.before_values.m2_cost', '1000.00')
+            ->assertJsonPath('data.entries.1.after_values.m2_cost', '1200.00');
+    }
+
     public function test_it_deletes_a_produto(): void
     {
         $produto = Produto::create(['name' => 'To Delete', 'description' => 'Desc', 'price' => 10.0]);

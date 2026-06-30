@@ -44,8 +44,17 @@ class ProdutoResource extends JsonResource
             'assist_tecnica5' => $this->assist_tecnica5,
             'meses_inicioConstrucao' => $this->meses_inicioConstrucao,
             'porcentagem_ConstrucaoStand' => $this->porcentagem_ConstrucaoStand,
+            'deleted_at' => $this->deleted_at?->format('d/m/Y H:i:s'),
             'created_at' => $this->created_at?->format('d/m/Y H:i:s'),
             'updated_at' => $this->updated_at?->format('d/m/Y H:i:s'),
+            'created_by_user' => $this->whenLoaded('createdBy', fn () => [
+                'id' => $this->createdBy?->id,
+                'name' => $this->createdBy?->name,
+            ]),
+            'updated_by_user' => $this->whenLoaded('updatedBy', fn () => [
+                'id' => $this->updatedBy?->id,
+                'name' => $this->updatedBy?->name,
+            ]),
         ];
     }
 }

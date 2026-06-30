@@ -24,8 +24,9 @@ class PremissasViabilidadeController extends Controller
     {
         $perPage = $request->integer('per_page', 10);
         $perfil = $request->string('perfil_financiamento')->toString() ?: null;
+        $ativo = $request->has('ativo') ? $request->boolean('ativo') : null;
 
-        $premissas = $this->service->list($perfil, $perPage);
+        $premissas = $this->service->list($perfil, $perPage, $ativo);
 
         return PremissasViabilidadeResource::collection($premissas);
     }
@@ -44,10 +45,30 @@ class PremissasViabilidadeController extends Controller
         );
     }
 
+    public function history(int $id): JsonResponse
+    {
+        $premissa = $this->service->findById($id);
+
+        if (! $premissa) {
+            return ApiResponseService::notFound('Premissas não encontradas');
+        }
+
+        $history = $this->service->history($premissa);
+
+        return ApiResponseService::success([
+            'current' => new PremissasViabilidadeResource($history['current']),
+            'previous' => $history['previous']
+                ? new PremissasViabilidadeResource($history['previous'])
+                : null,
+            'versions' => PremissasViabilidadeResource::collection($history['versions'])->resolve(),
+        ], 'Histórico de premissas recuperado com sucesso');
+    }
+
     public function store(StorePremissasViabilidadeRequest $request): JsonResponse
     {
         $validated = $request->validated();
         $validated['created_by'] = $request->user()->id;
+        $validated['updated_by'] = $request->user()->id;
 
         $premissa = $this->service->create($validated);
 
@@ -66,6 +87,7 @@ class PremissasViabilidadeController extends Controller
         }
 
         $validated = $request->validated();
+        $validated['created_by'] = $request->user()->id;
         $validated['updated_by'] = $request->user()->id;
 
         $premissa = $this->service->update($premissa, $validated);

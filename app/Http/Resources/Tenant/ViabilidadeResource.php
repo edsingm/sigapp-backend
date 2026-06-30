@@ -165,6 +165,10 @@ class ViabilidadeResource extends JsonResource
             ];
         }
 
+        if ($this->shouldInclude($include, 'premissas_snapshot')) {
+            $data['premissas_snapshot'] = $this->snapshot();
+        }
+
         return $data;
     }
 

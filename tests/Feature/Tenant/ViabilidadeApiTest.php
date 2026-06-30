@@ -67,6 +67,8 @@ class ViabilidadeApiTest extends TestCase
 
         $createResponse->assertCreated()
             ->assertJsonPath('data.viabilidade.terreno_id', $terrenoProduto->getAttribute('terreno_id'))
+            ->assertJsonPath('data.viabilidade.status', 'rascunho')
+            ->assertJsonPath('data.viabilidade.approval_status', 'pendente')
             ->assertJsonStructure([
                 'data' => [
                     'viabilidade' => ['id'],
@@ -79,6 +81,12 @@ class ViabilidadeApiTest extends TestCase
             ->assertJsonMissingPath('data.fluxo_mensal');
 
         $viabilidadeId = $createResponse->json('data.viabilidade.id');
+
+        $this->assertDatabaseHas('viabilidades', [
+            'id' => $viabilidadeId,
+            'status' => 'rascunho',
+            'approval_status' => 'pendente',
+        ]);
 
         $this->actingAs($this->admin)
             ->getJson('/api/v1/viabilidades')
@@ -356,6 +364,134 @@ class ViabilidadeApiTest extends TestCase
             ->assertJsonPath('data.viabilidade.produtos.0.pgto_por_lote', 4200)
             ->assertJsonPath('data.viabilidade.produtos.0.custo_m2', 1950)
             ->assertJsonPath('data.viabilidade.produtos.0.custo_infra', 330);
+    }
+
+    public function test_update_preserva_snapshot_anterior_para_auditoria_de_viabilidade(): void
+    {
+        $terrenoProduto = $this->createViabilityFixture();
+
+        $createResponse = $this->actingAs($this->admin)
+            ->postJson('/api/v1/viabilidades', [
+                'terreno_id' => $terrenoProduto->getAttribute('terreno_id'),
+                'compra_terreno' => 1000000,
+                'produtos' => [
+                    [
+                        'id' => $terrenoProduto->getKey(),
+                        'unidades' => 12,
+                        'valor' => 250000,
+                        'permuta' => 0,
+                        'pgto_por_lote' => 0,
+                        'custo_m2' => 1800,
+                        'custo_infra' => 300,
+                    ],
+                ],
+            ]);
+
+        $viabilidadeId = (int) $createResponse->json('data.viabilidade.id');
+
+        $this->actingAs($this->admin)
+            ->putJson("/api/v1/viabilidades/{$viabilidadeId}", [
+                'compra_terreno' => 1250000,
+                'produtos' => [
+                    [
+                        'id' => $terrenoProduto->getKey(),
+                        'unidades' => 12,
+                        'valor' => 250000,
+                        'permuta' => 0,
+                        'pgto_por_lote' => 0,
+                        'custo_m2' => 1800,
+                        'custo_infra' => 300,
+                    ],
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.viabilidade.compra_terreno', 1250000);
+
+        $this->actingAs($this->admin)
+            ->getJson("/api/v1/viabilidades/{$viabilidadeId}?include=auditoria,premissas_snapshot")
+            ->assertOk()
+            ->assertJsonPath('data.viabilidade.compra_terreno', 1250000)
+            ->assertJsonPath(
+                'data.viabilidade.premissas_snapshot.form_values.compra_terreno',
+                '1000000.00'
+            )
+            ->assertJsonPath(
+                'data.viabilidade.premissas_snapshot.alterado_por_user.name',
+                $this->admin->name
+            )
+            ->assertJsonPath(
+                'data.viabilidade.premissas_snapshot.referencia_atualizada_por_user.name',
+                $this->admin->name
+            );
+    }
+
+    public function test_update_acumula_historico_e_registra_alteracoes_de_produto(): void
+    {
+        $terrenoProduto = $this->createViabilityFixture();
+
+        $createResponse = $this->actingAs($this->admin)
+            ->postJson('/api/v1/viabilidades', [
+                'terreno_id' => $terrenoProduto->getAttribute('terreno_id'),
+                'produtos' => [
+                    [
+                        'id' => $terrenoProduto->getKey(),
+                        'unidades' => 12,
+                        'valor' => 250000,
+                        'permuta' => 0,
+                        'pgto_por_lote' => 0,
+                        'custo_m2' => 1800,
+                        'custo_infra' => 300,
+                    ],
+                ],
+            ]);
+
+        $viabilidadeId = (int) $createResponse->json('data.viabilidade.id');
+
+        $this->actingAs($this->admin)
+            ->putJson("/api/v1/viabilidades/{$viabilidadeId}", [
+                'compra_terreno' => 1250000,
+                'produtos' => [
+                    [
+                        'id' => $terrenoProduto->getKey(),
+                        'unidades' => 12,
+                        'valor' => 250000,
+                        'permuta' => 0,
+                        'pgto_por_lote' => 0,
+                        'custo_m2' => 1800,
+                        'custo_infra' => 300,
+                    ],
+                ],
+            ])
+            ->assertOk();
+
+        $this->actingAs($this->admin)
+            ->putJson("/api/v1/viabilidades/{$viabilidadeId}", [
+                'produtos' => [
+                    [
+                        'id' => $terrenoProduto->getKey(),
+                        'unidades' => 12,
+                        'valor' => 275000,
+                        'permuta' => 0,
+                        'pgto_por_lote' => 0,
+                        'custo_m2' => 1800,
+                        'custo_infra' => 330,
+                    ],
+                ],
+            ])
+            ->assertOk();
+
+        $this->actingAs($this->admin)
+            ->getJson("/api/v1/viabilidades/{$viabilidadeId}?include=premissas_snapshot")
+            ->assertOk()
+            ->assertJsonCount(2, 'data.viabilidade.premissas_snapshot.historico')
+            ->assertJsonPath(
+                'data.viabilidade.premissas_snapshot.historico.1.after_form_values.produtos.0.valor',
+                275000
+            )
+            ->assertJsonPath(
+                'data.viabilidade.premissas_snapshot.historico.1.after_form_values.produtos.0.custo_infra',
+                330
+            );
     }
 
     private function createViabilityFixture(): TerrenoProduto

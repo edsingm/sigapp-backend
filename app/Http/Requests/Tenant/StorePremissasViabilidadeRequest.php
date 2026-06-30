@@ -30,7 +30,6 @@ class StorePremissasViabilidadeRequest extends FormRequest
             'nome' => 'required|string|max:255',
             'perfil_financiamento' => 'required|string|in:cef,proprio',
             'ativo' => 'boolean',
-            'versao' => 'integer|min:1',
             'vigente_em' => 'nullable|date',
             'encerrada_em' => 'nullable|date|after:vigente_em',
             'pis_cofins' => 'nullable|numeric|min:0|max:100',

@@ -230,6 +230,7 @@ Route::middleware([
                 // Produtos
                 Route::middleware('check.feature:product_settings')->group(function () {
                     Route::get('/produtos/select', [ProdutosController::class, 'forSelect']);
+                    Route::get('/produtos/{produto}/historico', [ProdutosController::class, 'history']);
                     Route::post('/produtos', [ProdutosController::class, 'store'])
                         ->middleware('enforce.limits:products');
                     Route::apiResource('produtos', ProdutosController::class)->except(['store']);
@@ -281,6 +282,7 @@ Route::middleware([
 
                 // Premissas de Viabilidade
                 Route::middleware(['check.feature:viabilities.enabled', 'permission.gate:configurations'])->group(function () {
+                    Route::get('premissas-viabilidade/{id}/historico', [PremissasViabilidadeController::class, 'history']);
                     Route::apiResource('premissas-viabilidade', PremissasViabilidadeController::class);
                 });
 

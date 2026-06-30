@@ -97,6 +97,14 @@ class PremissasViabilidadeResource extends JsonResource
             'variavel_correcao' => $this->attr('variavel_correcao'),
             'created_at' => $this->formattedDateTime('created_at'),
             'updated_at' => $this->formattedDateTime('updated_at'),
+            'created_by_user' => $this->whenLoaded('createdBy', fn () => [
+                'id' => $this->createdBy->id,
+                'name' => $this->createdBy->name,
+            ]),
+            'updated_by_user' => $this->whenLoaded('updatedBy', fn () => [
+                'id' => $this->updatedBy->id,
+                'name' => $this->updatedBy->name,
+            ]),
         ];
     }
 

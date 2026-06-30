@@ -53,6 +53,20 @@ class ProdutosController extends Controller
         );
     }
 
+    public function history(ShowProdutoRequest $request, int $id): JsonResponse
+    {
+        $produto = $this->produtoService->findById($id, withTrashed: true);
+
+        if (! $produto) {
+            return ApiResponseService::notFound('Produto não encontrado');
+        }
+
+        return ApiResponseService::success(
+            $this->produtoService->history($produto),
+            'Histórico do produto recuperado com sucesso'
+        );
+    }
+
     public function store(StoreProdutoRequest $request): JsonResponse
     {
         $validated = $request->validated();
@@ -93,7 +107,7 @@ class ProdutosController extends Controller
             return ApiResponseService::notFound('Produto não encontrado');
         }
 
-        $this->produtoService->delete($produto);
+        $this->produtoService->delete($produto, $request->user()->id);
 
         return ApiResponseService::success(null, 'Produto excluído com sucesso');
     }
@@ -110,7 +124,7 @@ class ProdutosController extends Controller
             return ApiResponseService::success(null, 'O produto já está ativo');
         }
 
-        $this->produtoService->restore($produto);
+        $this->produtoService->restore($produto, $request->user()->id);
 
         return ApiResponseService::success(
             new ProdutoResource($produto),

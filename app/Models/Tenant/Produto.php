@@ -5,9 +5,11 @@ namespace App\Models\Tenant;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['name', 'description', 'image', 'private_area', 'm2_cost', 'infra_cost', 'status', 'sinal', 'parcela_obra', 'parcela_posChave', 'qtde_parcelas_posChave', 'demanda_minCef', 'defasagem_pgtoTerreno', 'avaliacao_lotesCef', 'juros_mensalSinal', 'juros_mensalObra', 'juros_mensalPosChave', 'correcao_anualSinal', 'correcao_anualObra', 'correcao_anualPosChave', 'curva_vendas', 'baloes_anuais', 'balao_entrega_modo', 'assist_tecnica1', 'assist_tecnica2', 'assist_tecnica3', 'assist_tecnica4', 'assist_tecnica5', 'meses_inicioConstrucao', 'porcentagem_ConstrucaoStand'])]
+#[Fillable(['name', 'description', 'image', 'private_area', 'm2_cost', 'infra_cost', 'status', 'sinal', 'parcela_obra', 'parcela_posChave', 'qtde_parcelas_posChave', 'demanda_minCef', 'defasagem_pgtoTerreno', 'avaliacao_lotesCef', 'juros_mensalSinal', 'juros_mensalObra', 'juros_mensalPosChave', 'correcao_anualSinal', 'correcao_anualObra', 'correcao_anualPosChave', 'curva_vendas', 'baloes_anuais', 'balao_entrega_modo', 'assist_tecnica1', 'assist_tecnica2', 'assist_tecnica3', 'assist_tecnica4', 'assist_tecnica5', 'meses_inicioConstrucao', 'porcentagem_ConstrucaoStand', 'created_by', 'updated_by'])]
 class Produto extends Model
 {
     use HasFactory, SoftDeletes;
@@ -33,4 +35,19 @@ class Produto extends Model
         'curva_vendas' => 'array',
         'baloes_anuais' => 'array',
     ];
+
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function updatedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function historicos(): HasMany
+    {
+        return $this->hasMany(ProdutoHistorico::class, 'produto_id');
+    }
 }

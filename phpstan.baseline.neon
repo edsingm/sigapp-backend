@@ -7740,3 +7740,14 @@ parameters:
 			count: 2
 			path: tests/Unit/TenantPlan/TenantPlanServiceTest.php
 
+		-
+			rawMessage: Access to an undefined property App\Http\Resources\Tenant\PremissasViabilidadeResource::$createdBy.
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Resources/Tenant/PremissasViabilidadeResource.php
+
+		-
+			rawMessage: Access to an undefined property App\Http\Resources\Tenant\PremissasViabilidadeResource::$updatedBy.
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Resources/Tenant/PremissasViabilidadeResource.php

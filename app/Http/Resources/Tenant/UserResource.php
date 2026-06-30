@@ -20,8 +20,6 @@ class UserResource extends BaseUserResource
         return array_merge($base, [
             'department' => $this->whenLoaded('department', fn () => new DepartmentResource($this->department)),
             'department_id' => $this->department_id,
-            'position' => $this->whenLoaded('position', fn () => new PositionResource($this->position)),
-            'position_id' => $this->position_id,
             'phone' => $this->phone,
             'cpf' => $this->cpf,
             'rg' => $this->rg,

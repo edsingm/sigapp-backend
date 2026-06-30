@@ -16,8 +16,6 @@ class TenantAdminRequestAuthorizationTest extends TestCase
         return [
             self::ROOT_PATH.'app/Http/Requests/Tenant/StoreDepartmentRequest.php',
             self::ROOT_PATH.'app/Http/Requests/Tenant/UpdateDepartmentRequest.php',
-            self::ROOT_PATH.'app/Http/Requests/Tenant/StorePositionRequest.php',
-            self::ROOT_PATH.'app/Http/Requests/Tenant/UpdatePositionRequest.php',
             self::ROOT_PATH.'app/Http/Requests/Tenant/StorePermissionRequest.php',
             self::ROOT_PATH.'app/Http/Requests/Tenant/UpdatePermissionRequest.php',
             self::ROOT_PATH.'app/Http/Requests/Tenant/StoreRoleRequest.php',

@@ -10,23 +10,21 @@ use App\Http\Middleware\EnsureTenantContext;
 use App\Http\Middleware\EnsureTenantUser;
 use App\Http\Middleware\InitializeTenancyFlexible;
 use App\Models\Tenant\Department;
-use App\Models\Tenant\Position;
 use App\Models\Tenant\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
-class UserManagementWithDepartmentPositionTest extends TestCase
+class UserManagementWithDepartmentTest extends TestCase
 {
     use RefreshDatabase;
 
     private User $admin;
 
     private Department $department;
-
-    private Position $position;
 
     protected function setUp(): void
     {
@@ -50,21 +48,17 @@ class UserManagementWithDepartmentPositionTest extends TestCase
         Role::query()->firstOrCreate(['name' => 'user', 'guard_name' => 'web']);
 
         $this->department = Department::create(['name' => 'Engineering', 'active' => true]);
-        $this->position = Position::create(['name' => 'Analyst', 'level' => 3, 'active' => true]);
 
         $this->admin = User::create([
             'name' => 'Admin Test',
             'email' => 'admin@test.com',
             'password' => Hash::make('password'),
             'department_id' => $this->department->id,
-            'position_id' => $this->position->id,
         ]);
         $this->admin->assignRole('admin');
     }
 
-    // --- store ---
-
-    public function test_creates_user_with_department_and_position(): void
+    public function test_creates_user_with_department(): void
     {
         $payload = [
             'name' => 'New User',
@@ -73,7 +67,7 @@ class UserManagementWithDepartmentPositionTest extends TestCase
             'password_confirmation' => 'Password@123',
             'role' => 'user',
             'department_id' => $this->department->id,
-            'position_id' => $this->position->id,
+            'status' => 'Suspended',
         ];
 
         $response = $this->actingAs($this->admin)
@@ -81,12 +75,15 @@ class UserManagementWithDepartmentPositionTest extends TestCase
 
         $response->assertCreated()
             ->assertJsonPath('data.department_id', $this->department->id)
-            ->assertJsonPath('data.position_id', $this->position->id);
+            ->assertJsonPath('data.status', 'Suspended');
+
+        $this->assertArrayNotHasKey('position_id', $response->json('data'));
+        $this->assertArrayNotHasKey('position', $response->json('data'));
 
         $this->assertDatabaseHas('users', [
             'email' => 'new@test.com',
             'department_id' => $this->department->id,
-            'position_id' => $this->position->id,
+            'status' => 'Suspended',
         ]);
     }
 
@@ -98,7 +95,6 @@ class UserManagementWithDepartmentPositionTest extends TestCase
             'password' => 'Password@123',
             'password_confirmation' => 'Password@123',
             'role' => 'user',
-            'position_id' => $this->position->id,
         ];
 
         $response = $this->actingAs($this->admin)
@@ -106,24 +102,6 @@ class UserManagementWithDepartmentPositionTest extends TestCase
 
         $response->assertUnprocessable()
             ->assertJsonValidationErrors(['department_id']);
-    }
-
-    public function test_creates_user_fails_without_position(): void
-    {
-        $payload = [
-            'name' => 'No Position',
-            'email' => 'noposition@test.com',
-            'password' => 'Password@123',
-            'password_confirmation' => 'Password@123',
-            'role' => 'user',
-            'department_id' => $this->department->id,
-        ];
-
-        $response = $this->actingAs($this->admin)
-            ->postJson('/api/v1/tenant-admin/users', $payload);
-
-        $response->assertUnprocessable()
-            ->assertJsonValidationErrors(['position_id']);
     }
 
     public function test_creates_user_fails_with_nonexistent_department(): void
@@ -135,7 +113,6 @@ class UserManagementWithDepartmentPositionTest extends TestCase
             'password_confirmation' => 'Password@123',
             'role' => 'user',
             'department_id' => 9999,
-            'position_id' => $this->position->id,
         ];
 
         $response = $this->actingAs($this->admin)
@@ -145,59 +122,39 @@ class UserManagementWithDepartmentPositionTest extends TestCase
             ->assertJsonValidationErrors(['department_id']);
     }
 
-    public function test_creates_user_fails_with_nonexistent_position(): void
-    {
-        $payload = [
-            'name' => 'Bad Position',
-            'email' => 'badposition@test.com',
-            'password' => 'Password@123',
-            'password_confirmation' => 'Password@123',
-            'role' => 'user',
-            'department_id' => $this->department->id,
-            'position_id' => 9999,
-        ];
-
-        $response = $this->actingAs($this->admin)
-            ->postJson('/api/v1/tenant-admin/users', $payload);
-
-        $response->assertUnprocessable()
-            ->assertJsonValidationErrors(['position_id']);
-    }
-
-    // --- update ---
-
-    public function test_updates_user_with_new_department_and_position(): void
+    public function test_updates_user_with_new_department(): void
     {
         $newDepartment = Department::create(['name' => 'Finance', 'active' => true]);
-        $newPosition = Position::create(['name' => 'Manager', 'level' => 2, 'active' => true]);
 
         $user = User::create([
             'name' => 'Existing User',
             'email' => 'existing@test.com',
             'password' => Hash::make('password'),
             'department_id' => $this->department->id,
-            'position_id' => $this->position->id,
         ]);
         $user->assignRole('user');
 
         $response = $this->actingAs($this->admin)
             ->putJson("/api/v1/tenant-admin/users/{$user->id}", [
                 'department_id' => $newDepartment->id,
-                'position_id' => $newPosition->id,
+                'status' => 'Inactive',
             ]);
 
         $response->assertOk()
             ->assertJsonPath('data.department_id', $newDepartment->id)
-            ->assertJsonPath('data.position_id', $newPosition->id);
+            ->assertJsonPath('data.status', 'Inactive');
+
+        $this->assertArrayNotHasKey('position_id', $response->json('data'));
+        $this->assertArrayNotHasKey('position', $response->json('data'));
 
         $this->assertDatabaseHas('users', [
             'id' => $user->id,
             'department_id' => $newDepartment->id,
-            'position_id' => $newPosition->id,
+            'status' => 'Inactive',
         ]);
     }
 
-    public function test_listing_returns_department_and_position_for_user(): void
+    public function test_listing_returns_department_for_user(): void
     {
         $response = $this->actingAs($this->admin)
             ->getJson('/api/v1/tenant-admin/users');
@@ -207,26 +164,34 @@ class UserManagementWithDepartmentPositionTest extends TestCase
         $this->assertNotEmpty($data);
         $firstUser = $data[0];
         $this->assertArrayHasKey('department_id', $firstUser);
-        $this->assertArrayHasKey('position_id', $firstUser);
+        $this->assertArrayHasKey('status', $firstUser);
+        $this->assertArrayNotHasKey('position_id', $firstUser);
+        $this->assertArrayNotHasKey('position', $firstUser);
     }
 
-    public function test_shows_user_with_department_and_position_loaded(): void
+    public function test_tenant_user_schema_does_not_keep_positions(): void
+    {
+        $this->assertFalse(Schema::hasTable('positions'));
+        $this->assertFalse(Schema::hasColumn('users', 'position_id'));
+    }
+
+    public function test_shows_user_with_department_loaded(): void
     {
         $response = $this->actingAs($this->admin)
             ->getJson("/api/v1/tenant-admin/users/{$this->admin->id}");
 
         $response->assertOk()
             ->assertJsonPath('data.department_id', $this->department->id)
-            ->assertJsonPath('data.position_id', $this->position->id)
+            ->assertJsonPath('data.status', 'Active')
             ->assertJsonStructure([
                 'data' => [
                     'department' => ['id', 'name'],
-                    'position' => ['id', 'name', 'level'],
                 ],
             ]);
-    }
 
-    // --- delete ---
+        $this->assertArrayNotHasKey('position_id', $response->json('data'));
+        $this->assertArrayNotHasKey('position', $response->json('data'));
+    }
 
     public function test_deletes_user_successfully(): void
     {
@@ -235,7 +200,6 @@ class UserManagementWithDepartmentPositionTest extends TestCase
             'email' => 'todelete@test.com',
             'password' => Hash::make('password'),
             'department_id' => $this->department->id,
-            'position_id' => $this->position->id,
         ]);
         $user->assignRole('user');
 

@@ -69,7 +69,7 @@ class TenantUserService
     /**
      * @param  array<int, string>  $relations
      */
-    public function findWithRelations(int|string $id, array $relations = ['roles', 'department', 'position']): ?User
+    public function findWithRelations(int|string $id, array $relations = ['roles', 'department']): ?User
     {
         return $this->userRepository->findWithRelations($id, $relations);
     }
@@ -95,13 +95,13 @@ class TenantUserService
             'password' => Hash::make($data['password']),
             'locale' => $data['locale'] ?? 'pt-br',
             'department_id' => $data['department_id'] ?? null,
-            'position_id' => $data['position_id'] ?? null,
+            'status' => $data['status'] ?? 'Active',
         ]);
 
         $role = $data['role'] ?? RolesEnum::USER->value;
         $user->syncRoles([$role]);
 
-        return $user->load(['roles', 'permissions', 'department', 'position']);
+        return $user->load(['roles', 'permissions', 'department']);
     }
 
     /**

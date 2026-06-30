@@ -29,7 +29,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property Carbon $created_at
  * @property Carbon $updated_at
  */
-#[Fillable(['name', 'email', 'password', 'email_verified_at', 'locale', 'department_id', 'position_id', 'quiet_hours_start', 'quiet_hours_end', 'email_digest_frequency'])]
+#[Fillable(['name', 'email', 'password', 'email_verified_at', 'locale', 'department_id', 'status', 'quiet_hours_start', 'quiet_hours_end', 'email_digest_frequency'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -74,6 +74,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'locale' => 'string',
+            'status' => 'string',
         ];
     }
 
@@ -83,11 +84,6 @@ class User extends Authenticatable
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class, 'department_id');
-    }
-
-    public function position(): BelongsTo
-    {
-        return $this->belongsTo(Position::class, 'position_id');
     }
 
     public function isSuperAdmin(): bool

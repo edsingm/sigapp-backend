@@ -86,7 +86,7 @@ class UserManagementController extends Controller
         }
 
         return ApiResponseService::success(
-            new UserResource($user->fresh(['roles', 'department', 'position'])),
+            new UserResource($user->fresh(['roles', 'department'])),
             language()->t('USER_UPDATED_SUCCESSFULLY')
         );
     }
@@ -129,7 +129,7 @@ class UserManagementController extends Controller
         );
 
         return ApiResponseService::success(
-            new UserResource($user->fresh(['roles', 'department', 'position', 'permissions'])),
+            new UserResource($user->fresh(['roles', 'department', 'permissions'])),
             language()->t('USER_PERMISSIONS_UPDATED_SUCCESSFULLY')
         );
     }

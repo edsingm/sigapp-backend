@@ -168,7 +168,6 @@ class AdminControllerArchitectureTest extends TestCase
     {
         $controllers = [
             __DIR__.'/../../app/Http/Controllers/Api/V1/Tenant/Admin/DepartmentController.php',
-            __DIR__.'/../../app/Http/Controllers/Api/V1/Tenant/Admin/PositionController.php',
             __DIR__.'/../../app/Http/Controllers/Api/V1/Tenant/Admin/UserManagementController.php',
         ];
 

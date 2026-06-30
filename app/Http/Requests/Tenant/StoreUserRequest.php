@@ -38,7 +38,6 @@ class StoreUserRequest extends FormRequest
             ],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'department_id' => ['required', 'integer', 'exists:departments,id'],
-            'position_id' => ['required', 'integer', 'exists:positions,id'],
             'role' => ['nullable', 'string', Rule::exists('roles', 'name')],
             'status' => ['nullable', 'string', 'in:Active,Inactive,Suspended'],
             'phone' => ['nullable', 'string', 'max:20'],

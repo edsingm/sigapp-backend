@@ -30,7 +30,6 @@ class UpdateUserRequest extends FormRequest
             'email' => ['sometimes', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($this->route('id'))],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'department_id' => ['sometimes', 'required', 'integer', 'exists:departments,id'],
-            'position_id' => ['sometimes', 'required', 'integer', 'exists:positions,id'],
             'role' => ['sometimes', 'nullable', 'string', Rule::exists('roles', 'name')],
             'status' => ['nullable', 'string', 'in:Active,Inactive,Suspended'],
             'phone' => ['nullable', 'string', 'max:20'],

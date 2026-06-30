@@ -5,7 +5,6 @@ use App\Http\Controllers\Api\V1\LanguageController;
 use App\Http\Controllers\Api\V1\MunicipioController;
 use App\Http\Controllers\Api\V1\Tenant\Admin\DepartmentController as AdminDepartmentController;
 use App\Http\Controllers\Api\V1\Tenant\Admin\PermissionController as AdminPermissionController;
-use App\Http\Controllers\Api\V1\Tenant\Admin\PositionController as AdminPositionController;
 use App\Http\Controllers\Api\V1\Tenant\Admin\RoleController as AdminRoleController;
 use App\Http\Controllers\Api\V1\Tenant\Admin\UserManagementController as AdminUserManagementController;
 use App\Http\Controllers\Api\V1\Tenant\AiController;
@@ -174,12 +173,6 @@ Route::middleware([
                         Route::get('departments/select', [AdminDepartmentController::class, 'forSelect'])
                             ->name('tenant-admin.departments.select');
                         Route::apiResource('departments', AdminDepartmentController::class)
-                            ->middleware('permission.gate:admin');
-
-                        // Positions
-                        Route::get('positions/select', [AdminPositionController::class, 'forSelect'])
-                            ->name('tenant-admin.positions.select');
-                        Route::apiResource('positions', AdminPositionController::class)
                             ->middleware('permission.gate:admin');
                     });
 

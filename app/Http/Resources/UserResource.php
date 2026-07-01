@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\Common\RolesEnum;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -9,13 +10,18 @@ class UserResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $roleName = $this->roles->first()?->name;
+        $roleNames = $this->roles->pluck('name');
+
         return [
             'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
             'email_verified_at' => $this->email_verified_at?->toIso8601String(),
-            'role' => $this->roles->first()?->name,
-            'roles' => $this->roles->pluck('name'),
+            'role' => $roleName,
+            'role_label' => $roleName !== null ? (RolesEnum::tryFrom($roleName)?->label() ?? $roleName) : null,
+            'roles' => $roleNames,
+            'roles_label' => $roleNames->map(fn (string $name): string => RolesEnum::tryFrom($name)?->label() ?? $name),
             'permissions' => $this->getAllPermissions()->pluck('name')->values()->all(),
             'department' => $this->department?->name,
             'created_at' => $this->created_at->toIso8601String(),

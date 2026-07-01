@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Resources\Tenant\Admin;
 
+use App\Enums\Common\RolesEnum;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Spatie\Permission\Models\Role;
@@ -23,6 +24,7 @@ class RoleResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
+            'label' => RolesEnum::tryFrom($this->name)?->label() ?? $this->name,
             'guard_name' => $this->guard_name,
             'permissions' => PermissionResource::collection($this->whenLoaded('permissions')),
             'permissions_count' => $this->whenCounted('permissions'),

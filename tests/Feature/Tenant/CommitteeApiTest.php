@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Tenant;
 
+use App\Enums\Common\RolesEnum;
 use App\Enums\WorkflowStatus;
 use App\Http\Middleware\AddTenantContextToLogs;
 use App\Http\Middleware\ApiRequestLogger;
@@ -17,6 +18,7 @@ use App\Models\Tenant\Terreno;
 use App\Models\Tenant\TerrenoProduto;
 use App\Models\Tenant\User;
 use App\Models\Tenant\Viabilidade;
+use Database\Seeders\Tenant\PremissasViabilidadeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
@@ -45,15 +47,17 @@ class CommitteeApiTest extends TestCase
 
         $this->artisan('migrate', ['--path' => 'database/migrations/tenant', '--realpath' => false]);
 
+        $this->seed(PremissasViabilidadeSeeder::class);
+
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
-        Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        Role::query()->firstOrCreate(['name' => RolesEnum::ADMIN->value, 'guard_name' => 'web']);
 
         $this->admin = User::create([
             'name' => 'Tenant Admin',
             'email' => 'tenant-committee-admin@test.com',
             'password' => Hash::make('password123'),
         ]);
-        $this->admin->assignRole('admin');
+        $this->admin->assignRole(RolesEnum::ADMIN);
     }
 
     public function test_admin_can_create_review_register_department_reviews_and_finalize_decision(): void

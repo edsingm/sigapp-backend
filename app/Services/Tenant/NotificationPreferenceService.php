@@ -85,8 +85,8 @@ class NotificationPreferenceService
     public function updateForUser(User $user, array $preferences): void
     {
         foreach ($preferences as $preference) {
-            $category = (string) ($preference['category'] ?? '');
-            $channel = (string) ($preference['channel'] ?? '');
+            $category = $preference['category'];
+            $channel = $preference['channel'];
 
             if (! NotificationCatalog::isChannelAvailable($category, $channel)) {
                 continue;

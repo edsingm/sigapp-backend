@@ -78,6 +78,8 @@ class AiServicesAndMiddlewareTest extends TestCase
 
     public function test_provider_router_returns_primary_agent(): void
     {
+        config(['ai.agent_provider' => 'openrouter']);
+
         $router = new AiProviderRouter;
         $result = $router->getAgentWithFallback();
 

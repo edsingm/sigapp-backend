@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Tenant;
 
+use App\Enums\Common\RolesEnum;
 use App\Http\Controllers\Api\V1\Tenant\ProprietariosController;
 use App\Http\Middleware\AddTenantContextToLogs;
 use App\Http\Middleware\ApiRequestLogger;
@@ -45,14 +46,14 @@ class ProprietariosApiTest extends TestCase
 
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-        Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        Role::query()->firstOrCreate(['name' => RolesEnum::ADMIN->value, 'guard_name' => 'web']);
 
         $this->adminUser = User::create([
             'name' => 'Admin Test',
             'email' => 'admin@test.com',
             'password' => Hash::make('password'),
         ]);
-        $this->adminUser->assignRole('admin');
+        $this->adminUser->assignRole(RolesEnum::ADMIN);
     }
 
     public function test_controller_existe(): void

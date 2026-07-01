@@ -225,10 +225,10 @@ class PremissasViabilidade extends Model
         $hoje = now()->toDateString();
 
         return $query->where(function (Builder $q) use ($hoje): void {
-            $q->where('vigente_em', '<=', $hoje)
+            $q->whereDate('vigente_em', '<=', $hoje)
                 ->orWhereNull('vigente_em');
         })->where(function (Builder $q) use ($hoje): void {
-            $q->where('encerrada_em', '>=', $hoje)
+            $q->whereDate('encerrada_em', '>=', $hoje)
                 ->orWhereNull('encerrada_em');
         });
     }
@@ -240,12 +240,12 @@ class PremissasViabilidade extends Model
             ->where('ativo', true)
             ->where(function (Builder $q): void {
                 $hoje = now()->toDateString();
-                $q->where('vigente_em', '<=', $hoje)
+                $q->whereDate('vigente_em', '<=', $hoje)
                     ->orWhereNull('vigente_em');
             })
             ->where(function (Builder $q): void {
                 $hoje = now()->toDateString();
-                $q->where('encerrada_em', '>=', $hoje)
+                $q->whereDate('encerrada_em', '>=', $hoje)
                     ->orWhereNull('encerrada_em');
             })
             ->orderBy('vigente_em', 'desc');

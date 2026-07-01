@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Tenant\Admin;
 
+use App\Enums\Common\RolesEnum;
 use App\Http\Middleware\AddTenantContextToLogs;
 use App\Http\Middleware\ApiRequestLogger;
 use App\Http\Middleware\CheckSubscriptionStatus;
@@ -44,7 +45,7 @@ class UserManagementWithDepartmentTest extends TestCase
 
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-        Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        Role::query()->firstOrCreate(['name' => RolesEnum::ADMIN->value, 'guard_name' => 'web']);
         Role::query()->firstOrCreate(['name' => 'user', 'guard_name' => 'web']);
 
         $this->department = Department::create(['name' => 'Engineering', 'active' => true]);
@@ -55,7 +56,7 @@ class UserManagementWithDepartmentTest extends TestCase
             'password' => Hash::make('password'),
             'department_id' => $this->department->id,
         ]);
-        $this->admin->assignRole('admin');
+        $this->admin->assignRole(RolesEnum::ADMIN);
     }
 
     public function test_creates_user_with_department(): void

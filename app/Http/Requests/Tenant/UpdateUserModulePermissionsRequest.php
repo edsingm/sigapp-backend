@@ -4,6 +4,7 @@ namespace App\Http\Requests\Tenant;
 
 use App\Enums\AccessLevel;
 use App\Enums\Common\ModulesEnum;
+use App\Enums\Common\RolesEnum;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -16,7 +17,7 @@ class UpdateUserModulePermissionsRequest extends FormRequest
     {
         $user = $this->user();
 
-        return $user !== null && $user->hasAnyRole(['admin', 'ADMIN', 'director', 'DIRECTOR']);
+        return $user !== null && $user->hasAnyRole([RolesEnum::ADMIN->value, RolesEnum::DIRECTOR->value]);
     }
 
     /**

@@ -15,6 +15,7 @@ use App\Services\Tenant\Viabilidade\v1\PremissasViabilidadeService;
 use App\Services\Tenant\Viabilidade\v1\ViabilidadeFluxoContext;
 use App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService;
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Carbon\CarbonPeriod;
 use Tests\TestCase;
 
@@ -312,7 +313,7 @@ class ViabilidadeUnificadoServiceTest extends TestCase
         $datas = $method->invoke($calculator, Carbon::create(2028, 6, 29), $this->makeParams());
         $periodo = CarbonPeriod::create($datas['inicioIncorporacao'], '1 month', $datas['fimPos']);
         $meses = array_map(
-            static fn (Carbon $data): string => $data->format('Y-m'),
+            static fn (CarbonInterface $data): string => $data->format('Y-m'),
             $periodo->toArray(),
         );
 
@@ -326,7 +327,7 @@ class ViabilidadeUnificadoServiceTest extends TestCase
         $receitasCalculator = new ReceitasCalculator(new CurvaService);
         $ctx = new ViabilidadeFluxoContext;
         $datas = $this->makeDatas();
-        $datas['dataLancamento'] = Carbon::create(2028, 6, 29);
+        $datas['dataLancamento'] = Carbon::createFromDate(2028, 6, 29);
 
         $dadosProdutos = $this->makeDadosProdutos([
             'totalUnidades' => 2095,

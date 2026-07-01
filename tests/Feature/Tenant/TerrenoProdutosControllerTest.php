@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Tenant;
 
+use App\Enums\Common\RolesEnum;
 use App\Http\Middleware\AddTenantContextToLogs;
 use App\Http\Middleware\ApiRequestLogger;
 use App\Http\Middleware\CheckFeature;
@@ -47,14 +48,14 @@ class TerrenoProdutosControllerTest extends TestCase
 
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-        Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        Role::query()->firstOrCreate(['name' => RolesEnum::ADMIN->value, 'guard_name' => 'web']);
 
         $this->adminUser = User::create([
             'name' => 'Admin Test',
             'email' => 'admin@test.com',
             'password' => Hash::make('password'),
         ]);
-        $this->adminUser->assignRole('admin');
+        $this->adminUser->assignRole(RolesEnum::ADMIN);
     }
 
     public function test_it_lists_terreno_produtos(): void

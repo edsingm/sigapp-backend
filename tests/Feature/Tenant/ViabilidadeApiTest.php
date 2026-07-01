@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Tenant;
 
+use App\Enums\Common\RolesEnum;
 use App\Http\Middleware\AddTenantContextToLogs;
 use App\Http\Middleware\ApiRequestLogger;
 use App\Http\Middleware\CheckSubscriptionStatus;
@@ -48,14 +49,14 @@ class ViabilidadeApiTest extends TestCase
         $this->popularPremissasPadrao();
 
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
-        Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        Role::query()->firstOrCreate(['name' => RolesEnum::ADMIN->value, 'guard_name' => 'web']);
 
         $this->admin = User::create([
             'name' => 'Tenant Admin',
             'email' => 'tenant-viabilidade-admin@test.com',
             'password' => Hash::make('password123'),
         ]);
-        $this->admin->assignRole('admin');
+        $this->admin->assignRole(RolesEnum::ADMIN);
     }
 
     public function test_admin_can_crud_compare_and_select_viabilidades(): void

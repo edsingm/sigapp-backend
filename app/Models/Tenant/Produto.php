@@ -2,6 +2,7 @@
 
 namespace App\Models\Tenant;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -9,6 +10,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * @property Carbon|null $deleted_at
+ * @property-read User|null $createdBy
+ * @property-read User|null $updatedBy
+ */
 #[Fillable(['name', 'description', 'image', 'private_area', 'm2_cost', 'infra_cost', 'status', 'sinal', 'parcela_obra', 'parcela_posChave', 'qtde_parcelas_posChave', 'demanda_minCef', 'defasagem_pgtoTerreno', 'avaliacao_lotesCef', 'juros_mensalSinal', 'juros_mensalObra', 'juros_mensalPosChave', 'correcao_anualSinal', 'correcao_anualObra', 'correcao_anualPosChave', 'curva_vendas', 'baloes_anuais', 'balao_entrega_modo', 'assist_tecnica1', 'assist_tecnica2', 'assist_tecnica3', 'assist_tecnica4', 'assist_tecnica5', 'meses_inicioConstrucao', 'porcentagem_ConstrucaoStand', 'created_by', 'updated_by'])]
 class Produto extends Model
 {
@@ -36,16 +42,25 @@ class Produto extends Model
         'baloes_anuais' => 'array',
     ];
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function updatedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
     }
 
+    /**
+     * @return HasMany<ProdutoHistorico, $this>
+     */
     public function historicos(): HasMany
     {
         return $this->hasMany(ProdutoHistorico::class, 'produto_id');

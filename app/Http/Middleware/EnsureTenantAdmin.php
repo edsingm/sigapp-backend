@@ -21,8 +21,6 @@ class EnsureTenantAdmin
         $allowedRoles = [
             RolesEnum::ADMIN->value,
             RolesEnum::DIRECTOR->value,
-            'admin',
-            'director',
         ];
 
         if (! $user instanceof User || ! $user->hasAnyRole($allowedRoles)) {

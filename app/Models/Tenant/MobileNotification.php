@@ -2,11 +2,30 @@
 
 namespace App\Models\Tenant;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
+/**
+ * @property string $id
+ * @property int $user_id
+ * @property string $title
+ * @property string $body
+ * @property string $type
+ * @property string|null $entity_type
+ * @property string|null $entity_id
+ * @property string|null $tenant_slug
+ * @property string|null $target_route
+ * @property array<string, mixed>|null $payload
+ * @property string|null $dedupe_key
+ * @property Carbon|null $read_at
+ * @property Carbon|null $sent_at
+ * @property string|null $delivery_error
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
+ */
 #[Fillable(['id', 'user_id', 'title', 'body', 'type', 'entity_type', 'entity_id', 'tenant_slug', 'target_route', 'payload', 'dedupe_key', 'read_at', 'sent_at', 'delivery_error'])]
 class MobileNotification extends Model
 {
@@ -32,6 +51,9 @@ class MobileNotification extends Model
         });
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

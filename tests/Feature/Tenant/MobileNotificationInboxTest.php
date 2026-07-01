@@ -89,7 +89,12 @@ class MobileNotificationInboxTest extends TestCase
             ->assertJsonPath('data.marked', 2);
 
         $this->assertSame(0, MobileNotification::where('user_id', $this->user->id)->whereNull('read_at')->count());
-        $this->assertNull($otherUnread->fresh()->read_at);
+
+        $refreshed = $otherUnread->fresh();
+        if ($refreshed === null) {
+            $this->fail('Notificação não encontrada após refresh.');
+        }
+        $this->assertNull($refreshed->read_at);
     }
 
     public function test_user_can_delete_own_notification(): void

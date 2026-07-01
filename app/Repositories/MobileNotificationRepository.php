@@ -6,9 +6,9 @@ namespace App\Repositories;
 
 use App\Models\Tenant\MobileNotification;
 use App\Repositories\Contracts\MobileNotificationRepositoryInterface;
+use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Carbon;
 
 class MobileNotificationRepository implements MobileNotificationRepositoryInterface
 {
@@ -20,7 +20,7 @@ class MobileNotificationRepository implements MobileNotificationRepositoryInterf
             ->paginate($perPage);
     }
 
-    public function createdSinceForUser(int $userId, Carbon $since): Collection
+    public function createdSinceForUser(int $userId, CarbonInterface $since): Collection
     {
         return MobileNotification::query()
             ->where('user_id', $userId)

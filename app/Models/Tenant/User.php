@@ -37,7 +37,6 @@ class User extends Authenticatable
 
     private const ADMIN_ROLE_NAMES = [
         RolesEnum::ADMIN->value,
-        'admin',
     ];
 
     protected $guard_name = 'web';

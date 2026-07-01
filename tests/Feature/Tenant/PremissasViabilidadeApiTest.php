@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Tenant;
 
+use App\Enums\Common\RolesEnum;
 use App\Http\Middleware\AddTenantContextToLogs;
 use App\Http\Middleware\ApiRequestLogger;
 use App\Http\Middleware\CheckFeature;
@@ -44,14 +45,14 @@ class PremissasViabilidadeApiTest extends TestCase
         $this->artisan('migrate', ['--path' => 'database/migrations/tenant', '--realpath' => false]);
 
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
-        Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        Role::query()->firstOrCreate(['name' => RolesEnum::ADMIN->value, 'guard_name' => 'web']);
 
         $this->adminUser = User::create([
             'name' => 'Admin Test',
             'email' => 'premissas-admin@test.com',
             'password' => Hash::make('password'),
         ]);
-        $this->adminUser->assignRole('admin');
+        $this->adminUser->assignRole(RolesEnum::ADMIN);
     }
 
     public function test_it_filters_premissas_by_ativo_query_param(): void

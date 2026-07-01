@@ -7,6 +7,7 @@ namespace App\Repositories;
 use App\Models\Tenant\PremissasViabilidade;
 use App\Repositories\Contracts\PremissasViabilidadeRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 
 class PremissasViabilidadeRepository implements PremissasViabilidadeRepositoryInterface
 {
@@ -38,24 +39,28 @@ class PremissasViabilidadeRepository implements PremissasViabilidadeRepositoryIn
 
     public function findPreviousVersion(PremissasViabilidade $premissa): ?PremissasViabilidade
     {
-        $query = PremissasViabilidade::query()
-            ->with(['createdBy', 'updatedBy'])
-            ->where('perfil_financiamento', $premissa->perfil_financiamento)
-            ->where('versao', '<', $premissa->versao)
-            ->orderByDesc('versao');
-
         $nome = $premissa->getAttribute('nome');
         if (is_string($nome) && $nome !== '') {
-            $candidate = (clone $query)
-                ->where('nome', $nome)
-                ->first();
+            $candidate = $this->previousVersionQuery($premissa)->where('nome', $nome)->first();
 
-            if ($candidate instanceof PremissasViabilidade) {
+            if ($candidate !== null) {
                 return $candidate;
             }
         }
 
-        return $query->first();
+        return $this->previousVersionQuery($premissa)->first();
+    }
+
+    /**
+     * @return Builder<PremissasViabilidade>
+     */
+    private function previousVersionQuery(PremissasViabilidade $premissa): Builder
+    {
+        return PremissasViabilidade::query()
+            ->with(['createdBy', 'updatedBy'])
+            ->where('perfil_financiamento', $premissa->perfil_financiamento)
+            ->where('versao', '<', $premissa->versao)
+            ->latest('versao');
     }
 
     /**

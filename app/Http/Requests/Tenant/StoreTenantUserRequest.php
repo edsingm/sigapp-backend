@@ -14,7 +14,7 @@ class StoreTenantUserRequest extends FormRequest
     {
         $user = $this->user();
 
-        return $user !== null && $user->hasAnyRole(['admin', 'ADMIN', 'director', 'DIRECTOR']);
+        return $user !== null && $user->hasAnyRole([RolesEnum::ADMIN->value, RolesEnum::DIRECTOR->value]);
     }
 
     /**

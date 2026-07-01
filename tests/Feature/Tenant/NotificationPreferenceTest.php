@@ -216,7 +216,7 @@ class NotificationPreferenceTest extends TestCase
             'enabled' => false,
         ]);
 
-        $this->assertSame([], $notification->via($this->user->fresh()));
+        $this->assertSame([], $notification->via($this->freshUser()));
 
         // Destinatário que não é usuário do tenant recebe normalmente.
         $this->assertSame(['mail'], $notification->via(new \stdClass));
@@ -268,7 +268,7 @@ class NotificationPreferenceTest extends TestCase
 
         // Digest ligado + categoria no inbox (in-app on) → suprime imediato (vai pro resumo).
         $this->user->forceFill(['email_digest_frequency' => 'daily'])->save();
-        $this->assertSame([], $notification->via($this->user->fresh()));
+        $this->assertSame([], $notification->via($this->freshUser()));
 
         // Digest ligado mas in-app off para a categoria → mantém e-mail imediato (sem perda).
         NotificationPreference::create([
@@ -277,7 +277,7 @@ class NotificationPreferenceTest extends TestCase
             'channel' => 'in_app',
             'enabled' => false,
         ]);
-        $this->assertSame(['mail'], $notification->via($this->user->fresh()));
+        $this->assertSame(['mail'], $notification->via($this->freshUser()));
     }
 
     public function test_settings_endpoint_returns_and_updates(): void
@@ -326,6 +326,17 @@ class NotificationPreferenceTest extends TestCase
         $mail = $notification->toMail($this->user);
 
         $this->assertStringContainsString('Resumo de notificações', $mail->subject);
+    }
+
+    private function freshUser(): User
+    {
+        $user = $this->user->fresh();
+
+        if ($user === null) {
+            $this->fail('Usuário não encontrado após refresh.');
+        }
+
+        return $user;
     }
 
     /**

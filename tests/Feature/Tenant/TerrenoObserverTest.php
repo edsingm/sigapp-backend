@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Tenant;
 
+use App\Enums\Common\RolesEnum;
 use App\Http\Middleware\AddTenantContextToLogs;
 use App\Http\Middleware\ApiRequestLogger;
 use App\Http\Middleware\CheckSubscriptionStatus;
@@ -46,14 +47,14 @@ class TerrenoObserverTest extends TestCase
         $this->artisan('migrate', ['--path' => 'database/migrations/tenant', '--realpath' => false]);
 
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
-        Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        Role::query()->firstOrCreate(['name' => RolesEnum::ADMIN->value, 'guard_name' => 'web']);
 
         $this->admin = User::create([
             'name' => 'Admin',
             'email' => 'admin@test.com',
             'password' => Hash::make('password123'),
         ]);
-        $this->admin->assignRole('admin');
+        $this->admin->assignRole(RolesEnum::ADMIN);
 
         $tenant = new CentralTenant;
         $tenant->setAttribute('id', self::TENANT_ID);

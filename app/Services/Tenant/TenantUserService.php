@@ -21,8 +21,6 @@ class TenantUserService
     private const ADMIN_ROLE_NAMES = [
         RolesEnum::ADMIN->value,
         RolesEnum::DIRECTOR->value,
-        'admin',
-        'director',
     ];
 
     /**

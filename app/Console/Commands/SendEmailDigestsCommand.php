@@ -22,9 +22,9 @@ class SendEmailDigestsCommand extends Command
         MobileNotificationRepositoryInterface $notifications,
         NotificationPreferenceService $preferences,
     ): int {
-        $frequency = (string) $this->argument('frequency');
+        $frequency = $this->argument('frequency');
 
-        if (! in_array($frequency, [NotificationPreferenceService::DIGEST_DAILY, NotificationPreferenceService::DIGEST_WEEKLY], true)) {
+        if (! is_string($frequency) || ! in_array($frequency, [NotificationPreferenceService::DIGEST_DAILY, NotificationPreferenceService::DIGEST_WEEKLY], true)) {
             $this->error('Frequência inválida. Use "daily" ou "weekly".');
 
             return self::FAILURE;

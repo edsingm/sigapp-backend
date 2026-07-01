@@ -44,14 +44,14 @@ class RoleControllerTest extends TestCase
 
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-        Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        Role::query()->firstOrCreate(['name' => RolesEnum::ADMIN->value, 'guard_name' => 'web']);
 
         $this->adminUser = User::create([
             'name' => 'Admin Test',
             'email' => 'admin@test.com',
             'password' => Hash::make('password'),
         ]);
-        $this->adminUser->assignRole('admin');
+        $this->adminUser->assignRole(RolesEnum::ADMIN);
     }
 
     public function test_it_lists_roles_for_select(): void

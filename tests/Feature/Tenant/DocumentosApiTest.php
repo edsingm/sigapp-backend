@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Tenant;
 
+use App\Enums\Common\RolesEnum;
 use App\Http\Middleware\AddTenantContextToLogs;
 use App\Http\Middleware\ApiRequestLogger;
 use App\Http\Middleware\CheckSubscriptionStatus;
@@ -49,14 +50,14 @@ class DocumentosApiTest extends TestCase
         $this->artisan('migrate', ['--path' => 'database/migrations/tenant', '--realpath' => false]);
 
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
-        Role::query()->firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        Role::query()->firstOrCreate(['name' => RolesEnum::ADMIN->value, 'guard_name' => 'web']);
 
         $this->admin = User::create([
             'name' => 'Documento Admin',
             'email' => 'documento-admin@test.com',
             'password' => Hash::make('password123'),
         ]);
-        $this->admin->assignRole('admin');
+        $this->admin->assignRole(RolesEnum::ADMIN);
 
         $this->terreno = Terreno::create([
             'nome' => 'Terreno Documentos',

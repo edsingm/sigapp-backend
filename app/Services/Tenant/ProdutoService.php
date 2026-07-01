@@ -105,6 +105,9 @@ class ProdutoService
         return $this->repository->searchForSelect($search);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function history(Produto $produto): array
     {
         $produto->loadMissing(['createdBy', 'updatedBy']);
@@ -144,6 +147,9 @@ class ProdutoService
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function snapshot(Produto $produto): array
     {
         $values = $produto->only(self::AUDITED_FIELDS);

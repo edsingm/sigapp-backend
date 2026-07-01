@@ -70,7 +70,12 @@ class SIG_IA implements Agent, Conversational, HasTools
     public function providerOptions(string $provider): array
     {
         return match ($provider) {
-
+            'openrouter' => [
+                'reasoning' => [
+                    'enabled' => true,
+                    'exclude' => true,
+                ],
+            ],
             default => [],
         };
     }

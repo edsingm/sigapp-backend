@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Repositories\Contracts;
 
 use App\Models\Tenant\MobileNotification;
+use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Carbon;
 
 interface MobileNotificationRepositoryInterface
 {
@@ -16,7 +16,7 @@ interface MobileNotificationRepositoryInterface
     /**
      * @return Collection<int, MobileNotification>
      */
-    public function createdSinceForUser(int $userId, Carbon $since): Collection;
+    public function createdSinceForUser(int $userId, CarbonInterface $since): Collection;
 
     public function findForUser(int $userId, string $notificationId): MobileNotification;
 

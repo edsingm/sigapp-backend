@@ -1,25 +1,105 @@
-# AGENTS.md — Backend Laravel 13+
+# AGENTS.md — Backend SIGAPP (Laravel 13 · Multi-Tenant)
 
-Este arquivo contém as regras obrigatórias que todas as IAs (Cursor, Claude, Copilot, Gemini, etc.) devem seguir ao trabalhar neste projeto Laravel.
+Este arquivo contém as regras obrigatórias que todas as IAs (Cursor, Claude, Copilot, Gemini, etc.) devem seguir ao trabalhar neste projeto. Ele descreve **o que o repositório realmente é** — não um template genérico. Em caso de dúvida, o código e os testes de arquitetura (`tests/Architecture/`) são a fonte da verdade.
 
-> **Nota sobre convenção vs. regra oficial:** o Laravel, por padrão, não impõe uma arquitetura em camadas (Controller → Service → Repository). A própria documentação oficial e os exemplos do framework usam o Eloquent diretamente em Controllers. As regras deste documento que vão além do que o Laravel exige por padrão (ex: Repository obrigatório, Service obrigatório) são **convenções deste projeto**, adotadas deliberadamente para testabilidade e desacoplamento — não confunda com "regra do Laravel". Isso é sinalizado explicitamente nas seções abaixo onde relevante.
+> **Nota sobre convenção vs. regra oficial:** o Laravel não impõe arquitetura em camadas (Controller → Service → Repository). As regras deste documento que vão além do padrão do framework são **convenções deste projeto**, adotadas para testabilidade e desacoplamento — e várias delas são **verificadas automaticamente** pelos testes em `tests/Architecture/`.
 
 ---
 
 ## 🎯 Visão Geral do Projeto
 
+**SIGAPP** é um SaaS multi-tenant de gestão imobiliária para incorporadoras/loteadoras: prospecção e qualificação de **terrenos**, estudo de **viabilidade** econômica (DRE, fluxo mensal, indicadores), **comitê** de aprovação, **negociação**, **contratos**, **legalização** (etapas/checklist), **projetos**, dashboards e um **agente de IA** (SIG_IA) com dezenas de tools. Cada cliente (tenant) acessa via subdomínio (`{tenant}.sigapp.com.br`) e o painel administrativo central roda nos domínios centrais.
+
 | Item | Valor |
 |---|---|
-| **Framework** | Laravel 13+ |
-| **Linguagem** | PHP 8.3+ |
-| **Banco de dados** | MySQL 8+ / PostgreSQL 15+ (com `pgvector` para busca semântica) |
-| **Autenticação** | Laravel Sanctum |
-| **Testes** | PHPUnit 13 |
-| **Formatação de código** | Laravel Pint (aplica PSR-12 automaticamente) |
-| **Análise estática** | PHPStan nível 8 + Larastan (extensão obrigatória para entender Eloquent) |
-| **Padrão de código** | PSR-12 + PSR-4 |
-| **Arquitetura** | Controller → Service → Repository (convenção deste projeto — ver nota acima) |
-| **AI SDK** | Laravel AI (`laravel/ai`) — provider-agnóstico, first-party, requer Laravel 13+ |
+| **Framework** | Laravel 13 (`laravel/framework ^13.0`) |
+| **Linguagem** | PHP **8.4+** (`php ^8.4`, PHPStan `phpVersion: 80400`) |
+| **Banco de dados** | PostgreSQL (central + 1 schema por tenant, com `pgvector` para embeddings). SQLite `:memory:` nos testes |
+| **Multi-tenancy** | `stancl/tenancy ^3.8` — manager customizado `PostgreSQLSchemaPublicManager`, identificação por subdomínio + header `X-Tenant` (fallback local/testing) |
+| **Autenticação** | Laravel Sanctum (tokens Bearer) + broker de login central com transfer tickets |
+| **Autorização/RBAC** | `spatie/laravel-permission ^7.0` (`teams => false`) + templates de permissão por plano |
+| **Billing** | Laravel Cashier (Stripe) `^16.0` — planos, entitlements, cupons, dunning, webhooks |
+| **IA** | **Laravel AI SDK** (`laravel/ai ^0.7`) — agente `SIG_IA`, providers DeepSeek/Gemini/OpenRouter via `config/ai.php` |
+| **E-mail** | Resend (`resend/resend-laravel`) via Notifications |
+| **PDF** | `spatie/laravel-pdf` + `spatie/browsershot` (Chromium — `BROWSERSHOT_CHROME_PATH`) |
+| **Excel** | `maatwebsite/excel ^3.1` (`app/Exports/`) |
+| **Docs da API** | `dedoc/scramble` — UI em `/docs/api` (alias `/docs`) |
+| **Testes** | PHPUnit 13 (suites `Architecture`, `Unit`, `Feature`) — **não** usa Pest |
+| **Formatação** | Laravel Pint, preset `laravel` (`pint.json`) |
+| **Análise estática** | PHPStan **nível 8** + bleedingEdge + baseline (`phpstan.baseline.neon`) |
+| **Dev local** | Laravel Herd (macOS) ou `composer dev` / Docker (`.docker/` + `docker-compose.yml` — ver seção Docker) |
+| **Frontend** | Next.js separado (repositório irmão) — CORS via `CORS_ALLOWED_ORIGINS`, URLs em `FRONTEND_URL`/`LANDING_URL` |
+
+### Comandos essenciais
+
+```bash
+composer setup                      # install + .env + key + migrate
+composer dev                        # serve + queue:listen + pail + vite (concurrently)
+composer test                       # config:clear + php artisan test
+composer analyse                    # phpstan (memory 512M)
+./vendor/bin/pint --test            # checa formatação (sem alterar)
+php artisan test --testsuite=Architecture   # só os testes de arquitetura
+```
+
+---
+
+## 🐳 Docker e Ambientes
+
+Há duas formas de rodar localmente: **Herd/`composer dev`** (nativo, macOS) ou **Docker**. A infra Docker vive em `.docker/` (diretório oculto) + `docker-compose.yml` (dev) + `docker-compose.prod.yml` (prod).
+
+### Imagem (`.docker/Dockerfile`, multi-stage)
+
+| Stage | Conteúdo |
+|---|---|
+| `base` | `php:8.4-fpm` + extensões (`pdo_pgsql`, `redis` via PECL, `gd`, `intl`, `zip`, `bcmath`, `pcntl`, `exif`, `mbstring`) + **Node 20 + Chromium + Puppeteer** (necessários para Browsershot/`spatie/laravel-pdf`) + Composer |
+| `dev` | código via **bind mount** (`.:/var/www`); entrypoint (`entrypoint.dev.sh`) instala `vendor/` se faltar, garante `.env`/`APP_KEY`, roda `optimize:clear` e sobe `php artisan serve` na porta **8000** |
+| `prod` | código **embutido na imagem** (`composer install --no-dev` otimizado) + **nginx + php-fpm + supervisord** |
+
+### Compose
+
+- **Dev (`docker-compose.yml`)**: services `back` (`sigapp-backend:1.0-dev`, porta 8000) e `redis` (`redis:7-alpine`). O **PostgreSQL não está no compose** — é um container/host externo chamado `database`, alcançado pela rede externa `database_sigapp` (precisa existir: `docker network create database_sigapp`). As variáveis de ambiente de dev (DB, Redis, CORS, Sanctum, `CENTRAL_DOMAINS=localhost,127.0.0.1,sigapp-backend`, Chromium) já vêm definidas no compose.
+- **Prod (`docker-compose.prod.yml`)**: target `prod`, porta `8000:80`, env via variáveis de ambiente (`${DB_PASSWORD}` etc. — nunca hardcoded), healthcheck em `GET /api/health`.
+
+### Produção — quem roda o quê
+
+- `entrypoint.prod.sh` executa **no deploy**: `optimize:clear` → `php artisan migrate --force` → `storage:link` → `config:cache` + `route:cache` + `view:cache` → sobe o supervisord.
+- `supervisord.conf` mantém 4 processos: **nginx**, **php-fpm**, **`queue:work --sleep=3 --tries=3 --max-time=3600`** e **`schedule:work`**. Ou seja: **fila e scheduler em produção rodam via supervisord** — não há cron; um scheduled command novo só precisa estar em `routes/console.php`.
+- `nginx.conf`: root em `public/`, `client_max_body_size 50M` (limite de upload), `fastcgi_read_timeout 120s` (teto para requests longos — PDFs/exports pesados devem ir para Jobs).
+
+### Implicações para quem altera o código
+
+- Dependência nova de **sistema** (extensão PHP, binário, fonte) → editar `.docker/Dockerfile` (e lembrar que o stage `base` serve dev e prod).
+- Migrations rodam **automaticamente** no deploy prod (`migrate --force`) — mais um motivo para todo `down()` funcionar e para nunca editar migration já aplicada.
+- `route:cache`/`config:cache` rodam no deploy — não use closures em rotas de `routes/api.php`/`tenant.php` que quebrem o cache de rotas fora dos padrões já existentes, nem `env()` fora de `config/`.
+- O `.dockerignore` exclui `.env*` (exceto `.env.example`) — configuração de prod entra **somente** por variável de ambiente do compose.
+- O healthcheck de prod depende de `GET /api/health` (definido no final de `routes/api.php`) — não remova nem proteja essa rota com auth/throttle agressivo.
+
+---
+
+## 🏗️ Multi-Tenancy — conceito central do projeto
+
+Tudo neste backend é dividido em **dois contextos**. Antes de tocar em qualquer arquivo, identifique em qual contexto ele vive:
+
+| | **Central** | **Tenant** |
+|---|---|---|
+| Rotas | `routes/api.php` (restringidas aos `central_domains` via `Route::domain()`) | `routes/tenant.php` (registrado pelo `TenancyServiceProvider::mapRoutes()` com o grupo de middleware `tenant`) |
+| Models | `app/Models/Central/` (+ `App\Models\User`, `AuditLog`, `ConsentLog`) | `app/Models/Tenant/` |
+| Controllers | `app/Http/Controllers/Api/V1/` e `Api/V1/Admin/` | `app/Http/Controllers/Api/V1/Tenant/` (+ `Tenant/Admin/`) |
+| Banco | Conexão central (PostgreSQL) | 1 **schema** PostgreSQL por tenant (`tenant_{slug}` — prefixo `TENANCY_DATABASE_PREFIX`) |
+| Migrations | `database/migrations/` | `database/migrations/tenant/` |
+| Usuário | `App\Models\User` (admins da plataforma, `UserType::SIGAPP`) | `App\Models\Tenant\User` (`UserType::TENANT`) |
+| Exemplos | planos, entitlements, cupons, tenants, blog, signup, webhooks Stripe | terrenos, viabilidades, comitê, contratos, legalização, projetos, IA |
+
+Regras:
+
+- **Identificação do tenant**: subdomínio em produção; header `X-Tenant` apenas em `local`/`testing`/`development` (middleware `App\Http\Middleware\InitializeTenancyFlexible`).
+- Os middlewares `central.context` (`EnsureCentralContext`) e `tenant.context` (`EnsureTenantContext`) garantem que a rota roda no contexto certo — **toda rota nova deve declarar um deles**.
+- `auth.central` / `auth.tenant` garantem que o usuário autenticado pertence ao contexto (guard Sanctum é compartilhado).
+- Nunca referencie um model `Central` dentro de código tenant (e vice-versa) sem necessidade explícita — quando precisar (ex.: `Tenant`, `Plan`), acesse via serviço/`tenancy()`.
+- O manager de banco é o customizado `App\Tenancy\TenantDatabaseManagers\PostgreSQLSchemaPublicManager` (schemas, não bancos separados). O identificador vem de `Tenant::makeTenantDatabaseIdentifier($slug)` (ver `TenancyServiceProvider::register()`).
+- Cache, Redis e storage são prefixados/sufixados por tenant (ver `config/tenancy.php`).
+- Ciclo de vida do tenant: signup público (`SignupController` → `TenantSignupService` → `CreateFullTenantJob`), limpeza de pendentes (`tenants:cleanup-pending`), ativação/suspensão via admin central (`TenantStatus`).
+- Scripts auxiliares de operação em `scripts/pgsql/` (criação de schemas, descoberta de tenants, reset de sequences, validação de contagens).
 
 ---
 
@@ -27,686 +107,349 @@ Este arquivo contém as regras obrigatórias que todas as IAs (Cursor, Claude, C
 
 ### 1. PHP e Padrões de Código
 
-- PHP mínimo: **8.3** — use sempre os recursos modernos da linguagem
-- Seguir **PSR-12** (estilo) e **PSR-4** (autoload) rigorosamente. *(PSR-2 foi formalmente descontinuado e substituído por PSR-12 desde 2019 — não usar PSR-2 como referência.)*
-- A formatação é aplicada automaticamente via **Laravel Pint** (`./vendor/bin/pint`) — nunca formate manualmente nem discuta estilo em code review, o Pint é a fonte da verdade
-- **Sempre declare tipos** em propriedades, parâmetros e retornos de método — nunca omita
-- Use **enums** (PHP 8.1+) ao invés de constantes mágicas ou strings avulsas
-- Use **readonly properties** e **constructor promotion** onde aplicável
-- Nunca use `mixed` como tipo — seja preciso
-- Nunca use `@suppress` ou `@phpstan-ignore` sem comentário explicativo
-
-```php
-// ❌ RUIM
-function processOrder($order, $discount) {
-    // ...
-}
-
-// ✅ BOM
-function processOrder(Order $order, float $discount): OrderResult
-{
-    // ...
-}
-```
-
----
+- PHP mínimo: **8.4** — use os recursos modernos da linguagem.
+- Seguir **PSR-12** (estilo) e **PSR-4** (autoload). A formatação é aplicada via **Laravel Pint** (`./vendor/bin/pint`) — nunca formate manualmente nem discuta estilo em review; o Pint é a fonte da verdade.
+- **Sempre declare tipos** em propriedades, parâmetros e retornos — nunca omita.
+- Use **enums** nativos (ver `app/Enums/`) ao invés de constantes mágicas ou strings avulsas. Enums compartilhados entre central e tenant ficam em `app/Enums/Common/`.
+- Use **readonly properties** e **constructor promotion** onde aplicável.
+- Nunca use `mixed` quando um tipo preciso é possível.
+- Nunca use `@phpstan-ignore` sem comentário explicativo; prefira corrigir o tipo.
+- Novos arquivos de domínio devem usar `declare(strict_types=1);` (padrão dos arquivos mais recentes, ex.: `DomainException`).
 
 ### 2. Arquitetura: Controller → Service → Repository
 
-> ⚠️ **Importante:** esta separação em 3 camadas é uma **convenção deste projeto**, não uma exigência do Laravel. O Laravel é deliberadamente desacoplado de uma arquitetura específica — o Eloquent já funciona como uma implementação de Active Record, e a documentação oficial usa Models diretamente em Controllers em boa parte dos exemplos. Adotamos a camada de Repository aqui para: (1) centralizar regras de consulta reutilizáveis, (2) facilitar mocks em testes unitários de Service sem tocar no banco, e (3) isolar o projeto de mudanças no Eloquent. Se um Controller/Service simples só precisa de uma query trivial, **não crie um Repository só para cumprir a regra** — isso seria abstração especulativa (ver Simplicidade). Use bom senso: Repository compensa quando a consulta é reutilizada em mais de um lugar ou quando precisa ser mockada em teste.
+> ⚠️ Convenção deste projeto, **verificada por testes**: `tests/Architecture/LayerBoundariesTest.php`, `ServicesArchitectureTest.php`, `AdminControllerArchitectureTest.php`, `PublicControllerArchitectureTest.php`, `ModulesControllerArchitectureTest.php`. Se a sua mudança quebrar um desses testes, corrija a arquitetura — não o teste.
 
-A separação de responsabilidades é **a regra deste projeto** para módulos não-triviais. Cada camada tem uma única função:
+| Camada | Responsabilidade | Onde |
+|---|---|---|
+| **Controller** | Recebe HTTP, delega ao Service, retorna Resource/`ApiResponseService` | `app/Http/Controllers/Api/V1/...` |
+| **Service** | Lógica de negócio, orquestração, eventos | `app/Services/` (por domínio: `Tenant/`, `Billing/`, `Auth/`, `Ai/`, `Admin/`, `Acl/`, ...) |
+| **Repository** | Único lugar com queries Eloquent | `app/Repositories/` (+ `Repositories/Tenant/`) |
+| **Contract** | Interface do repository, quando precisa de mock/troca | `app/Repositories/Contracts/` — bind no `AppServiceProvider::register()` |
+| **Model** | Entidade: relações, casts, scopes, accessors | `app/Models/Central/` e `app/Models/Tenant/` |
+| **FormRequest** | Validação + autorização de entrada | `app/Http/Requests/` (espelha a estrutura dos controllers) |
+| **Resource** | Formatação de saída | `app/Http/Resources/` |
 
-| Camada | Responsabilidade |
-|---|---|
-| **Controller** | Recebe a requisição HTTP, delega ao Service, retorna resposta |
-| **Service** | Contém toda a lógica de negócio da aplicação |
-| **Repository** | Abstrai o acesso ao banco de dados (Eloquent) |
-| **Model** | Representa a entidade; define relações, casts e escopos |
-| **FormRequest** | Valida e autoriza a entrada de dados |
-| **Resource** | Formata a saída da API |
+Regras de camada (as que os testes de arquitetura verificam estão marcadas ✅):
 
-#### Regras de camada
+- **Controllers são thin**: sem lógica de negócio, sem `->validate()` inline ✅, sem queries Eloquent diretas (`Model::query()`, `::create()`, `findOrFail()`) ✅.
+- **Services não dependem de `Illuminate\Http\Request`** ✅ — recebem arrays validados, DTOs (`app/DTOs/`) ou models. Services que orquestram não fazem query direta ✅ (lista controlada em `ServicesArchitectureTest`).
+- **Repositories são o único lugar** onde o Eloquent é consultado diretamente.
+- Novo repository com interface? Registre o bind em `AppServiceProvider::register()` (siga o bloco existente de ~40 binds).
+- Não crie Repository para query trivial de uso único — abstração especulativa. Crie quando a consulta é reutilizada ou precisa ser mockada.
+- Models não são anêmicos: scopes, casts, accessors e métodos que descrevem o próprio dado pertencem ao Model.
+- Side-effects (e-mail, push, histórico, timeline) saem via **Events + Listeners** (`app/Events/Tenant/`, `app/Listeners/Tenant/`, registrados no `EventServiceProvider`) — ver o fluxo de workflow (`WorkflowTransitioned` → notificações, histórico, atividade).
 
-- **Controllers devem ser thin**: nunca conter lógica de negócio, queries Eloquent diretas ou condicionais complexas — isto sim é convenção amplamente adotada e alinhada com o próprio Laravel (FormRequests, Resources e Route Model Binding existem exatamente para manter Controllers magros)
-- **Services devem ser thin também**: orquestram chamadas a repositories e outros services — não contêm queries
-- **Repositories são o único lugar** onde Eloquent é usado diretamente
-- **Models concentram o acesso a dados e suas regras intrínsecas** (relações, casts, accessors/mutators, escopos locais). Lógica de *negócio* (regras que envolvem múltiplas entidades, eventos, notificações) vai para Services — mas isso não significa que o Model deve ser "anêmico": scopes, accessors e métodos que descrevem o próprio dado (ex: `$post->isPublished()`) pertencem ao Model, é assim que o Eloquent foi desenhado para ser usado
-
-```php
-// ✅ Estrutura correta de um Controller
-class PostController extends Controller
-{
-    public function __construct(
-        private readonly PostService $postService
-    ) {}
-
-    public function store(StorePostRequest $request): PostResource
-    {
-        $post = $this->postService->create($request->validated());
-
-        return new PostResource($post);
-    }
-}
-
-// ✅ Estrutura correta de um Service
-class PostService
-{
-    public function __construct(
-        private readonly PostRepository $postRepository
-    ) {}
-
-    public function create(array $data): Post
-    {
-        // lógica de negócio aqui (notificações, eventos, etc.)
-        $post = $this->postRepository->create($data);
-        event(new PostCreated($post));
-
-        return $post;
-    }
-}
-
-// ✅ Estrutura correta de um Repository
-class PostRepository
-{
-    public function create(array $data): Post
-    {
-        return Post::create($data);
-    }
-
-    public function findBySlug(string $slug): ?Post
-    {
-        return Post::where('slug', $slug)->first();
-    }
-}
-```
-
----
-
-### 3. Estrutura de Pastas
+### 3. Estrutura de Pastas (real)
 
 ```
 app/
+  Console/Commands/       → comandos Artisan (RBAC, tenants, digests, IA, limpeza)
+  DTOs/                   → Data Transfer Objects (ex.: RequestContext)
+  Enums/                  → enums de domínio; Common/ para os compartilhados
+  Events/Tenant/          → eventos de domínio do tenant
+  Exceptions/             → exceções de domínio (base: DomainException)
+  Exports/                → exports Excel (maatwebsite/excel)
   Http/
-    Controllers/          → thin controllers por recurso
-    Requests/             → FormRequests (validação + autorização)
-    Resources/            → API Resources e Collections
-    Middleware/           → middlewares customizados
+    Controllers/Api/V1/           → central (público, auth, blog, signup, planos, webhook)
+    Controllers/Api/V1/Admin/     → painel admin central
+    Controllers/Api/V1/Tenant/    → app do tenant (+ Tenant/Admin/ e Tenant/Common/)
+    Middleware/                   → ver aliases em bootstrap/app.php
+    Requests/                     → FormRequests (Admin/, Tenant/, Tenant/Admin/)
+    Resources/                    → API Resources (Admin/, Tenant/, ...)
+  Jobs/                   → jobs assíncronos (todos com failed() — teste exige)
+  Listeners/Tenant/       → handlers dos eventos de domínio
+  Models/Central/         → models da conexão central
+  Models/Tenant/          → models do schema do tenant
+  Notifications/          → notificações (Resend); Workflow/ para as de fluxo
+  Observers/Tenant/       → observers (ex.: TerrenoObserver)
+  Policies/Tenant/        → policies
+  Providers/              → AppServiceProvider (binds), EventServiceProvider, TenancyServiceProvider
+  Repositories/           → repositories (+ Contracts/ e Tenant/)
+  Services/               → serviços por domínio (Acl, Admin, Ai, Auth, Billing, Dashboard,
+                            Modules, Parsers, Signup, Tenant, Tenant/Viabilidade/v1, ...)
+  Support/                → helpers.php (user(), language()), UserContext, TenantAppUrl, Database/
+  Tenancy/                → PostgreSQLSchemaPublicManager
+  Traits/                 → HasDashboardCache, LogsAudit
 
-  Services/               → lógica de negócio por domínio
-  Repositories/           → acesso ao banco de dados
-    Contracts/            → interfaces dos repositories
-
-  Models/                 → Eloquent Models
-  Enums/                  → PHP Enums tipados
-  Events/                 → eventos do sistema
-  Listeners/              → handlers de eventos
-  Jobs/                   → jobs assíncronos
-  Notifications/          → notificações (email, SMS, push)
-  Exceptions/             → exceções customizadas tipadas
-  Policies/               → autorização por recurso (Gates/Policies)
-  DTOs/                   → Data Transfer Objects (opcional, mas recomendado)
-  Providers/              → Service Providers (bind interfaces)
-
+bootstrap/app.php         → middleware aliases, grupo 'tenant', handlers de exceção
+config/                   → inclui ai.php, tenancy.php, cashier.php, scramble.php,
+                            permission.php, legal.php, privacy.php
 database/
-  migrations/             → sempre com rollback implementado
-  factories/              → factories para todos os models
-  seeders/                → seeders separados por ambiente
-
+  migrations/             → migrations centrais
+  migrations/tenant/      → migrations dos schemas de tenant
+  factories/ (+Tenant/)   → factories
+  seeders/ (+Tenant/)     → seeders (planos, entitlements, módulos, RBAC, cidades)
+  rbacTemplates/          → templates RBAC por plano
+docs/                     → documentação técnica e planos (datada YYYY-MM-DD-*)
+resources/lang/           → pt-br.json / en-us.json (chaves UPPER_SNAKE_CASE)
+resources/views/          → emails/, exports/, pdf/ (Blade só para e-mail/PDF/export)
 routes/
-  api.php                 → rotas da API (versionadas)
-  web.php                 → rotas web (se aplicável)
-  console.php             → comandos Artisan agendados
-
-tests/
-  Feature/                → testes de integração (HTTP, banco)
-  Unit/                   → testes unitários (services, helpers)
-  Architecture/           → testes de arquitetura (ver seção 12)
+  api.php                 → rotas centrais + definição dos rate limiters nomeados
+  tenant.php              → rotas do tenant (registradas pelo TenancyServiceProvider)
+  console.php             → schedule + comandos closure
+  web.php                 → mínimo (welcome, cashier.payment, redirect /docs)
+scripts/                  → pgsql/, security/, viabilidade/ (operação e auditoria)
+stubs/                    → stubs de agentes/tools do Laravel AI
+tests/                    → Architecture/, Unit/, Feature/ (ver seção 12)
 ```
 
 > ⚠️ **Nunca crie pastas fora desta estrutura sem aprovação explícita.**
-
----
 
 ### 4. Eloquent e Banco de Dados
 
 #### Models
 
-- Sempre defina `$fillable` **explicitamente** — nunca use `$guarded = []` em produção
-- Sempre defina `$casts` para tipos não-string (datas, booleans, enums, JSON)
-- Use **Enums** nativos do PHP nos casts do Eloquent
-- Lógica que envolve apenas o próprio dado (formatação, estado derivado, escopos de consulta) pertence ao Model; lógica que orquestra múltiplas entidades, side-effects (eventos, emails, filas) vai para Services
-- Use `#[UseResource]` attribute (Laravel 12+) para vincular resources ao model quando conveniente
-- Use **PHP Attributes** modernos do Laravel 13 para configuração declarativa de models (`#[Table]`, `#[Connection]`, `#[Scope]`, etc.) quando aplicável
-
-```php
-// ✅ Model bem definido
-class Post extends Model
-{
-    use HasFactory, SoftDeletes;
-
-    protected $fillable = [
-        'title',
-        'slug',
-        'content',
-        'status',
-        'published_at',
-    ];
-
-    protected $casts = [
-        'status'       => PostStatus::class, // PHP Enum
-        'published_at' => 'immutable_datetime',
-        'metadata'     => 'array',
-    ];
-
-    public function author(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'user_id');
-    }
-
-    public function scopePublished(Builder $query): Builder
-    {
-        return $query->where('status', PostStatus::Published);
-    }
-}
-```
+- Sempre defina `$fillable` explicitamente — nunca `$guarded = []`.
+- Sempre defina `$casts` para tipos não-string (datas, booleans, enums, JSON/array).
+- Use os **enums do projeto** nos casts (`WorkflowStatus`, `TenantStatus`, `LegalizacaoStatus`, `ProjetoStatus`, etc.).
+- Model novo vai para `Models/Central/` **ou** `Models/Tenant/` — nunca solto em `Models/` (exceções históricas: `User`, `AuditLog`, `ConsentLog`).
+- Todo model precisa de **factory** (há `FactoriesSmokeTest` cobrindo as de tenant).
 
 #### Migrations
 
-- Toda migration **deve ter um método `down()` funcional**
-- Nunca altere uma migration já executada em produção — crie uma nova
-- Sempre adicione índices em colunas usadas em `WHERE`, `ORDER BY` e foreign keys
-- Use `foreignIdFor()` ao invés de `unsignedBigInteger()` + `foreign()` manual
-
-```php
-// ✅ BOM
-$table->foreignIdFor(User::class)->constrained()->cascadeOnDelete();
-
-// ❌ RUIM
-$table->unsignedBigInteger('user_id');
-$table->foreign('user_id')->references('id')->on('users');
-```
+- Migration central → `database/migrations/`; migration de tenant → `database/migrations/tenant/`. **Errar a pasta quebra o provisionamento do tenant.**
+- Toda migration deve ter `down()` funcional.
+- Nunca altere migration já executada em produção — crie uma nova.
+- Índices em colunas de `WHERE`, `ORDER BY` e FKs. Use `foreignIdFor()`/`constrained()`.
+- O banco é **PostgreSQL** (com `pgvector` nas tabelas de embeddings de IA), mas os testes rodam em **SQLite `:memory:`** — evite SQL cru específico de PostgreSQL fora de `app/Support/Database/` (ex.: `SqlDateParts` abstrai date parts por driver). Se precisar de SQL específico por driver, siga esse padrão.
 
 #### Queries
 
-- **Nunca use `all()` ou `get()` sem condições** em tabelas grandes — sempre pagine ou limite
-- Use `paginate()` ao invés de `get()` para listagens na API
-- **Sempre carregue relações com `with()`** — nunca deixe N+1 queries (o Laravel 12.8+ tem eager loading automático, mas não dependa disso)
-- Prefira `select()` explícito ao invés de `SELECT *` em queries pesadas
-- Use `chunk()` ou `lazy()` para processar grandes volumes de dados em jobs
-
-```php
-// ❌ RUIM — N+1 e sem paginação
-$posts = Post::all();
-foreach ($posts as $post) {
-    echo $post->author->name;
-}
-
-// ✅ BOM
-$posts = Post::with('author')
-    ->published()
-    ->select(['id', 'title', 'slug', 'user_id', 'published_at'])
-    ->paginate(20);
-```
-
----
+- Nunca `all()`/`get()` sem condição em tabela grande — pagine (`paginate()`) ou limite.
+- Sempre eager loading com `with()` — sem N+1.
+- `select()` explícito em queries pesadas; `chunk()`/`lazy()` para volumes grandes em jobs.
 
 ### 5. FormRequests — Validação e Autorização
 
-- **Toda requisição que muta dados deve usar um FormRequest** — nunca valide no Controller
-- O método `authorize()` deve verificar permissões **de verdade** — nunca apenas retorne `true`
-- Use `$request->validated()` para pegar os dados — nunca `$request->all()` ou `$request->input()`
-- A autorização no `authorize()` garante HTTP 403 antes da validação — importante para respostas corretas
+- **Toda rota que muta dados usa FormRequest** — os testes de arquitetura proíbem `->validate()` inline nos controllers cobertos.
+- `authorize()` deve verificar permissão **de verdade** — `TenantAdminRequestAuthorizationTest` **falha o build se encontrar `return true;`** em FormRequests de `Requests/Tenant/` e `Requests/Tenant/Admin/`. Padrão do projeto: checar `user()`/roles/permissions (Spatie) ou ownership do recurso.
+- Use `$request->validated()` — nunca `$request->all()`.
+- Nomeie por ação + recurso (`StoreTerrenoRequest`, `UpdateLegalizacaoEtapaRequest`, `ListNegotiationsRequest`, `DestroyRoleRequest`...) e espelhe a pasta do controller.
+
+### 6. Respostas da API — `ApiResponseService` + Resources
+
+Este projeto tem um **envelope próprio**. Não invente formato novo:
 
 ```php
-// ✅ FormRequest correto
-class StorePostRequest extends FormRequest
-{
-    public function authorize(): bool
-    {
-        return $this->user()->can('create', Post::class);
-    }
+// Sucesso (ApiResponseService::success / created)
+{ "success": true, "data": {...}, "message": "..." }
 
-    public function rules(): array
-    {
-        return [
-            'title'   => ['required', 'string', 'max:255'],
-            'content' => ['required', 'string'],
-            'status'  => ['required', Rule::enum(PostStatus::class)],
-        ];
-    }
-}
+// Erro (ApiResponseService::error / DomainException / handlers do bootstrap/app.php)
+{ "success": false, "error": { "code": "SNAKE_CASE_CODE", "message": "...", "details": {...} } }
+
+// Validação (422) — formato híbrido mantido por compatibilidade
+{ "success": false, "message": "...", "errors": {...}, "error": { "code": "VALIDATION_ERROR", ... } }
+
+// Paginação (ApiResponseService::paginated) — formato NATIVO do Laravel
+{ "data": [...], "links": {...}, "meta": {...} }
 ```
+
+- Use `App\Services\ApiResponseService` (`success`, `created`, `noContent`, `paginated`, `error`, `validationError`, `notFound`, `tooManyRequests`, ...) ou retorne `Resource`/`ResourceCollection` diretamente.
+- **Toda resposta com dados de model passa por um Resource** (`app/Http/Resources/`) — nunca retorne o model cru.
+- Mensagens: strings `UPPER_SNAKE_CASE` são tratadas como **chaves de tradução** e resolvidas via `language()->t()` contra `resources/lang/pt-br.json` / `en-us.json`. Ao criar mensagem nova, adicione a chave nos **dois** arquivos.
+- Nunca exponha campos sensíveis (senhas, tokens, ids Stripe internos) em Resources.
+
+### 7. Tratamento de Erros e Exceções
+
+- Exceções de domínio estendem `App\Exceptions\DomainException` (abstrata: `statusCode()` + `toResponsePayload()`) — ex.: `ViabilidadeAlreadyDecidedException`, `WorkflowTransitionNotAllowedException`, `EtapaBlockedException`, `CommitteePendingException`.
+- Handlers globais ficam em **`bootstrap/app.php`** (`->withExceptions()`): `AuthenticationException` → 401 JSON, `ValidationException` → 422, `DomainException` → payload próprio, `RateLimitedException` (IA) → 429, `HttpException`/404 → códigos padronizados, fallback 500 genérico em produção.
+- Nunca lance `\Exception` genérica em código de domínio; nunca exponha stack trace em produção (`APP_DEBUG=false`).
+
+### 8. Autenticação, Autorização e RBAC
+
+#### Fluxos de autenticação (Sanctum, tokens Bearer)
+
+1. **Login central (broker)**: `POST /api/v1/auth/login` (domínio central) → `CentralAuthController` + `CentralLoginBrokerService` resolvem os tenants do e-mail (via `TenantUserDirectory`) → `POST /auth/select-tenant` emite um **transfer ticket** → o frontend chama `POST /api/v1/auth/exchange-ticket` no **subdomínio do tenant** e recebe o token Sanctum do tenant.
+2. **Login direto no tenant**: `POST /api/v1/auth/login` no subdomínio (`TenantAuthController`/`TenantLoginService`).
+3. **Login admin da plataforma**: `POST /api/v1/admin/login` (`AdminController`), protegido por `central.admin` (`EnsureUserIsAdmin`).
+4. Reset de senha do tenant funciona tanto pelo domínio central quanto pelo do tenant (`TenantPasswordResetController`; URLs geradas por `App\Support\TenantAppUrl`).
+- Sessões do broker expiram e são limpas por `auth:cleanup-central-login-broker` (a cada 5 min).
+
+#### RBAC
+
+- **Spatie Permission** (`teams => false`) nos usuários do tenant. Roles canônicas em `App\Enums\Common\RolesEnum`: `ADMIN`, `DIRECTOR`, `MANAGER`, `SUPERVISOR`, `ANALYST`, `USER`. **Sempre use o enum** — nunca strings soltas de role.
+- Permissões por módulo/submódulo: `App\Enums\Common\ModulesEnum` (`admin`, `configurations`, `prospection`, `brokers`, `data`, `dashboard`, `committee`, `legal`, `negotiation`, `projects`, `reports`, `viability`, `ai`) + `SubmodulesEnum`; nomes resolvidos por `Services\Acl\PermissionNameResolver`.
+- O que o tenant pode usar é a interseção de: **plano/entitlements** (middleware `check.feature`, `enforce.limits`, `subscription.active`) + **RBAC do usuário** (middleware `permission.gate`, FormRequest `authorize()`).
+- Templates de permissão por plano: `database/rbacTemplates/` + `PlanRolePermissionTemplate` + comandos `rbac:apply-templates` e `tenants:sync-acl`.
+- Autorização acontece **antes** do Service (rota/middleware/FormRequest). **Services nunca tratam autorização.**
+- Helper `user()` (em `app/Support/helpers.php`) retorna `UserContext` — use `user()->getType()` (`UserType::SIGAPP|TENANT`), não checagens manuais de classe.
+
+#### Aliases de middleware (bootstrap/app.php)
+
+`force.json`, `tenant.logs`, `api.logger`, `central.context`, `tenant.context`, `auth.central`, `auth.tenant`, `enforce.limits`, `subscription.active`, `central.admin`, `tenant.admin`, `user.admin`, `permission.gate`, `check.feature`, `ai.rate_limit`, `ai.budget` — além do grupo `tenant` (`InitializeTenancyFlexible`) e do global `SecurityHeaders`.
+
+### 9. Rotas da API
+
+- API **versionada** em `/api/v1/`. Central em `routes/api.php`, tenant em `routes/tenant.php`.
+- **Rate limiting é obrigatório e nomeado** — os limiters são definidos no topo de `routes/api.php` (`api-public`, `api-auth`, `central-login`, `admin-login`, `transfer-ticket`, `password-reset-*`, `signup-status`, `consent-log`, `viabilidade-approval`, ...). Rota nova entra num grupo com throttle existente ou ganha limiter próprio com resposta via `ApiResponseService::tooManyRequests()`.
+- Rotas centrais ficam dentro do loop `foreach (config('tenancy.identification.central_domains') as $domain) { Route::domain($domain)... }` — siga o padrão.
+- Rotas tenant novas: declare `tenant.context` + `auth:sanctum` + `auth.tenant` + `throttle:api-auth`, e o gate de módulo/assinatura adequado (`check.feature:...`, `subscription.active`, `tenant.admin`, `permission.gate`).
+- Use Route Model Binding e kebab-case plural nos paths. Webhook Stripe (`POST /webhook/stripe`) fica **sem** throttle/CSRF — não mexa nisso sem entender o motivo.
+- Health checks: `/up` (framework), `GET /api/v1/health` (público, mínimo), `GET /api/v1/health/details` (admin autenticado).
+- A documentação Scramble é gerada das rotas/FormRequests/Resources — mantenha tipos e PHPDocs corretos para a doc sair certa em `/docs/api`.
+
+### 10. Billing (Cashier/Stripe)
+
+- Entidades centrais: `Plan`, `Entitlement`, `TenantEntitlement`, `Coupon`, `WebhookEvent`, `Dispute` (em `Models/Central/`).
+- Serviços em `app/Services/Billing/`: `StripeCheckoutService`, `TenantBillingService`, `BillingHistoryService`, `CouponService`, `WebhookEventService` (idempotência de webhooks via `WebhookEvent`).
+- Fluxos do tenant: assinatura/portal (`TenantController@subscription`, `billingPortal`), troca de plano (`PlanSwapController`), dunning/retry de pagamento (`DunningController`), cupons (`CouponController`), histórico (`BillingHistoryController`).
+- Enforcement de plano: middlewares `subscription.active`, `enforce.limits`, `check.feature` + `EntitlementService`/`PlanMatrixService`.
+- Nunca processe webhook Stripe fora do `WebhookController`/`WebhookEventService`; nunca confie em dados do cliente para preço/plano.
+
+### 11. IA (Laravel AI SDK)
+
+- **Regra de ouro: nunca integre SDK de provider diretamente.** Tudo passa pelo `laravel/ai` + `config/ai.php` (`AI_PROVIDER`: deepseek/gemini/openrouter, com fallback `AI_FALLBACK_PROVIDER` via `AiProviderRouter`).
+- Agente principal: `app/Services/Ai/Agents/SIG_IA.php`. Tools em `app/Services/Ai/Tools/` (~40: dashboards, terrenos, viabilidades, comitê, legalização, documentos, insights, scoring, anomalias, previsões, geoanálise, IBGE, mercado imobiliário...). Stubs para novos agentes/tools em `stubs/`.
+- Proteções obrigatórias em rotas de IA: `ai.rate_limit` (`AiRateLimit`) e `ai.budget` (`AiBudgetCheck` — orçamento por tenant, `AI_TENANT_BUDGET_DEFAULT`). Telemetria/custo em `AiTelemetryService` + `AiRequestLog` (preços por modelo no `.env`).
+- Dados sensíveis passam por `AiDataRedactor`/`RedactingToolDecorator` antes de ir ao provider.
+- RAG: embeddings em `pgvector` (`AiDocumentChunk`, `AiDocumentEmbedding`, `IndexDocumentEmbeddingJob`, `AiEmbeddingService`, `SearchDocumentsTool`).
+- Scoring recalculado por `ai:recalculate-scores` (agendado diariamente) / `RecalculateAiScoresJob`.
+- Streaming de chat coberto por teste (`AiChatStreamingTest`) — mantenha compatível.
+
+### 12. Domínio Tenant — módulos principais
+
+Fluxo macro do terreno (enum `WorkflowStatus`, orquestrado por `LandWorkflowService`/`TerrenoWorkflowService`):
+`em_analise → aguardando_viabilidade → viabilidade_aprovada → aguardando_comite → negociacao_minuta → contrato_assinado → legalizando → legalizado_finalizado` (+ `descartado`, `arquivado`). Transições disparam `WorkflowTransitioned` → listeners gravam `StatusHistory`, `EntityActivity`, notificam e transicionam `Projeto`s relacionados.
+
+- **Prospecção/Terrenos**: `TerrenoService`, filtros (`TerrenoFilterService`), export Excel, KMZ upload (`KmzParserService`), cálculo de área útil (`Services/Tenant/Area/` — topografia, hidrografia, polígonos; `CalculateUsableAreaJob`), geoproximidade, scraper/enriquecimento de portal (`PortalTerrenoScraperService`, `Services/Parsers/Hiperdados/`), proprietários, corretores externos, contatos, produtos por terreno.
+- **Viabilidade**: motor de cálculo em `Services/Tenant/Viabilidade/v1/` (calculators de DRE, fluxo mensal, receitas, despesas, indicadores, POC, impostos, curva). Premissas (`PremissasViabilidade`), seções, versões/auditoria, aprovação (submit/decide com rate limit próprio), comparação e duplicação. Modelo de referência em `docs/viabilidade-modelo/` e teste de conformidade com a planilha (`PlanilhaConformidadeTest`). **Não altere fórmulas sem validar contra a planilha modelo.**
+- **Comitê**: `CommitteeService` — revisões, pareceres por departamento, pendências, decisão final.
+- **Negociação**: `NegotiationService` — negociações + eventos.
+- **Contratos**: `ContractService`/`ContractRepository` — partes, assinatura (`ContratoSigned` → e-mail + atividade).
+- **Legalização**: etapas com dependências, status, prazos (`LegalizacaoEtapaStatus`), progresso recalculável, Gantt (`SyncGanttRequest`), PDF de checklist, notificação de atraso (`tenant:notify-overdue-legalizacao-etapas`).
+- **Projetos**: `ProjetoService` — ciclo próprio (`ProjetoStatus`), integrado ao workflow do terreno.
+- **Dashboard/Timeline**: `DashboardQueryService` + cache (`HasDashboardCache`), `TimelineService`.
+- **Mobile**: registro de devices (`MobileDeviceInstallation`), inbox de notificações, push (`MobilePushService`).
+- **Cadastros**: regionais, departamentos, produtos (com histórico `ProdutoHistorico`), usuários do tenant.
+
+### 13. Jobs, Queues, Events e Scheduler
+
+- Operações demoradas são assíncronas via Jobs (`app/Jobs/`). Queue: `sync` em teste, **Redis em produção**.
+- **Todo Job deve implementar `failed(Throwable $e)`** — verificado por `LayerBoundariesTest::test_all_jobs_define_failed_handler`. Defina também `$tries`/`$timeout`/`$backoff`.
+- Eventos de domínio em `app/Events/Tenant/` com listeners em `app/Listeners/Tenant/` registrados no `EventServiceProvider` — side-effects nunca inline no Service quando houver evento adequado.
+- Agendamentos ficam em **`routes/console.php`** (broker cleanup 5min, consent-logs diário, tenants pendentes por hora, etapas atrasadas 08:00, digests diário/semanal, scores IA 06:00, stats de tenants por hora). Comando novo recorrente → agende ali.
+- Comandos Artisan em `app/Console/Commands/` com `$signature`/`$description`; comandos destrutivos (ex.: `WipeAllTenants`) exigem confirmação explícita.
+
+### 14. Notificações e E-mail
+
+- Transporte: **Resend** (`RESEND_API_KEY`). Teste manual: `php artisan mail:test {email}`.
+- Notificações de workflow em `app/Notifications/Workflow/` respeitam as **preferências do usuário** (`NotificationPreference` + trait `RespectsEmailPreference` + `NotificationCatalog`). Notificação nova de fluxo deve entrar no catálogo e respeitar preferências/digest (`notifications:send-email-digests`).
+- Views de e-mail em `resources/views/emails/`.
+
+### 15. Uploads, PDF e Excel
+
+- PDF via `spatie/laravel-pdf` (Browsershot/Chromium — env `BROWSERSHOT_CHROME_PATH`/`PUPPETEER_EXECUTABLE_PATH`); templates em `resources/views/pdf/`.
+- Excel via `maatwebsite/excel` — classes em `app/Exports/` (ex.: `TerrenosExport` + `TerrenoExportRepository`).
+- Upload de arquivo: valide tipo MIME, tamanho e extensão no FormRequest (ex.: `UploadKmzRequest`, `StoreDocumentoRequest`). Storage é sufixado por tenant (config tenancy).
+
+### 16. i18n
+
+- Locales: `pt-br` (padrão) e `en-us`, em `resources/lang/*.json` com chaves `UPPER_SNAKE_CASE`.
+- Resolução via helper `language()->t('KEY')` / `LanguageService`; locale do usuário aplicado por `SetUserLocale` e alterável via `PUT /locale`.
+- Toda mensagem nova voltada ao usuário da API entra nos **dois** JSONs.
+
+### 17. LGPD / Privacidade / Segurança
+
+- Consentimento de cookies: `POST /api/v1/consent-log` (público, rate-limited 5/min) + retenção via `privacy:cleanup-consent-logs` (config `privacy.php`); termos de uso versionados no tenant (`TermoDeUsoVersao`). Config `legal.php`.
+- Auditoria: trait `LogsAudit` + `AuditLog` (central, consultável em `/admin/audit-logs`); auditoria RBAC em `scripts/security/audit_tenant_rbac.php` e `docs/security/`.
+- `SecurityHeaders` é global; **rate limiting em toda rota** (ver seção 9); `APP_DEBUG=false` em produção; nunca commite `.env` (o `.env.example` lista todas as variáveis, sem valores — **atualize-o ao criar variável nova**).
+- Nunca confie em dados do cliente para permissões, preços ou tenant-id (o header `X-Tenant` só vale fora de produção).
+- Rode `composer audit` periodicamente.
 
 ---
 
-### 6. API Resources
+## 🧪 Testes (obrigatório)
 
-- **Toda resposta de API deve passar por um Resource** — nunca retorne Models ou arrays brutos
-- Use `ResourceCollection` para listagens paginadas
-- Nunca exponha campos sensíveis (senhas, tokens, dados internos) no Resource
-- Padronize sempre o formato de resposta
+- **PHPUnit 13 puro** (classes estendendo `Tests\TestCase`) — **não** Pest. Suites: `Architecture`, `Unit`, `Feature` (`phpunit.xml`).
+- Ambiente de teste: SQLite `:memory:` (central e tenancy), queue `sync`, cache `array`, `BCRYPT_ROUNDS=4`.
+- Toda funcionalidade nova exige testes **antes de ser considerada concluída**: Feature cobrindo happy path + pelo menos um cenário de erro (401/403/422), e Unit para services/calculators com lógica.
+- Estrutura espelha o código: `tests/Feature/Tenant/`, `tests/Feature/Billing/`, `tests/Unit/Services/Viabilidade/`, etc.
+- Padrão Arrange-Act-Assert, nomes descritivos (`test_rejeita_transicao_de_workflow_invalida`), `RefreshDatabase` quando toca o banco, `actingAs()` para rotas autenticadas.
+- Mock de externos sempre: `Http::fake()`, `Mail::fake()`, `Notification::fake()`, `Queue::fake()`, `Event::fake()` — **nunca** bata em Stripe/Resend/providers de IA em teste.
+- Testes tenant usam o fluxo de inicialização de tenancy dos testes existentes (siga `tests/Feature/Tenant/*` como referência) — não invente bootstrap próprio.
 
-```php
-// ✅ Resource correto
-class PostResource extends JsonResource
-{
-    public function toArray(Request $request): array
-    {
-        return [
-            'id'           => $this->id,
-            'title'        => $this->title,
-            'slug'         => $this->slug,
-            'status'       => $this->status,
-            'author'       => new UserResource($this->whenLoaded('author')),
-            'published_at' => $this->published_at?->toIso8601String(),
-            'created_at'   => $this->created_at->toIso8601String(),
-        ];
-    }
-}
-```
+#### Testes de arquitetura (rodam no CI — não os enfraqueça)
 
-#### Padrão de resposta para erros
+| Teste | Garante |
+|---|---|
+| `LayerBoundariesTest` | Controllers listados sem query Eloquent direta; **todos os Jobs com `failed()`** |
+| `ServicesArchitectureTest` | Services migrados sem Eloquent direto; Services sem `Illuminate\Http\Request` |
+| `AdminControllerArchitectureTest` | Controllers admin sem `->validate()` inline nem queries diretas |
+| `PublicControllerArchitectureTest` | Controllers públicos/auth sem validação inline; Blog sem query direta em Post |
+| `ModulesControllerArchitectureTest` | ModulesController sem uso direto de Models |
+| `TenantAdminRequestAuthorizationTest` | FormRequests tenant sem `authorize()` trivial (`return true;`) |
 
-Crie um trait ou use o `Handler.php` para padronizar respostas de erro:
-
-```php
-// responses/error → sempre este formato
-{
-    "message": "The given data was invalid.",
-    "errors": {
-        "email": ["The email field is required."]
-    }
-}
-
-// responses/sucesso → sempre este formato
-{
-    "data": { ... }        // resource único
-}
-{
-    "data": [ ... ],       // collection
-    "meta": { ... },       // paginação
-    "links": { ... }
-}
-```
+Ao criar controller/service/job novo nos escopos cobertos, ele **precisa** nascer conforme — e, quando o teste usa lista explícita de arquivos, adicione o novo arquivo à lista.
 
 ---
 
-### 7. Autenticação e Autorização
+## 🔍 Qualidade: PHPStan e Pint
 
-- Use **Laravel Sanctum** para APIs (SPAs e mobile)
-- Use **Policies** como única fonte de verdade para toda lógica de autorização por recurso — nunca coloque `if ($user->role === 'admin')` em Controllers ou Services
-- A verificação de autorização deve acontecer **antes** do Service ser chamado, em uma das camadas HTTP:
-  - **Rota**: `->middleware('can:update,post')` ou `#[Middleware('can:update,post')]`
-- **Services nunca tratam autorização** — eles operam sobre dados já autorizados
-- Registre todas as Policies no `AuthServiceProvider` (ou via `#[Policy]` attribute)
-- Use **Gates** para ações não ligadas a um model específico
-- **Nunca confie nos dados do cliente** para determinar permissões — sempre verifique no servidor
-
-```php
-// ✅ Autorização via rota (middleware can)
-Route::put('/posts/{post}', [PostController::class, 'update'])
-    ->middleware('can:update,post');
-
-```
+- **PHPStan nível 8** (+ `bleedingEdge`), paths `app` e `tests`, `phpVersion: 80400`. Rode `composer analyse` antes de todo commit.
+- O `phpstan.neon` inclui o baseline **`phpstan.baseline.neon`** e uma lista extensa de `ignoreErrors` para a "magia" do Eloquent (o Larastan está instalado como dev-dependency, mas a extensão **não** está incluída no `phpstan.neon` — os falsos positivos são tratados via ignores/baseline). **Não adicione novos padrões ao `ignoreErrors` nem regenere o baseline para esconder erro novo** — corrija o tipo. Ignore novo só com justificativa em comentário.
+- **Pint** preset `laravel`: `./vendor/bin/pint --test` deve passar limpo antes de qualquer merge.
 
 ---
 
-### 8. Tratamento de Erros e Exceções
+## 📛 Convenções de Nomenclatura
 
-- Crie **exceções customizadas** para erros de domínio — nunca lance `\Exception` genérica
-- Registre os handlers no `bootstrap/app.php` (Laravel 12+) ou `app/Exceptions/Handler.php`
-- Toda exceção de domínio deve retornar um HTTP status code semântico correto
-- Use `report()` para logar erros sem interromper o fluxo
-- Nunca exponha stack traces ou detalhes técnicos em respostas de produção (`APP_DEBUG=false`)
+O domínio é **em português** (Terreno, Viabilidade, Legalizacao, Negociacao, Comite, Proprietario, Corretor...) e a infraestrutura em inglês (Service, Repository, Request, Resource...). Mantenha a mistura existente — não "traduza" nomes de domínio.
 
-```php
-// ✅ Exceção customizada
-class PostNotFoundException extends RuntimeException
-{
-    public function __construct(int $id)
-    {
-        parent::__construct("Post #{$id} não encontrado.");
-    }
-
-    public function render(): JsonResponse
-    {
-        return response()->json(['message' => $this->getMessage()], 404);
-    }
-}
-
-// ✅ Registro no Handler (Laravel 13)
-->withExceptions(function (Exceptions $exceptions) {
-    $exceptions->render(function (PostNotFoundException $e) {
-        return response()->json(['message' => $e->getMessage()], 404);
-    });
-})
-```
-
----
-
-### 9. Segurança
-
-- **`APP_DEBUG=false`** obrigatório em produção
-- Nunca commit de `.env` — use `.env.example` com todas as variáveis listadas (sem valores)
-- Use **`$fillable`** em todos os models — nunca `$guarded = []`
-- Sempre use **rate limiting** em rotas de autenticação e endpoints públicos
-- Use **`$request->validated()`** — nunca `$request->all()`
-- Sempre sanitize uploads de arquivo (tipo MIME, tamanho, extensão)
-- Use HTTPS forçado em produção via `AppServiceProvider`
-- Rode `composer audit` regularmente para verificar vulnerabilidades nas dependências
-
-```php
-// ✅ Rate limiting nas rotas
-Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
-    // rotas autenticadas
-});
-
-// Rotas sensíveis com limite menor
-Route::middleware('throttle:5,1')->group(function () {
-    Route::post('/auth/login', [AuthController::class, 'login']);
-    Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
-});
-```
-
----
-
-### 10. Rotas da API
-
-- **Versione sempre** a API: `/api/v1/`, `/api/v2/`
-- Use **Route Model Binding** ao invés de buscar manualmente no controller
-- Agrupe rotas por middleware, prefixo e namespace
-- Prefira **Resource Controllers** para operações CRUD padrão
-- Nomeie todas as rotas com `->name()`
-- Nunca use verbos nos nomes das rotas — use substantivos (RESTful)
-
-```php
-// ✅ routes/api.php bem organizado
-Route::prefix('v1')->name('api.v1.')->group(function () {
-
-    // Rotas públicas
-    Route::post('/auth/login', [AuthController::class, 'login'])->name('auth.login');
-    Route::post('/auth/register', [AuthController::class, 'register'])->name('auth.register');
-
-    // Rotas autenticadas
-    Route::middleware('auth:sanctum')->group(function () {
-        Route::apiResource('posts', PostController::class);
-        Route::apiResource('comments', CommentController::class)->only(['store', 'destroy']);
-    });
-});
-```
-
----
-
-### 11. Jobs, Queues e Events
-
-- Toda operação demorada (emails, notificações, integrações externas) deve ser assíncrona via **Jobs**
-- Use `Bus::batch()` para processar grupos de jobs com rollback automático em falhas
-- Sempre implemente `failed()` nos Jobs para tratar falhas de forma controlada
-- Use **Events + Listeners** para desacoplar efeitos colaterais da lógica de negócio principal
-- Defina `$tries`, `$timeout` e `$backoff` em todos os Jobs
-
-```php
-// ✅ Job bem definido
-class SendWelcomeEmail implements ShouldQueue
-{
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-
-    public int $tries = 3;
-    public int $timeout = 30;
-    public array $backoff = [10, 30, 60];
-
-    public function __construct(
-        private readonly User $user
-    ) {}
-
-    public function handle(MailService $mailService): void
-    {
-        $mailService->sendWelcome($this->user);
-    }
-
-    public function failed(Throwable $exception): void
-    {
-        Log::error('Falha ao enviar email de boas-vindas', [
-            'user_id' => $this->user->id,
-            'error'   => $exception->getMessage(),
-        ]);
-    }
-}
-```
-
----
-
-### 12. Testes
-
-- **Framework**: PHPUnit 13 — o projeto usa PHPUnit diretamente, classes estendendo `TestCase`, não Pest PHP
-- Toda funcionalidade nova **deve ter testes** antes de ser considerada concluída
-- Use `RefreshDatabase` em testes que interagem com o banco
-- Use `actingAs()` para testar rotas autenticadas
-- Nunca teste implementações internas — teste comportamentos e respostas HTTP
-- Mock serviços externos (`Http::fake()`, `Mail::fake()`, `Queue::fake()`, `Event::fake()`)
-
-#### Estrutura de testes
-
-```
-tests/
-  Feature/
-    Auth/
-      LoginTest.php
-      RegisterTest.php
-    Posts/
-      CreatePostTest.php
-      UpdatePostTest.php
-      DeletePostTest.php
-  Unit/
-    Services/
-      PostServiceTest.php
-    Repositories/
-      PostRepositoryTest.php
-  Architecture/
-    LayerBoundariesTest.php
-```
-
-#### Padrão Arrange-Act-Assert (PHPUnit nativo)
-
-```php
-// tests/Feature/Posts/CreatePostTest.php
-final class CreatePostTest extends TestCase
-{
-    use RefreshDatabase;
-
-    public function test_cria_um_post_autenticado_com_dados_validos(): void
-    {
-        // Arrange
-        $user = User::factory()->create();
-        $payload = [
-            'title'   => 'Meu Post',
-            'content' => 'Conteúdo do post',
-            'status'  => PostStatus::Draft->value,
-        ];
-
-        // Act
-        $response = $this
-            ->actingAs($user)
-            ->postJson('/api/v1/posts', $payload);
-
-        // Assert
-        $response->assertCreated()
-                 ->assertJsonStructure(['data' => ['id', 'title', 'slug', 'status']]);
-
-        $this->assertDatabaseHas('posts', [
-            'title'   => 'Meu Post',
-            'user_id' => $user->id,
-        ]);
-    }
-
-    public function test_rejeita_criacao_de_post_sem_autenticacao(): void
-    {
-        $response = $this->postJson('/api/v1/posts', ['title' => 'Test']);
-
-        $response->assertUnauthorized();
-    }
-}
-```
-
-#### Testes de arquitetura
-
-O PHPUnit puro não tem um equivalente nativo ao plugin de arquitetura do Pest (`->expect()->toUse()`). Como este projeto usa PHPUnit, conformidade arquitetural é verificada de uma das duas formas — escolha uma e documente no `composer.json`:
-
-**Opção A — teste PHPUnit com reflexão (sem dependência extra, recomendado para regras simples):**
-
-```php
-// tests/Architecture/LayerBoundariesTest.php
-final class LayerBoundariesTest extends TestCase
-{
-    public function test_controllers_nao_usam_eloquent_diretamente(): void
-    {
-        foreach (glob(app_path('Http/Controllers/**/*.php')) as $file) {
-            $contents = file_get_contents($file);
-            $this->assertStringNotContainsString(
-                'Illuminate\Database\Eloquent\Model',
-                $contents,
-                "Controller {$file} não deve referenciar Eloquent\\Model diretamente."
-            );
-        }
-    }
-
-    public function test_services_nao_dependem_de_request(): void
-    {
-        foreach (glob(app_path('Services/**/*.php')) as $file) {
-            $contents = file_get_contents($file);
-            $this->assertStringNotContainsString(
-                'Illuminate\Http\Request',
-                $contents,
-                "Service {$file} não deve depender de Illuminate\\Http\\Request."
-            );
-        }
-    }
-}
-```
-
-**Opção B — [Deptrac](https://github.com/qossmic/deptrac) (recomendado se as regras de camada crescerem):** ferramenta dedicada e independente de framework de testes para checar dependências entre camadas, com `deptrac.yaml` declarando as camadas (`Controller`, `Service`, `Repository`, `Model`) e quais podem depender de quais. Rodada separadamente do `php artisan test`, no CI.
-
----
-
-### 13. Performance e Cache
-
-- Use `Cache::remember()` para dados que mudam raramente
-- Use **tags de cache** para invalidar grupos de cache de forma precisa — **atenção:** tags de cache só são suportadas pelos drivers **Redis** e **Memcached**; os drivers `database`, `file` e `array` não suportam `Cache::tags()` e lançam exceção se usados. Confirme o driver configurado (`CACHE_STORE` no `.env`) antes de usar tags
-- Configure `config:cache`, `route:cache` e `view:cache` no pipeline de deploy
-- Use `select()` explícito — nunca `SELECT *` em queries que alimentam listagens
-- Use `paginate()` em vez de `get()` para listagens públicas
-- Use `with()` para eager loading — monitore N+1 com **Laravel Telescope** ou **Debugbar** em desenvolvimento
-
-```php
-// ✅ Cache com tags para invalidação precisa (apenas Redis/Memcached)
-public function getPublishedPosts(): Collection
-{
-    return Cache::tags(['posts', 'published'])
-        ->remember('posts.published', now()->addHour(), fn () =>
-            Post::with('author')->published()->paginate(20)
-        );
-}
-
-// Invalida apenas o cache de posts publicados
-Cache::tags(['posts', 'published'])->flush();
-```
-
----
-
-### 14. Análise Estática
-
-- **PHPStan no nível 8** é obrigatório — o CI deve falhar se houver erros
-- **Larastan** (`composer require --dev larastan/larastan`) é obrigatório junto com o PHPStan — o PHPStan puro não entende a magia do Eloquent (relações, `$casts`, scopes, magic methods) e gera falsos positivos massivos sem essa extensão
-- Rode `./vendor/bin/phpstan analyse` antes de todo commit
-- Nunca use `// @phpstan-ignore-next-line` sem um comentário explicando o motivo
-
-```neon
-# phpstan.neon
-includes:
-    - vendor/larastan/larastan/extension.neon
-
-parameters:
-    level: 8
-    paths:
-        - app
-        - tests
-    ignoreErrors:
-        # Exemplo de ignore documentado
-        - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Builder#'
-```
-
----
-
-### 15. Convenções de Nomenclatura
-
-| Tipo | Convenção | Exemplo |
+| Tipo | Convenção | Exemplo real |
 |---|---|---|
-| Controller | PascalCase + sufixo | `PostController.php` |
-| Service | PascalCase + sufixo | `PostService.php` |
-| Repository | PascalCase + sufixo | `PostRepository.php` |
-| FormRequest | PascalCase + verbo+recurso | `StorePostRequest.php`, `UpdatePostRequest.php` |
-| Resource | PascalCase + sufixo | `PostResource.php`, `PostCollection.php` |
-| Model | PascalCase singular | `Post.php`, `UserProfile.php` |
-| Migration | snake_case com timestamp | `2025_01_01_000000_create_posts_table.php` |
-| Enum | PascalCase | `PostStatus.php` |
-| Event | PascalCase + ação passada | `PostCreated.php`, `UserRegistered.php` |
-| Job | PascalCase + ação | `SendWelcomeEmail.php`, `ProcessPayment.php` |
-| Exception | PascalCase + sufixo | `PostNotFoundException.php` |
-| Teste Feature | PascalCase + Test | `CreatePostTest.php` |
-| Teste Unit | PascalCase + Test | `PostServiceTest.php` |
-| Rota API | kebab-case plural | `/api/v1/blog-posts` |
-| Método de rota | camelCase | `store`, `update`, `showBySlug` |
-
----
-
-### 16. Artisan e Comandos
-
-- Use **Artisan Commands** para tarefas recorrentes de manutenção — nunca scripts PHP avulsos
-- Defina `$signature` e `$description` em todo Command (ou use o atributo `#[AsCommand]` do Laravel 13)
-- Agende commands no `routes/console.php` (Laravel 11+/12+) — nunca no `Kernel.php`
-
-```php
-// routes/console.php
-Schedule::command('posts:publish-scheduled')->everyMinute();
-Schedule::command('backup:run')->dailyAt('02:00');
-```
+| Controller | PascalCase + sufixo, na pasta do contexto | `Tenant/TerrenoController.php`, `Admin/PlanAdminController.php` |
+| Service | PascalCase + sufixo, pasta por domínio | `Tenant/LegalizacaoService.php`, `Billing/StripeCheckoutService.php` |
+| Repository | PascalCase + sufixo (+ interface em `Contracts/`) | `Tenant/ViabilidadeRepository.php`, `Contracts/ViabilidadeRepositoryInterface.php` |
+| FormRequest | Verbo + recurso + Request | `StoreTerrenoRequest`, `TransitionTerrenoWorkflowRequest` |
+| Resource | Recurso + Resource | `Tenant/ViabilidadeResource.php` |
+| Model | PascalCase singular, em `Central/` ou `Tenant/` | `Central/Plan.php`, `Tenant/Terreno.php` |
+| Enum | PascalCase (+ `Common/` se compartilhado) | `WorkflowStatus`, `Common/RolesEnum` |
+| Event | Ação no passado, `Events/Tenant/` | `ViabilidadeDecided`, `ContratoSigned` |
+| Listener | Verbo + efeito, `Listeners/Tenant/` | `NotifyViabilidadeDecision`, `RecordWorkflowStatusHistory` |
+| Job | Verbo + objeto | `CalculateUsableAreaJob`, `CreateFullTenantJob` |
+| Command | Ação + Command; signature `dominio:acao` | `SyncTenantAclCommand` → `tenants:sync-acl` |
+| Exception | Sufixo Exception, estende `DomainException` | `EtapaBlockedException` |
+| Notification | Sufixo Notification | `Workflow/WorkflowTransitionedNotification` |
+| Teste | Sufixo Test, espelhando a pasta | `Feature/Tenant/ViabilidadeApiTest` |
+| Rota API | kebab-case plural, versionada | `/api/v1/legalizacao-etapas` |
+| Chave i18n | UPPER_SNAKE_CASE nos dois JSONs | `RESOURCE_CREATED_SUCCESSFULLY` |
 
 ---
 
 ## 🔥 Regras de Prioridade Alta
 
-1. **Nunca instale pacotes nem mude a estrutura de pastas sem listar o que faria e aguardar aprovação explícita**
-2. Prefira sempre **recursos nativos do Laravel** antes de adicionar bibliotecas externas
-3. O projeto usa **Laravel AI SDK** (`laravel/ai`) como camada de IA — nunca integre SDKs de providers diretamente; use sempre o Laravel AI como abstração
-4. **Controllers são thin** — qualquer lógica além de receber, delegar e responder vai para o Service
-5. **Toda mutação de dados passa por FormRequest** (validação + autorização) antes de chegar ao Controller
-6. **Toda resposta de API passa por um Resource** — nunca retorne Models brutos
-7. `APP_DEBUG=false` e **nunca** commite `.env` — use `.env.example`
-8. **PHPStan nível 8 + Larastan** devem passar sem erros antes de qualquer merge
-9. **Laravel Pint** deve passar sem alterações pendentes (`./vendor/bin/pint --test`) antes de qualquer merge
-10. Cada **Job deve ter `failed()`** implementado
-11. Toda funcionalidade nova deve ter **testes Feature** cobrindo o happy path e pelo menos um cenário de erro
+1. **Nunca instale pacotes nem mude a estrutura de pastas sem listar o que faria e aguardar aprovação explícita.**
+2. Prefira **recursos nativos do Laravel** antes de biblioteca externa.
+3. **IA só via Laravel AI SDK** (`laravel/ai` + `config/ai.php`) — nunca SDK de provider direto; rotas de IA sempre com `ai.rate_limit` + `ai.budget`.
+4. **Contexto certo**: rota/model/migration/controller novo nasce no lado certo (central × tenant). Migration de tenant em `database/migrations/tenant/`.
+5. **Controllers thin** + **toda mutação via FormRequest** com `authorize()` real (teste de arquitetura falha com `return true;`).
+6. **Respostas no envelope do projeto** (`ApiResponseService`/Resources) com mensagens traduzidas nos dois locales.
+7. **Roles/módulos sempre via enums** (`RolesEnum`, `ModulesEnum`) — nunca strings mágicas.
+8. **PHPStan nível 8** e **Pint** limpos antes de qualquer merge; não esconda erro novo em baseline/ignore.
+9. **Todo Job com `failed()`** (+ `$tries`/`$timeout`/`$backoff`).
+10. Funcionalidade nova = testes Feature (happy path + erro) e, quando houver lógica, Unit. Testes de arquitetura intocados.
+11. `.env` nunca commitado; `.env.example` sempre atualizado ao criar variável.
+12. Webhook Stripe, fórmulas de viabilidade e fluxo de transfer ticket são áreas sensíveis — não altere sem entender o design atual (ver `docs/`).
 
 ---
 
 ## 📋 Checklist antes de cada PR
 
-- [ ] PHPStan nível 8 + Larastan passam sem erros (`./vendor/bin/phpstan analyse`)
-- [ ] Laravel Pint não acusa nenhuma alteração pendente (`./vendor/bin/pint --test`)
-- [ ] Todos os testes passam (`php artisan test`)
-- [ ] Testes de arquitetura passam (sem Eloquent em Controllers, sem Request em Services)
-- [ ] Toda nova rota está versionada (`/api/v1/...`) e nomeada
-- [ ] Toda mutation usa `FormRequest` com `authorize()` real
-- [ ] Toda resposta de API usa `Resource` ou `ResourceCollection`
-- [ ] Nenhum `$request->all()` no código
-- [ ] Nenhum `Model::all()` sem limite/paginação
-- [ ] Relações Eloquent carregadas com `with()` (sem N+1)
-- [ ] Novos Jobs têm `$tries`, `$timeout` e `failed()` definidos
-- [ ] `.env.example` atualizado com as novas variáveis (sem valores sensíveis)
-- [ ] Migrations têm `down()` funcional
-- [ ] Se usou `Cache::tags()`, confirmou que o driver configurado é Redis ou Memcached
+- [ ] `composer analyse` (PHPStan nível 8) sem erros novos
+- [ ] `./vendor/bin/pint --test` sem pendências
+- [ ] `composer test` verde, incluindo `--testsuite=Architecture`
+- [ ] Rota nova: versionada (`/api/v1/...`), no arquivo certo (central × tenant), com `throttle` e middlewares de contexto/permissão
+- [ ] Mutação usa FormRequest com `authorize()` real; nenhum `$request->all()` / `->validate()` inline
+- [ ] Resposta via `ApiResponseService`/Resource; chaves i18n adicionadas em `pt-br.json` **e** `en-us.json`
+- [ ] Sem N+1 (`with()`), sem `all()`/`get()` ilimitado
+- [ ] Migration na pasta certa, com `down()` funcional e índices; compatível com SQLite nos testes
+- [ ] Job novo com `failed()`, `$tries`, `$timeout`
+- [ ] Model novo com `$fillable`, `$casts` e factory
+- [ ] Repository novo com interface? Bind registrado no `AppServiceProvider`
+- [ ] `.env.example` atualizado se criou variável de ambiente
+- [ ] Serviços externos mockados nos testes (Stripe, Resend, IA, HTTP)
 
 ---
 
-**Última atualização:** Junho 2026 (revisado — PSR-12, Pint, Larastan, PHPUnit/Pest corrigido, limites de Cache::tags(), e nota de convenção vs. regra oficial do Laravel adicionada)
+**Última atualização:** Julho 2026 — reescrito a partir do estado real do repositório (Laravel 13, PHP 8.4, multi-tenancy stancl com schemas PostgreSQL, Cashier/Stripe, Spatie Permission, Laravel AI, Scramble, Resend, exports Excel/PDF, envelope `ApiResponseService`, testes de arquitetura e i18n pt-br/en-us).

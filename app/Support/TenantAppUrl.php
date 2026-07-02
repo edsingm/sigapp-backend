@@ -16,7 +16,7 @@ class TenantAppUrl
      */
     public function resetPasswordUrl(Tenant $tenant, array $query): string
     {
-        return $this->build($tenant, '/reset-password', $query);
+        return $this->build($tenant, '/login/reset-password', $query);
     }
 
     /**
@@ -50,10 +50,13 @@ class TenantAppUrl
 
         if (is_string($domain) && $domain !== '') {
             $domainHost = parse_url($domain, PHP_URL_HOST);
-
-            return is_string($domainHost) && $domainHost !== ''
+            $resolvedDomain = is_string($domainHost) && $domainHost !== ''
                 ? $domainHost
                 : preg_replace('#^https?://#', '', rtrim($domain, '/'));
+
+            if (is_string($resolvedDomain) && str_contains($resolvedDomain, '.')) {
+                return $resolvedDomain;
+            }
         }
 
         $normalizedHost = strtolower($frontendHost);
@@ -76,7 +79,11 @@ class TenantAppUrl
                 continue;
             }
 
-            if ($normalizedHost === $centralDomain || $normalizedHost === "www.{$centralDomain}") {
+            if (
+                $normalizedHost === $centralDomain
+                || $normalizedHost === "www.{$centralDomain}"
+                || str_ends_with($normalizedHost, ".{$centralDomain}")
+            ) {
                 return "{$tenantSlug}.{$centralDomain}";
             }
         }

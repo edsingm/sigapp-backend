@@ -12,7 +12,7 @@ use Illuminate\Validation\ValidationException;
 
 class DocumentoService
 {
-    private const STORAGE_DISK = 'local';
+    private const STORAGE_DISK = 's3';
 
     /**
      * @var list<string>

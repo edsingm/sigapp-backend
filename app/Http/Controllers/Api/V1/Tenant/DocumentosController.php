@@ -16,7 +16,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DocumentosController extends Controller
 {
@@ -107,7 +107,7 @@ class DocumentosController extends Controller
     /**
      * Baixar o arquivo do documento.
      */
-    public function download(int $id): BinaryFileResponse|JsonResponse
+    public function download(int $id): StreamedResponse|JsonResponse
     {
         $documento = $this->documentoRepository->findOrFail($id);
         Gate::authorize('view', $documento);
@@ -125,16 +125,13 @@ class DocumentosController extends Controller
             $downloadName .= '.'.$extension;
         }
 
-        return response()->download(
-            Storage::disk($this->documentoService->storageDisk())->path($filePath),
-            $downloadName
-        );
+        return Storage::disk($this->documentoService->storageDisk())->download($filePath, $downloadName);
     }
 
     /**
      * Visualizar o arquivo do documento no navegador.
      */
-    public function view(int $id): BinaryFileResponse|JsonResponse
+    public function view(int $id): StreamedResponse|JsonResponse
     {
         $documento = $this->documentoRepository->findOrFail($id);
         Gate::authorize('view', $documento);
@@ -152,12 +149,9 @@ class DocumentosController extends Controller
             $filename .= '.'.$extension;
         }
 
-        return response()->file(
-            Storage::disk($this->documentoService->storageDisk())->path($filePath),
-            [
-                'Content-Disposition' => 'inline; filename="'.addslashes($filename).'"',
-            ]
-        );
+        return Storage::disk($this->documentoService->storageDisk())->response($filePath, $filename, [
+            'Content-Disposition' => 'inline; filename="'.addslashes($filename).'"',
+        ]);
     }
 
     /**

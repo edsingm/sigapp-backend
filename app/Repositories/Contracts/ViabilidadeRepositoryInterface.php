@@ -27,7 +27,9 @@ interface ViabilidadeRepositoryInterface
 
     public function nextVersionForTerreno(int $terrenoId): int;
 
-    public function clearCurrentForTerreno(int $terrenoId): void;
+    public function clearCurrentForTerreno(int $terrenoId, ?int $exceptId = null): void;
+
+    public function approvedByTerreno(int $terrenoId, ?int $exceptId = null): ?Viabilidade;
 
     /**
      * @param  array{search?: string|null, terreno_id?: int|string|null, per_page?: int|null}  $filters

@@ -3,6 +3,7 @@
 namespace Tests\Feature\Tenant;
 
 use App\Enums\Common\RolesEnum;
+use App\Enums\WorkflowStatus;
 use App\Http\Middleware\AddTenantContextToLogs;
 use App\Http\Middleware\ApiRequestLogger;
 use App\Http\Middleware\CheckSubscriptionStatus;
@@ -10,6 +11,7 @@ use App\Http\Middleware\EnsureTenantAdmin;
 use App\Http\Middleware\EnsureTenantContext;
 use App\Http\Middleware\EnsureTenantUser;
 use App\Http\Middleware\InitializeTenancyFlexible;
+use App\Models\Tenant\ComiteRevisao;
 use App\Models\Tenant\CorretorExterno;
 use App\Models\Tenant\Produto;
 use App\Models\Tenant\Proprietario;
@@ -198,6 +200,141 @@ class ViabilidadeApiTest extends TestCase
             'decision' => 'aprovada',
             'user_id' => $this->admin->id,
         ]);
+    }
+
+    public function test_nao_permite_editar_viabilidade_aprovada(): void
+    {
+        $terrenoProduto = $this->createViabilityFixture();
+        $viabilidade = Viabilidade::create([
+            'terreno_id' => $terrenoProduto->getAttribute('terreno_id'),
+            'version' => 1,
+            'is_current' => true,
+            'status' => 'ativo',
+            'approval_status' => 'aprovada',
+            'created_by' => $this->admin->id,
+            'updated_by' => $this->admin->id,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->putJson("/api/v1/viabilidades/{$viabilidade->id}", $this->makePayload($terrenoProduto))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['viabilidade']);
+    }
+
+    public function test_apenas_diretor_pode_revogar_aprovacao(): void
+    {
+        $terrenoProduto = $this->createViabilityFixture();
+        $viabilidade = Viabilidade::create([
+            'terreno_id' => $terrenoProduto->getAttribute('terreno_id'),
+            'version' => 1,
+            'is_current' => true,
+            'status' => 'ativo',
+            'approval_status' => 'aprovada',
+            'created_by' => $this->admin->id,
+            'updated_by' => $this->admin->id,
+        ]);
+
+        // Admin (não Diretor) não pode revogar.
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/viabilidades/{$viabilidade->id}/revogar-aprovacao", [])
+            ->assertForbidden();
+
+        // Diretor pode revogar: volta para pendente/rascunho e editável.
+        $diretor = $this->makeDiretor();
+        $this->actingAs($diretor)
+            ->postJson("/api/v1/viabilidades/{$viabilidade->id}/revogar-aprovacao", [
+                'approval_notes' => 'Revisão de premissas necessária.',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.approval_status', 'pendente')
+            ->assertJsonPath('data.status', 'rascunho');
+
+        $this->assertDatabaseHas('viabilidade_aprovacoes', [
+            'viabilidade_id' => $viabilidade->id,
+            'decision' => 'revogada',
+            'user_id' => $diretor->id,
+        ]);
+    }
+
+    public function test_revogar_bloqueado_com_comite_aberto(): void
+    {
+        $terrenoProduto = $this->createViabilityFixture();
+        $terrenoId = $terrenoProduto->getAttribute('terreno_id');
+        $viabilidade = Viabilidade::create([
+            'terreno_id' => $terrenoId,
+            'version' => 1,
+            'is_current' => true,
+            'status' => 'ativo',
+            'approval_status' => 'aprovada',
+            'created_by' => $this->admin->id,
+            'updated_by' => $this->admin->id,
+        ]);
+
+        ComiteRevisao::create([
+            'terreno_id' => $terrenoId,
+            'viabilidade_id' => $viabilidade->id,
+            'status' => WorkflowStatus::AGUARDANDO_COMITE->value,
+            'required_departments' => ['comercial'],
+        ]);
+
+        $diretor = $this->makeDiretor();
+        $this->actingAs($diretor)
+            ->postJson("/api/v1/viabilidades/{$viabilidade->id}/revogar-aprovacao", [])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['viabilidade']);
+    }
+
+    private function makeDiretor(): User
+    {
+        Role::query()->firstOrCreate(['name' => RolesEnum::DIRECTOR->value, 'guard_name' => 'web']);
+
+        $diretor = User::create([
+            'name' => 'Tenant Diretor',
+            'email' => 'tenant-viabilidade-diretor@test.com',
+            'password' => Hash::make('password123'),
+        ]);
+        $diretor->assignRole(RolesEnum::DIRECTOR);
+
+        return $diretor;
+    }
+
+    public function test_terreno_pode_ter_apenas_uma_viabilidade_aprovada(): void
+    {
+        $terrenoProduto = $this->createViabilityFixture();
+        $terrenoId = $terrenoProduto->getAttribute('terreno_id');
+
+        $aprovada = Viabilidade::create([
+            'terreno_id' => $terrenoId,
+            'version' => 1,
+            'is_current' => true,
+            'status' => 'ativo',
+            'approval_status' => 'aprovada',
+            'created_by' => $this->admin->id,
+            'updated_by' => $this->admin->id,
+        ]);
+
+        // Novo estudo não rouba o is_current enquanto houver uma aprovada.
+        $nova = Viabilidade::create([
+            'terreno_id' => $terrenoId,
+            'version' => 2,
+            'is_current' => false,
+            'status' => 'rascunho',
+            'approval_status' => 'em_aprovacao',
+            'created_by' => $this->admin->id,
+            'updated_by' => $this->admin->id,
+        ]);
+
+        // Aprovar a segunda é bloqueado.
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/viabilidades/{$nova->id}/aprovar", [
+                'approval_notes' => 'Tentando aprovar a segunda.',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['approval_notes']);
+
+        // A viabilidade aprovada continua sendo a atual (is_current) do terreno.
+        $this->assertDatabaseHas('viabilidades', ['id' => $aprovada->id, 'is_current' => true]);
+        $this->assertDatabaseHas('viabilidades', ['id' => $nova->id, 'is_current' => false]);
     }
 
     public function test_viabilidade_requests_require_authentication_and_valid_payloads(): void

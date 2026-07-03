@@ -18,6 +18,13 @@ class HealthCheckTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Storage::fake('s3');
+    }
+
     private function actingAsCentralAdmin(): void
     {
         $result = User::factory()->admin()->create();

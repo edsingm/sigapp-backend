@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use App\Services\Ai\Tools\AiDataRedactor;
 use App\Services\Ai\Tools\AiProviderRouter;
 use App\Services\Ai\Tools\AiTelemetryService;
+use Illuminate\Support\Facades\Route;
 use Mockery;
 use Tests\TestCase;
 
@@ -175,6 +176,16 @@ class AiServicesAndMiddlewareTest extends TestCase
         $service = app(AiTelemetryService::class);
 
         $this->assertFalse($service->hasExceededBudget(100.0));
+    }
+
+    public function test_ai_report_route_checks_budget(): void
+    {
+        $route = collect(Route::getRoutes())
+            ->first(fn ($route) => $route->uri() === 'api/v1/ai/terrenos/{id}/relatorio-pdf');
+
+        $this->assertNotNull($route);
+        $this->assertContains('ai.rate_limit', $route->gatherMiddleware());
+        $this->assertContains('ai.budget', $route->gatherMiddleware());
     }
 
     protected function tearDown(): void

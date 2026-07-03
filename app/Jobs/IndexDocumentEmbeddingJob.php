@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Tenant\Documento;
 use App\Services\Ai\Tools\AiEmbeddingService;
+use App\Services\Tenant\DocumentoService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -27,7 +28,7 @@ class IndexDocumentEmbeddingJob implements ShouldQueue
         protected int $documentId
     ) {}
 
-    public function handle(AiEmbeddingService $embeddingService): void
+    public function handle(AiEmbeddingService $embeddingService, DocumentoService $documentoService): void
     {
         $documento = Documento::find($this->documentId);
         if (! $documento) {
@@ -37,7 +38,7 @@ class IndexDocumentEmbeddingJob implements ShouldQueue
         }
 
         try {
-            $content = $this->extractText($documento);
+            $content = $this->extractText($documento, $documentoService);
             if (trim($content) === '') {
                 Log::info("Documento {$this->documentId} sem texto extraível, pulando indexação.");
 
@@ -69,14 +70,15 @@ class IndexDocumentEmbeddingJob implements ShouldQueue
     /**
      * Extrai texto do documento.
      */
-    protected function extractText(Documento $documento): string
+    protected function extractText(Documento $documento, DocumentoService $documentoService): string
     {
         // Se tem path no storage, tenta ler o conteúdo
-        if ($documento->file_path && Storage::exists($documento->file_path)) {
+        $disk = Storage::disk($documentoService->storageDisk());
+        if ($documento->file_path && $disk->exists($documento->file_path)) {
             $ext = strtolower(pathinfo($documento->file_path, PATHINFO_EXTENSION));
 
             if (in_array($ext, ['txt', 'md', 'csv', 'log', 'json'], true)) {
-                return Storage::get($documento->file_path);
+                return $disk->get($documento->file_path);
             }
 
             // PDF e outros binários exigem parser — por enquanto usa descrição

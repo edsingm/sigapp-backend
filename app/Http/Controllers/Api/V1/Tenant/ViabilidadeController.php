@@ -11,6 +11,7 @@ use App\Http\Requests\Tenant\DuplicateViabilidadeRequest;
 use App\Http\Requests\Tenant\GerarDreRequest;
 use App\Http\Requests\Tenant\RecalculateViabilidadeRequest;
 use App\Http\Requests\Tenant\RestoreViabilidadeRequest;
+use App\Http\Requests\Tenant\RevokeViabilidadeApprovalRequest;
 use App\Http\Requests\Tenant\SubmitViabilidadeApprovalRequest;
 use App\Http\Requests\Tenant\ViabilidadeRequest;
 use App\Http\Resources\Tenant\ViabilidadeCalculationResource;
@@ -75,6 +76,23 @@ class ViabilidadeController extends Controller
     public function reprovar(DecideViabilidadeApprovalRequest $request, int $id): JsonResponse
     {
         return $this->decidirAprovacao($request, $id, 'reprovada');
+    }
+
+    /**
+     * Revogar a aprovação de uma viabilidade (somente Diretor).
+     */
+    public function revogarAprovacao(RevokeViabilidadeApprovalRequest $request, int $id): JsonResponse
+    {
+        $viabilidade = $this->viabilidadeService->revogarAprovacao(
+            $id,
+            $request->validated('approval_notes'),
+            $request->user(),
+        );
+
+        return ApiResponseService::success(
+            new ViabilidadeResource($viabilidade),
+            'Aprovação revogada com sucesso'
+        );
     }
 
     /**

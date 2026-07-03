@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Tenant\AiGeneratedReport;
 use App\Models\Tenant\Documento;
 use App\Models\Tenant\Produto;
 use App\Models\Tenant\Terreno;
@@ -9,6 +10,10 @@ use App\Models\Tenant\User;
 
 class UsageMetricsService
 {
+    public function __construct(
+        private readonly PlanMatrixService $planMatrix,
+    ) {}
+
     /**
      * Obtém a contagem de usuários no tenant atual.
      */
@@ -54,7 +59,7 @@ class UsageMetricsService
             return 0;
         }
 
-        return (int) Documento::query()->sum('tamanho');
+        return (int) Documento::query()->sum('tamanho') + (int) AiGeneratedReport::query()->sum('tamanho');
     }
 
     /**
@@ -71,27 +76,27 @@ class UsageMetricsService
     public function getMetrics(): array
     {
         $tenant = tenancy()->tenant;
-        $plan = $tenant?->plan;
+        $hasPlan = $tenant && is_int($tenant->getAttribute('plan_id'));
 
         return [
             'users' => [
                 'current' => $this->getUserCount(),
-                'limit' => $plan?->getLimit('users') ?? 0,
-                'unlimited' => $plan?->hasUnlimitedLimit('users') ?? false,
+                'limit' => $hasPlan ? $this->planMatrix->getLimitForTenant($tenant, 'users') : 0,
+                'unlimited' => $hasPlan && $this->planMatrix->isUnlimitedLimitForTenant($tenant, 'users'),
             ],
             'terrenos' => [
                 'current' => $this->getTerrenoCount(),
-                'limit' => $plan?->getLimit('terrenos') ?? 0,
-                'unlimited' => $plan?->hasUnlimitedLimit('terrenos') ?? false,
+                'limit' => $hasPlan ? $this->planMatrix->getLimitForTenant($tenant, 'terrenos') : 0,
+                'unlimited' => $hasPlan && $this->planMatrix->isUnlimitedLimitForTenant($tenant, 'terrenos'),
             ],
             'products' => [
                 'current' => $this->getProdutoCount(),
-                'limit' => $plan?->getLimit('products') ?? 0,
-                'unlimited' => $plan?->hasUnlimitedLimit('products') ?? false,
+                'limit' => $hasPlan ? $this->planMatrix->getLimitForTenant($tenant, 'products') : 0,
+                'unlimited' => $hasPlan && $this->planMatrix->isUnlimitedLimitForTenant($tenant, 'products'),
             ],
             'storage' => [
                 'used_gb' => $this->getStorageUsed(),
-                'limit_gb' => $plan?->getLimit('storage_gb') ?? 0,
+                'limit_gb' => $hasPlan ? $this->planMatrix->getLimitForTenant($tenant, 'storage_gb') : 0,
             ],
         ];
     }

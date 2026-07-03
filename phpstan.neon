@@ -11,6 +11,11 @@ parameters:
         - app/Http/Controllers/Api/V1/Admin/AdminBrokersController.php (?)
         - app/Http/Controllers/Api/V1/Admin/PlanAdminController.php (?)
     ignoreErrors:
+        # Storage::disk() return type is the Filesystem contract, but download()/response()/temporaryUrl()/assertExists() only exist on the concrete FilesystemAdapter/Cloud contract
+        - '#Call to an undefined method Illuminate\\Contracts\\Filesystem\\Filesystem::download\(\)#'
+        - '#Call to an undefined method Illuminate\\Contracts\\Filesystem\\Filesystem::response\(\)#'
+        - '#Call to an undefined method Illuminate\\Contracts\\Filesystem\\Filesystem::temporaryUrl\(\)#'
+        - '#Call to an undefined method Illuminate\\Contracts\\Filesystem\\Filesystem::assertExists\(\)#'
         # Eloquent Model return types that don't match static analysis expectations
         - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Builder::firstOrFail\(\)#'
         - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Builder::findOrFail\(\)#'
@@ -191,6 +196,9 @@ parameters:
         - '#Parameter \#2 \$options of function curl_setopt_array expects array\{10002: non-empty-string.+\}, array\{10002: string.+\} given#'
         # ConsentLog usa HasFactory sem ConsentLogFactory (sem factory dedicada neste projeto)
         - '#Class App\\Models\\ConsentLog uses generic trait Illuminate\\Database\\Eloquent\\Factories\\HasFactory but does not specify its types#'
+        # AiGeneratedReport: mesmo padrão de relações sem generics do restante dos models Tenant
+        - '#Class App\\Models\\Tenant\\AiGeneratedReport uses generic trait Illuminate\\Database\\Eloquent\\Factories\\HasFactory but does not specify its types#'
+        - '#Method App\\Models\\Tenant\\AiGeneratedReport::(terreno|createdBy)\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types#'
         # Auth Factory (auth() helper retorna Factory mas usamos como guard)
         - '#Call to an undefined method Illuminate\\Contracts\\Auth\\Factory::\w+\(\)#'
         - '#Access to an undefined property Illuminate\\Contracts\\Auth\\Authenticatable::\$\w+#'

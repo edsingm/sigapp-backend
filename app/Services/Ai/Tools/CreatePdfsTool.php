@@ -2,8 +2,12 @@
 
 namespace App\Services\Ai\Tools;
 
+use App\Models\Tenant\AiGeneratedReport;
+use App\Services\PlanMatrixService;
+use App\Services\UsageMetricsService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -13,6 +17,11 @@ use Throwable;
 
 class CreatePdfsTool implements Tool
 {
+    public function __construct(
+        private readonly PlanMatrixService $planMatrix,
+        private readonly UsageMetricsService $usageService,
+    ) {}
+
     public function description(): Stringable|string
     {
         return 'Gera PDFs para o usuário. Use quando o usuário pedir um relatório, contrato, invoice, resumo, etc. Forneça um nome de arquivo, título e o conteúdo HTML completo.';
@@ -47,7 +56,7 @@ class CreatePdfsTool implements Tool
                         $browsershot->noSandbox();
                     }
                 })
-                ->disk('public')
+                ->disk('s3')
                 ->save($path);
         } catch (Throwable $e) {
             Log::warning('AI PDF generation failed', [
@@ -65,7 +74,31 @@ class CreatePdfsTool implements Tool
             return 'Nao foi possivel gerar o PDF solicitado neste momento. Motivo tecnico: '.$e->getMessage();
         }
 
-        $url = $this->buildDownloadUrl($path);
+        $tamanho = (int) Storage::disk('s3')->size($path);
+        $tenant = tenancy()->tenant;
+
+        if ($tenant && ! $this->planMatrix->isUnlimitedLimitForTenant($tenant, 'storage_gb')) {
+            $maxBytes = $this->planMatrix->getLimitForTenant($tenant, 'storage_gb') * 1024 * 1024 * 1024;
+
+            if (($this->usageService->getStorageUsedBytes() + $tamanho) > $maxBytes) {
+                Storage::disk('s3')->delete($path);
+
+                return 'Não foi possível salvar o PDF: o limite de armazenamento do plano foi atingido. '
+                    .'Faça upgrade do plano ou libere espaço para continuar gerando PDFs.';
+            }
+        }
+
+        $terrenoId = (int) ($request['terreno_id'] ?? 0);
+
+        $report = AiGeneratedReport::create([
+            'terreno_id' => $terrenoId > 0 ? $terrenoId : null,
+            'nome' => (string) $request['title'],
+            'file_path' => $path,
+            'tamanho' => $tamanho,
+            'created_by' => auth()->id(),
+        ]);
+
+        $url = route('ai.reports.download', ['id' => $report->id]);
 
         return "✅ PDF gerado com sucesso!\n\n".
                "📄 Nome do arquivo: {$filename}\n".
@@ -88,6 +121,9 @@ class CreatePdfsTool implements Tool
             'html_content' => $schema->string()
                 ->required()
                 ->description('Conteúdo HTML do corpo do PDF (sem as tags html/head/body). Use h1-h6, p, ul, ol, table. Estilos inline são permitidos.'),
+
+            'terreno_id' => $schema->integer()
+                ->description('ID do terreno relacionado a este PDF, se houver.'),
         ];
     }
 
@@ -136,25 +172,5 @@ class CreatePdfsTool implements Tool
         }
 
         return null;
-    }
-
-    private function buildDownloadUrl(string $path): string
-    {
-        $relativePath = '/tenancy/assets/'.ltrim($path, '/');
-        $request = request();
-
-        $hostHeader = $request->header('X-External-Host');
-        $externalHost = is_string($hostHeader) ? trim($hostHeader) : '';
-
-        $protoHeader = $request->header('X-External-Proto');
-        $externalProto = is_string($protoHeader) ? trim($protoHeader) : '';
-
-        if ($externalHost !== '') {
-            $scheme = $externalProto !== '' ? $externalProto : $request->getScheme();
-
-            return "{$scheme}://{$externalHost}{$relativePath}";
-        }
-
-        return rtrim($request->getSchemeAndHttpHost(), '/').$relativePath;
     }
 }

@@ -1,0 +1,28 @@
+@extends('emails.layouts.base')
+
+@section('title', 'Armazenamento quase no limite - SIG.APP')
+
+@section('content')
+    <h2 style="margin: 0 0 16px; font-size: 20px; font-weight: 700; color: #18181b; letter-spacing: -0.01em;">Olá, {{ $tenantName }}!</h2>
+
+    <div style="background-color: #fefce8; border-left: 4px solid #eab308; padding: 16px 20px; margin-bottom: 20px; border-radius: 4px;">
+        <p style="margin: 0; font-size: 14px; font-weight: 600; color: #713f12;">
+            Seu armazenamento está em {{ $percentage }}% do limite do plano ({{ $usedFormatted }} GB de {{ $limitGb }} GB usados).
+        </p>
+    </div>
+
+    <p style="margin: 0 0 12px; font-size: 15px; color: #52525b; line-height: 1.6;">
+        Quando o limite for atingido, novos uploads de documentos e a geração de relatórios em PDF pela IA serão bloqueados até que você libere espaço ou faça upgrade do plano.
+    </p>
+
+    <div style="text-align: center; margin: 24px 0;">
+        <a href="{{ $billingUrl }}"
+           style="display: inline-block; padding: 14px 32px; background-color: #eab308; color: #422006; font-size: 15px; font-weight: 600; text-decoration: none; border-radius: 8px;">
+            Gerenciar Assinatura
+        </a>
+    </div>
+
+    <p style="margin: 24px 0 0; font-size: 14px; color: #71717a; line-height: 1.5;">
+        Dúvidas? Responda este e-mail ou fale com nosso suporte.
+    </p>
+@endsection

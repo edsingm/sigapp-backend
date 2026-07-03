@@ -127,6 +127,36 @@ parameters:
 			path: app/Exports/Tenant/TerrenosExport.php
 
 		-
+			rawMessage: Access to an undefined property App\Models\Tenant\AiGeneratedReport::$id.
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Tenant/AiTerrenoReportController.php
+
+		-
+			rawMessage: Access to an undefined property App\Models\Tenant\AiGeneratedReport::$created_by.
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Tenant/AiGeneratedReportController.php
+
+		-
+			rawMessage: Access to an undefined property App\Models\Tenant\AiGeneratedReport::$file_path.
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Tenant/AiGeneratedReportController.php
+
+		-
+			rawMessage: Access to an undefined property App\Models\Tenant\AiGeneratedReport::$nome.
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Tenant/AiGeneratedReportController.php
+
+		-
+			rawMessage: Access to an undefined property App\Models\Tenant\AiGeneratedReport::$terreno_id.
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Tenant/AiGeneratedReportController.php
+
+		-
 			rawMessage: Access to an undefined property App\Models\Central\PlanRolePermissionTemplate::$is_default.
 			identifier: property.notFound
 			count: 1

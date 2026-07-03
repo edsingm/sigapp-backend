@@ -197,6 +197,16 @@ class Terreno extends Model
             ->latestOfMany();
     }
 
+    public function viabilidadeAprovada(): HasOne
+    {
+        // O filtro precisa estar DENTRO da agregação (ofMany), senão o
+        // latestOfMany pegaria o maior id geral e o where externo não casaria.
+        return $this->hasOne(Viabilidade::class, 'terreno_id')->ofMany(
+            ['id' => 'max'],
+            fn ($query) => $query->where('approval_status', 'aprovada')
+        );
+    }
+
     public function informacoes(): HasMany
     {
         return $this->hasMany(TerrenoInfos::class, 'terreno_id');

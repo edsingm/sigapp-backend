@@ -86,12 +86,23 @@ class ViabilidadeRepository implements ViabilidadeRepositoryInterface
             ->max('version')) + 1;
     }
 
-    public function clearCurrentForTerreno(int $terrenoId): void
+    public function clearCurrentForTerreno(int $terrenoId, ?int $exceptId = null): void
     {
         Viabilidade::query()
             ->where('terreno_id', $terrenoId)
             ->where('is_current', true)
+            ->when($exceptId !== null, fn ($query) => $query->where('id', '!=', $exceptId))
             ->update(['is_current' => false]);
+    }
+
+    public function approvedByTerreno(int $terrenoId, ?int $exceptId = null): ?Viabilidade
+    {
+        return Viabilidade::query()
+            ->where('terreno_id', $terrenoId)
+            ->where('approval_status', 'aprovada')
+            ->when($exceptId !== null, fn ($query) => $query->where('id', '!=', $exceptId))
+            ->orderByDesc('version')
+            ->first();
     }
 
     /**

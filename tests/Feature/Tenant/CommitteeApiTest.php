@@ -99,6 +99,36 @@ class CommitteeApiTest extends TestCase
             ->assertJsonPath('data.id', $reviewId);
     }
 
+    public function test_terreno_com_aprovada_nao_atual_ainda_segue_para_comite(): void
+    {
+        $terreno = $this->createCommitteeFixture();
+
+        // Simula o cenário do bug: um novo estudo (pendente) é a viabilidade
+        // atual (is_current), mas a aprovada continua existindo. O comitê deve
+        // validar/usar a viabilidade APROVADA, não a is_current.
+        $aprovada = $terreno->viabilidadeAprovada;
+        $aprovada->update(['is_current' => false]);
+
+        $novaPendente = Viabilidade::create([
+            'terreno_id' => $terreno->id,
+            'version' => 2,
+            'is_current' => true,
+            'status' => 'rascunho',
+            'approval_status' => 'pendente',
+            'created_by' => $this->admin->id,
+            'updated_by' => $this->admin->id,
+        ]);
+
+        $this->actingAs($this->admin)->postJson('/api/v1/comite', [
+            'terreno_id' => $terreno->id,
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.terreno_id', $terreno->id)
+            ->assertJsonPath('data.viabilidade_id', $aprovada->id);
+
+        $this->assertNotSame($novaPendente->id, $aprovada->id);
+    }
+
     public function test_committee_endpoints_require_auth_and_validate_business_rules(): void
     {
         $terreno = Terreno::create([

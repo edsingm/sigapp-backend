@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\Tenant\Admin\PermissionController as AdminPermis
 use App\Http\Controllers\Api\V1\Tenant\Admin\RoleController as AdminRoleController;
 use App\Http\Controllers\Api\V1\Tenant\Admin\UserManagementController as AdminUserManagementController;
 use App\Http\Controllers\Api\V1\Tenant\AiController;
+use App\Http\Controllers\Api\V1\Tenant\AiGeneratedReportController;
 use App\Http\Controllers\Api\V1\Tenant\AiMonitorController;
 use App\Http\Controllers\Api\V1\Tenant\AiPredictiveAnalysisController;
 use App\Http\Controllers\Api\V1\Tenant\AiScoringController;
@@ -264,6 +265,8 @@ Route::middleware([
                         ->middleware('throttle:viabilidade-approval');
                     Route::post('/viabilidades/{id}/reprovar', [ViabilidadeController::class, 'reprovar'])
                         ->middleware('throttle:viabilidade-approval');
+                    Route::post('/viabilidades/{id}/revogar-aprovacao', [ViabilidadeController::class, 'revogarAprovacao'])
+                        ->middleware('throttle:viabilidade-approval');
                     Route::post('/viabilidades/{id}/ativar', [ViabilidadeController::class, 'ativar']);
                     Route::post('/viabilidades/{id}/duplicate', [ViabilidadeController::class, 'duplicate']);
                     Route::post('/viabilidades/{id}/gerar-dre', [ViabilidadeController::class, 'gerarDre'])
@@ -287,7 +290,11 @@ Route::middleware([
                     Route::post('/ai/sig-ai', [AiController::class, 'chat'])
                         ->middleware('ai.rate_limit', 'ai.budget');
                     Route::post('/ai/terrenos/{id}/relatorio-pdf', [AiTerrenoReportController::class, 'generate'])
+                        ->middleware('ai.rate_limit', 'ai.budget')
                         ->whereNumber('id');
+                    Route::get('/ai/reports/{id}/download', [AiGeneratedReportController::class, 'download'])
+                        ->whereNumber('id')
+                        ->name('ai.reports.download');
 
                     // AI Scoring
                     Route::prefix('ai/scoring')->group(function () {

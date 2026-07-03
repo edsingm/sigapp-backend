@@ -291,7 +291,7 @@ class LandWorkflowService
             throw new RuntimeException('Não é possível aprovar o terreno sem uma viabilidade aprovada.');
         }
 
-        if ($targetStatus === WorkflowStatus::AGUARDANDO_COMITE->value && $terreno->viabilidadeAtual?->approval_status !== 'aprovada') {
+        if ($targetStatus === WorkflowStatus::AGUARDANDO_COMITE->value && ! $terreno->loadMissing('viabilidadeAprovada')->viabilidadeAprovada) {
             throw new RuntimeException('Não é possível enviar ao comitê sem viabilidade aprovada.');
         }
 

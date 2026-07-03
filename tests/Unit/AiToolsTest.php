@@ -325,7 +325,7 @@ class AiToolsTest extends TestCase
             ->once()
             ->andThrow(new RuntimeException('Could not find Chrome (ver. 148.0.7778.97).'));
 
-        $tool = new CreatePdfsTool;
+        $tool = app(CreatePdfsTool::class);
 
         $result = $tool->handle(new Request([
             'filename' => 'relatorio-ibge',

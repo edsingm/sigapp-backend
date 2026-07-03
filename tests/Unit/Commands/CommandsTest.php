@@ -70,6 +70,14 @@ class CommandsTest extends TestCase
         $this->assertTrue($r->hasMethod('handle'));
     }
 
+    public function test_check_tenant_storage_usage_command_existe(): void
+    {
+        $this->assertTrue(class_exists('App\Console\Commands\CheckTenantStorageUsageCommand'));
+
+        $r = new \ReflectionClass('App\Console\Commands\CheckTenantStorageUsageCommand');
+        $this->assertTrue($r->hasMethod('handle'));
+    }
+
     public function test_wipe_all_tenants_command_existe(): void
     {
         $this->assertTrue(class_exists('App\Console\Commands\WipeAllTenants'));

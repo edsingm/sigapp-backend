@@ -4,6 +4,7 @@ namespace App\Services\Tenant;
 
 use App\Models\Tenant\Terreno;
 use App\Services\Ai\Tools\AiProviderRouter;
+use App\Services\Ai\Tools\AiTelemetryService;
 use App\Services\Ai\Tools\CompareAreasTool;
 use App\Services\Ai\Tools\DetectAnomaliesTool;
 use App\Services\Ai\Tools\EstimateVgvTool;
@@ -23,6 +24,7 @@ use App\Services\Ai\Tools\GetTrendsTool;
 use App\Services\Ai\Tools\GetViabilidadesTool;
 use App\Services\Ai\Tools\PredictViabilityTool;
 use App\Services\Ai\Tools\ProactiveMonitorTool;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Laravel\Ai\Tools\Request as AiToolRequest;
 use League\CommonMark\GithubFlavoredMarkdownConverter;
@@ -31,6 +33,10 @@ use Stringable;
 
 class TerrenoAiReportService
 {
+    public function __construct(
+        private readonly AiTelemetryService $telemetryService,
+    ) {}
+
     /**
      * @return array{
      *   title: string,
@@ -856,6 +862,7 @@ PROMPT;
 
         $agentRoute = app(AiProviderRouter::class)->getAgentWithFallback();
         $agent = $agentRoute['agent'];
+        $startTime = microtime(true);
 
         try {
             $response = $agent->prompt(
@@ -870,7 +877,52 @@ PROMPT;
             if ($markdown === '') {
                 throw new RuntimeException('A IA não retornou conteúdo para o relatório.');
             }
+
+            $usage = $response->usage;
+            $promptTokens = $usage->promptTokens;
+            $completionTokens = $usage->completionTokens;
+            $cacheReadInputTokens = $usage->cacheReadInputTokens;
+            $provider = $response->meta->provider ?? $agentRoute['provider'];
+            $model = $response->meta->model ?? $agentRoute['model'];
+            $estimatedCost = $this->telemetryService->estimateCost(
+                $provider,
+                $model,
+                $promptTokens,
+                $completionTokens,
+                $cacheReadInputTokens
+            );
+
+            $this->telemetryService->logRequest([
+                'user_id' => Auth::id(),
+                'provider' => $provider,
+                'model' => $model,
+                'prompt_tokens' => $promptTokens,
+                'completion_tokens' => $completionTokens,
+                'total_tokens' => $promptTokens + $completionTokens,
+                'estimated_cost_usd' => $estimatedCost,
+                'duration_ms' => (int) ((microtime(true) - $startTime) * 1000),
+                'tool_calls_count' => 0,
+                'tool_calls' => [
+                    ['tool' => 'terreno_ai_report_narrative'],
+                ],
+                'status' => 'success',
+                'ip_address' => request()->ip(),
+            ]);
         } catch (\Throwable $e) {
+            $this->telemetryService->logRequest([
+                'user_id' => Auth::id(),
+                'provider' => $agentRoute['provider'],
+                'model' => $agentRoute['model'],
+                'duration_ms' => (int) ((microtime(true) - $startTime) * 1000),
+                'tool_calls_count' => 0,
+                'tool_calls' => [
+                    ['tool' => 'terreno_ai_report_narrative'],
+                ],
+                'status' => 'error',
+                'error_message' => $e->getMessage(),
+                'ip_address' => request()->ip(),
+            ]);
+
             $markdown = $this->fallbackNarrative($context, $e->getMessage());
         }
 

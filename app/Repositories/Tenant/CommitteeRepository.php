@@ -49,7 +49,9 @@ class CommitteeRepository
 
     public function findTerrenoForCommitteeOrFail(int|string $terrenoId): Terreno
     {
-        return Terreno::query()->with('viabilidadeAtual')->findOrFail($terrenoId);
+        return Terreno::query()
+            ->with(['viabilidadeAtual', 'viabilidadeAprovada'])
+            ->findOrFail($terrenoId);
     }
 
     public function findOpenReviewByTerreno(int $terrenoId): ?ComiteRevisao

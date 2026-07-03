@@ -277,7 +277,7 @@ PROMPT;
             $wrap(new PredictStallingTool(app(AiPredictiveAnalysisService::class))),
             $wrap(new DetectAnomaliesTool(app(AiAnomalyDetectionService::class))),
             $wrap(new AnalyticsTool(app(AiInsightGeneratorService::class))),
-            $wrap(new CreatePdfsTool),
+            $wrap(app(CreatePdfsTool::class)),
             $wrap(new PesquisarEmpreendimentosImobiliariosTool(app(AiMercadoImobiliarioService::class))),
         ];
     }

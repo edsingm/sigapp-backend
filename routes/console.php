@@ -25,6 +25,7 @@ Schedule::command('auth:cleanup-central-login-broker')->everyFiveMinutes();
 Schedule::command('privacy:cleanup-consent-logs')->daily();
 Schedule::command('tenants:cleanup-pending')->hourly();
 Schedule::command('tenant:notify-overdue-legalizacao-etapas')->dailyAt('08:00');
+Schedule::command('tenant:check-storage-usage')->dailyAt('07:00');
 Schedule::command('notifications:send-email-digests daily')->dailyAt('08:30');
 Schedule::command('notifications:send-email-digests weekly')->weeklyOn(1, '08:30');
 Schedule::command('ai:recalculate-scores')->dailyAt('06:00');

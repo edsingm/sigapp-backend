@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit;
 
+use App\Models\Central\Tenant;
 use App\Models\Tenant\AiRequestLog;
 use App\Repositories\Contracts\AiTelemetryRepositoryInterface;
 use App\Services\Ai\Tools\AiTelemetryService;
@@ -346,6 +347,55 @@ class AiTelemetryServiceTest extends TestCase
         $this->assertIsArray($capturedData);
         $this->assertSame('error', $capturedData['status']);
         $this->assertSame('Timeout ao chamar o provider', $capturedData['error_message']);
+    }
+
+    public function test_budget_status_marks_exceeded_from_monthly_spend(): void
+    {
+        $service = new class($this->repo, $this->planMatrix) extends AiTelemetryService
+        {
+            public function getTenantMonthlyCost(): float
+            {
+                return 12.345678;
+            }
+        };
+
+        $status = $service->getBudgetStatus();
+
+        $this->assertSame(10.0, $status['budget_usd']);
+        $this->assertSame(12.345678, $status['spent_usd']);
+        $this->assertSame(0.0, $status['remaining_usd']);
+        $this->assertSame(123.5, $status['usage_percent']);
+        $this->assertTrue($status['exceeded']);
+    }
+
+    public function test_budget_status_respects_zero_plan_budget(): void
+    {
+        $tenant = new Tenant;
+
+        $this->planMatrix->shouldReceive('resolveForTenant')
+            ->once()
+            ->with($tenant)
+            ->andReturn(['features' => [], 'limits' => ['ai_budget' => 0]]);
+
+        $this->repo->shouldReceive('getCurrentMonthCost')
+            ->once()
+            ->andReturn(0.0);
+
+        tenancy()->tenant = $tenant;
+        tenancy()->initialized = true;
+
+        try {
+            $status = $this->makeService()->getBudgetStatus();
+        } finally {
+            tenancy()->tenant = null;
+            tenancy()->initialized = false;
+        }
+
+        $this->assertSame(0.0, $status['budget_usd']);
+        $this->assertSame(0.0, $status['spent_usd']);
+        $this->assertSame(0.0, $status['remaining_usd']);
+        $this->assertSame(100, $status['usage_percent']);
+        $this->assertTrue($status['exceeded']);
     }
 
     // ── getUsageStats: agregação ─────────────────────────────────────────────

@@ -43,7 +43,9 @@ class CommitteeService
         return DB::transaction(function () use ($data, $user) {
             $terreno = $this->repository->findTerrenoForCommitteeOrFail($data['terreno_id']);
 
-            if ($terreno->viabilidadeAtual?->approval_status !== 'aprovada') {
+            // Só a viabilidade aprovada do terreno é válida para o comitê.
+            $viabilidadeAprovada = $terreno->viabilidadeAprovada;
+            if (! $viabilidadeAprovada) {
                 throw ValidationException::withMessages([
                     'terreno_id' => ['Somente terrenos com viabilidade aprovada podem seguir para comitê.'],
                 ]);
@@ -54,7 +56,7 @@ class CommitteeService
             if (! $review) {
                 $review = $this->repository->create([
                     'terreno_id' => $terreno->id,
-                    'viabilidade_id' => $data['viabilidade_id'] ?? $terreno->viabilidadeAtual?->id,
+                    'viabilidade_id' => $viabilidadeAprovada->id,
                     'status' => $data['status'] ?? WorkflowStatus::AGUARDANDO_COMITE->value,
                     'required_departments' => $data['required_departments'] ?? self::DEFAULT_REQUIRED_DEPARTMENTS,
                 ]);

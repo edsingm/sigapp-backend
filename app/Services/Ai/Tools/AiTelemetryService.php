@@ -210,10 +210,10 @@ class AiTelemetryService
             }
 
             $tenant = tenancy()->tenant;
-            $custom = $this->planMatrix->getLimitForTenant($tenant, 'ai_budget');
+            $limits = $this->planMatrix->resolveForTenant($tenant)['limits'];
 
-            if ($custom > 0) {
-                return (float) $custom;
+            if (array_key_exists('ai_budget', $limits)) {
+                return (float) $limits['ai_budget'];
             }
         } catch (\Throwable) {
             // Fallback ao default se o plano não estiver configurado

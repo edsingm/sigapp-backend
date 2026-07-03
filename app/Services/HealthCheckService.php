@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Services\Tenant\DocumentoService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -26,6 +27,10 @@ class HealthCheckService
         'database' => true,
         'storage' => true,
     ];
+
+    public function __construct(
+        private readonly DocumentoService $documentoService,
+    ) {}
 
     /**
      * Executa todos os checks e retorna o relatório consolidado.
@@ -119,7 +124,8 @@ class HealthCheckService
     private function checkStorage(): array
     {
         return $this->timed(function (): array {
-            $disk = Storage::disk(config('filesystems.default'));
+            $diskName = $this->documentoService->storageDisk();
+            $disk = Storage::disk($diskName);
             $path = 'health-check-'.uniqid('', true).'.txt';
             $content = 'ok';
 
@@ -128,10 +134,10 @@ class HealthCheckService
             $disk->delete($path);
 
             if ($retrieved !== $content) {
-                throw new \RuntimeException('Storage put/get falhou — disk: '.config('filesystems.default'));
+                throw new \RuntimeException('Storage put/get falhou — disk: '.$diskName);
             }
 
-            return ['status' => 'ok', 'message' => 'Disk: '.config('filesystems.default'), 'critical' => true];
+            return ['status' => 'ok', 'message' => 'Disk: '.$diskName, 'critical' => true];
         }, critical: true);
     }
 

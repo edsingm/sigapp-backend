@@ -236,8 +236,9 @@ class TenantBillingService
      */
     public function getSubscriptionSnapshot(Tenant $tenant): array
     {
-        $tenant->load('plan');
+        $tenant->load(['plan', 'scheduledPlan']);
         $localSubscription = $tenant->subscription('default');
+        $scheduledPlan = $tenant->getRelationValue('scheduledPlan');
         $tenantStripeId = $tenant->getAttribute('stripe_id');
         $tenantStripeSubscriptionId = $tenant->getAttribute('stripe_subscription_id');
         $tenantTrialEndsAt = $tenant->getAttribute('trial_ends_at');
@@ -339,6 +340,14 @@ class TenantBillingService
             'trial_ended' => $tenant->trialEnded(),
             'stripe_customer_id' => $tenantStripeId,
             'stripe_subscription_id' => $tenantStripeSubscriptionId,
+            // Downgrade agendado: plano que entra em vigor na próxima renovação
+            // (definido pelo PlanSwapController). null quando não há downgrade pendente.
+            'scheduled_plan' => $scheduledPlan instanceof Plan ? [
+                'id' => $scheduledPlan->getKey(),
+                'name' => $scheduledPlan->getAttribute('name'),
+                'slug' => $scheduledPlan->getAttribute('slug'),
+                'formatted_price' => $scheduledPlan->getAttribute('formatted_price'),
+            ] : null,
             'local_subscription' => $localSubscription ? [
                 'stripe_status' => $localSubscription->stripe_status,
                 'trial_ends_at' => $localSubscription->trial_ends_at?->toIso8601String(),

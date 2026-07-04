@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\CidadesController;
 use App\Http\Controllers\Api\V1\LanguageController;
 use App\Http\Controllers\Api\V1\MunicipioController;
+use App\Http\Controllers\Api\V1\PlanController;
 use App\Http\Controllers\Api\V1\Tenant\Admin\DepartmentController as AdminDepartmentController;
 use App\Http\Controllers\Api\V1\Tenant\Admin\PermissionController as AdminPermissionController;
 use App\Http\Controllers\Api\V1\Tenant\Admin\RoleController as AdminRoleController;
@@ -116,6 +117,12 @@ Route::middleware([
             Route::get('/tenant/subscription', [TenantController::class, 'subscription'])
                 ->middleware('tenant.admin');
             Route::post('/tenant/billing-portal', [TenantController::class, 'billingPortal'])
+                ->middleware('tenant.admin');
+
+            // Catálogo de planos acessível no domínio do tenant (a rota pública
+            // /plans é central-only). Usado pela tela de faturamento para montar
+            // as opções de upgrade/downgrade. Admin-only.
+            Route::get('/tenant/plans', [PlanController::class, 'index'])
                 ->middleware('tenant.admin');
 
             // Billing — troca de plano e atualização de método de pagamento

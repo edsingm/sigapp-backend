@@ -4,6 +4,13 @@ Este arquivo contém as regras obrigatórias que todas as IAs (Cursor, Claude, C
 
 > **Nota sobre convenção vs. regra oficial:** o Laravel não impõe arquitetura em camadas (Controller → Service → Repository). As regras deste documento que vão além do padrão do framework são **convenções deste projeto**, adotadas para testabilidade e desacoplamento — e várias delas são **verificadas automaticamente** pelos testes em `tests/Architecture/`.
 
+## 📝 Manutenção obrigatória deste arquivo
+
+- **Sempre leia este `AGENTS.md` antes de alterar o backend.**
+- Ao implementar **feature nova** ou **alteração considerável** que mude arquitetura, módulos, rotas, middlewares, jobs/scheduler, billing, IA, storage/uploads, permissões/RBAC, variáveis de ambiente, comandos, deploy ou regras de teste, atualize este `AGENTS.md` no mesmo conjunto de mudanças.
+- Não atualize este arquivo para microfixes sem impacto estrutural. Se a mudança exigir que a próxima IA saiba de uma nova regra, fluxo ou superfície do sistema, documente aqui.
+- A atualização deve ser cirúrgica: ajuste a seção existente, mantenha o texto fiel ao código real e não transforme o documento em changelog.
+
 ---
 
 ## 🎯 Visão Geral do Projeto
@@ -15,6 +22,7 @@ Este arquivo contém as regras obrigatórias que todas as IAs (Cursor, Claude, C
 | **Framework** | Laravel 13 (`laravel/framework ^13.0`) |
 | **Linguagem** | PHP **8.4+** (`php ^8.4`, PHPStan `phpVersion: 80400`) |
 | **Banco de dados** | PostgreSQL (central + 1 schema por tenant, com `pgvector` para embeddings). SQLite `:memory:` nos testes |
+| **Storage** | Laravel Storage local/S3 (`league/flysystem-aws-s3-v3`); documentos e relatórios PDF de IA usam o disk `s3`; uploads contam limite `storage_gb` do plano |
 | **Multi-tenancy** | `stancl/tenancy ^3.8` — manager customizado `PostgreSQLSchemaPublicManager`, identificação por subdomínio + header `X-Tenant` (fallback local/testing) |
 | **Autenticação** | Laravel Sanctum (tokens Bearer) + broker de login central com transfer tickets |
 | **Autorização/RBAC** | `spatie/laravel-permission ^7.0` (`teams => false`) + templates de permissão por plano |
@@ -58,7 +66,7 @@ Há duas formas de rodar localmente: **Herd/`composer dev`** (nativo, macOS) ou 
 ### Compose
 
 - **Dev (`docker-compose.yml`)**: services `back` (`sigapp-backend:1.0-dev`, porta 8000) e `redis` (`redis:7-alpine`). O **PostgreSQL não está no compose** — é um container/host externo chamado `database`, alcançado pela rede externa `database_sigapp` (precisa existir: `docker network create database_sigapp`). As variáveis de ambiente de dev (DB, Redis, CORS, Sanctum, `CENTRAL_DOMAINS=localhost,127.0.0.1,sigapp-backend`, Chromium) já vêm definidas no compose.
-- **Prod (`docker-compose.prod.yml`)**: target `prod`, porta `8000:80`, env via variáveis de ambiente (`${DB_PASSWORD}` etc. — nunca hardcoded), healthcheck em `GET /api/health`.
+- **Prod (`docker-compose.prod.yml`)**: target `prod`, porta `8000:80`, env via variáveis de ambiente (`${DB_PASSWORD}` etc. — nunca hardcoded), healthcheck em `GET /api/health` (rota mínima não versionada usada pelo container).
 
 ### Produção — quem roda o quê
 
@@ -69,6 +77,7 @@ Há duas formas de rodar localmente: **Herd/`composer dev`** (nativo, macOS) ou 
 ### Implicações para quem altera o código
 
 - Dependência nova de **sistema** (extensão PHP, binário, fonte) → editar `.docker/Dockerfile` (e lembrar que o stage `base` serve dev e prod).
+- Dependência/driver novo de **storage externo** (ex.: S3, MinIO) → atualizar `composer.json` se necessário, `config/filesystems.php`, `.env.example`, compose/deploy e esta seção.
 - Migrations rodam **automaticamente** no deploy prod (`migrate --force`) — mais um motivo para todo `down()` funcionar e para nunca editar migration já aplicada.
 - `route:cache`/`config:cache` rodam no deploy — não use closures em rotas de `routes/api.php`/`tenant.php` que quebrem o cache de rotas fora dos padrões já existentes, nem `env()` fora de `config/`.
 - O `.dockerignore` exclui `.env*` (exceto `.env.example`) — configuração de prod entra **somente** por variável de ambiente do compose.
@@ -97,7 +106,7 @@ Regras:
 - `auth.central` / `auth.tenant` garantem que o usuário autenticado pertence ao contexto (guard Sanctum é compartilhado).
 - Nunca referencie um model `Central` dentro de código tenant (e vice-versa) sem necessidade explícita — quando precisar (ex.: `Tenant`, `Plan`), acesse via serviço/`tenancy()`.
 - O manager de banco é o customizado `App\Tenancy\TenantDatabaseManagers\PostgreSQLSchemaPublicManager` (schemas, não bancos separados). O identificador vem de `Tenant::makeTenantDatabaseIdentifier($slug)` (ver `TenancyServiceProvider::register()`).
-- Cache, Redis e storage são prefixados/sufixados por tenant (ver `config/tenancy.php`).
+- Cache, Redis e storage local são prefixados/sufixados por tenant (ver `config/tenancy.php`). Documentos e relatórios PDF de IA usam `Storage::disk('s3')`; ao mexer nesses fluxos, preserve isolamento por tenant e mantenha métricas/limites do plano.
 - Ciclo de vida do tenant: signup público (`SignupController` → `TenantSignupService` → `CreateFullTenantJob`), limpeza de pendentes (`tenants:cleanup-pending`), ativação/suspensão via admin central (`TenantStatus`).
 - Scripts auxiliares de operação em `scripts/pgsql/` (criação de schemas, descoberta de tenants, reset de sequences, validação de contagens).
 
@@ -286,7 +295,7 @@ Este projeto tem um **envelope próprio**. Não invente formato novo:
 - Rotas centrais ficam dentro do loop `foreach (config('tenancy.identification.central_domains') as $domain) { Route::domain($domain)... }` — siga o padrão.
 - Rotas tenant novas: declare `tenant.context` + `auth:sanctum` + `auth.tenant` + `throttle:api-auth`, e o gate de módulo/assinatura adequado (`check.feature:...`, `subscription.active`, `tenant.admin`, `permission.gate`).
 - Use Route Model Binding e kebab-case plural nos paths. Webhook Stripe (`POST /webhook/stripe`) fica **sem** throttle/CSRF — não mexa nisso sem entender o motivo.
-- Health checks: `/up` (framework), `GET /api/v1/health` (público, mínimo), `GET /api/v1/health/details` (admin autenticado).
+- Health checks: `/up` (framework), `GET /api/health` (mínimo/legado usado pelo Docker), `GET /api/v1/health` (público versionado, mínimo), `GET /api/v1/health/details` (admin central autenticado) e `GET /api/health` no tenant (autenticado, inclui dados do tenant).
 - A documentação Scramble é gerada das rotas/FormRequests/Resources — mantenha tipos e PHPDocs corretos para a doc sair certa em `/docs/api`.
 
 ### 10. Billing (Cashier/Stripe)
@@ -294,6 +303,8 @@ Este projeto tem um **envelope próprio**. Não invente formato novo:
 - Entidades centrais: `Plan`, `Entitlement`, `TenantEntitlement`, `Coupon`, `WebhookEvent`, `Dispute` (em `Models/Central/`).
 - Serviços em `app/Services/Billing/`: `StripeCheckoutService`, `TenantBillingService`, `BillingHistoryService`, `CouponService`, `WebhookEventService` (idempotência de webhooks via `WebhookEvent`).
 - Fluxos do tenant: assinatura/portal (`TenantController@subscription`, `billingPortal`), troca de plano (`PlanSwapController`), dunning/retry de pagamento (`DunningController`), cupons (`CouponController`), histórico (`BillingHistoryController`).
+- Troca de plano: **upgrade** cobra imediatamente via Stripe (`pendingIfPaymentFails()->swapAndInvoice()`) e só concede o plano local se a chamada confirmar; **downgrade** mantém `plan_id` atual e grava `scheduled_plan_id` até a renovação (`invoice.paid`). O snapshot de assinatura expõe `scheduled_plan`.
+- O portal de billing deve usar `STRIPE_PORTAL_CONFIGURATION_ID` quando configurado para impedir troca de plano fora do `PlanSwapController`.
 - Enforcement de plano: middlewares `subscription.active`, `enforce.limits`, `check.feature` + `EntitlementService`/`PlanMatrixService`.
 - Nunca processe webhook Stripe fora do `WebhookController`/`WebhookEventService`; nunca confie em dados do cliente para preço/plano.
 
@@ -304,6 +315,7 @@ Este projeto tem um **envelope próprio**. Não invente formato novo:
 - Proteções obrigatórias em rotas de IA: `ai.rate_limit` (`AiRateLimit`) e `ai.budget` (`AiBudgetCheck` — orçamento por tenant, `AI_TENANT_BUDGET_DEFAULT`). Telemetria/custo em `AiTelemetryService` + `AiRequestLog` (preços por modelo no `.env`).
 - Dados sensíveis passam por `AiDataRedactor`/`RedactingToolDecorator` antes de ir ao provider.
 - RAG: embeddings em `pgvector` (`AiDocumentChunk`, `AiDocumentEmbedding`, `IndexDocumentEmbeddingJob`, `AiEmbeddingService`, `SearchDocumentsTool`).
+- Relatórios PDF gerados por IA ficam no tenant em `ai_generated_reports` (`AiGeneratedReport`, `AiGeneratedReportRepository`, `TerrenoAiReportService`) e são baixados por rota própria (`/ai/reports/{id}/download`). Registre metadados e caminho do arquivo; não retorne caminhos internos crus ao cliente.
 - Scoring recalculado por `ai:recalculate-scores` (agendado diariamente) / `RecalculateAiScoresJob`.
 - Streaming de chat coberto por teste (`AiChatStreamingTest`) — mantenha compatível.
 
@@ -313,7 +325,7 @@ Fluxo macro do terreno (enum `WorkflowStatus`, orquestrado por `LandWorkflowServ
 `em_analise → aguardando_viabilidade → viabilidade_aprovada → aguardando_comite → negociacao_minuta → contrato_assinado → legalizando → legalizado_finalizado` (+ `descartado`, `arquivado`). Transições disparam `WorkflowTransitioned` → listeners gravam `StatusHistory`, `EntityActivity`, notificam e transicionam `Projeto`s relacionados.
 
 - **Prospecção/Terrenos**: `TerrenoService`, filtros (`TerrenoFilterService`), export Excel, KMZ upload (`KmzParserService`), cálculo de área útil (`Services/Tenant/Area/` — topografia, hidrografia, polígonos; `CalculateUsableAreaJob`), geoproximidade, scraper/enriquecimento de portal (`PortalTerrenoScraperService`, `Services/Parsers/Hiperdados/`), proprietários, corretores externos, contatos, produtos por terreno.
-- **Viabilidade**: motor de cálculo em `Services/Tenant/Viabilidade/v1/` (calculators de DRE, fluxo mensal, receitas, despesas, indicadores, POC, impostos, curva). Premissas (`PremissasViabilidade`), seções, versões/auditoria, aprovação (submit/decide com rate limit próprio), comparação e duplicação. Modelo de referência em `docs/viabilidade-modelo/` e teste de conformidade com a planilha (`PlanilhaConformidadeTest`). **Não altere fórmulas sem validar contra a planilha modelo.**
+- **Viabilidade**: motor de cálculo em `Services/Tenant/Viabilidade/v1/` (calculators de DRE, fluxo mensal, receitas, despesas, indicadores, POC, impostos, curva). Premissas (`PremissasViabilidade`), seções, versões/auditoria, aprovação (submit/decide/revogar com rate limit próprio), comparação e duplicação. Revogação de aprovação só vale para viabilidade aprovada e não pode ignorar comitê em andamento. Modelo de referência em `docs/viabilidade-modelo/` e teste de conformidade com a planilha (`PlanilhaConformidadeTest`). **Não altere fórmulas sem validar contra a planilha modelo.**
 - **Comitê**: `CommitteeService` — revisões, pareceres por departamento, pendências, decisão final.
 - **Negociação**: `NegotiationService` — negociações + eventos.
 - **Contratos**: `ContractService`/`ContractRepository` — partes, assinatura (`ContratoSigned` → e-mail + atividade).
@@ -321,27 +333,28 @@ Fluxo macro do terreno (enum `WorkflowStatus`, orquestrado por `LandWorkflowServ
 - **Projetos**: `ProjetoService` — ciclo próprio (`ProjetoStatus`), integrado ao workflow do terreno.
 - **Dashboard/Timeline**: `DashboardQueryService` + cache (`HasDashboardCache`), `TimelineService`.
 - **Mobile**: registro de devices (`MobileDeviceInstallation`), inbox de notificações, push (`MobilePushService`).
-- **Cadastros**: regionais, departamentos, produtos (com histórico `ProdutoHistorico`), usuários do tenant.
+- **Cadastros**: regionais, departamentos, produtos (com auditoria/histórico `ProdutoHistorico`), usuários do tenant com `status`. O módulo/tabela `positions` foi removido do schema tenant; não reintroduza cargos/positions sem decisão explícita.
 
 ### 13. Jobs, Queues, Events e Scheduler
 
 - Operações demoradas são assíncronas via Jobs (`app/Jobs/`). Queue: `sync` em teste, **Redis em produção**.
 - **Todo Job deve implementar `failed(Throwable $e)`** — verificado por `LayerBoundariesTest::test_all_jobs_define_failed_handler`. Defina também `$tries`/`$timeout`/`$backoff`.
 - Eventos de domínio em `app/Events/Tenant/` com listeners em `app/Listeners/Tenant/` registrados no `EventServiceProvider` — side-effects nunca inline no Service quando houver evento adequado.
-- Agendamentos ficam em **`routes/console.php`** (broker cleanup 5min, consent-logs diário, tenants pendentes por hora, etapas atrasadas 08:00, digests diário/semanal, scores IA 06:00, stats de tenants por hora). Comando novo recorrente → agende ali.
+- Agendamentos ficam em **`routes/console.php`** (broker cleanup 5min, consent-logs diário, tenants pendentes por hora, verificação de storage 07:00, etapas atrasadas 08:00, digests diário/semanal, scores IA 06:00, stats de tenants por hora). Comando novo recorrente → agende ali.
 - Comandos Artisan em `app/Console/Commands/` com `$signature`/`$description`; comandos destrutivos (ex.: `WipeAllTenants`) exigem confirmação explícita.
 
 ### 14. Notificações e E-mail
 
 - Transporte: **Resend** (`RESEND_API_KEY`). Teste manual: `php artisan mail:test {email}`.
 - Notificações de workflow em `app/Notifications/Workflow/` respeitam as **preferências do usuário** (`NotificationPreference` + trait `RespectsEmailPreference` + `NotificationCatalog`). Notificação nova de fluxo deve entrar no catálogo e respeitar preferências/digest (`notifications:send-email-digests`).
+- Alertas de storage usam `tenant:check-storage-usage` + `StorageLimitApproachingNotification`, com thresholds persistidos em `tenants.storage_alert_threshold` (80%/90%) para evitar reenvio repetido.
 - Views de e-mail em `resources/views/emails/`.
 
 ### 15. Uploads, PDF e Excel
 
 - PDF via `spatie/laravel-pdf` (Browsershot/Chromium — env `BROWSERSHOT_CHROME_PATH`/`PUPPETEER_EXECUTABLE_PATH`); templates em `resources/views/pdf/`.
 - Excel via `maatwebsite/excel` — classes em `app/Exports/` (ex.: `TerrenosExport` + `TerrenoExportRepository`).
-- Upload de arquivo: valide tipo MIME, tamanho e extensão no FormRequest (ex.: `UploadKmzRequest`, `StoreDocumentoRequest`). Storage é sufixado por tenant (config tenancy).
+- Upload de arquivo: valide tipo MIME, tamanho e extensão no FormRequest (ex.: `UploadKmzRequest`, `StoreDocumentoRequest`). Storage é sufixado por tenant quando local (config tenancy); documentos e relatórios de IA usam o disk `s3`. Respeite `enforce.limits:storage_gb` nas rotas que aumentam uso de armazenamento.
 
 ### 16. i18n
 
@@ -430,7 +443,8 @@ O domínio é **em português** (Terreno, Viabilidade, Legalizacao, Negociacao, 
 9. **Todo Job com `failed()`** (+ `$tries`/`$timeout`/`$backoff`).
 10. Funcionalidade nova = testes Feature (happy path + erro) e, quando houver lógica, Unit. Testes de arquitetura intocados.
 11. `.env` nunca commitado; `.env.example` sempre atualizado ao criar variável.
-12. Webhook Stripe, fórmulas de viabilidade e fluxo de transfer ticket são áreas sensíveis — não altere sem entender o design atual (ver `docs/`).
+12. **Feature nova ou alteração considerável deve atualizar este `AGENTS.md`** quando mudar regras, fluxos ou superfícies que a próxima IA precisa conhecer.
+13. Webhook Stripe, fórmulas de viabilidade e fluxo de transfer ticket são áreas sensíveis — não altere sem entender o design atual (ver `docs/`).
 
 ---
 
@@ -448,8 +462,9 @@ O domínio é **em português** (Terreno, Viabilidade, Legalizacao, Negociacao, 
 - [ ] Model novo com `$fillable`, `$casts` e factory
 - [ ] Repository novo com interface? Bind registrado no `AppServiceProvider`
 - [ ] `.env.example` atualizado se criou variável de ambiente
+- [ ] `AGENTS.md` atualizado se a mudança alterou arquitetura, fluxos, rotas, comandos, env/deploy, billing, IA, RBAC, storage ou regras de teste
 - [ ] Serviços externos mockados nos testes (Stripe, Resend, IA, HTTP)
 
 ---
 
-**Última atualização:** Julho 2026 — reescrito a partir do estado real do repositório (Laravel 13, PHP 8.4, multi-tenancy stancl com schemas PostgreSQL, Cashier/Stripe, Spatie Permission, Laravel AI, Scramble, Resend, exports Excel/PDF, envelope `ApiResponseService`, testes de arquitetura e i18n pt-br/en-us).
+**Última atualização:** Julho 2026 — atualizado com storage local/S3 e alertas de uso, `scheduled_plan` em billing, relatórios PDF gerados por IA, revogação de aprovação de viabilidade, status de usuários tenant, remoção de `positions`, healthchecks reais e regra de manutenção contínua deste documento.

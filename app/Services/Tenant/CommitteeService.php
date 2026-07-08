@@ -3,6 +3,7 @@
 namespace App\Services\Tenant;
 
 use App\Enums\WorkflowStatus;
+use App\Jobs\GenerateCommitteeAiDossierJob;
 use App\Models\Tenant\ComiteRevisao;
 use App\Models\Tenant\User;
 use App\Repositories\Tenant\CommitteeRepository;
@@ -18,6 +19,7 @@ class CommitteeService
     public function __construct(
         private readonly CommitteeRepository $repository,
         private readonly LandWorkflowService $workflowService,
+        private readonly CommitteeAiDossierService $aiDossiers,
     ) {}
 
     /**
@@ -40,7 +42,9 @@ class CommitteeService
      */
     public function create(array $data, ?User $user = null): ComiteRevisao
     {
-        return DB::transaction(function () use ($data, $user) {
+        $created = false;
+
+        $review = DB::transaction(function () use ($data, $user, &$created) {
             $terreno = $this->repository->findTerrenoForCommitteeOrFail($data['terreno_id']);
 
             // Só a viabilidade aprovada do terreno é válida para o comitê.
@@ -54,6 +58,7 @@ class CommitteeService
             $review = $this->repository->findOpenReviewByTerreno($terreno->id);
 
             if (! $review) {
+                $created = true;
                 $review = $this->repository->create([
                     'terreno_id' => $terreno->id,
                     'viabilidade_id' => $viabilidadeAprovada->id,
@@ -85,6 +90,13 @@ class CommitteeService
 
             return $this->show($review);
         });
+
+        if ($created) {
+            $this->aiDossiers->createPending($review, $user?->id);
+            GenerateCommitteeAiDossierJob::dispatchAfterResponse($review->id, $user?->id);
+        }
+
+        return $review;
     }
 
     /**

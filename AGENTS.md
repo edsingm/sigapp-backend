@@ -316,6 +316,7 @@ Este projeto tem um **envelope próprio**. Não invente formato novo:
 - Dados sensíveis passam por `AiDataRedactor`/`RedactingToolDecorator` antes de ir ao provider.
 - RAG: embeddings em `pgvector` (`AiDocumentChunk`, `AiDocumentEmbedding`, `IndexDocumentEmbeddingJob`, `AiEmbeddingService`, `SearchDocumentsTool`).
 - Relatórios PDF gerados por IA ficam no tenant em `ai_generated_reports` (`AiGeneratedReport`, `AiGeneratedReportRepository`, `TerrenoAiReportService`) e são baixados por rota própria (`/ai/reports/{id}/download`). Registre metadados e caminho do arquivo; não retorne caminhos internos crus ao cliente.
+- Dossiês assistidos de comitê ficam em `comite_ai_dossiers` e são gerados por `CommitteeAiDossierService`/`GenerateCommitteeAiDossierJob`; não use `/ai/sig-ai` para preencher telas internas, pois esse endpoint é conversacional e grava em `agent_conversations`.
 - Scoring recalculado por `ai:recalculate-scores` (agendado diariamente) / `RecalculateAiScoresJob`.
 - Streaming de chat coberto por teste (`AiChatStreamingTest`) — mantenha compatível.
 

@@ -11,6 +11,7 @@ use App\Http\Middleware\EnsureTenantAdmin;
 use App\Http\Middleware\EnsureTenantContext;
 use App\Http\Middleware\EnsureTenantUser;
 use App\Http\Middleware\InitializeTenancyFlexible;
+use App\Jobs\GenerateCommitteeAiDossierJob;
 use App\Models\Tenant\CorretorExterno;
 use App\Models\Tenant\Produto;
 use App\Models\Tenant\Proprietario;
@@ -21,6 +22,7 @@ use App\Models\Tenant\Viabilidade;
 use Database\Seeders\Tenant\PremissasViabilidadeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Queue;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
@@ -46,6 +48,7 @@ class CommitteeApiTest extends TestCase
         ]);
 
         $this->artisan('migrate', ['--path' => 'database/migrations/tenant', '--realpath' => false]);
+        Queue::fake([GenerateCommitteeAiDossierJob::class]);
 
         $this->seed(PremissasViabilidadeSeeder::class);
 
@@ -73,6 +76,15 @@ class CommitteeApiTest extends TestCase
             ->assertJsonPath('data.status', WorkflowStatus::AGUARDANDO_COMITE->value);
 
         $reviewId = $createResponse->json('data.id');
+        $this->assertDatabaseHas('comite_ai_dossiers', [
+            'comite_revisao_id' => $reviewId,
+            'terreno_id' => $terreno->id,
+            'status' => 'pending',
+        ]);
+        Queue::assertPushed(
+            GenerateCommitteeAiDossierJob::class,
+            fn (GenerateCommitteeAiDossierJob $job): bool => $job->reviewId === $reviewId
+        );
 
         foreach (['comercial', 'engenharia', 'juridico'] as $department) {
             $this->actingAs($this->admin)->postJson("/api/v1/comite/{$reviewId}/department-reviews", [

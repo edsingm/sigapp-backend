@@ -18,7 +18,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Facades\Cache;
 
 #[Table('terrenos')]
 #[Fillable(['nome', 'responsavel_id', 'endereco', 'corretor_id', 'estado', 'cidade_code', 'polygon_coords', 'static_map_url', 'area_calculada', 'area_total', 'area_declividade', 'area_app', 'area_util', 'percentual_aproveitamento', 'declividade_classificacao', 'declividade_avaliacao', 'declividade_impacto_custo', 'declividade_percentual_maximo', 'declividade_percentual_medio', 'app_polygons', 'steep_polygons', 'area_calculada_em', 'area_calculo_status', 'regional_id', 'workflow_stage', 'workflow_status_code', 'workflow_status_changed_at', 'workflow_reason_code', 'workflow_reason_notes', 'qualification_data', 'qualification_completed_at', 'qualification_completed_by', 'cep', 'bairro', 'observacoes', 'valor', 'zona', 'distrito', 'operacao_urbana', 'data_apresentacao', 'data_negociacao', 'data_opcao', 'data_descarte', 'data_contrato', 'comprador_id', 'created_by', 'updated_by'])]
@@ -50,27 +49,18 @@ class Terreno extends Model
             $terreno->clearTenantCache('terrenos');
             $terreno->clearTenantCache('legalizacoes');
             $terreno->clearTenantCache('projetos');
-
-            $tenantId = tenant('id') ?? 'central';
-            Cache::tags(["tenant:{$tenantId}:dashboard"])->flush();
         });
 
         static::deleted(function (Terreno $terreno) {
             $terreno->clearTenantCache('terrenos');
             $terreno->clearTenantCache('legalizacoes');
             $terreno->clearTenantCache('projetos');
-
-            $tenantId = tenant('id') ?? 'central';
-            Cache::tags(["tenant:{$tenantId}:dashboard"])->flush();
         });
 
         static::restored(function (Terreno $terreno) {
             $terreno->clearTenantCache('terrenos');
             $terreno->clearTenantCache('legalizacoes');
             $terreno->clearTenantCache('projetos');
-
-            $tenantId = tenant('id') ?? 'central';
-            Cache::tags(["tenant:{$tenantId}:dashboard"])->flush();
         });
     }
 

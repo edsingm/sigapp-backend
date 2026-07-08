@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\V1\Tenant\AiTaskController;
 use App\Http\Controllers\Api\V1\Tenant\AiTerrenoReportController;
 use App\Http\Controllers\Api\V1\Tenant\AiWorkflowController;
 use App\Http\Controllers\Api\V1\Tenant\BillingHistoryController;
+use App\Http\Controllers\Api\V1\Tenant\CommitteeAiDossierController;
 use App\Http\Controllers\Api\V1\Tenant\CommitteeController;
 use App\Http\Controllers\Api\V1\Tenant\Common\ModulesController;
 use App\Http\Controllers\Api\V1\Tenant\ContractController;
@@ -340,6 +341,9 @@ Route::middleware([
                     Route::get('/comite', [CommitteeController::class, 'index']);
                     Route::post('/comite', [CommitteeController::class, 'store']);
                     Route::get('/comite/{id}', [CommitteeController::class, 'show']);
+                    Route::get('/comite/{id}/ai-dossier', [CommitteeAiDossierController::class, 'show']);
+                    Route::post('/comite/{id}/ai-dossier/regenerate', [CommitteeAiDossierController::class, 'regenerate'])
+                        ->middleware('ai.rate_limit', 'ai.budget');
                     Route::post('/comite/{id}/department-reviews', [CommitteeController::class, 'upsertDepartmentReview']);
                     Route::post('/comite/{id}/decision', [CommitteeController::class, 'finalize']);
                 });
@@ -375,6 +379,8 @@ Route::middleware([
                     ->middleware('check.feature:dashboard.enabled')
                     ->group(function () {
                         Route::get('/overview', [DashboardController::class, 'overview']);
+                        Route::get('/management-overview', [DashboardController::class, 'managementOverview'])
+                            ->middleware('check.feature:dashboard.overview');
                         Route::get('/cards', [DashboardController::class, 'cards']);
                         Route::get('/status-chart', [DashboardController::class, 'statusChart']);
                         Route::get('/cadastros-mensais', [DashboardController::class, 'cadastrosMensais']);

@@ -91,6 +91,26 @@ class DashboardController extends Controller
     }
 
     /**
+     * Visão gerencial consolidada para leitura rápida da carteira.
+     */
+    public function managementOverview(Request $request): JsonResponse
+    {
+        $this->authorizeDashboardAccess();
+
+        $staleDays = (int) $request->input('stale_days', 30);
+        $criticalDays = (int) $request->input('critical_days', 15);
+        $limit = (int) $request->input('limit', 8);
+
+        $data = $this->cacheDashboardMethod('managementOverview', $request, fn () => $this->dashboard->managementOverview(
+            staleDays: $staleDays,
+            criticalDays: $criticalDays,
+            limit: $limit,
+        ));
+
+        return ApiResponseService::success($data);
+    }
+
+    /**
      * Gráfico de Status - total de terrenos agrupados por status.
      */
     public function statusChart(Request $request): JsonResponse

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Table('comite_revisoes')]
@@ -39,5 +40,13 @@ class ComiteRevisao extends Model
     public function pendencias(): HasMany
     {
         return $this->hasMany(ComitePendencia::class, 'comite_revisao_id');
+    }
+
+    /**
+     * @return HasOne<ComiteAiDossier, $this>
+     */
+    public function aiDossier(): HasOne
+    {
+        return $this->hasOne(ComiteAiDossier::class, 'comite_revisao_id');
     }
 }

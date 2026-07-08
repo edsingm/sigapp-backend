@@ -28,7 +28,7 @@ use Illuminate\Support\Str;
  *   php artisan portal:enriquecer-terrenos
  *
  * Para rodar em um tenant específico:
- *   php artisan tenants:seed --class=TerrenosPortalSeeder --tenants=TENANT_ID
+ *   php artisan tenants:seed --class='Database\Seeders\Tenant\TerrenosPortalSeeder' --tenants=TENANT_ID
  */
 class TerrenosPortalSeeder extends Seeder
 {
@@ -52,7 +52,7 @@ class TerrenosPortalSeeder extends Seeder
 
     public function run(): void
     {
-        $path = database_path('dados_teste/terrenos_portal_enriquecido.json');
+        $path = database_path('dados_teste/Hiperdados/terrenos_portal_enriquecido.json');
 
         if (! is_file($path)) {
             $this->command?->error("Arquivo não encontrado: {$path}. Rode 'php artisan portal:enriquecer-terrenos' primeiro.");

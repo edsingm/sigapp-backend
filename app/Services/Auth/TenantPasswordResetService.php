@@ -4,6 +4,7 @@ namespace App\Services\Auth;
 
 use App\Models\Central\Tenant;
 use App\Models\Tenant\User;
+use App\Notifications\TenantUserInviteNotification;
 use App\Support\TenantAppUrl;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Facades\Hash;
@@ -26,6 +27,43 @@ class TenantPasswordResetService
         return Password::broker('tenant_users')->sendResetLink([
             'email' => $email,
         ]);
+    }
+
+    /**
+     * Envia e-mail de convite (template próprio) com link para definir a senha.
+     * Reutiliza o token do broker de senha, mas NÃO usa a notificação de reset.
+     */
+    public function sendInviteLinkForCurrentTenant(User $user): string
+    {
+        $tenant = tenant();
+
+        if (! $tenant instanceof Tenant) {
+            return Password::INVALID_USER;
+        }
+
+        $tenantName = (string) (
+            $tenant->getAttribute('name')
+            ?: $tenant->getAttribute('slug')
+            ?: 'SIG.APP'
+        );
+
+        return Password::broker('tenant_users')->sendResetLink(
+            ['email' => (string) $user->email],
+            function (User $notifiable, string $token) use ($tenant, $tenantName): void {
+                $inviteUrl = $this->buildInviteUrl(
+                    $tenant,
+                    $token,
+                    (string) $notifiable->email,
+                );
+
+                $notifiable->notify(new TenantUserInviteNotification(
+                    inviteUrl: $inviteUrl,
+                    expireMinutes: (int) config('auth.passwords.tenant_users.expire', 60),
+                    userName: (string) $notifiable->name,
+                    tenantName: $tenantName,
+                ));
+            },
+        );
     }
 
     /**
@@ -104,6 +142,19 @@ class TenantPasswordResetService
             'token' => $token,
             'email' => $email,
             'tenant' => (string) $tenant->getAttribute('slug'),
+        ]);
+    }
+
+    /**
+     * URL do convite: mesmo endpoint de definir senha, com intent=invite para a UI.
+     */
+    public function buildInviteUrl(Tenant $tenant, string $token, string $email): string
+    {
+        return $this->tenantAppUrl->resetPasswordUrl($tenant, [
+            'token' => $token,
+            'email' => $email,
+            'tenant' => (string) $tenant->getAttribute('slug'),
+            'intent' => 'invite',
         ]);
     }
 }

@@ -11,8 +11,10 @@ use App\Http\Resources\Tenant\UserResource;
 use App\Services\Acl\PermissionNameResolver;
 use App\Services\ApiResponseService;
 use App\Services\Tenant\TenantUserService;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Password;
 
 class UserManagementController extends Controller
 {
@@ -22,16 +24,31 @@ class UserManagementController extends Controller
     ) {}
 
     /**
-     * Lista usuários do tenant com busca opcional, filtro de função e ordenação.
+     * Lista usuários do tenant com busca, filtros e ordenação.
+     *
+     * Query params: search, role, status, department_id, without_department,
+     * incomplete, sort, order, per_page.
      */
     public function index(Request $request): JsonResponse
     {
+        $status = $request->filled('status') ? $request->string('status')->toString() : null;
+        $allowedStatuses = ['Active', 'Inactive', 'Suspended'];
+        if ($status !== null && ! in_array($status, $allowedStatuses, true)) {
+            $status = null;
+        }
+
         $users = $this->userService->list(
             search: $request->filled('search') ? $request->string('search')->toString() : null,
             role: $request->filled('role') ? $request->string('role')->toString() : null,
             sort: $request->string('sort', 'name')->toString(),
             order: $request->string('order', 'asc')->toString(),
             perPage: (int) $request->integer('per_page', 15),
+            status: $status,
+            departmentId: $request->filled('department_id')
+                ? (int) $request->integer('department_id')
+                : null,
+            withoutDepartment: $request->boolean('without_department'),
+            incomplete: $request->boolean('incomplete'),
         );
 
         $users->through(fn ($user) => (new UserResource($user))->toArray($request));
@@ -55,12 +72,48 @@ class UserManagementController extends Controller
 
     /**
      * Cria um usuário do tenant.
+     * Aceita `invite=true` para criar sem senha e enviar e-mail de definição.
      */
     public function store(StoreUserRequest $request): JsonResponse
     {
-        $user = $this->userService->create($request->validated());
+        $data = $request->validated();
+        $data['invite'] = $request->boolean('invite');
+
+        try {
+            $user = $this->userService->create($data);
+        } catch (UniqueConstraintViolationException $exception) {
+            return $this->uniqueConstraintResponse($exception);
+        }
 
         return ApiResponseService::created(new UserResource($user), language()->t('USER_CREATED_SUCCESSFULLY'));
+    }
+
+    /**
+     * Reenvia o convite (link de definição de senha) para o usuário.
+     */
+    public function sendInvite(int $id): JsonResponse
+    {
+        $user = $this->userService->findWithRelations($id);
+
+        if (! $user) {
+            return ApiResponseService::notFound(language()->t('USER_NOT_FOUND'));
+        }
+
+        $status = $this->userService->sendInviteLink($user);
+
+        if ($status !== Password::RESET_LINK_SENT) {
+            return ApiResponseService::error(
+                'INVITE_SEND_FAILED',
+                'Não foi possível enviar o convite por e-mail.',
+                ['status' => $status],
+                422
+            );
+        }
+
+        return ApiResponseService::success(
+            ['status' => $status],
+            'Convite enviado com sucesso.'
+        );
     }
 
     /**
@@ -74,7 +127,11 @@ class UserManagementController extends Controller
             return ApiResponseService::notFound(language()->t('USER_NOT_FOUND'));
         }
 
-        $error = $this->userService->update($user, $request->validated(), $request->user());
+        try {
+            $error = $this->userService->update($user, $request->validated(), $request->user());
+        } catch (UniqueConstraintViolationException $exception) {
+            return $this->uniqueConstraintResponse($exception);
+        }
 
         if ($error === 'LAST_TENANT_ADMIN') {
             return ApiResponseService::error(
@@ -89,6 +146,28 @@ class UserManagementController extends Controller
             new UserResource($user->fresh(['roles', 'department'])),
             language()->t('USER_UPDATED_SUCCESSFULLY')
         );
+    }
+
+    /**
+     * Converte unique violations de banco em 422 legível (pt-BR).
+     */
+    private function uniqueConstraintResponse(UniqueConstraintViolationException $exception): JsonResponse
+    {
+        $sql = strtolower($exception->getMessage());
+        $field = 'geral';
+        $message = 'Já existe um registro com estes dados.';
+
+        if (str_contains($sql, 'users_email_unique') || str_contains($sql, '(email)')) {
+            $field = 'email';
+            $message = 'Já existe um usuário com este e-mail neste tenant.';
+        } elseif (str_contains($sql, 'users_cpf_unique') || str_contains($sql, '(cpf)')) {
+            $field = 'cpf';
+            $message = 'Já existe um usuário com este CPF neste tenant.';
+        }
+
+        return ApiResponseService::validationError([
+            $field => [$message],
+        ]);
     }
 
     /**

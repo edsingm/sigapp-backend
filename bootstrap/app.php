@@ -19,6 +19,7 @@ use App\Http\Middleware\InitializeTenancyFlexible;
 use App\Http\Middleware\PermissionGate;
 use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -103,6 +104,40 @@ return Application::configure(basePath: dirname(__DIR__))
                     'message' => 'O provedor de IA atingiu o limite de requisições. Aguarde alguns segundos e tente novamente.',
                 ],
             ], 429);
+        });
+
+        // Unique constraints (Postgres 23505 / MySQL 1062) — nunca expor SQL ao cliente
+        $exceptions->renderable(function (UniqueConstraintViolationException $e, Request $request) {
+            if (! $request->expectsJson() && ! $request->is('api/*')) {
+                return null;
+            }
+
+            $sql = strtolower($e->getMessage());
+            $field = 'geral';
+            $message = 'Já existe um registro com estes dados.';
+
+            if (str_contains($sql, 'email') || str_contains($sql, 'users_email_unique')) {
+                $field = 'email';
+                $message = 'Já existe um usuário com este e-mail neste tenant.';
+            } elseif (str_contains($sql, 'cpf') || str_contains($sql, 'users_cpf_unique')) {
+                $field = 'cpf';
+                $message = 'Já existe um usuário com este CPF neste tenant.';
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+                'errors' => [
+                    $field => [$message],
+                ],
+                'error' => [
+                    'code' => 'UNIQUE_VIOLATION',
+                    'message' => $message,
+                    'details' => [
+                        $field => [$message],
+                    ],
+                ],
+            ], 422);
         });
 
         // Handle DomainException for API

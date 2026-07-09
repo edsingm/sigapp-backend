@@ -6,6 +6,7 @@ use App\Notifications\AbandonedCheckoutNotification;
 use App\Notifications\PaymentFailedNotification;
 use App\Notifications\PaymentRequiresActionNotification;
 use App\Notifications\TenantResetPasswordNotification;
+use App\Notifications\TenantUserInviteNotification;
 use App\Notifications\TenantWelcomeNotification;
 use App\Notifications\TrialEndingNotification;
 use Carbon\Carbon;
@@ -151,5 +152,32 @@ class NotificationTest extends TestCase
         $notification = new TenantResetPasswordNotification('https://app.sigapp.com.br/reset?token=abc', 60);
 
         $this->assertContains('mail', $notification->via(new \stdClass));
+    }
+
+    // -----------------------------------------------------------------
+    // TenantUserInviteNotification
+    // -----------------------------------------------------------------
+
+    public function test_user_invite_notification_existe(): void
+    {
+        $reflection = new \ReflectionClass(TenantUserInviteNotification::class);
+
+        $this->assertTrue($reflection->hasMethod('toMail'));
+    }
+
+    public function test_user_invite_notification_via_mail_and_subject(): void
+    {
+        $notification = new TenantUserInviteNotification(
+            'https://tenant.sigapp.com.br/login/reset-password?token=abc',
+            60,
+            'Ana Lima',
+            'Construtora Demo',
+        );
+
+        $this->assertContains('mail', $notification->via(new \stdClass));
+
+        $mail = $notification->toMail(new \stdClass);
+        $this->assertStringContainsString('convidado', strtolower($mail->subject ?? ''));
+        $this->assertStringContainsString('Construtora Demo', (string) $mail->subject);
     }
 }

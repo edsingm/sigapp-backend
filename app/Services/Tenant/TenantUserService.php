@@ -6,16 +6,21 @@ use App\Enums\Common\RolesEnum;
 use App\Models\Tenant\User;
 use App\Repositories\Tenant\UserRepository;
 use App\Services\Acl\PermissionNameResolver;
+use App\Services\Auth\TenantPasswordResetService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Permission;
 
 class TenantUserService
 {
     public function __construct(
         private readonly UserRepository $userRepository,
+        private readonly TenantPasswordResetService $passwordResetService,
     ) {}
 
     private const ADMIN_ROLE_NAMES = [
@@ -24,16 +29,32 @@ class TenantUserService
     ];
 
     /**
-     * Lista usuários com busca opcional, filtro de função e ordenação.
+     * Lista usuários com busca opcional, filtros e ordenação.
+     *
+     * @param  array{
+     *   search?: ?string,
+     *   role?: ?string,
+     *   status?: ?string,
+     *   department_id?: ?int,
+     *   without_department?: bool,
+     *   incomplete?: bool,
+     *   sort?: string,
+     *   order?: string,
+     *   per_page?: int,
+     * }  $filters
      */
     public function list(
-        ?string $search,
-        ?string $role,
+        ?string $search = null,
+        ?string $role = null,
         string $sort = 'name',
         string $order = 'asc',
         int $perPage = 15,
+        ?string $status = null,
+        ?int $departmentId = null,
+        bool $withoutDepartment = false,
+        bool $incomplete = false,
     ): LengthAwarePaginator {
-        $allowedSorts = ['id', 'name', 'email', 'created_at', 'updated_at'];
+        $allowedSorts = ['id', 'name', 'email', 'created_at', 'updated_at', 'status'];
         if (! in_array($sort, $allowedSorts, true)) {
             $sort = 'name';
         }
@@ -53,6 +74,24 @@ class TenantUserService
         if ($role !== null && $role !== '') {
             $query->whereHas('roles', function (Builder $builder) use ($role): void {
                 $builder->where('name', $role);
+            });
+        }
+
+        if ($status !== null && $status !== '') {
+            $query->where('status', $status);
+        }
+
+        if ($withoutDepartment) {
+            $query->whereNull('department_id');
+        } elseif ($departmentId !== null) {
+            $query->where('department_id', $departmentId);
+        }
+
+        // Sem departamento ou sem cargo (role) — vínculo incompleto.
+        if ($incomplete) {
+            $query->where(function (Builder $builder): void {
+                $builder->whereNull('department_id')
+                    ->orWhereDoesntHave('roles');
             });
         }
 
@@ -82,15 +121,24 @@ class TenantUserService
 
     /**
      * Cria um novo usuário com a função especificada.
+     * Com `invite=true` (ou sem senha), gera senha aleatória e envia link de definição.
      *
      * @param  array<string, mixed>  $data
      */
     public function create(array $data): User
     {
+        $invite = (bool) ($data['invite'] ?? false);
+        $password = $data['password'] ?? null;
+
+        if ($invite || $password === null || $password === '') {
+            $invite = true;
+            $password = Str::password(32);
+        }
+
         $user = $this->userRepository->create([
             'name' => $data['name'],
             'email' => $data['email'],
-            'password' => Hash::make($data['password']),
+            'password' => Hash::make($password),
             'locale' => $data['locale'] ?? 'pt-br',
             'department_id' => $data['department_id'] ?? null,
             'status' => $data['status'] ?? 'Active',
@@ -99,7 +147,31 @@ class TenantUserService
         $role = $data['role'] ?? RolesEnum::USER->value;
         $user->syncRoles([$role]);
 
-        return $user->load(['roles', 'permissions', 'department']);
+        $user = $user->load(['roles', 'permissions', 'department']);
+
+        if ($invite) {
+            $this->sendInviteLink($user);
+        }
+
+        return $user;
+    }
+
+    /**
+     * Envia/reenvia o e-mail de convite (template próprio, não o de reset).
+     */
+    public function sendInviteLink(User $user): string
+    {
+        try {
+            return $this->passwordResetService->sendInviteLinkForCurrentTenant($user);
+        } catch (\Throwable $exception) {
+            Log::warning('Failed to send user invite link', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'error' => $exception->getMessage(),
+            ]);
+
+            return Password::INVALID_USER;
+        }
     }
 
     /**

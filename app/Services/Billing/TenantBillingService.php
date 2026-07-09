@@ -202,10 +202,13 @@ class TenantBillingService
                 if ($subscription !== null) {
                     $finance['subscription_status'] = $subscription->stripe_status;
                     $stripeSubscriptionData = $subscription->asStripeSubscription();
-                    $currentPeriodEnd = data_get($stripeSubscriptionData, 'current_period_end');
+                    $currentPeriodEnd = $this->resolveStripePeriodTimestamp(
+                        $stripeSubscriptionData,
+                        'current_period_end'
+                    );
                     $finance['renews_at'] = $subscription->ends_at
                         ? null
-                        : (is_int($currentPeriodEnd) ? $currentPeriodEnd : null);
+                        : $currentPeriodEnd;
                     $finance['canceled_at'] = $subscription->ends_at;
                 }
 
@@ -284,12 +287,15 @@ class TenantBillingService
                         'id' => $stripeSubscription->id ?? null,
                         'status' => $stripeSubscription->status ?? null,
                         'collection_method' => $stripeSubscription->collection_method ?? null,
-                        'current_period_start' => is_int(data_get($stripeSubscription, 'current_period_start'))
-                            ? Carbon::createFromTimestamp((int) data_get($stripeSubscription, 'current_period_start'))->toIso8601String()
-                            : null,
-                        'current_period_end' => is_int(data_get($stripeSubscription, 'current_period_end'))
-                            ? Carbon::createFromTimestamp((int) data_get($stripeSubscription, 'current_period_end'))->toIso8601String()
-                            : null,
+                        // Stripe API recente moveu current_period_* para SubscriptionItem.
+                        'current_period_start' => $this->formatStripePeriodIso(
+                            $stripeSubscription,
+                            'current_period_start'
+                        ),
+                        'current_period_end' => $this->formatStripePeriodIso(
+                            $stripeSubscription,
+                            'current_period_end'
+                        ),
                         'cancel_at' => $stripeSubscription->cancel_at
                             ? Carbon::createFromTimestamp($stripeSubscription->cancel_at)->toIso8601String()
                             : null,
@@ -308,10 +314,16 @@ class TenantBillingService
                 ]);
 
                 foreach ($stripeInvoices->data ?? [] as $invoice) {
+                    [$periodStartIso, $periodEndIso] = $this->resolveInvoicePeriodIso($invoice);
+
                     $invoices[] = [
                         'id' => $invoice->id ?? null,
                         'number' => $invoice->number ?? null,
                         'status' => $invoice->status ?? null,
+                        // total = valor da fatura (após descontos/impostos). amount_due
+                        // zera após o pagamento e não deve ser o valor de exibição.
+                        'total' => $invoice->total ?? null,
+                        'subtotal' => $invoice->subtotal ?? null,
                         'amount_due' => $invoice->amount_due ?? null,
                         'amount_paid' => $invoice->amount_paid ?? null,
                         'amount_remaining' => $invoice->amount_remaining ?? null,
@@ -319,14 +331,10 @@ class TenantBillingService
                         'hosted_invoice_url' => $invoice->hosted_invoice_url ?? null,
                         'invoice_pdf' => $invoice->invoice_pdf ?? null,
                         'created_at' => $invoice->created
-                            ? Carbon::createFromTimestamp($invoice->created)->toIso8601String()
+                            ? Carbon::createFromTimestampUTC((int) $invoice->created)->toIso8601String()
                             : null,
-                        'period_start' => $invoice->period_start
-                            ? Carbon::createFromTimestamp($invoice->period_start)->toIso8601String()
-                            : null,
-                        'period_end' => $invoice->period_end
-                            ? Carbon::createFromTimestamp($invoice->period_end)->toIso8601String()
-                            : null,
+                        'period_start' => $periodStartIso,
+                        'period_end' => $periodEndIso,
                     ];
                 }
             } catch (\Exception $e) {
@@ -601,5 +609,93 @@ class TenantBillingService
             attemptCount: $attemptCount,
             invoiceUrl: $invoiceUrl,
         ));
+    }
+
+    /**
+     * Resolve timestamp de período da assinatura Stripe.
+     *
+     * Em versões recentes da API, `current_period_start` / `current_period_end`
+     * saíram do objeto Subscription e passaram a viver em cada SubscriptionItem.
+     * Mantemos fallback no topo do objeto para contas em API legada.
+     *
+     * @param  object|array<string, mixed>  $stripeSubscription
+     */
+    protected function resolveStripePeriodTimestamp(object|array $stripeSubscription, string $field): ?int
+    {
+        $topLevel = data_get($stripeSubscription, $field);
+        if (is_numeric($topLevel)) {
+            return (int) $topLevel;
+        }
+
+        $itemLevel = data_get($stripeSubscription, "items.data.0.{$field}");
+        if (is_numeric($itemLevel)) {
+            return (int) $itemLevel;
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  object|array<string, mixed>  $stripeSubscription
+     */
+    protected function formatStripePeriodIso(object|array $stripeSubscription, string $field): ?string
+    {
+        $timestamp = $this->resolveStripePeriodTimestamp($stripeSubscription, $field);
+
+        return $timestamp !== null
+            ? Carbon::createFromTimestampUTC($timestamp)->toIso8601String()
+            : null;
+    }
+
+    /**
+     * Período de serviço da fatura.
+     *
+     * Stripe recomenda usar o period dos line items (não o period_start/end da
+     * invoice, que reflete a janela de “usage/collection” e costuma deslocar 1 ciclo).
+     * Timestamps são normalizados em UTC para evitar virada de dia em America/Sao_Paulo.
+     *
+     * @param  object|array<string, mixed>  $invoice
+     * @return array{0: ?string, 1: ?string}
+     */
+    protected function resolveInvoicePeriodIso(object|array $invoice): array
+    {
+        $periodStart = null;
+        $periodEnd = null;
+
+        foreach (data_get($invoice, 'lines.data', []) as $line) {
+            $start = data_get($line, 'period.start');
+            $end = data_get($line, 'period.end');
+
+            if (is_numeric($start)) {
+                $start = (int) $start;
+                if ($periodStart === null || $start < $periodStart) {
+                    $periodStart = $start;
+                }
+            }
+
+            if (is_numeric($end)) {
+                $end = (int) $end;
+                if ($periodEnd === null || $end > $periodEnd) {
+                    $periodEnd = $end;
+                }
+            }
+        }
+
+        if ($periodStart === null && is_numeric(data_get($invoice, 'period_start'))) {
+            $periodStart = (int) data_get($invoice, 'period_start');
+        }
+
+        if ($periodEnd === null && is_numeric(data_get($invoice, 'period_end'))) {
+            $periodEnd = (int) data_get($invoice, 'period_end');
+        }
+
+        return [
+            $periodStart !== null
+                ? Carbon::createFromTimestampUTC($periodStart)->toIso8601String()
+                : null,
+            $periodEnd !== null
+                ? Carbon::createFromTimestampUTC($periodEnd)->toIso8601String()
+                : null,
+        ];
     }
 }

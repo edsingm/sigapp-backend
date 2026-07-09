@@ -12,9 +12,12 @@ use App\Http\Middleware\EnsureTenantUser;
 use App\Http\Middleware\InitializeTenancyFlexible;
 use App\Models\Tenant\Department;
 use App\Models\Tenant\User;
+use App\Services\Auth\TenantPasswordResetService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Schema;
+use Mockery;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
@@ -105,6 +108,36 @@ class UserManagementWithDepartmentTest extends TestCase
             ->assertJsonValidationErrors(['department_id']);
     }
 
+    public function test_creates_user_fails_with_duplicate_email_friendly_message(): void
+    {
+        User::create([
+            'name' => 'Existing',
+            'email' => 'dup@test.com',
+            'password' => Hash::make('password'),
+            'department_id' => $this->department->id,
+        ]);
+
+        $payload = [
+            'name' => 'Another',
+            'email' => 'dup@test.com',
+            'invite' => true,
+            'role' => 'user',
+            'department_id' => $this->department->id,
+        ];
+
+        $response = $this->actingAs($this->admin)
+            ->postJson('/api/v1/tenant-admin/users', $payload);
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors(['email']);
+
+        $emailErrors = $response->json('errors.email');
+        $this->assertIsArray($emailErrors);
+        $this->assertNotEmpty($emailErrors);
+        $this->assertStringContainsStringIgnoringCase('e-mail', $emailErrors[0]);
+        $this->assertStringNotContainsStringIgnoringCase('SQLSTATE', (string) $response->getContent());
+    }
+
     public function test_creates_user_fails_with_nonexistent_department(): void
     {
         $payload = [
@@ -168,6 +201,62 @@ class UserManagementWithDepartmentTest extends TestCase
         $this->assertArrayHasKey('status', $firstUser);
         $this->assertArrayNotHasKey('position_id', $firstUser);
         $this->assertArrayNotHasKey('position', $firstUser);
+    }
+
+    public function test_creates_user_via_invite_without_password(): void
+    {
+        $passwordReset = Mockery::mock(TenantPasswordResetService::class);
+        $passwordReset
+            ->shouldReceive('sendInviteLinkForCurrentTenant')
+            ->once()
+            ->with(Mockery::on(fn ($user) => $user instanceof User && $user->email === 'invited@test.com'))
+            ->andReturn(Password::RESET_LINK_SENT);
+        $this->app->instance(TenantPasswordResetService::class, $passwordReset);
+
+        $payload = [
+            'name' => 'Invited User',
+            'email' => 'invited@test.com',
+            'invite' => true,
+            'role' => 'user',
+            'department_id' => $this->department->id,
+            'status' => 'Active',
+        ];
+
+        $response = $this->actingAs($this->admin)
+            ->postJson('/api/v1/tenant-admin/users', $payload);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.email', 'invited@test.com')
+            ->assertJsonPath('data.department_id', $this->department->id);
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'invited@test.com',
+            'department_id' => $this->department->id,
+        ]);
+    }
+
+    public function test_resends_invite_for_existing_user(): void
+    {
+        $passwordReset = Mockery::mock(TenantPasswordResetService::class);
+        $passwordReset
+            ->shouldReceive('sendInviteLinkForCurrentTenant')
+            ->once()
+            ->with(Mockery::on(fn ($user) => $user instanceof User && $user->email === 'resend@test.com'))
+            ->andReturn(Password::RESET_LINK_SENT);
+        $this->app->instance(TenantPasswordResetService::class, $passwordReset);
+
+        $user = User::create([
+            'name' => 'Existing Invite',
+            'email' => 'resend@test.com',
+            'password' => Hash::make('password'),
+            'department_id' => $this->department->id,
+        ]);
+        $user->assignRole('user');
+
+        $response = $this->actingAs($this->admin)
+            ->postJson("/api/v1/tenant-admin/users/{$user->id}/send-invite");
+
+        $response->assertOk();
     }
 
     public function test_tenant_user_schema_does_not_keep_positions(): void

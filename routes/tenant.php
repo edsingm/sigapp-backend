@@ -168,6 +168,9 @@ Route::middleware([
                             ->middleware('tenant.admin')
                             ->name('tenant-admin.users.store');
                         Route::apiResource('users', AdminUserManagementController::class)->except(['store']);
+                        Route::post('users/{id}/send-invite', [AdminUserManagementController::class, 'sendInvite'])
+                            ->middleware('tenant.admin')
+                            ->name('tenant-admin.users.send-invite');
                         Route::put('users/{id}/module-permissions', [AdminUserManagementController::class, 'updateModulePermissions'])
                             ->middleware('tenant.admin')
                             ->name('tenant-admin.users.module-permissions');

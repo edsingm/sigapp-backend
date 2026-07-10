@@ -5,6 +5,7 @@ namespace App\Services\Tenant\Viabilidade\v1;
 use App\Enums\PerfilFinanciamento;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\Viabilidade;
+use App\Services\Tenant\Viabilidade\CarteiraPropriaStrategy;
 use App\Services\Tenant\Viabilidade\v1\Calculos\DespesasCalculator;
 use App\Services\Tenant\Viabilidade\v1\Calculos\DreCalculator;
 use App\Services\Tenant\Viabilidade\v1\Calculos\FluxoMensalCalculator;
@@ -59,6 +60,14 @@ class ViabilidadeUnificadoService
         try {
             $terreno = $this->buscarTerreno($terrenoId);
             $viabilidade = $this->buscarViabilidade($terrenoId, $viabilidadeRef);
+            $snapshot = is_array($viabilidade->premissas_snapshot) ? $viabilidade->premissas_snapshot : [];
+            $formValues = is_array($snapshot['form_values'] ?? null) ? $snapshot['form_values'] : [];
+            if (($formValues['estrategia_financeira'] ?? null) === 'carteira_propria') {
+                $resultado = (new CarteiraPropriaStrategy)->calculate((array) $formValues['carteira_propria']);
+                $this->salvarSnapshot($viabilidade, $resultado);
+
+                return $resultado;
+            }
             $params = $this->montarParametros($viabilidade);
             $produtosCustomizados = is_array($customProdutos) ? array_values($customProdutos) : null;
             $resultado = $this->fluxoMensalCalculator->calcular($terreno, $params, $produtosCustomizados);

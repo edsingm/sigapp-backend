@@ -2,6 +2,7 @@
 
 namespace App\Models\Tenant;
 
+use App\Enums\EstrategiaFinanceira;
 use App\Enums\PerfilFinanciamento;
 use App\Traits\HasDashboardCache;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -224,6 +225,8 @@ class Viabilidade extends Model
         'incorporacao_entrega' => 'decimal:2',
         'incorporacao_ate_lancamento' => 'decimal:2',
         'perfil_financiamento' => PerfilFinanciamento::class,
+        'estrategia_financeira' => EstrategiaFinanceira::class,
+        'carteira_propria_parametros' => 'array',
         'prazo_lancamento' => 'integer',
         'prazo_incorporacao' => 'integer',
         'data_lancamento' => 'date',

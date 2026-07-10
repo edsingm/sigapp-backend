@@ -442,6 +442,10 @@ class ViabilidadeService
             }
         }
 
+        if (array_key_exists('carteira_propria', $dados)) {
+            $payload['carteira_propria_parametros'] = $dados['carteira_propria'];
+        }
+
         $snapshotAtual = $viabilidade?->getAttribute('premissas_snapshot');
         $snapshotBase = is_array($snapshotAtual) ? $snapshotAtual : [];
         $formValues = $viabilidade instanceof Viabilidade

@@ -4,10 +4,13 @@ namespace App\Repositories;
 
 use App\Models\Central\Tenant;
 use App\Models\Central\TenantEntitlement;
+use App\Models\Tenant\AiRequestLog;
 use App\Models\Tenant\Produto;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\User;
 use App\Repositories\Contracts\TenantRepositoryInterface;
+use App\Services\PlanMatrixService;
+use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 use Stancl\Tenancy\Database\Models\Domain;
@@ -40,7 +43,7 @@ class TenantRepository implements TenantRepositoryInterface
     }
 
     /**
-     * @return array<string, int>
+     * @return array<string, int|float|null>
      */
     public function usageStats(Tenant $tenant): array
     {
@@ -49,10 +52,27 @@ class TenantRepository implements TenantRepositoryInterface
             'terrenos_count' => 0,
             'products_count' => 0,
             'storage_used' => 0,
+            // Consumo de IA do mês (USD) vs orçamento do plano
+            'ai_budget_usd' => null,
+            'ai_spent_usd' => 0.0,
+            'ai_usage_percent' => null,
+            'ai_requests' => 0,
+            'ai_tokens' => 0,
         ];
 
+        try {
+            if (is_int($tenant->getAttribute('plan_id'))) {
+                $limits = app(PlanMatrixService::class)->resolveForTenant($tenant)['limits'] ?? [];
+                if (array_key_exists('ai_budget', $limits) && is_numeric($limits['ai_budget'])) {
+                    $stats['ai_budget_usd'] = (float) $limits['ai_budget'];
+                }
+            }
+        } catch (\Throwable) {
+            // plano sem matriz / sem plan_id
+        }
+
         if (! (bool) $tenant->getAttribute('database_created') || $tenant->getAttribute('setup_completed_at') === null) {
-            return $stats;
+            return $this->withAiUsagePercent($stats);
         }
 
         try {
@@ -61,12 +81,46 @@ class TenantRepository implements TenantRepositoryInterface
             $stats['users_count'] = User::count();
             $stats['terrenos_count'] = Terreno::count();
             $stats['products_count'] = Produto::count();
+
+            $monthStart = Carbon::now()->startOfMonth();
+            $aiAgg = AiRequestLog::query()
+                ->where('created_at', '>=', $monthStart)
+                ->selectRaw(
+                    'COUNT(*) as requests_count, COALESCE(SUM(total_tokens), 0) as tokens_sum, COALESCE(SUM(estimated_cost_usd), 0) as cost_sum'
+                )
+                ->first();
+
+            if ($aiAgg !== null) {
+                $stats['ai_requests'] = (int) ($aiAgg->requests_count ?? 0);
+                $stats['ai_tokens'] = (int) ($aiAgg->tokens_sum ?? 0);
+                $stats['ai_spent_usd'] = round((float) ($aiAgg->cost_sum ?? 0), 4);
+            }
         } catch (\Throwable) {
             // Keep zeroed stats when the tenant database is unavailable.
         } finally {
             if (tenancy()->initialized) {
                 tenancy()->end();
             }
+        }
+
+        return $this->withAiUsagePercent($stats);
+    }
+
+    /**
+     * @param  array<string, int|float|null>  $stats
+     * @return array<string, int|float|null>
+     */
+    private function withAiUsagePercent(array $stats): array
+    {
+        $budget = $stats['ai_budget_usd'] ?? null;
+        $spent = (float) ($stats['ai_spent_usd'] ?? 0);
+
+        if (is_numeric($budget) && (float) $budget > 0) {
+            $stats['ai_usage_percent'] = round(($spent / (float) $budget) * 100, 1);
+        } elseif (is_numeric($budget) && (float) $budget === 0.0) {
+            $stats['ai_usage_percent'] = $spent > 0 ? 100.0 : 0.0;
+        } else {
+            $stats['ai_usage_percent'] = null;
         }
 
         return $stats;

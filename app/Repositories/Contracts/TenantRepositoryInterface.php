@@ -28,7 +28,7 @@ interface TenantRepositoryInterface
     public function updatePlan(Tenant $tenant, int $planId): Tenant;
 
     /**
-     * @return array<string, int>
+     * @return array<string, int|float|null>
      */
     public function usageStats(Tenant $tenant): array;
 

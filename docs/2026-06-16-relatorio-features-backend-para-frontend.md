@@ -64,7 +64,7 @@ Cada **plano** habilita um conjunto de *features* e define *limites* numéricos.
 
 `home`, `prospection`, `committee`, `negotiation`, `legalizations`, `projects_room`, `product_settings`, `regionals`, `territorial_base`, `ai`,
 `dashboard.enabled`, `dashboard.overview`, `dashboard.units_closed`, `dashboard.vgv`, `dashboard.funnel`,
-`viabilities.enabled`, `viabilities.summary`, `viabilities.dre`, `viabilities.cash_flow`, `viabilities.charts`, `viabilities.premises`, `viabilities.kpis`,
+`viabilities.enabled`, `viabilities.summary`, `viabilities.dre`, `viabilities.comercial`, `viabilities.cash_flow`, `viabilities.charts`, `viabilities.premises`, `viabilities.kpis`,
 `exports.excel`, `exports.pdf`.
 
 **Limites (numéricos):** `users`, `terrenos`, `products`, `storage_gb`, `ai_budget`.

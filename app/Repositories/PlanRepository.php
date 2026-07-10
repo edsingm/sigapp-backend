@@ -106,7 +106,14 @@ class PlanRepository implements PlanRepositoryInterface
 
     public function invalidateMatrixCache(int $planId): void
     {
-        Cache::tags(["plan_matrix_{$planId}"])->flush();
+        // Flush com as mesmas tags usadas no remember + forget da key.
+        // Só a tag plan_matrix_{id} às vezes não limpa em alguns setups Redis.
+        try {
+            Cache::tags(['plan_matrix', "plan_matrix_{$planId}"])->flush();
+        } catch (\Throwable) {
+            // Drivers sem suporte a tags
+        }
+        Cache::forget("plan_matrix_{$planId}");
     }
 
     /**

@@ -171,6 +171,7 @@ class TenantBillingService
 
         $finance = [
             'has_payment_method' => false,
+            'payment_method_type' => null,
             'card_brand' => null,
             'card_last4' => null,
             'card_exp_month' => null,
@@ -184,18 +185,8 @@ class TenantBillingService
 
         try {
             if (is_string($tenantStripeId) && $tenantStripeId !== '') {
-                $finance['has_payment_method'] = $tenant->hasDefaultPaymentMethod();
-
-                if ($finance['has_payment_method']) {
-                    $paymentMethod = $tenant->defaultPaymentMethod();
-
-                    if ($paymentMethod !== null) {
-                        $finance['card_brand'] = $paymentMethod->card->brand;
-                        $finance['card_last4'] = $paymentMethod->card->last4;
-                        $finance['card_exp_month'] = $paymentMethod->card->exp_month;
-                        $finance['card_exp_year'] = $paymentMethod->card->exp_year;
-                    }
-                }
+                $payment = $this->resolveAdminPaymentMethod($tenant, $tenantStripeId);
+                $finance = array_merge($finance, $payment);
 
                 $subscription = $tenant->subscription('default');
 
@@ -209,7 +200,10 @@ class TenantBillingService
                     $finance['renews_at'] = $subscription->ends_at
                         ? null
                         : $currentPeriodEnd;
-                    $finance['canceled_at'] = $subscription->ends_at;
+                    $endsAt = $subscription->ends_at;
+                    $finance['canceled_at'] = $endsAt instanceof \DateTimeInterface
+                        ? $endsAt->format(\DateTimeInterface::ATOM)
+                        : $endsAt;
                 }
 
                 foreach ($tenant->invoicesIncludingPending(['limit' => 5]) as $invoice) {
@@ -225,13 +219,206 @@ class TenantBillingService
                 }
             } elseif ($tenant->onTrial()) {
                 $finance['subscription_status'] = 'trialing';
-                $finance['renews_at'] = $trialEndsAt?->timestamp;
+                $finance['renews_at'] = $trialEndsAt instanceof \DateTimeInterface
+                    ? $trialEndsAt->getTimestamp()
+                    : ($trialEndsAt?->timestamp ?? null);
             }
         } catch (\Throwable $exception) {
             $finance['error'] = 'Erro ao carregar dados do Stripe: '.$exception->getMessage();
         }
 
         return $finance;
+    }
+
+    /**
+     * Resolve cartão/método de pagamento para o admin.
+     * Cashier só enxerga o default do customer; em vários tenants o PM está
+     * na subscription ou só listado em paymentMethods — cobrimos esses casos.
+     *
+     * @return array{
+     *   has_payment_method: bool,
+     *   payment_method_type: ?string,
+     *   card_brand: ?string,
+     *   card_last4: ?string,
+     *   card_exp_month: ?int,
+     *   card_exp_year: ?int
+     * }
+     */
+    private function resolveAdminPaymentMethod(Tenant $tenant, string $stripeCustomerId): array
+    {
+        $empty = [
+            'has_payment_method' => false,
+            'payment_method_type' => null,
+            'card_brand' => null,
+            'card_last4' => null,
+            'card_exp_month' => null,
+            'card_exp_year' => null,
+        ];
+
+        // 1) Cashier default no customer
+        try {
+            $cashierPm = $tenant->defaultPaymentMethod();
+            if ($cashierPm !== null) {
+                $mapped = $this->mapStripePaymentMethodPayload($cashierPm);
+                if ($mapped['has_payment_method']) {
+                    return $mapped;
+                }
+            }
+        } catch (\Throwable) {
+            // segue para API Stripe
+        }
+
+        try {
+            $stripe = $tenant->stripe();
+            $customer = $stripe->customers->retrieve($stripeCustomerId, []);
+
+            $pmId = null;
+
+            // 2) Default da subscription Stripe
+            $subscriptionStripeId = $tenant->getAttribute('stripe_subscription_id');
+            if (! is_string($subscriptionStripeId) || $subscriptionStripeId === '') {
+                $localSub = $tenant->subscription('default');
+                $subscriptionStripeId = $localSub?->stripe_id;
+            }
+
+            if (is_string($subscriptionStripeId) && $subscriptionStripeId !== '') {
+                try {
+                    $stripeSub = $stripe->subscriptions->retrieve($subscriptionStripeId, []);
+                    $pmId = $this->stripeIdOrNull($stripeSub->default_payment_method ?? null);
+                } catch (\Throwable) {
+                    // ignore
+                }
+            }
+
+            // 3) Default do customer (invoice_settings)
+            if ($pmId === null) {
+                $pmId = $this->stripeIdOrNull(
+                    $customer->invoice_settings->default_payment_method ?? null
+                );
+            }
+
+            if (is_string($pmId) && str_starts_with($pmId, 'pm_')) {
+                $pm = $stripe->paymentMethods->retrieve($pmId, []);
+
+                return $this->mapStripePaymentMethodPayload($pm);
+            }
+
+            // 4) Fallback: primeiro cartão anexado ao customer
+            $listed = $stripe->paymentMethods->all([
+                'customer' => $stripeCustomerId,
+                'type' => 'card',
+                'limit' => 1,
+            ]);
+            $first = $listed->data[0] ?? null;
+            if ($first !== null) {
+                return $this->mapStripePaymentMethodPayload($first);
+            }
+        } catch (\Throwable) {
+            return $empty;
+        }
+
+        return $empty;
+    }
+
+    private function stripeIdOrNull(mixed $value): ?string
+    {
+        if (is_string($value) && $value !== '') {
+            return $value;
+        }
+        if (is_object($value) && isset($value->id) && is_string($value->id)) {
+            return $value->id;
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array{
+     *   has_payment_method: bool,
+     *   payment_method_type: ?string,
+     *   card_brand: ?string,
+     *   card_last4: ?string,
+     *   card_exp_month: ?int,
+     *   card_exp_year: ?int
+     * }
+     */
+    private function mapStripePaymentMethodPayload(mixed $paymentMethod): array
+    {
+        $empty = [
+            'has_payment_method' => false,
+            'payment_method_type' => null,
+            'card_brand' => null,
+            'card_last4' => null,
+            'card_exp_month' => null,
+            'card_exp_year' => null,
+        ];
+
+        if ($paymentMethod === null) {
+            return $empty;
+        }
+
+        // Laravel Cashier PaymentMethod → Stripe object
+        if (is_object($paymentMethod) && method_exists($paymentMethod, 'asStripePaymentMethod')) {
+            try {
+                $paymentMethod = $paymentMethod->asStripePaymentMethod();
+            } catch (\Throwable) {
+                // usa o wrapper Cashier como está
+            }
+        }
+
+        $type = null;
+        $card = null;
+
+        if (is_object($paymentMethod)) {
+            $type = isset($paymentMethod->type) && is_string($paymentMethod->type)
+                ? $paymentMethod->type
+                : null;
+            $card = $paymentMethod->card ?? null;
+        } elseif (is_array($paymentMethod)) {
+            $type = isset($paymentMethod['type']) && is_string($paymentMethod['type'])
+                ? $paymentMethod['type']
+                : null;
+            $card = $paymentMethod['card'] ?? null;
+        } else {
+            return $empty;
+        }
+
+        $brand = null;
+        $last4 = null;
+        $expMonth = null;
+        $expYear = null;
+
+        if (is_object($card)) {
+            $brand = isset($card->brand) && is_string($card->brand) ? $card->brand : null;
+            $last4 = isset($card->last4) && is_string($card->last4) ? $card->last4 : null;
+            $expMonth = isset($card->exp_month) && is_numeric($card->exp_month)
+                ? (int) $card->exp_month
+                : null;
+            $expYear = isset($card->exp_year) && is_numeric($card->exp_year)
+                ? (int) $card->exp_year
+                : null;
+        } elseif (is_array($card)) {
+            $brand = isset($card['brand']) && is_string($card['brand']) ? $card['brand'] : null;
+            $last4 = isset($card['last4']) && is_string($card['last4']) ? $card['last4'] : null;
+            $expMonth = isset($card['exp_month']) && is_numeric($card['exp_month'])
+                ? (int) $card['exp_month']
+                : null;
+            $expYear = isset($card['exp_year']) && is_numeric($card['exp_year'])
+                ? (int) $card['exp_year']
+                : null;
+        }
+
+        $hasCard = $brand !== null || $last4 !== null;
+        $hasAny = $hasCard || $type !== null;
+
+        return [
+            'has_payment_method' => $hasAny,
+            'payment_method_type' => $type,
+            'card_brand' => $brand,
+            'card_last4' => $last4,
+            'card_exp_month' => $expMonth,
+            'card_exp_year' => $expYear,
+        ];
     }
 
     /**

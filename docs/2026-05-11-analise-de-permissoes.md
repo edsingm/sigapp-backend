@@ -117,6 +117,7 @@ Entitlements canonicos definidos em `database/seeders/EntitlementSeeder.php`.
 | `viabilities.enabled` | Feature Flag | Viabilidades | Tenant/plano |
 | `viabilities.summary` | Feature Flag | Resumo de viabilidades | Tenant/plano |
 | `viabilities.dre` | Feature Flag | DRE | Tenant/plano |
+| `viabilities.comercial` | Feature Flag | Comercial | Tenant/plano |
 | `viabilities.cash_flow` | Feature Flag | Fluxo de caixa | Tenant/plano |
 | `viabilities.charts` | Feature Flag | Graficos | Tenant/plano |
 | `viabilities.premises` | Feature Flag | Premissas | Tenant/plano |
@@ -329,6 +330,7 @@ Planos existentes em `Database\Seeders\PlanSeeder`:
 | `viabilities.enabled` | Nao | Sim | Sim | Sim |
 | `viabilities.summary` | Nao | Sim | Sim | Sim |
 | `viabilities.dre` | Nao | Sim | Sim | Sim |
+| `viabilities.comercial` | Nao | Nao | Sim | Sim |
 | `viabilities.cash_flow` | Nao | Nao | Sim | Sim |
 | `viabilities.charts` | Nao | Nao | Nao | Sim |
 | `viabilities.premises` | Nao | Nao | Nao | Sim |
@@ -359,7 +361,7 @@ Planos existentes em `Database\Seeders\PlanSeeder`:
 | Exclusivo a partir de | Features |
 |---|---|
 | Basico | `dashboard.enabled`, `dashboard.overview`, `viabilities.enabled`, `viabilities.summary`, `viabilities.dre`, `exports.pdf` |
-| Master | `dashboard.units_closed`, `dashboard.vgv`, `dashboard.funnel`, `viabilities.cash_flow`, `ai` |
+| Master | `dashboard.units_closed`, `dashboard.vgv`, `dashboard.funnel`, `viabilities.comercial`, `viabilities.cash_flow`, `ai` |
 | Pro | `viabilities.charts`, `viabilities.premises`, `viabilities.kpis`, `committee`, `negotiation`, `legalizations`, `projects_room` |
 
 ---

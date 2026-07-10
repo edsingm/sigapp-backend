@@ -25,8 +25,10 @@ class PlanMatrixServiceTest extends TestCase
     {
         $service = app(PlanMatrixService::class);
         $basico = Plan::where('slug', 'basico')->firstOrFail();
+        $broker = Plan::where('slug', 'broker')->firstOrFail();
 
         $this->assertTrue($service->hasFeature($basico, 'dashboard.enabled'));
+        $this->assertTrue($service->hasFeature($broker, 'dashboard.enabled'));
         $this->assertFalse($service->hasFeature($basico, 'committee'));
     }
 

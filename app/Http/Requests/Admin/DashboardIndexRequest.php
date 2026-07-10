@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Admin;
 
-use App\Models\Central\Tenant;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Gate;
 
 class DashboardIndexRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return Gate::allows('view', Tenant::class);
+        // Mesmo padrão dos demais FormRequests de Admin central.
+        // Gate::view(Tenant::class) apontava para TenantPolicy (contexto tenant) e negava sempre.
+        return (bool) ($this->user()?->is_admin);
     }
 
     /**

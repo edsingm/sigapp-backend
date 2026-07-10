@@ -78,7 +78,7 @@ class EntitlementSeeder extends Seeder
             'broker' => [
                 'features' => [
                     'home' => true,
-                    'dashboard.enabled' => false,
+                    'dashboard.enabled' => true,
                     'dashboard.overview' => false,
                     'dashboard.units_closed' => false,
                     'dashboard.vgv' => false,

@@ -4,6 +4,7 @@
 !.env.example
 .env.backup
 .env.production
+!.env.production.example
 .phpactor.json
 .phpunit.result.cache
 /.fleet
@@ -32,8 +33,5 @@ Thumbs.db
 .github
 .openclaude
 .trae
-.docker
 .guthub
 .trae
-
-

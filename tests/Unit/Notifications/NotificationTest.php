@@ -177,7 +177,7 @@ class NotificationTest extends TestCase
         $this->assertContains('mail', $notification->via(new \stdClass));
 
         $mail = $notification->toMail(new \stdClass);
-        $this->assertStringContainsString('convidado', strtolower($mail->subject ?? ''));
+        $this->assertStringContainsString('convidado', strtolower($mail->subject));
         $this->assertStringContainsString('Construtora Demo', (string) $mail->subject);
     }
 }

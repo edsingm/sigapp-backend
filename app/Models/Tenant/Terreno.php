@@ -187,6 +187,9 @@ class Terreno extends Model
             ->latestOfMany();
     }
 
+    /**
+     * @return HasOne<Viabilidade, $this>
+     */
     public function viabilidadeAprovada(): HasOne
     {
         // O filtro precisa estar DENTRO da agregação (ofMany), senão o

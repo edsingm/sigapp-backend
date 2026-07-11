@@ -97,12 +97,18 @@ class ViabilidadeRepository implements ViabilidadeRepositoryInterface
 
     public function approvedByTerreno(int $terrenoId, ?int $exceptId = null): ?Viabilidade
     {
-        return Viabilidade::query()
+        $approvedId = Viabilidade::query()
             ->where('terreno_id', $terrenoId)
             ->where('approval_status', 'aprovada')
             ->when($exceptId !== null, fn ($query) => $query->where('id', '!=', $exceptId))
             ->orderByDesc('version')
-            ->first();
+            ->value('id');
+
+        if (! is_int($approvedId) && ! is_string($approvedId)) {
+            return null;
+        }
+
+        return $this->findOrFail($approvedId);
     }
 
     /**

@@ -87,7 +87,12 @@ RUN apt-get update && apt-get install -y \
 COPY .docker/nginx.conf /etc/nginx/sites-available/default
 COPY .docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY .docker/entrypoint.prod.sh /usr/local/bin/docker-entrypoint
-RUN chmod +x /usr/local/bin/docker-entrypoint
+COPY .docker/bootstrap.prod.sh /usr/local/bin/sigapp-bootstrap
+COPY .docker/release.prod.sh /usr/local/bin/sigapp-release
+RUN chmod +x \
+    /usr/local/bin/docker-entrypoint \
+    /usr/local/bin/sigapp-bootstrap \
+    /usr/local/bin/sigapp-release
 
 # Dependências primeiro para aproveitar cache de camada
 COPY composer.json composer.lock ./

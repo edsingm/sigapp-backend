@@ -30,18 +30,6 @@ class TenantUserService
 
     /**
      * Lista usuários com busca opcional, filtros e ordenação.
-     *
-     * @param  array{
-     *   search?: ?string,
-     *   role?: ?string,
-     *   status?: ?string,
-     *   department_id?: ?int,
-     *   without_department?: bool,
-     *   incomplete?: bool,
-     *   sort?: string,
-     *   order?: string,
-     *   per_page?: int,
-     * }  $filters
      */
     public function list(
         ?string $search = null,

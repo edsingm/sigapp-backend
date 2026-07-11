@@ -66,11 +66,12 @@ Há duas formas de rodar localmente: **Herd/`composer dev`** (nativo, macOS) ou 
 ### Compose
 
 - **Dev (`docker-compose.yml`)**: services `back` (`sigapp-backend:1.0-dev`, porta 8000) e `redis` (`redis:7-alpine`). O **PostgreSQL não está no compose** — é um container/host externo chamado `database`, alcançado pela rede externa `database_sigapp` (precisa existir: `docker network create database_sigapp`). As variáveis de ambiente de dev (DB, Redis, CORS, Sanctum, `CENTRAL_DOMAINS=localhost,127.0.0.1,sigapp-backend`, Chromium) já vêm definidas no compose.
-- **Prod (`docker-compose.prod.yml`)**: target `prod`, porta `8000:80`, env via variáveis de ambiente (`${DB_PASSWORD}` etc. — nunca hardcoded), healthcheck em `GET /api/health` (rota mínima não versionada usada pelo container).
+- **Prod (`docker-compose.prod.yml`)**: target `prod`, porta interna `80` via `expose` (sem publicação no host), PostgreSQL/Redis externos gerenciados pelo Coolify, envs obrigatórios via `${VAR:?}` e healthcheck em `GET /api/health`.
 
 ### Produção — quem roda o quê
 
-- `entrypoint.prod.sh` executa **no deploy**: `optimize:clear` → `php artisan migrate --force` → `storage:link` → `config:cache` + `route:cache` + `view:cache` → sobe o supervisord.
+- `entrypoint.prod.sh` prepara caches e sobe o supervisord; ele **não executa migrations** durante restart/scale.
+- Primeiro deploy em banco vazio: execute `/usr/local/bin/sigapp-bootstrap` uma única vez (`migrate` + `db:seed`). Releases seguintes executam `/usr/local/bin/sigapp-release` (`migrate` central + `tenants:migrate`) antes de trocar o tráfego.
 - `supervisord.conf` mantém 4 processos: **nginx**, **php-fpm**, **`queue:work --sleep=3 --tries=3 --max-time=3600`** e **`schedule:work`**. Ou seja: **fila e scheduler em produção rodam via supervisord** — não há cron; um scheduled command novo só precisa estar em `routes/console.php`.
 - `nginx.conf`: root em `public/`, `client_max_body_size 50M` (limite de upload), `fastcgi_read_timeout 120s` (teto para requests longos — PDFs/exports pesados devem ir para Jobs).
 
@@ -78,7 +79,7 @@ Há duas formas de rodar localmente: **Herd/`composer dev`** (nativo, macOS) ou 
 
 - Dependência nova de **sistema** (extensão PHP, binário, fonte) → editar `.docker/Dockerfile` (e lembrar que o stage `base` serve dev e prod).
 - Dependência/driver novo de **storage externo** (ex.: S3, MinIO) → atualizar `composer.json` se necessário, `config/filesystems.php`, `.env.example`, compose/deploy e esta seção.
-- Migrations rodam **automaticamente** no deploy prod (`migrate --force`) — mais um motivo para todo `down()` funcionar e para nunca editar migration já aplicada.
+- Migrations de produção rodam explicitamente pelo script de release, nunca implicitamente no startup. Todo `down()` continua obrigatório e migrations aplicadas nunca devem ser editadas.
 - `route:cache`/`config:cache` rodam no deploy — não use closures em rotas de `routes/api.php`/`tenant.php` que quebrem o cache de rotas fora dos padrões já existentes, nem `env()` fora de `config/`.
 - O `.dockerignore` exclui `.env*` (exceto `.env.example`) — configuração de prod entra **somente** por variável de ambiente do compose.
 - O healthcheck de prod depende de `GET /api/health` (definido no final de `routes/api.php`) — não remova nem proteja essa rota com auth/throttle agressivo.

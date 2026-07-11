@@ -62,8 +62,8 @@ class TenantRepository implements TenantRepositoryInterface
 
         try {
             if (is_int($tenant->getAttribute('plan_id'))) {
-                $limits = app(PlanMatrixService::class)->resolveForTenant($tenant)['limits'] ?? [];
-                if (array_key_exists('ai_budget', $limits) && is_numeric($limits['ai_budget'])) {
+                $limits = app(PlanMatrixService::class)->resolveForTenant($tenant)['limits'];
+                if (array_key_exists('ai_budget', $limits)) {
                     $stats['ai_budget_usd'] = (float) $limits['ai_budget'];
                 }
             }

@@ -278,7 +278,7 @@ class TenantBillingService
             $subscriptionStripeId = $tenant->getAttribute('stripe_subscription_id');
             if (! is_string($subscriptionStripeId) || $subscriptionStripeId === '') {
                 $localSub = $tenant->subscription('default');
-                $subscriptionStripeId = $localSub?->stripe_id;
+                $subscriptionStripeId = $localSub?->getAttribute('stripe_id');
             }
 
             if (is_string($subscriptionStripeId) && $subscriptionStripeId !== '') {

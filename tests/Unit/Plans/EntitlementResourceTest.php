@@ -29,8 +29,7 @@ class EntitlementResourceTest extends TestCase
         }
 
         $this->assertSame('test.feature', $payload['key']);
-        // type is backed enum — value is the enum case; JSON output is the string value
-        $this->assertSame(EntitlementType::FEATURE, $payload['type']);
+        $this->assertSame(EntitlementType::FEATURE->value, $payload['type']);
     }
 
     public function test_it_does_not_expose_internal_relational_fields(): void

@@ -17,6 +17,7 @@ use App\Models\Tenant\TerrenoProduto;
 use App\Models\Tenant\Viabilidade;
 use App\Support\Database\SqlDateParts;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
 class DashboardQueryService
@@ -318,7 +319,7 @@ class DashboardQueryService
      */
     public function unidadesFechadasAnual()
     {
-        return TerrenoProduto::join('terrenos', 'terreno_produtos.terreno_id', '=', 'terrenos.id')
+        return TerrenoProduto::query()->join('terrenos', 'terreno_produtos.terreno_id', '=', 'terrenos.id')
             ->whereIn('terrenos.workflow_status_code', $this->signedDealStatuses())
             ->whereNull('terrenos.deleted_at')
             ->select(
@@ -730,9 +731,9 @@ class DashboardQueryService
             'committee_open_issues' => [
                 'key' => 'committee_open_issues',
                 'label' => 'Pendências abertas de comitê',
-                'count' => ComitePendencia::where('status', 'open')->count(),
+                'count' => ComitePendencia::query()->where('status', 'open')->count(),
                 'severity' => 'danger',
-                'items' => ComitePendencia::where('status', 'open')
+                'items' => ComitePendencia::query()->where('status', 'open')
                     ->orderByRaw('due_date is null, due_date asc')
                     ->limit($limit)
                     ->get(['id', 'terreno_id', 'title', 'severity', 'due_date'])
@@ -748,14 +749,14 @@ class DashboardQueryService
             'legalization_critical' => [
                 'key' => 'legalization_critical',
                 'label' => 'Pendências críticas de legalização',
-                'count' => LegalizacaoPendencia::whereNull('resolved_at')
+                'count' => LegalizacaoPendencia::query()->whereNull('resolved_at')
                     ->where(function ($query) use ($criticalDays) {
                         $query->where('is_critical', true)
                             ->orWhere('due_date', '<=', now()->addDays($criticalDays)->toDateString());
                     })
                     ->count(),
                 'severity' => 'danger',
-                'items' => LegalizacaoPendencia::whereNull('resolved_at')
+                'items' => LegalizacaoPendencia::query()->whereNull('resolved_at')
                     ->where(function ($query) use ($criticalDays) {
                         $query->where('is_critical', true)
                             ->orWhere('due_date', '<=', now()->addDays($criticalDays)->toDateString());
@@ -776,12 +777,12 @@ class DashboardQueryService
             'overdue_tasks' => [
                 'key' => 'overdue_tasks',
                 'label' => 'Tarefas vencidas',
-                'count' => Task::whereNull('completed_at')
+                'count' => Task::query()->whereNull('completed_at')
                     ->whereNotIn('status', ['done', 'concluida', 'concluído', 'completed'])
                     ->whereDate('due_date', '<', today())
                     ->count(),
                 'severity' => 'warning',
-                'items' => Task::whereNull('completed_at')
+                'items' => Task::query()->whereNull('completed_at')
                     ->whereNotIn('status', ['done', 'concluida', 'concluído', 'completed'])
                     ->whereDate('due_date', '<', today())
                     ->with('assignedUser:id,name')
@@ -802,9 +803,10 @@ class DashboardQueryService
     }
 
     /**
+     * @param  Builder<Terreno>  $query
      * @return array<int, array<string, mixed>>
      */
-    private function recentTerrenos($query, int $limit): array
+    private function recentTerrenos(Builder $query, int $limit): array
     {
         return $query
             ->with(['responsavel:id,name', 'cidade:code,city,state_code'])
@@ -829,11 +831,11 @@ class DashboardQueryService
      */
     private function operationalHealth(int $staleDays): array
     {
-        $activeNegotiations = Negociacao::whereNull('closed_at')->count();
-        $staleNegotiations = Negociacao::whereNull('closed_at')
+        $activeNegotiations = Negociacao::query()->whereNull('closed_at')->count();
+        $staleNegotiations = Negociacao::query()->whereNull('closed_at')
             ->where('updated_at', '<', now()->subDays($staleDays))
             ->count();
-        $committeeOpen = ComiteRevisao::whereNull('decided_at')->count();
+        $committeeOpen = ComiteRevisao::query()->whereNull('decided_at')->count();
         $legalizationsActive = Legalizacao::whereIn('status', ['planejado', 'em_andamento'])->count();
         $legalizationProgress = Legalizacao::whereIn('status', ['planejado', 'em_andamento'])->avg('percentual_concluido');
         $legalizationDelayedStages = LegalizacaoEtapa::whereIn('status', ['atrasada', 'bloqueada'])
@@ -847,18 +849,18 @@ class DashboardQueryService
         return [
             'active_negotiations' => $activeNegotiations,
             'stale_negotiations' => $staleNegotiations,
-            'proposal_value_active' => (float) Negociacao::whereNull('closed_at')->sum('proposal_value'),
+            'proposal_value_active' => (float) Negociacao::query()->whereNull('closed_at')->sum('proposal_value'),
             'signed_contracts' => Contrato::whereNotNull('signed_at')->count(),
             'committee_open' => $committeeOpen,
             'committee_open_issues' => ComitePendencia::where('status', 'open')->count(),
             'legalizations_active' => $legalizationsActive,
             'legalization_avg_progress' => round((float) ($legalizationProgress ?? 0), 1),
             'legalization_delayed_stages' => $legalizationDelayedStages,
-            'legalization_critical_issues' => LegalizacaoPendencia::whereNull('resolved_at')->where('is_critical', true)->count(),
+            'legalization_critical_issues' => LegalizacaoPendencia::query()->whereNull('resolved_at')->where('is_critical', true)->count(),
             'open_projects' => $openProjects,
             'projects_ready_to_register' => Projeto::whereNotNull('pronto_para_registro_em')->count(),
-            'open_tasks' => Task::whereNull('completed_at')->count(),
-            'overdue_tasks' => Task::whereNull('completed_at')->whereDate('due_date', '<', today())->count(),
+            'open_tasks' => Task::query()->whereNull('completed_at')->count(),
+            'overdue_tasks' => Task::query()->whereNull('completed_at')->whereDate('due_date', '<', today())->count(),
         ];
     }
 
@@ -902,7 +904,7 @@ class DashboardQueryService
             ->limit($limit)
             ->get()
             ->map(function ($item, int $index): array {
-                $products = TerrenoProduto::join('terrenos', 'terreno_produtos.terreno_id', '=', 'terrenos.id')
+                $products = TerrenoProduto::query()->join('terrenos', 'terreno_produtos.terreno_id', '=', 'terrenos.id')
                     ->where('terrenos.cidade_code', $item->cidade_code)
                     ->whereNull('terrenos.deleted_at')
                     ->selectRaw('COALESCE(SUM(COALESCE(terreno_produtos.valor, 0) * COALESCE(terreno_produtos.unidades, 0)), 0) as vgv')

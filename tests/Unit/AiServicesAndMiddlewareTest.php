@@ -180,7 +180,7 @@ class AiServicesAndMiddlewareTest extends TestCase
 
     public function test_ai_report_route_checks_budget(): void
     {
-        $route = collect(Route::getRoutes())
+        $route = collect(Route::getRoutes()->getRoutes())
             ->first(fn ($route) => $route->uri() === 'api/v1/ai/terrenos/{id}/relatorio-pdf');
 
         $this->assertNotNull($route);

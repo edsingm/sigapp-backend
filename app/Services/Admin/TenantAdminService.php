@@ -20,7 +20,7 @@ class TenantAdminService
     }
 
     /**
-     * @return array{tenant: Tenant, stats: array<string, int>, finance: array<string, mixed>}
+     * @return array{tenant: Tenant, stats: array<string, int|float|null>, finance: array<string, mixed>}
      */
     public function detail(Tenant $tenant): array
     {

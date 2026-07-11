@@ -1,46 +1,75 @@
 services:
   back:
-    container_name: sigapp-backend
     build:
       context: .
       dockerfile: .docker/Dockerfile
       target: prod
-    restart: always
-    ports:
-      - "8000:80"
+    restart: unless-stopped
+    expose:
+      - "80"
     environment:
-      - APP_ENV=production
-      - CENTRAL_DOMAINS=${CENTRAL_DOMAINS}
-      - DB_HOST=database
-      - DB_PORT=5432
-      - DB_DATABASE=${DB_DATABASE}
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - SANCTUM_STATEFUL_DOMAINS=${SANCTUM_STATEFUL_DOMAINS}
-      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
-      - FRONTEND_URL=${FRONTEND_URL}
-      - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
-      - BROWSERSHOT_CHROME_PATH=/usr/bin/chromium
-    depends_on:
-      - redis
+      APP_NAME: ${APP_NAME:-SIGAPP}
+      APP_ENV: production
+      APP_KEY: ${APP_KEY:?APP_KEY is required}
+      APP_DEBUG: "false"
+      APP_URL: ${APP_URL:?APP_URL is required}
+      APP_DOMAIN: ${APP_DOMAIN:?APP_DOMAIN is required}
+      CENTRAL_DOMAINS: ${CENTRAL_DOMAINS:?CENTRAL_DOMAINS is required}
+      LOG_CHANNEL: ${LOG_CHANNEL:-stderr}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DB_CONNECTION: pgsql
+      DB_HOST: ${DB_HOST:?DB_HOST is required}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_DATABASE: ${DB_DATABASE:?DB_DATABASE is required}
+      DB_USERNAME: ${DB_USERNAME:?DB_USERNAME is required}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      DB_SSLMODE: ${DB_SSLMODE:-prefer}
+      TENANCY_CENTRAL_CONNECTION: ${TENANCY_CENTRAL_CONNECTION:-central}
+      TENANCY_TEMPLATE_TENANT_CONNECTION: ${TENANCY_TEMPLATE_TENANT_CONNECTION:-tenant_template}
+      TENANCY_HOST_CONNECTION: ${TENANCY_HOST_CONNECTION:-tenant_host_connection}
+      TENANCY_TEMPLATE_SEARCH_PATH: ${TENANCY_TEMPLATE_SEARCH_PATH:-public}
+      TENANCY_HOST_SEARCH_PATH: ${TENANCY_HOST_SEARCH_PATH:-public}
+      TENANCY_DATABASE_PREFIX: ${TENANCY_DATABASE_PREFIX:-tenant_}
+      SESSION_DRIVER: ${SESSION_DRIVER:-database}
+      CACHE_STORE: ${CACHE_STORE:-redis}
+      QUEUE_CONNECTION: ${QUEUE_CONNECTION:-database}
+      REDIS_HOST: ${REDIS_HOST:?REDIS_HOST is required}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:?SANCTUM_STATEFUL_DOMAINS is required}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?CORS_ALLOWED_ORIGINS is required}
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+      LANDING_URL: ${LANDING_URL:?LANDING_URL is required}
+      FILESYSTEM_DISK: ${FILESYSTEM_DISK:-s3}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:?AWS_ACCESS_KEY_ID is required}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:?AWS_SECRET_ACCESS_KEY is required}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:?AWS_DEFAULT_REGION is required}
+      AWS_BUCKET: ${AWS_BUCKET:?AWS_BUCKET is required}
+      AWS_ENDPOINT: ${AWS_ENDPOINT:-}
+      AWS_USE_PATH_STYLE_ENDPOINT: ${AWS_USE_PATH_STYLE_ENDPOINT:-false}
+      MAIL_MAILER: ${MAIL_MAILER:-resend}
+      RESEND_API_KEY: ${RESEND_API_KEY:?RESEND_API_KEY is required}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:?MAIL_FROM_ADDRESS is required}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-SIGAPP}
+      STRIPE_KEY: ${STRIPE_KEY:?STRIPE_KEY is required}
+      STRIPE_SECRET: ${STRIPE_SECRET:?STRIPE_SECRET is required}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:?STRIPE_WEBHOOK_SECRET is required}
+      CASHIER_CURRENCY: ${CASHIER_CURRENCY:-brl}
+      STRIPE_PORTAL_CONFIGURATION_ID: ${STRIPE_PORTAL_CONFIGURATION_ID:-}
+      CENTRAL_ADMIN_NAME: ${CENTRAL_ADMIN_NAME:?CENTRAL_ADMIN_NAME is required}
+      CENTRAL_ADMIN_EMAIL: ${CENTRAL_ADMIN_EMAIL:?CENTRAL_ADMIN_EMAIL is required}
+      CENTRAL_ADMIN_PASSWORD: ${CENTRAL_ADMIN_PASSWORD:?CENTRAL_ADMIN_PASSWORD is required}
+      AI_PROVIDER: ${AI_PROVIDER:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
+      BROWSERSHOT_CHROME_PATH: /usr/bin/chromium
+      BROWSERSHOT_NO_SANDBOX: "true"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/api/health"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 40s
-    networks:
-      - database_sigapp
-
-  redis:
-    container_name: sigapp-redis
-    image: redis:7-alpine
-    restart: always
-    networks:
-      - database_sigapp
-
-networks:
-  database_sigapp:
-    external: true

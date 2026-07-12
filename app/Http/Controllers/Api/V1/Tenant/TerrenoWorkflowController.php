@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\ShowTerrenoWorkflowRequest;
 use App\Http\Requests\Tenant\TransitionTerrenoWorkflowRequest;
 use App\Http\Requests\Tenant\UpdateTerrenoQualificationRequest;
+use App\Http\Resources\Tenant\TerrenoReadinessResource;
 use App\Http\Resources\Tenant\TerrenoResource;
 use App\Http\Resources\Tenant\TerrenoWorkflowResource;
+use App\Http\Resources\Tenant\TerrenoWorkflowStateResource;
 use App\Services\ApiResponseService;
 use App\Services\Tenant\TerrenoWorkflowService;
 use Illuminate\Http\JsonResponse;
@@ -38,6 +40,20 @@ class TerrenoWorkflowController extends Controller
         return ApiResponseService::success(
             new TerrenoResource($updated),
             'Workflow do terreno atualizado com sucesso.'
+        );
+    }
+
+    public function workflowState(ShowTerrenoWorkflowRequest $request, string $id): JsonResponse
+    {
+        return ApiResponseService::success(
+            new TerrenoWorkflowStateResource($this->service->workflowState($id)),
+        );
+    }
+
+    public function readiness(ShowTerrenoWorkflowRequest $request, string $id): JsonResponse
+    {
+        return ApiResponseService::success(
+            new TerrenoReadinessResource($this->service->readiness($id)),
         );
     }
 

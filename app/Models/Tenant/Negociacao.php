@@ -36,4 +36,16 @@ class Negociacao extends Model
     {
         return $this->hasMany(Contrato::class, 'negociacao_id');
     }
+
+    /** @return HasMany<NegociacaoOferta, $this> */
+    public function ofertas(): HasMany
+    {
+        return $this->hasMany(NegociacaoOferta::class, 'negociacao_id');
+    }
+
+    /** @return HasMany<NegociacaoAprovacao, $this> */
+    public function aprovacoes(): HasMany
+    {
+        return $this->hasMany(NegociacaoAprovacao::class, 'negociacao_id');
+    }
 }

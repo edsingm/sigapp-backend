@@ -36,4 +36,10 @@ class Contrato extends Model
     {
         return $this->hasMany(ContratoParte::class, 'contrato_id');
     }
+
+    /** @return HasMany<ContratoCondicao, $this> */
+    public function condicoes(): HasMany
+    {
+        return $this->hasMany(ContratoCondicao::class, 'contrato_id');
+    }
 }

@@ -10,6 +10,7 @@ use App\Http\Requests\Tenant\StoreTerrenoRequest;
 use App\Http\Requests\Tenant\UpdateTerrenoInfoRequest;
 use App\Http\Requests\Tenant\UpdateTerrenoRequest;
 use App\Http\Requests\Tenant\UploadKmzRequest;
+use App\Http\Resources\Tenant\PipelineCardResource;
 use App\Http\Resources\Tenant\TerrenoInfoResource;
 use App\Http\Resources\Tenant\TerrenoResource;
 use App\Jobs\CalculateUsableAreaJob;
@@ -121,6 +122,15 @@ class TerrenoController extends Controller
                 'error' => config('app.debug') ? $e->getMessage() : 'Ocorreu um erro interno',
             ], 500);
         }
+    }
+
+    public function pipeline(FilterTerrenosRequest $request): JsonResponse
+    {
+        Gate::authorize('viewAny', Terreno::class);
+
+        $paginator = $this->service->filter($request->validated(), $request->boolean('force_refresh'));
+
+        return PipelineCardResource::collection($paginator)->response();
     }
 
     /**

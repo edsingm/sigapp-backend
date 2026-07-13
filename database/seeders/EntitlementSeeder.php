@@ -77,6 +77,7 @@ class EntitlementSeeder extends Seeder
         return [
             'broker' => [
                 'features' => [
+                    ...$this->roadmapFeatureMatrix(planSlug: 'broker'),
                     'home' => true,
                     'dashboard.enabled' => true,
                     'dashboard.overview' => false,
@@ -113,6 +114,7 @@ class EntitlementSeeder extends Seeder
             ],
             'basico' => [
                 'features' => [
+                    ...$this->roadmapFeatureMatrix(planSlug: 'basico'),
                     'home' => true,
                     'dashboard.enabled' => true,
                     'dashboard.overview' => true,
@@ -149,6 +151,7 @@ class EntitlementSeeder extends Seeder
             ],
             'master' => [
                 'features' => [
+                    ...$this->roadmapFeatureMatrix(planSlug: 'master'),
                     'home' => true,
                     'dashboard.enabled' => true,
                     'dashboard.overview' => true,
@@ -164,10 +167,10 @@ class EntitlementSeeder extends Seeder
                     'viabilities.charts' => false,
                     'viabilities.premises' => false,
                     'viabilities.kpis' => false,
-                    'committee' => false,
+                    'committee' => true,
                     'ai' => true,
                     'negotiation' => false,
-                    'legalizations' => false,
+                    'legalizations' => true,
                     'projects_room' => false,
                     'product_settings' => true,
                     'regionals' => true,
@@ -185,6 +188,7 @@ class EntitlementSeeder extends Seeder
             ],
             'pro' => [
                 'features' => [
+                    ...$this->roadmapFeatureMatrix(planSlug: 'pro'),
                     'home' => true,
                     'dashboard.enabled' => true,
                     'dashboard.overview' => true,
@@ -223,6 +227,102 @@ class EntitlementSeeder extends Seeder
     }
 
     /**
+     * Features do roadmap distribuídas progressivamente por plano.
+     *
+     * Broker concentra a operação individual; Básico adiciona análise;
+     * Master adiciona gestão; Pro libera os recursos estratégicos e de IA.
+     * `onboarding.profile` e `experience.accessibility` ficam disponíveis em
+     * todos os planos. `projects.room` é o alias canônico novo de
+     * `projects_room` e preserva o acesso legado do plano Pro.
+     *
+     * @return array<string, bool>
+     */
+    private function roadmapFeatureMatrix(string $planSlug): array
+    {
+        $features = [
+            'prospection.terrain_cockpit' => false,
+            'prospection.pipeline_board' => false,
+            'collaboration.tasks' => false,
+            'collaboration.inbox' => false,
+            'prospection.comparison' => false,
+            'viabilities.scenarios' => false,
+            'dashboard.executive' => false,
+            'dashboard.goals' => false,
+            'dashboard.management' => false,
+            'projects.room' => false,
+            'committee.meeting' => false,
+            'committee.meeting_mode' => false,
+            'negotiation.deal_room' => false,
+            'legalization.control_center' => false,
+            'search.global' => false,
+            'workspace.saved_views' => false,
+            'workspace.personalization' => false,
+            'reports.builder' => false,
+            'territorial.map_comparison' => false,
+            'documents.intelligence' => false,
+            'ai.contextual' => false,
+            'mobile.capture' => false,
+            'onboarding.profile' => false,
+            'dashboard.personalization' => false,
+            'experience.accessibility' => false,
+        ];
+
+        $broker = [
+            'prospection.terrain_cockpit',
+            'prospection.pipeline_board',
+            'collaboration.tasks',
+            'collaboration.inbox',
+            'workspace.saved_views',
+            'mobile.capture',
+            'onboarding.profile',
+            'experience.accessibility',
+        ];
+
+        $basico = [
+            ...$broker,
+            'prospection.comparison',
+            'viabilities.scenarios',
+            'search.global',
+            'workspace.personalization',
+        ];
+
+        $master = [
+            ...$basico,
+            'dashboard.executive',
+            'dashboard.goals',
+            'dashboard.management',
+            'committee.meeting',
+            'committee.meeting_mode',
+            'legalization.control_center',
+            'reports.builder',
+            'documents.intelligence',
+            'dashboard.personalization',
+        ];
+
+        $pro = [
+            ...$master,
+            'projects.room',
+            'negotiation.deal_room',
+            'territorial.map_comparison',
+            'ai.contextual',
+        ];
+
+        $enabledFeatures = match ($planSlug) {
+            'broker' => $broker,
+            'basico' => $basico,
+            'master' => $master,
+            'pro' => $pro,
+            default => [],
+        };
+
+        foreach ($enabledFeatures as $feature) {
+            $features[$feature] = true;
+        }
+
+        return $features;
+    }
+
+    /**
      * Definições canônicas de todos os entitlements do sistema.
      *
      * @return array<int, array{key: string, label: string, type: EntitlementType, default_value: mixed, description?: string}>
@@ -241,6 +341,33 @@ class EntitlementSeeder extends Seeder
             ['key' => 'regionals',                  'label' => 'Regionais',                   'type' => EntitlementType::FEATURE, 'default_value' => false],
             ['key' => 'territorial_base',           'label' => 'Base Territorial',            'type' => EntitlementType::FEATURE, 'default_value' => false],
             ['key' => 'ai',                         'label' => 'Assistente de IA',            'type' => EntitlementType::FEATURE, 'default_value' => false],
+
+            // ── Features reservadas para o roadmap ───────────────────────────
+            ['key' => 'prospection.terrain_cockpit',       'label' => 'Roadmap — Cockpit do terreno',          'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'prospection.pipeline_board',        'label' => 'Roadmap — Board do pipeline',           'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'collaboration.tasks',               'label' => 'Roadmap — Tarefas colaborativas',       'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'collaboration.inbox',               'label' => 'Roadmap — Inbox operacional',            'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'prospection.comparison',            'label' => 'Roadmap — Comparação de oportunidades',  'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'viabilities.scenarios',             'label' => 'Roadmap — Cenários de viabilidade',     'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'dashboard.executive',               'label' => 'Roadmap — Cockpit executivo',            'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'dashboard.goals',                   'label' => 'Roadmap — Metas gerenciais',             'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'dashboard.management',              'label' => 'Roadmap — Capacidade gerencial',         'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'projects.room',                     'label' => 'Roadmap — Sala de projetos',             'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'committee.meeting',                 'label' => 'Roadmap — Reuniões de comitê',           'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'committee.meeting_mode',            'label' => 'Roadmap — Modo reunião do comitê',      'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'negotiation.deal_room',             'label' => 'Roadmap — Deal room',                    'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'legalization.control_center',       'label' => 'Roadmap — Central de legalização',      'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'search.global',                     'label' => 'Roadmap — Busca global',                  'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'workspace.saved_views',             'label' => 'Roadmap — Visões salvas',                 'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'workspace.personalization',        'label' => 'Roadmap — Personalização do workspace',  'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'reports.builder',                   'label' => 'Roadmap — Construtor de relatórios',     'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'territorial.map_comparison',        'label' => 'Roadmap — Comparação territorial',       'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'documents.intelligence',             'label' => 'Roadmap — Documentos inteligentes',      'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'ai.contextual',                     'label' => 'Roadmap — IA contextual',                 'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'mobile.capture',                    'label' => 'Roadmap — Captura mobile',                'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'onboarding.profile',                'label' => 'Roadmap — Onboarding por perfil',        'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'dashboard.personalization',        'label' => 'Roadmap — Dashboard personalizável',     'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'experience.accessibility',          'label' => 'Roadmap — Qualidade e acessibilidade',   'type' => EntitlementType::FEATURE, 'default_value' => false],
 
             // ── Features aninhadas: dashboard ────────────────────────────────
             ['key' => 'dashboard.enabled',          'label' => 'Dashboard',                   'type' => EntitlementType::FEATURE, 'default_value' => false],

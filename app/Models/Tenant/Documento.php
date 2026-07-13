@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Table('terreno_documentos')]
 #[Fillable(['terreno_id', 'nome', 'tipo', 'categoria', 'descricao', 'file_path', 'tamanho', 'status', 'created_by', 'updated_by'])]
@@ -39,6 +40,24 @@ class Documento extends Model
     public function updatedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    /** @return HasMany<DocumentVersion, $this> */
+    public function versions(): HasMany
+    {
+        return $this->hasMany(DocumentVersion::class, 'documento_id');
+    }
+
+    /** @return HasMany<DocumentAnalysis, $this> */
+    public function analyses(): HasMany
+    {
+        return $this->hasMany(DocumentAnalysis::class, 'documento_id');
+    }
+
+    /** @return HasMany<DocumentReview, $this> */
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(DocumentReview::class, 'documento_id');
     }
 
     // Escopos

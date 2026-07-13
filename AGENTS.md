@@ -307,6 +307,13 @@ Este projeto tem um **envelope próprio**. Não invente formato novo:
 - Troca de plano: **upgrade** cobra imediatamente via Stripe (`pendingIfPaymentFails()->swapAndInvoice()`) e só concede o plano local se a chamada confirmar; **downgrade** mantém `plan_id` atual e grava `scheduled_plan_id` até a renovação (`invoice.paid`). O snapshot de assinatura expõe `scheduled_plan`.
 - O portal de billing deve usar `STRIPE_PORTAL_CONFIGURATION_ID` quando configurado para impedir troca de plano fora do `PlanSwapController`.
 - Enforcement de plano: middlewares `subscription.active`, `enforce.limits`, `check.feature` + `EntitlementService`/`PlanMatrixService`.
+- O catálogo de features do roadmap frontend fica centralizado em
+  `Database\Seeders\EntitlementSeeder::roadmapFeatureMatrix()` e segue a
+  escada Broker → Básico → Master → Pro: operação individual, análise,
+  gestão e recursos estratégicos/IA. `onboarding.profile` e
+  `experience.accessibility` ficam disponíveis em todos os planos. A chave
+  `projects.room` é o alias canônico de `projects_room` e preserva o acesso
+  legado do plano Pro; não crie uma cobrança ou regra paralela para o alias.
 - Nunca processe webhook Stripe fora do `WebhookController`/`WebhookEventService`; nunca confie em dados do cliente para preço/plano.
 
 ### 11. IA (Laravel AI SDK)
@@ -327,7 +334,10 @@ Fluxo macro do terreno (enum `WorkflowStatus`, orquestrado por `LandWorkflowServ
 `em_analise → aguardando_viabilidade → viabilidade_aprovada → aguardando_comite → negociacao_minuta → contrato_assinado → legalizando → legalizado_finalizado` (+ `descartado`, `arquivado`). Transições disparam `WorkflowTransitioned` → listeners gravam `StatusHistory`, `EntityActivity`, notificam e transicionam `Projeto`s relacionados.
 
 - **Prospecção/Terrenos**: `TerrenoService`, filtros (`TerrenoFilterService`), export Excel, KMZ upload (`KmzParserService`), cálculo de área útil (`Services/Tenant/Area/` — topografia, hidrografia, polígonos; `CalculateUsableAreaJob`), geoproximidade, scraper/enriquecimento de portal (`PortalTerrenoScraperService`, `Services/Parsers/Hiperdados/`), proprietários, corretores externos, contatos, produtos por terreno.
+- **Roadmap operacional**: atividades genéricas em `ActivityController`/`ActivityService`, tarefas colaborativas em `TaskController`/`TaskService` e cards de pipeline em `TerrenoController@pipeline`. Essas superfícies usam as tabelas existentes `entity_activities`/`tasks` e as migrations tenant `2026_07_12_000001_extend_tasks_for_collaboration`. Elas continuam protegidas pelas features `collaboration.inbox`, `collaboration.tasks` e `prospection.pipeline_board`.
+- **Comparação**: comparação de 2–4 terrenos e shortlists ficam em `ShortlistController`/`ShortlistService`, com as tabelas tenant `shortlists` e `shortlist_items`. A feature `prospection.comparison` é habilitada a partir do plano Básico; o backend não transforma comparação em recomendação automática.
 - **Viabilidade**: motor de cálculo em `Services/Tenant/Viabilidade/v1/` (calculators de DRE, fluxo mensal, receitas, despesas, indicadores, POC, impostos, curva). Premissas (`PremissasViabilidade`), seções, versões/auditoria, aprovação (submit/decide/revogar com rate limit próprio), comparação e duplicação. Revogação de aprovação só vale para viabilidade aprovada e não pode ignorar comitê em andamento. Modelo de referência em `docs/viabilidade-modelo/` e teste de conformidade com a planilha (`PlanilhaConformidadeTest`). **Não altere fórmulas sem validar contra a planilha modelo.**
+- Cenários de viabilidade persistidos usam `ViabilidadeScenarioController`/`ViabilidadeScenarioService` e a tabela tenant `viabilidade_scenarios`. O cálculo cria uma versão transitória isolada e delega ao motor oficial `Services/Tenant/Viabilidade/v1`; não duplique fórmulas nem altere a viabilidade-base. Promoção cria uma nova versão através do fluxo de duplicação existente.
 - **Comitê**: `CommitteeService` — revisões, pareceres por departamento, pendências, decisão final.
 - **Negociação**: `NegotiationService` — negociações + eventos.
 - **Contratos**: `ContractService`/`ContractRepository` — partes, assinatura (`ContratoSigned` → e-mail + atividade).
@@ -447,6 +457,15 @@ O domínio é **em português** (Terreno, Viabilidade, Legalizacao, Negociacao, 
 11. `.env` nunca commitado; `.env.example` sempre atualizado ao criar variável.
 12. **Feature nova ou alteração considerável deve atualizar este `AGENTS.md`** quando mudar regras, fluxos ou superfícies que a próxima IA precisa conhecer.
 13. Webhook Stripe, fórmulas de viabilidade e fluxo de transfer ticket são áreas sensíveis — não altere sem entender o design atual (ver `docs/`).
+14. O planejamento de projetos usa `projeto_milestones`, `projeto_dependencies` e `projeto_risks`, com mutações em `ProjetoPlanningService`; dependências devem ser validadas contra ciclos antes de persistir.
+15. As rotas de milestones, dependências e riscos de projetos ficam sob `check.feature:projects.room` e devem resolver explicitamente o projeto pai antes de operar recursos aninhados.
+16. O modo reunião do comitê usa `comite_meeting_*` e deve chamar o `CommitteeService` existente para qualquer decisão; fechar uma sessão não inventa decisão para pauta pendente.
+17. O deal room estende negociação/contrato com ofertas, aprovações e condições; aceitar uma oferta não assina contrato. A referência documental de condições permanece opcional até existir tabela tenant canônica de documentos.
+18. A central de legalização reutiliza etapas e dependências existentes. O caminho crítico deve detectar ciclos e custos realizados só podem ser derivados de itens marcados como pagos; custo comprometido permanece indisponível sem lançamento fonte.
+19. Captura mobile usa `mobile_captures`/`mobile_capture_attachments`: `client_id` é UUID idempotente por usuário, toda sincronização exige `base_version` e conflitos respondem `409` com payload seguro. Anexos são multipart em storage privado; nunca aceite foto/áudio inline em base64.
+20. Onboarding usa catálogo servidor versionado em `UserOnboardingService`, eventos allowlisted e idempotentes em `user_onboarding_events`; não aceite nomes livres de evento nem use onboarding para liberar permissões ou rotas.
+21. Relatórios configuráveis usam `report_templates`/`report_runs`, catálogo fechado de datasets/métricas/dimensões e `GenerateReportRunJob`. O JSON do template nunca vira SQL; a execução persiste snapshot, fonte/as-of, expiração e erro seguro.
+22. Inteligência documental estende `terreno_documentos` com versões imutáveis, análises assíncronas e revisão humana. OCR/análise não pode alterar campos de negócio automaticamente; limitações e confiança devem ser expostas e arquivo corrente nunca deve ser sobrescrito sem versão.
 
 ---
 
@@ -469,4 +488,4 @@ O domínio é **em português** (Terreno, Viabilidade, Legalizacao, Negociacao, 
 
 ---
 
-**Última atualização:** Julho 2026 — atualizado com storage local/S3 e alertas de uso, `scheduled_plan` em billing, relatórios PDF gerados por IA, revogação de aprovação de viabilidade, status de usuários tenant, remoção de `positions`, healthchecks reais e regra de manutenção contínua deste documento.
+**Última atualização:** Julho 2026 — atualizado com storage local/S3 e alertas de uso, `scheduled_plan` em billing, relatórios PDF gerados por IA, revogação de aprovação de viabilidade, status de usuários tenant, remoção de `positions`, healthchecks reais, cenários de viabilidade, planejamento de projetos, reuniões de comitê, deal room, insights de legalização, workspace, IA contextual, relatórios configuráveis, captura mobile, onboarding, versões/análise documental e regra de manutenção contínua deste documento.

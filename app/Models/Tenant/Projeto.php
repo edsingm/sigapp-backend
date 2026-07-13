@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Table('projetos')]
@@ -60,5 +61,23 @@ class Projeto extends Model
     public function prontoParaRegistroPor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'pronto_para_registro_por');
+    }
+
+    /** @return HasMany<ProjetoMilestone, $this> */
+    public function milestones(): HasMany
+    {
+        return $this->hasMany(ProjetoMilestone::class);
+    }
+
+    /** @return HasMany<ProjetoDependency, $this> */
+    public function dependencies(): HasMany
+    {
+        return $this->hasMany(ProjetoDependency::class);
+    }
+
+    /** @return HasMany<ProjetoRisk, $this> */
+    public function risks(): HasMany
+    {
+        return $this->hasMany(ProjetoRisk::class);
     }
 }

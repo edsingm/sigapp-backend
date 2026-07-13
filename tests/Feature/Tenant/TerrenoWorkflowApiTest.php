@@ -84,6 +84,29 @@ class TerrenoWorkflowApiTest extends TestCase
         ]);
     }
 
+    public function test_admin_can_view_workflow_state_and_readiness_contracts(): void
+    {
+        $terreno = Terreno::create([
+            'nome' => 'Terreno Cockpit',
+            'created_by' => $this->admin->id,
+            'workflow_stage' => WorkflowStatus::EM_ANALISE->stage(),
+            'workflow_status_code' => WorkflowStatus::EM_ANALISE->value,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->getJson("/api/v1/terrenos/{$terreno->id}/workflow-state")
+            ->assertOk()
+            ->assertJsonPath('data.status.code', WorkflowStatus::EM_ANALISE->value)
+            ->assertJsonPath('data.phase.code', WorkflowStatus::EM_ANALISE->stage())
+            ->assertJsonStructure(['data' => ['allowed_actions', 'blocked_actions', 'is_terminal']]);
+
+        $this->actingAs($this->admin)
+            ->getJson("/api/v1/terrenos/{$terreno->id}/readiness")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'blocked')
+            ->assertJsonStructure(['data' => ['items', 'blocking_count', 'warning_count', 'catalog_version']]);
+    }
+
     public function test_transition_returns_validation_error_when_prerequisites_are_missing(): void
     {
         $terreno = Terreno::create([

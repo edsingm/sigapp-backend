@@ -29,7 +29,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property Carbon $created_at
  * @property Carbon $updated_at
  */
-#[Fillable(['name', 'email', 'password', 'email_verified_at', 'locale', 'department_id', 'status', 'quiet_hours_start', 'quiet_hours_end', 'email_digest_frequency'])]
+#[Fillable(['name', 'email', 'password', 'email_verified_at', 'locale', 'department_id', 'status', 'quiet_hours_start', 'quiet_hours_end', 'email_digest_frequency', 'theme', 'timezone', 'density', 'dashboard_layout', 'favorites', 'recent'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -74,6 +74,8 @@ class User extends Authenticatable
             'password' => 'hashed',
             'locale' => 'string',
             'status' => 'string',
+            'favorites' => 'array',
+            'recent' => 'array',
         ];
     }
 

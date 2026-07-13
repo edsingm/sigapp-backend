@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Tenant;
 
+use App\Enums\ViabilidadeApprovalStatus;
 use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\ActivateViabilidadeRequest;
@@ -73,10 +74,11 @@ class ViabilidadeController extends Controller
 
     /**
      * Reprovar uma viabilidade.
+     * Persistido como approval_status canônico `rejeitada` (enum).
      */
     public function reprovar(DecideViabilidadeApprovalRequest $request, int $id): JsonResponse
     {
-        return $this->decidirAprovacao($request, $id, 'reprovada');
+        return $this->decidirAprovacao($request, $id, ViabilidadeApprovalStatus::Rejeitada->value);
     }
 
     /**
@@ -206,9 +208,9 @@ class ViabilidadeController extends Controller
 
         return ApiResponseService::success(
             new ViabilidadeResource($viabilidade),
-            $decision === 'aprovada'
+            $decision === ViabilidadeApprovalStatus::Aprovada->value
                 ? 'Viabilidade aprovada com sucesso'
-                : 'Viabilidade reprovada com sucesso'
+                : 'Viabilidade rejeitada com sucesso'
         );
     }
 

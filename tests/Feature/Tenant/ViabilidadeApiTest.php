@@ -221,6 +221,56 @@ class ViabilidadeApiTest extends TestCase
         ]);
     }
 
+    public function test_admin_can_reject_viabilidade_com_status_canonico_rejeitada(): void
+    {
+        $terrenoProduto = $this->createViabilityFixture();
+        $viabilidade = Viabilidade::create([
+            'terreno_id' => $terrenoProduto->getAttribute('terreno_id'),
+            'version' => 1,
+            'is_current' => true,
+            'status' => 'rascunho',
+            'approval_status' => 'em_aprovacao',
+            'resultados_dre' => [
+                'vgv' => 500_000,
+                'totais' => ['receita' => 500_000],
+                'indicadores' => [],
+                'reconciliation' => ['status' => 'ok'],
+            ],
+            'created_by' => $this->admin->id,
+            'updated_by' => $this->admin->id,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/viabilidades/{$viabilidade->id}/reprovar", [
+                'approval_notes' => 'Premissas inconsistentes com o terreno.',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.approval_status', 'rejeitada')
+            ->assertJsonPath('data.status', 'rascunho')
+            ->assertJsonPath('data.allowed_actions', [
+                'duplicate',
+                'recalculate_as_new_version',
+            ]);
+
+        $this->assertDatabaseHas('viabilidades', [
+            'id' => $viabilidade->id,
+            'approval_status' => 'rejeitada',
+            'status' => 'rascunho',
+        ]);
+
+        $this->assertDatabaseHas('viabilidade_aprovacoes', [
+            'viabilidade_id' => $viabilidade->id,
+            'decision' => 'rejeitada',
+            'user_id' => $this->admin->id,
+        ]);
+
+        // Versão rejeitada permanece imutável.
+        $this->actingAs($this->admin)
+            ->putJson("/api/v1/viabilidades/{$viabilidade->id}", $this->makePayload($terrenoProduto))
+            ->assertUnprocessable()
+            ->assertJsonPath('error.code', 'VIABILIDADE_LOCKED');
+    }
+
     public function test_nao_permite_editar_viabilidade_aprovada(): void
     {
         $terrenoProduto = $this->createViabilityFixture();

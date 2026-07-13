@@ -76,7 +76,21 @@ enum ViabilidadeApprovalStatus: string
         }
 
         if (is_string($value) && $value !== '') {
-            $parsed = self::tryFrom($value);
+            $normalized = strtolower(trim($value));
+
+            // Aliases legados / inglês ainda usados em endpoints e histórico antigo.
+            $alias = match ($normalized) {
+                'reprovada', 'rejected', 'reject' => self::Rejeitada,
+                'approved', 'approve' => self::Aprovada,
+                'pending' => self::Pendente,
+                'revoked' => self::Revogada,
+                default => null,
+            };
+            if ($alias instanceof self) {
+                return $alias;
+            }
+
+            $parsed = self::tryFrom($normalized);
             if ($parsed instanceof self) {
                 return $parsed;
             }

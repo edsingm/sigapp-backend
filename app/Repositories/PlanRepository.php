@@ -134,12 +134,43 @@ class PlanRepository implements PlanRepositoryInterface
             $value = json_decode((string) $row->value, true);
 
             if ($row->type === EntitlementType::FEATURE->value || $row->type === EntitlementType::FEATURE) {
-                data_set($features, $row->key, (bool) $value);
+                $this->setFeatureValue($features, (string) $row->key, (bool) $value);
             } else {
                 $limits[$row->key] = (int) $value;
             }
         }
 
         return ['features' => $features, 'limits' => $limits];
+    }
+
+    /**
+     * Monta features aninhadas sem perder uma feature pai com a mesma chave.
+     * Ex.: "ai" e "ai.contextual" coexistem como enabled + contextual.
+     *
+     * @param  array<string, mixed>  $features
+     */
+    private function setFeatureValue(array &$features, string $key, bool $value): void
+    {
+        $segments = explode('.', $key);
+        $last = (string) array_pop($segments);
+        $cursor = &$features;
+
+        foreach ($segments as $segment) {
+            if (! array_key_exists($segment, $cursor)) {
+                $cursor[$segment] = [];
+            } elseif (! is_array($cursor[$segment])) {
+                $cursor[$segment] = ['enabled' => $cursor[$segment]];
+            }
+
+            $cursor = &$cursor[$segment];
+        }
+
+        if (is_array($cursor[$last] ?? null)) {
+            $cursor[$last]['enabled'] = $value;
+        } else {
+            $cursor[$last] = $value;
+        }
+
+        unset($cursor);
     }
 }

@@ -128,6 +128,18 @@ class PlanMatrixServiceTest extends TestCase
         }
     }
 
+    public function test_it_preserves_ai_access_alongside_contextual_ai(): void
+    {
+        $service = app(PlanMatrixService::class);
+        $master = Plan::where('slug', 'master')->firstOrFail();
+        $pro = Plan::where('slug', 'pro')->firstOrFail();
+
+        $this->assertTrue($service->hasFeature($master, 'ai'));
+        $this->assertFalse($service->hasFeature($master, 'ai.contextual'));
+        $this->assertTrue($service->hasFeature($pro, 'ai'));
+        $this->assertTrue($service->hasFeature($pro, 'ai.contextual'));
+    }
+
     public function test_it_preserves_the_projects_room_alias_for_the_pro_plan(): void
     {
         $service = app(PlanMatrixService::class);

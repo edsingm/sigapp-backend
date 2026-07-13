@@ -48,14 +48,14 @@ class PlanMatrixService
 
     public function hasFeature(Plan|string|null $plan, string $path): bool
     {
-        $value = data_get($this->features($plan), $path);
+        $value = $this->featureValue($plan, $path);
 
         return $value === true;
     }
 
     public function featureValue(Plan|string|null $plan, string $path, mixed $default = null): mixed
     {
-        return data_get($this->features($plan), $path, $default);
+        return $this->resolveFeatureValue($this->features($plan), $path, $default);
     }
 
     public function getLimit(Plan|string|null $plan, string $key, int $default = 0): int
@@ -98,7 +98,7 @@ class PlanMatrixService
             $value = $extra->value;
 
             if ($ent->type === EntitlementType::FEATURE) {
-                data_set($features, $ent->key, (bool) $value);
+                $this->setFeatureValue($features, (string) $ent->key, (bool) $value);
             } else {
                 $limits[$ent->key] = (int) $value;
             }
@@ -112,7 +112,8 @@ class PlanMatrixService
      */
     public function hasFeatureForTenant(Tenant $tenant, string $path): bool
     {
-        $value = data_get($this->resolveForTenant($tenant)['features'], $path);
+        $features = $this->resolveForTenant($tenant)['features'];
+        $value = $this->resolveFeatureValue($features, $path);
 
         return $value === true;
     }
@@ -146,5 +147,52 @@ class PlanMatrixService
         }
 
         return null;
+    }
+
+    /**
+     * Resolve uma feature, tratando o campo enabled de features pai.
+     *
+     * @param  array<string, mixed>  $features
+     */
+    private function resolveFeatureValue(array $features, string $path, mixed $default = null): mixed
+    {
+        $value = data_get($features, $path, $default);
+
+        if (is_array($value) && array_key_exists('enabled', $value)) {
+            return $value['enabled'];
+        }
+
+        return $value;
+    }
+
+    /**
+     * Monta features aninhadas sem perder uma feature pai com a mesma chave.
+     * Ex.: "ai" e "ai.contextual" coexistem como enabled + contextual.
+     *
+     * @param  array<string, mixed>  $features
+     */
+    private function setFeatureValue(array &$features, string $key, bool $value): void
+    {
+        $segments = explode('.', $key);
+        $last = (string) array_pop($segments);
+        $cursor = &$features;
+
+        foreach ($segments as $segment) {
+            if (! array_key_exists($segment, $cursor)) {
+                $cursor[$segment] = [];
+            } elseif (! is_array($cursor[$segment])) {
+                $cursor[$segment] = ['enabled' => $cursor[$segment]];
+            }
+
+            $cursor = &$cursor[$segment];
+        }
+
+        if (is_array($cursor[$last] ?? null)) {
+            $cursor[$last]['enabled'] = $value;
+        } else {
+            $cursor[$last] = $value;
+        }
+
+        unset($cursor);
     }
 }

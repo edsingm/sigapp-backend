@@ -2,6 +2,8 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\TenantStatus;
+use App\Models\Central\Tenant;
 use App\Models\Tenant\Terreno;
 use App\Services\Ai\Tools\AiScoringService;
 use Illuminate\Console\Command;
@@ -9,41 +11,52 @@ use Illuminate\Console\Command;
 class RecalculateAiScoresCommand extends Command
 {
     protected $signature = 'ai:recalculate-scores
-                            {--terreno-id= : Calcula score apenas para um terreno específico}';
+                            {--terreno-id= : Calcula score apenas para um terreno específico}
+                            {--tenant= : Limita o processamento a um tenant específico}';
 
     protected $description = 'Recalcula scores de priorização de terrenos (Fase 3)';
 
     public function handle(AiScoringService $scoringService): int
     {
         $terrenoId = $this->option('terreno-id');
+        $tenantId = $this->option('tenant');
+        $tenants = Tenant::query()
+            ->when($tenantId, fn ($query) => $query->whereKey($tenantId), fn ($query) => $query->where('status', TenantStatus::ACTIVE->value))
+            ->cursor();
 
-        if ($terrenoId) {
-            $terreno = Terreno::find($terrenoId);
-            if (! $terreno) {
-                $this->error("Terreno {$terrenoId} não encontrado.");
+        $processed = 0;
+        $rows = [];
 
-                return Command::FAILURE;
+        foreach ($tenants as $tenant) {
+            tenancy()->initialize($tenant);
+
+            try {
+                if ($terrenoId) {
+                    $terreno = Terreno::find($terrenoId);
+                    if (! $terreno) {
+                        $this->warn("Terreno {$terrenoId} não encontrado no tenant {$tenant->id}.");
+
+                        continue;
+                    }
+
+                    $result = $scoringService->score($terreno);
+                    $rows[] = [$tenant->name, $terreno->nome, number_format($result['score'], 2), $result['tier']];
+                    $processed++;
+
+                    continue;
+                }
+
+                foreach ($scoringService->scoreAll() as $result) {
+                    $rows[] = [$tenant->name, $result['nome'], number_format($result['score'], 2), $result['tier']];
+                    $processed++;
+                }
+            } finally {
+                tenancy()->end();
             }
-
-            $result = $scoringService->score($terreno);
-            $this->info("Score do terreno {$terreno->nome}: {$result['score']} ({$result['tier']})");
-
-            return Command::SUCCESS;
         }
 
-        $this->info('Recalculando scores para todos os terrenos...');
-
-        $results = $scoringService->scoreAll();
-
-        $this->table(
-            ['Terreno', 'Score', 'Tier'],
-            array_map(
-                fn ($r): array => [$r['nome'], number_format($r['score'], 2), $r['tier']],
-                $results
-            )
-        );
-
-        $this->info(count($results).' terrenos classificados.');
+        $this->table(['Tenant', 'Terreno', 'Score', 'Tier'], $rows);
+        $this->info($processed.' terrenos classificados.');
 
         return Command::SUCCESS;
     }

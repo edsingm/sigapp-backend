@@ -29,7 +29,7 @@ class CreatePdfsTool implements Tool
 
     public function handle(Request $request): Stringable|string
     {
-        $filename = Str::slug($request['filename']).'.pdf';
+        $filename = Str::slug($request['filename']).'-'.Str::uuid().'.pdf';
         $path = 'pdfs/'.$filename;
 
         try {
@@ -141,10 +141,8 @@ class CreatePdfsTool implements Tool
             'code[class],pre[class],img[src|alt|class|style|width|height]'
         );
 
-        // Permite apenas imagens HTTP/HTTPS/data usadas pelo relatório.
+        // Imagens remotas fariam o Chromium requisitar URLs arbitrárias a partir do servidor.
         $config->set('URI.AllowedSchemes', [
-            'http' => true,
-            'https' => true,
             'data' => true,
         ]);
 

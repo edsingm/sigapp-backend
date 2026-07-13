@@ -2,6 +2,7 @@
 
 namespace App\Services\Tenant;
 
+use App\Jobs\IndexDocumentEmbeddingJob;
 use App\Models\Tenant\Documento;
 use App\Models\Tenant\User;
 use App\Repositories\Tenant\DocumentoRepository;
@@ -68,6 +69,8 @@ class DocumentoService
             'created_by' => $user->id,
             'updated_by' => $user->id,
         ]);
+
+        IndexDocumentEmbeddingJob::dispatch($documento->getKey());
 
         return $this->documentoRepository->findOrFail($documento->getKey(), ['terreno:id,nome', 'createdBy:id,name']);
     }

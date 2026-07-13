@@ -2,6 +2,7 @@
 
 namespace App\Services\Ai\Tools;
 
+use App\Enums\LegalizacaoEtapaStatus;
 use App\Models\Tenant\Legalizacao;
 use App\Services\PlanMatrixService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -34,7 +35,7 @@ class GetLegalizacaoTool implements Tool
 
         $query = Legalizacao::query()
             ->with(['etapas' => function ($q) {
-                $q->select(['id', 'legalizacao_id', 'nome', 'status', 'percentual', 'prazo_fim', 'custo_previsto', 'custo_realizado', 'ordem']);
+                $q->select(['id', 'legalizacao_id', 'titulo', 'status', 'percentual', 'fim_planejado', 'valor_custo', 'custo_pago', 'custos', 'ordem']);
             }, 'pendencias'])
             ->orderByDesc('created_at');
 
@@ -53,22 +54,23 @@ class GetLegalizacaoTool implements Tool
             'total' => $legalizacoes->count(),
             'items' => $legalizacoes->map(static function (Legalizacao $item): array {
                 $etapas = $item->etapas->map(fn ($e): array => [
-                    'nome' => $e->nome,
-                    'status' => $e->status,
+                    'nome' => $e->titulo,
+                    'status' => $e->status instanceof LegalizacaoEtapaStatus ? $e->status->value : $e->status,
                     'percentual' => $e->percentual,
-                    'prazo_fim' => optional($e->prazo_fim)?->toDateString(),
-                    'custo_previsto' => $e->custo_previsto,
-                    'custo_realizado' => $e->custo_realizado,
+                    'prazo_fim' => optional($e->fim_planejado)?->toDateString(),
+                    'custo_previsto' => (float) $e->valor_custo,
+                    'custo_realizado' => $e->custo_pago ? (float) $e->valor_custo : 0,
+                    'custos' => $e->custos,
                 ]);
 
                 $pendencias = $item->pendencias->map(fn ($p): array => [
-                    'tipo' => $p->tipo,
-                    'descricao' => $p->descricao,
+                    'tipo' => $p->severity,
+                    'descricao' => $p->title,
                     'status' => $p->status,
                 ]);
 
-                $atrasadas = $etapas->filter(fn ($e) => $e['status'] === 'atrasada' ||
-                    ($e['status'] !== 'concluida' && $e['prazo_fim'] && strtotime($e['prazo_fim']) < time()));
+                $atrasadas = $etapas->filter(fn ($e) => $e['status'] === LegalizacaoEtapaStatus::ATRASADA->value ||
+                    ($e['status'] !== LegalizacaoEtapaStatus::CONCLUIDA->value && $e['prazo_fim'] && strtotime($e['prazo_fim']) < time()));
 
                 return [
                     'id' => $item->id,

@@ -60,15 +60,16 @@ class GetComiteTool implements Tool
             'total' => $comites->count(),
             'items' => $comites->map(static function (ComiteRevisao $item): array {
                 $pareceres = $item->pareceresDepartamento->map(fn ($p): array => [
-                    'departamento' => $p->department_name ?? $p->departamento_nome ?? 'N/A',
-                    'posicao' => $p->posicao ?? 'pendente',
-                    'comentarios' => $p->comentarios ?? '',
+                    'departamento' => $p->department_code,
+                    'posicao' => $p->decision,
+                    'comentarios' => $p->comments ?? '',
                 ]);
 
                 $pendencias = $item->pendencias->map(fn ($p): array => [
-                    'descricao' => $p->descricao,
+                    'descricao' => $p->description ?? $p->title,
                     'status' => $p->status ?? 'aberta',
-                    'responsavel' => $p->responsavel_nome ?? 'Não atribuído',
+                    'responsavel_id' => $p->responsible_user_id,
+                    'departamento' => $p->department_code,
                 ]);
 
                 return [

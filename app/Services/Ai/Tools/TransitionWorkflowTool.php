@@ -49,6 +49,7 @@ class TransitionWorkflowTool implements Tool
 
         $reasonNotes = trim((string) ($request['reason_notes'] ?? ''));
         $reasonCode = trim((string) ($request['reason_code'] ?? 'ai_suggested'));
+        $previousStage = $terreno->workflow_stage;
 
         try {
             $updated = $this->workflowService->transition(
@@ -62,7 +63,7 @@ class TransitionWorkflowTool implements Tool
             $payload = [
                 'message' => "Workflow do terreno '{$updated->nome}' avançado com sucesso.",
                 'workflow' => [
-                    'previous_stage' => $updated->workflow_stage,
+                    'previous_stage' => $previousStage,
                     'new_stage' => $updated->workflow_stage,
                     'new_status_code' => $updated->workflow_status_code,
                     'changed_at' => optional($updated->workflow_status_changed_at)?->toAtomString(),

@@ -154,7 +154,7 @@ class AiMonitorService
             if ($legalizacao) {
                 $overdueEtapa = $legalizacao->etapas
                     ->filter(fn ($e): bool => $e->getAttribute('status') !== 'concluida'
-                        && $e->getAttribute('due_date') < now())
+                        && $e->getAttribute('fim_planejado') < now())
                     ->first();
 
                 if ($overdueEtapa) {
@@ -164,12 +164,12 @@ class AiMonitorService
                         'severity_score' => 80,
                         'terrain_id' => (int) $t->getKey(),
                         'terrain_name' => (string) $t->getAttribute('nome'),
-                        'message' => "Etapa de legalização '".(string) $overdueEtapa->getAttribute('nome')."' atrasada.",
+                        'message' => "Etapa de legalização '".(string) $overdueEtapa->getAttribute('titulo')."' atrasada.",
                         'suggestion' => 'Verificar pendências e atualizar status da etapa.',
                         'details' => [
                             'etapa_id' => $overdueEtapa->getKey(),
-                            'etapa_nome' => $overdueEtapa->getAttribute('nome'),
-                            'due_date' => $overdueEtapa->getAttribute('due_date'),
+                            'etapa_nome' => $overdueEtapa->getAttribute('titulo'),
+                            'due_date' => $overdueEtapa->getAttribute('fim_planejado'),
                         ],
                     ]);
                 }

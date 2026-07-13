@@ -23,7 +23,7 @@ class GetDocumentosTool implements Tool
         }
 
         $query = Documento::query()
-            ->select(['id', 'terreno_id', 'nome', 'tipo', 'categoria', 'descricao', 'file_path', 'tamanho', 'status', 'created_at'])
+            ->select(['id', 'terreno_id', 'nome', 'tipo', 'categoria', 'descricao', 'tamanho', 'status', 'created_at'])
             ->orderByDesc('created_at');
 
         $terrenoId = (int) ($request['terreno_id'] ?? 0);

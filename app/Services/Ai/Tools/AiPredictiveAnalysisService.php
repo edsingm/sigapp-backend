@@ -77,8 +77,8 @@ class AiPredictiveAnalysisService
         $viabilidades = $this->repository->getDecidedViabilities();
 
         $aprovadas = $viabilidades->filter(fn ($v) => $v->approval_status === 'aprovada');
-        $reprovadas = $viabilidades->filter(fn ($v) => in_array($v->approval_status, ['reprovada', 'reprovada_comite']));
-        $pendentes = $viabilidades->filter(fn ($v) => $v->approval_status === 'pendente');
+        $reprovadas = $viabilidades->filter(fn ($v) => $v->approval_status === 'rejeitada');
+        $pendentes = collect();
         $total = $viabilidades->count();
 
         // Tempo médio de aprovação
@@ -160,7 +160,7 @@ class AiPredictiveAnalysisService
         $result = collect();
         foreach ($viabilidades as $v) {
             $dre = $v->resultados_dre;
-            $vgv = $dre['indicadores']['vgv'] ?? $dre['totais']['vgv_geral'] ?? null;
+            $vgv = $dre['vgv'] ?? null;
             if ($vgv === null) {
                 continue;
             }
@@ -414,7 +414,7 @@ class AiPredictiveAnalysisService
 
                 // Viabilidade reprovada
                 $viab = $this->repository->getLatestViabilidadeForTerreno($t->id);
-                if ($viab && in_array($viab->approval_status, ['reprovada', 'reprovada_comite'], true)) {
+                if ($viab && $viab->approval_status === 'rejeitada') {
                     $riskScore += 30;
                     $reasons[] = 'Viabilidade reprovada';
                 }

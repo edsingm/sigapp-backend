@@ -87,7 +87,7 @@ class AiScoringRepository
     public function countOverdueLegalizacaoEtapas(Legalizacao $legalizacao): int
     {
         return $legalizacao->etapas()
-            ->where('prazo_fim', '<', now())
+            ->where('fim_planejado', '<', now())
             ->whereNotIn('status', ['concluida', 'cancelada'])
             ->count();
     }

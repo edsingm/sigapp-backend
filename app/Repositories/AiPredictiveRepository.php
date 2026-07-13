@@ -20,8 +20,7 @@ class AiPredictiveRepository implements AiPredictiveRepositoryInterface
     {
         /** @var Collection<int, Viabilidade> $viabilidades */
         $viabilidades = Viabilidade::withTrashed()
-            ->whereNotNull('approval_status')
-            ->where('approval_status', '!=', '')
+            ->whereIn('approval_status', ['aprovada', 'rejeitada'])
             ->get();
 
         return $viabilidades;

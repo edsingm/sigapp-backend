@@ -9,6 +9,7 @@ use App\Repositories\Contracts\AiTelemetryRepositoryInterface;
 use App\Services\PlanMatrixService as ServicesPlanMatrixService;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use RuntimeException;
 
 class AiTelemetryService
 {
@@ -34,6 +35,10 @@ class AiTelemetryService
             'openrouter' => [
                 'input' => (float) env('AI_OPENROUTER_INPUT_PRICE_PER_M', 0.00),
                 'output' => (float) env('AI_OPENROUTER_OUTPUT_PRICE_PER_M', 0.00),
+            ],
+            'gemini' => [
+                'input' => (float) env('AI_GEMINI_INPUT_PRICE_PER_M', 0.00),
+                'output' => (float) env('AI_GEMINI_OUTPUT_PRICE_PER_M', 0.00),
             ],
             'anthropic' => [
                 'input' => (float) env('AI_ANTHROPIC_INPUT_PRICE_PER_M', 3.00),
@@ -195,6 +200,15 @@ class AiTelemetryService
     public function hasExceededBudget(float $budgetLimit): bool
     {
         return $this->getTenantMonthlyCost() >= $budgetLimit;
+    }
+
+    public function ensureBudgetAvailable(): void
+    {
+        $budget = $this->getBudgetStatus();
+
+        if ($budget['exceeded']) {
+            throw new RuntimeException('O orçamento mensal de IA do tenant foi excedido.');
+        }
     }
 
     /**

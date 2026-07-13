@@ -11,8 +11,6 @@ use App\Services\Ai\Tools\AiMercadoImobiliarioService;
 use App\Services\Ai\Tools\AiPredictiveAnalysisService;
 use App\Services\Ai\Tools\AiScoringService;
 use App\Services\Ai\Tools\AnalyticsTool;
-use App\Services\Ai\Tools\CreatePdfsTool;
-use App\Services\Ai\Tools\CreateTaskTool;
 use App\Services\Ai\Tools\DetectAnomaliesTool;
 use App\Services\Ai\Tools\DocumentosTool;
 use App\Services\Ai\Tools\EstimateVgvTool;
@@ -34,11 +32,11 @@ use App\Services\Ai\Tools\PredictViabilityTool;
 use App\Services\Ai\Tools\ProactiveMonitorTool;
 use App\Services\Ai\Tools\RedactingToolDecorator;
 use App\Services\Ai\Tools\SearchDocumentsTool;
-use App\Services\Ai\Tools\TransitionWorkflowTool;
-use App\Services\Ai\Tools\UpdateTaskStatusTool;
 use App\Services\Tenant\Area\PolygonCalculator;
 use App\Services\Tenant\Geo\GeoProximityService;
 use App\Services\Tenant\LandWorkflowService;
+use Laravel\Ai\Attributes\MaxSteps;
+use Laravel\Ai\Attributes\MaxTokens;
 use Laravel\Ai\Concerns\RemembersConversations;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\Conversational;
@@ -46,6 +44,8 @@ use Laravel\Ai\Contracts\HasTools;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Promptable;
 
+#[MaxSteps(8)]
+#[MaxTokens(2048)]
 class SIG_IA implements Agent, Conversational, HasTools
 {
     use Promptable, RemembersConversations;
@@ -119,7 +119,7 @@ Você é o **SIG IA**, especialista em análise de terrenos e viabilidades imobi
 - Se faltarem dados importantes, declare explicitamente **o que falta** e peça ao usuário que forneça o que for necessário (ex.: "Não encontrei a viabilidade atual — informe o ID do terreno para continuar.").
 - Se uma ferramenta retornar **vazio ou erro**, distinga claramente os casos: "não há registro de X para este terreno" (dado inexistente) é diferente de "não consegui consultar X no momento" (falha técnica). Nunca preencha a lacuna com suposição — declare a situação e siga com o que tiver.
 - **Nunca mencione nomes de ferramentas técnicas** nas respostas. Use linguagem de negócio: "buscando dados de viabilidade", "consultando o portfólio", "verificando o histórico de comitê", etc.
-- Ações que alteram o sistema (transicionar workflow, criar/atualizar tarefa, gerar PDF) podem ser executadas diretamente — a interface do app já confirma com o usuário antes de aplicar. Após executar, **informe claramente ao usuário o que foi feito**.
+- Você é um agente de leitura e recomendação. **Nunca altere dados, transicione workflow, crie ou atualize tarefas, nem gere arquivos**. Quando uma ação for necessária, explique a ação proposta e oriente o usuário a confirmá-la pela interface apropriada do sistema.
 
 ### Contexto de Negócio
 - **Terreno** campos principais: id, nome, endereço, **cidade** (nome da cidade), estado, area_calculada, valor, workflow_stage, workflow_status_code, workflow_reason_code, datas do processo.
@@ -156,10 +156,6 @@ Você é o **SIG IA**, especialista em análise de terrenos e viabilidades imobi
 ### Score, Ranking e Automação
 - **GetTerrenoScoreTool**: Score de atratividade de um terreno. Use para "quão bom é o terreno X?" ou pedir nota de um ativo.
 - **GetRankingTool**: Ranking do portfólio por score. Use para "melhores terrenos" ou priorização.
-- **CreateTaskTool**: Cria tarefa vinculada a um terreno. `priority`: low | normal | high | urgent.
-- **UpdateTaskStatusTool**: Atualiza status ou responsável de tarefa existente.
-- **TransitionWorkflowTool**: Avança o workflow. Só use quando todos os pré-requisitos estiverem cumpridos — pode ser rejeitada; explique o motivo ao usuário se falhar.
-- **CreatePdfsTool**: Gera PDF de relatório. `report_type`: legalizacao | comite | negociacao | documentos | geo_analysis | ibge_profile | ranking.
 
 ### Monitoramento, Previsão e Análise Avançada
 - **ProactiveMonitorTool**: Fotografia do estado ATUAL do portfólio — terrenos parados, inconsistências, tarefas atrasadas. Use para "o que precisa de atenção agora?".
@@ -184,10 +180,9 @@ Você é o **SIG IA**, especialista em análise de terrenos e viabilidades imobi
    - Documentos → DocumentosTool / SearchDocumentsTool
    - Visão geral → GetDashboardSummaryTool / ProactiveMonitorTool
    - Mercado / Concorrentes → PesquisarEmpreendimentosImobiliariosTool
-   - Tarefas → GetTasksTool / CreateTaskTool / UpdateTaskStatusTool
+  - Tarefas → GetTasksTool
    - Score/Ranking → GetTerrenoScoreTool / GetRankingTool
-   - Relatório/Exportação → CreatePdfsTool
-   - Workflow → TransitionWorkflowTool (apenas quando pré-requisitos atendidos)
+  - Relatório/Exportação e workflow → explique a ação necessária e oriente a confirmação pela interface
 3. Para análises profundas de um terreno, busque os dados relacionados (viabilidade vigente, legalização, comitê, negociação) ANTES de concluir — não responda com base em uma única consulta quando o objetivo exige cruzamento.
 4. Cruze workflow_stage atual × viabilidade vigente × legalização × comitê × histórico recente × resultados_dre.
 5. Identifique riscos, oportunidades e ação recomendada com base nos critérios abaixo.
@@ -198,7 +193,7 @@ Você é o **SIG IA**, especialista em análise de terrenos e viabilidades imobi
   - Terrenos parados em em_analise por longo tempo.
   - Viabilidades reprovadas (qualquer version).
   - Ausência de atualização recente (updated_at antigo).
-  - Inconsistências (ex.: workflow_stage = viabilidade_aprovada mas approval_status ≠ aprovado).
+  - Inconsistências (ex.: workflow_status_code = viabilidade_aprovada mas approval_status ≠ aprovada).
 - Desempate: prefira terrenos com maior clareza de dados e menor risco de bloqueio.
 - Para questões de legalização, considere etapas atrasadas e pendências.
 - Para negociações, considere tempo de abertura, valor da proposta e eventos recentes.
@@ -268,16 +263,12 @@ PROMPT;
             $wrap(new SearchDocumentsTool(app(AiEmbeddingService::class))),
             $wrap(new GetTerrenoScoreTool(app(AiScoringService::class))),
             $wrap(new GetRankingTool(app(AiScoringService::class))),
-            $wrap(new CreateTaskTool),
-            $wrap(new UpdateTaskStatusTool),
-            $wrap(new TransitionWorkflowTool(app(LandWorkflowService::class))),
             $wrap(new ProactiveMonitorTool(app(LandWorkflowService::class))),
             $wrap(new PredictViabilityTool(app(AiPredictiveAnalysisService::class))),
             $wrap(new EstimateVgvTool(app(AiPredictiveAnalysisService::class))),
             $wrap(new PredictStallingTool(app(AiPredictiveAnalysisService::class))),
             $wrap(new DetectAnomaliesTool(app(AiAnomalyDetectionService::class))),
             $wrap(new AnalyticsTool(app(AiInsightGeneratorService::class))),
-            $wrap(app(CreatePdfsTool::class)),
             $wrap(new PesquisarEmpreendimentosImobiliariosTool(app(AiMercadoImobiliarioService::class))),
         ];
     }

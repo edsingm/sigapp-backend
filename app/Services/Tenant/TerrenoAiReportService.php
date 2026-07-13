@@ -865,10 +865,10 @@ PROMPT;
         $startTime = microtime(true);
 
         try {
+            $this->telemetryService->ensureBudgetAvailable();
             $response = $agent->prompt(
                 $prompt,
-                provider: $agentRoute['provider'],
-                model: $agentRoute['model'],
+                provider: $agentRoute['providers'],
                 timeout: 180
             );
 

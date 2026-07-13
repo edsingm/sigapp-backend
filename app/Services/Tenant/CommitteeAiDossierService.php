@@ -69,8 +69,9 @@ class CommitteeAiDossierService
         $startedAt = microtime(true);
 
         try {
+            $this->telemetry->ensureBudgetAvailable();
             $prompt = $this->redactor->redactPrompt($this->buildPrompt($review));
-            $response = $route['agent']->prompt($prompt);
+            $response = $route['agent']->prompt($prompt, provider: $route['providers']);
             $duration = (int) ((microtime(true) - $startedAt) * 1000);
             $provider = $response->meta->provider ?? $route['provider'];
             $model = $response->meta->model ?? $route['model'];

@@ -54,7 +54,6 @@ class DocumentosTool implements Tool
             'status' => $documento->status,
             'status_label' => $documento->status_label ?? $documento->status,
             'tamanho_bytes' => (int) ($documento->tamanho ?? 0),
-            'file_path' => $documento->file_path,
             'ai_analysis' => [
                 'tipo_detectado' => $documento->tipo ?? 'desconhecido',
                 'sugestao_acao' => match ($documento->tipo ?? '') {
@@ -80,7 +79,7 @@ class DocumentosTool implements Tool
     private function listDocumentos(Request $request): string
     {
         $query = Documento::query()
-            ->select(['id', 'terreno_id', 'nome', 'tipo', 'categoria', 'descricao', 'file_path', 'tamanho', 'status', 'created_at'])
+            ->select(['id', 'terreno_id', 'nome', 'tipo', 'categoria', 'descricao', 'tamanho', 'status', 'created_at'])
             ->orderByDesc('created_at');
 
         $terrenoId = (int) ($request['terreno_id'] ?? 0);

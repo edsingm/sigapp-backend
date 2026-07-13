@@ -164,6 +164,24 @@ class AiTelemetryServiceTest extends TestCase
         $this->assertSame(0.0, $cost);
     }
 
+    public function test_gemini_cost_uses_configured_prices(): void
+    {
+        $previousInputPrice = getenv('AI_GEMINI_INPUT_PRICE_PER_M');
+        $previousOutputPrice = getenv('AI_GEMINI_OUTPUT_PRICE_PER_M');
+        putenv('AI_GEMINI_INPUT_PRICE_PER_M=1.25');
+        putenv('AI_GEMINI_OUTPUT_PRICE_PER_M=5.00');
+
+        try {
+            $service = $this->makeService();
+            $cost = $service->estimateCost('gemini', 'gemini-2.5-flash', 1_000_000, 1_000_000);
+
+            $this->assertEqualsWithDelta(6.25, $cost, 0.000001);
+        } finally {
+            putenv('AI_GEMINI_INPUT_PRICE_PER_M'.($previousInputPrice === false ? '' : '='.$previousInputPrice));
+            putenv('AI_GEMINI_OUTPUT_PRICE_PER_M'.($previousOutputPrice === false ? '' : '='.$previousOutputPrice));
+        }
+    }
+
     // ── estimateCost: provider desconhecido ──────────────────────────────────
 
     public function test_unknown_provider_costs_zero(): void

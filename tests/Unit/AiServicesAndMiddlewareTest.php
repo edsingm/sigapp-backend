@@ -87,6 +87,8 @@ class AiServicesAndMiddlewareTest extends TestCase
         $this->assertArrayHasKey('agent', $result);
         $this->assertArrayHasKey('provider', $result);
         $this->assertArrayHasKey('model', $result);
+        $this->assertArrayHasKey('providers', $result);
+        $this->assertSame($result['model'], $result['providers'][$result['provider']]);
         $this->assertEquals('openrouter', $result['provider']);
     }
 

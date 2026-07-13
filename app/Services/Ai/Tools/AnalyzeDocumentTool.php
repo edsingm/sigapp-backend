@@ -49,7 +49,6 @@ class AnalyzeDocumentTool implements Tool
             'status' => $documento->status,
             'status_label' => $documento->status_label ?? $documento->status,
             'tamanho_bytes' => (int) ($documento->tamanho ?? 0),
-            'file_path' => $documento->file_path,
             'ai_analysis' => [
                 'tipo_detectado' => $documento->tipo ?? 'desconhecido',
                 'sugestao_acao' => match ($documento->tipo ?? '') {

@@ -14,12 +14,15 @@ return [
     */
 
     'default' => 'openai',
-    'agent_provider' => env('AI_PROVIDER'),
+    'agent_provider' => env('AI_PROVIDER', 'openrouter'),
     'default_for_images' => 'gemini',
     'default_for_audio' => 'gemini',
     'default_for_transcription' => 'openai',
     'default_for_embeddings' => 'openai',
     'default_for_reranking' => 'cohere',
+    'embedding_provider' => env('AI_EMBEDDING_PROVIDER', 'openai'),
+    'embedding_model' => env('AI_EMBEDDING_MODEL', 'text-embedding-3-small'),
+    'embedding_min_similarity' => (float) env('AI_EMBEDDING_MIN_SIMILARITY', 0.35),
 
     /*
     |--------------------------------------------------------------------------

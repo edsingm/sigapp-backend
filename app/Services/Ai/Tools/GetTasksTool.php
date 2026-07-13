@@ -24,7 +24,7 @@ class GetTasksTool implements Tool
         }
 
         $query = Task::query()
-            ->with(['terreno:id,nome,endereco', 'assignedTo:id,name'])
+            ->with(['terreno:id,nome,endereco', 'assignedUser:id,name'])
             ->orderBy('due_date');
 
         $terrenoId = (int) ($request['terreno_id'] ?? 0);
@@ -55,37 +55,39 @@ class GetTasksTool implements Tool
             return 'Nenhuma tarefa encontrada'.($onlyOverdue ? ' atrasada.' : ' para os filtros informados.');
         }
 
+        $items = $tasks->map(static function (Task $t): array {
+            $isOverdue = $t->due_date && $t->due_date < now()
+                && ! in_array($t->status, ['concluded', 'cancelled'], true);
+
+            return [
+                'id' => $t->id,
+                'title' => $t->title,
+                'description' => $t->description,
+                'status' => $t->status,
+                'priority' => $t->priority ?? 'normal',
+                'due_date' => optional($t->due_date)?->toAtomString(),
+                'is_overdue' => $isOverdue,
+                'terreno' => $t->terreno ? [
+                    'id' => $t->terreno->id,
+                    'nome' => $t->terreno->nome,
+                ] : null,
+                'assigned_to' => $t->assignedUser ? [
+                    'id' => $t->assignedUser->id,
+                    'name' => $t->assignedUser->name,
+                ] : null,
+                'created_at' => optional($t->created_at)?->toAtomString(),
+            ];
+        });
+
         $payload = [
             'total' => $tasks->count(),
-            'items' => $tasks->map(static function (Task $t): array {
-                $isOverdue = $t->due_date && $t->due_date < now()
-                    && ! in_array($t->status, ['concluded', 'cancelled']);
-
-                return [
-                    'id' => $t->id,
-                    'title' => $t->title,
-                    'description' => $t->description,
-                    'status' => $t->status,
-                    'priority' => $t->priority ?? 'normal',
-                    'due_date' => optional($t->due_date)?->toAtomString(),
-                    'is_overdue' => $isOverdue,
-                    'terreno' => $t->terreno ? [
-                        'id' => $t->terreno->id,
-                        'nome' => $t->terreno->nome,
-                    ] : null,
-                    'assigned_to' => $t->assignedTo ? [
-                        'id' => $t->assignedTo->id,
-                        'name' => $t->assignedTo->name,
-                    ] : null,
-                    'created_at' => optional($t->created_at)?->toAtomString(),
-                ];
-            })->all(),
+            'items' => $items->all(),
             'resumo' => [
                 'total' => $tasks->count(),
-                'overdue' => $tasks->where('is_overdue', true)->count(),
-                'open' => $tasks->where('status', 'open')->count(),
-                'in_progress' => $tasks->where('status', 'in_progress')->count(),
-                'concluded' => $tasks->where('status', 'concluded')->count(),
+                'overdue' => $items->where('is_overdue', true)->count(),
+                'open' => $items->where('status', 'open')->count(),
+                'in_progress' => $items->where('status', 'in_progress')->count(),
+                'concluded' => $items->where('status', 'concluded')->count(),
             ],
         ];
 

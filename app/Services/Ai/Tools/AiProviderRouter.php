@@ -14,20 +14,28 @@ class AiProviderRouter
     protected array $attempts = [];
 
     /**
-     * Obtém o agente configurado com provider primário.
+     * Obtém o agente e a cadeia de providers para failover do Laravel AI SDK.
      *
-     * @return array{agent: SIG_IA, provider: string, model: string, isFallback: false}
+     * @return array{agent: SIG_IA, provider: string, model: string, providers: array<string, string>, isFallback: false}
      */
     public function getAgentWithFallback(): array
     {
         $agent = new SIG_IA;
         $primaryProvider = $agent->provider();
         $primaryModel = $agent->model();
+        $providers = [$primaryProvider => $primaryModel];
+        $fallbackProvider = (string) env('AI_FALLBACK_PROVIDER', '');
+        $fallbackModel = (string) env('AI_FALLBACK_AGENT_MODEL', '');
+
+        if ($fallbackProvider !== '' && $fallbackModel !== '' && $fallbackProvider !== $primaryProvider) {
+            $providers[$fallbackProvider] = $fallbackModel;
+        }
 
         return [
             'agent' => $agent,
             'provider' => $primaryProvider,
             'model' => $primaryModel,
+            'providers' => $providers,
             'isFallback' => false,
         ];
     }

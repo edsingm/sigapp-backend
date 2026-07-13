@@ -42,6 +42,7 @@ use App\Services\Tenant\Area\PolygonCalculator;
 use App\Services\Tenant\Geo\GeoProximityService;
 use App\Services\Tenant\LandWorkflowService;
 use Laravel\Ai\Contracts\Tool;
+use Laravel\Ai\Gateway\TextGenerationOptions;
 use Laravel\Ai\Providers\Tools\ProviderTool;
 use Laravel\Ai\Tools\Request;
 use RuntimeException;
@@ -78,16 +79,12 @@ class AiToolsTest extends TestCase
             SearchDocumentsTool::class,
             GetTerrenoScoreTool::class,
             GetRankingTool::class,
-            CreateTaskTool::class,
-            UpdateTaskStatusTool::class,
-            TransitionWorkflowTool::class,
             ProactiveMonitorTool::class,
             PredictViabilityTool::class,
             EstimateVgvTool::class,
             PredictStallingTool::class,
             DetectAnomaliesTool::class,
             AnalyticsTool::class,
-            CreatePdfsTool::class,
             PesquisarEmpreendimentosImobiliariosTool::class,
         ];
 
@@ -354,6 +351,14 @@ class AiToolsTest extends TestCase
 
         $this->assertSame(true, $options['reasoning']['enabled'] ?? false);
         $this->assertSame(true, $options['reasoning']['exclude'] ?? false);
+    }
+
+    public function test_sig_ia_has_bounded_tool_steps_and_tokens(): void
+    {
+        $options = TextGenerationOptions::forAgent(new SIG_IA);
+
+        $this->assertSame(8, $options->maxSteps);
+        $this->assertSame(2048, $options->maxTokens);
     }
 
     private function toolClass(Tool|ProviderTool $tool): string

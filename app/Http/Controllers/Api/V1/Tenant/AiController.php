@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Ai\Contracts\ConversationStore;
 use Laravel\Ai\Exceptions\RateLimitedException;
+use Laravel\Ai\Streaming\Events\ToolCall;
 use Symfony\Component\HttpFoundation\Response;
 
 class AiController extends Controller
@@ -115,7 +116,10 @@ class AiController extends Controller
         $startTime = microtime(true);
 
         try {
-            $streamable = $agent->continue($conversationId, $authUser)->stream($message);
+            $streamable = $agent->continue($conversationId, $authUser)->stream(
+                $message,
+                provider: $agentRoute['providers'],
+            );
 
             $streamable->then(function ($streamedResponse) use (
                 $userId,
@@ -123,7 +127,8 @@ class AiController extends Controller
                 $agentRoute,
                 $startTime,
                 $telemetryService,
-                $providerRouter
+                $providerRouter,
+                $redactor
             ) {
                 $duration = (int) ((microtime(true) - $startTime) * 1000);
                 $provider = $streamedResponse->meta->provider ?? $agentRoute['provider'];
@@ -135,8 +140,8 @@ class AiController extends Controller
                 $totalTokens = $promptTokens + $completionTokens;
                 $estimatedCost = $telemetryService->estimateCost($provider, $model, $promptTokens, $completionTokens, $cacheReadInputTokens);
                 $toolCalls = $streamedResponse->events
-                    ->where('type', 'tool-call')
-                    ->map(fn ($event) => ['tool' => $event->tool ?? 'unknown', 'input' => $event->input ?? []])
+                    ->whereInstanceOf(ToolCall::class)
+                    ->map(fn (ToolCall $event) => ['tool' => $event->toolCall->name, 'input' => $redactor->redactPayload($event->toolCall->arguments)])
                     ->values()
                     ->toArray();
 

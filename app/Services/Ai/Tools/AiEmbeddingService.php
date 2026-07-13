@@ -6,6 +6,7 @@ use App\Repositories\Tenant\AiEmbeddingRepository;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Laravel\Ai\Embeddings;
+use RuntimeException;
 
 class AiEmbeddingService
 {
@@ -28,14 +29,21 @@ class AiEmbeddingService
             $response = Embeddings::for([$text])
                 ->dimensions(self::DEFAULT_DIMENSIONS)
                 ->timeout(30)
-                ->generate();
+                ->generate(
+                    (string) config('ai.embedding_provider'),
+                    (string) config('ai.embedding_model'),
+                );
 
-            return $response->embeddings[0] ?? [];
+            $embedding = $response->embeddings[0] ?? [];
+            if ($embedding === []) {
+                throw new RuntimeException('O provider não retornou embedding para o texto informado.');
+            }
+
+            return $embedding;
         } catch (\Throwable $e) {
-            Log::warning("AI Embedding fallback: {$e->getMessage()}");
+            Log::warning("AI Embedding generation failed: {$e->getMessage()}");
 
-            // Placeholder para quando o provider não está configurado
-            return array_fill(0, self::DEFAULT_DIMENSIONS, 0.0);
+            throw new RuntimeException('Não foi possível gerar o embedding do documento.', 0, $e);
         }
     }
 
@@ -106,8 +114,8 @@ class AiEmbeddingService
         $this->repository->createEmbedding([
             'chunk_id' => $chunkId,
             'embedding' => $embedding,
-            'provider' => $provider ?? env('AI_EMBEDDING_PROVIDER', 'openai'),
-            'model' => $model ?? env('OPENAI_EMBEDDING_MODEL', 'text-embedding-3-small'),
+            'provider' => $provider ?? (string) config('ai.embedding_provider'),
+            'model' => $model ?? (string) config('ai.embedding_model'),
             'dimensions' => count($embedding),
         ]);
     }
@@ -165,7 +173,7 @@ class AiEmbeddingService
 
         // Para search sem pgvector, limitamos para não carregar tudo
         $allEmbeddings = $this->repository->searchEmbeddings(
-            env('OPENAI_EMBEDDING_MODEL', 'text-embedding-3-small'),
+            (string) config('ai.embedding_model'),
             $terrenoId,
             200,
         );
@@ -180,6 +188,9 @@ class AiEmbeddingService
             }
 
             $similarity = $this->cosineSimilarity($queryEmbedding, $storedVector);
+            if ($similarity < (float) config('ai.embedding_min_similarity')) {
+                continue;
+            }
             $chunk = $embedding->chunk()->first();
 
             $this->insertScoredResult($scored, [

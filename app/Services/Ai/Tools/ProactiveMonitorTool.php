@@ -190,7 +190,7 @@ class ProactiveMonitorTool implements Tool
                 if ($t->legalizacao) {
                     $overdueEtapa = $t->legalizacao->etapas()
                         ->where('status', '!=', 'concluida')
-                        ->where('due_date', '<', now())
+                        ->where('fim_planejado', '<', now())
                         ->first();
 
                     if ($overdueEtapa) {
@@ -200,12 +200,12 @@ class ProactiveMonitorTool implements Tool
                             'severity_score' => 80,
                             'terrain_id' => $t->id,
                             'terrain_name' => $t->nome,
-                            'message' => "Etapa de legalização '{$overdueEtapa->nome}' atrasada.",
+                            'message' => "Etapa de legalização '{$overdueEtapa->titulo}' atrasada.",
                             'suggestion' => 'Verificar pendências e atualizar status da etapa.',
                             'details' => [
                                 'etapa_id' => $overdueEtapa->id,
-                                'etapa_nome' => $overdueEtapa->nome,
-                                'due_date' => $overdueEtapa->due_date,
+                                'etapa_nome' => $overdueEtapa->titulo,
+                                'due_date' => optional($overdueEtapa->fim_planejado)?->toDateString(),
                             ],
                         ];
                     }

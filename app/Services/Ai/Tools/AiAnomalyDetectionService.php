@@ -114,7 +114,7 @@ class AiAnomalyDetectionService
                 // Stage negociaçao/comitê com viabilidade reprovada
                 if (in_array($t->workflow_stage, ['comite', 'negociacao_contrato'], true) &&
                     $t->viabilidadeAtual &&
-                    in_array($t->viabilidadeAtual->approval_status, ['reprovada', 'reprovada_comite'], true)) {
+                    $t->viabilidadeAtual->approval_status === 'rejeitada') {
                     $anomalies->push([
                         'category' => 'workflow_inconsistencies',
                         'type' => 'advanced_stage_with_rejected_viability',
@@ -179,7 +179,7 @@ class AiAnomalyDetectionService
 
                 foreach ($t->viabilidades as $v) {
                     $dre = $v->resultados_dre;
-                    $vgv = $dre['indicadores']['vgv'] ?? $dre['totais']['vgv_geral'] ?? null;
+                    $vgv = $dre['vgv'] ?? null;
 
                     if ($vgv && (float) $vgv > 0) {
                         $ratios[] = (float) $vgv / $terrenoValue;

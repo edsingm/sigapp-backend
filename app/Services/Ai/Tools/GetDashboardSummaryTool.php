@@ -67,9 +67,8 @@ class GetDashboardSummaryTool implements Tool
         // VGV total das viabilidades ativas
         $vgv = Viabilidade::query()
             ->where('is_current', true)
-            ->whereIn('status', ['ativo', 'aprovada'])
             ->get()
-            ->sum(fn ($v): float => $v->resultados_dre['indicadores']['vgv_total'] ?? 0);
+            ->sum(fn ($v): float => $v->resultados_dre['vgv'] ?? 0);
 
         // Top cidades
         $topCidadesRaw = Terreno::query()

@@ -89,6 +89,7 @@ class DocumentosApiTest extends TestCase
         $documentoId = $createResponse->json('data.id');
         $documento = Documento::findOrFail($documentoId);
         Storage::disk('s3')->assertExists($documento->file_path);
+        Queue::assertPushed(IndexDocumentEmbeddingJob::class);
 
         $this->actingAs($this->admin)->getJson('/api/v1/documentos')
             ->assertOk()

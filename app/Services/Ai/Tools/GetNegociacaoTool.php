@@ -69,9 +69,10 @@ class GetNegociacaoTool implements Tool
                     'notes' => $item->notes,
                     'eventos_count' => $item->eventos->count(),
                     'eventos' => $item->eventos->map(fn ($e): array => [
-                        'tipo' => $e->tipo ?? $e->type ?? 'N/A',
-                        'descricao' => $e->descricao ?? $e->description ?? '',
-                        'data' => optional($e->created_at)?->toAtomString(),
+                        'tipo' => $e->event_type,
+                        'descricao' => $e->notes ?? '',
+                        'dados' => $e->payload_json,
+                        'data' => optional($e->happened_at)?->toAtomString(),
                     ])->values()->all(),
                     'created_at' => optional($item->created_at)?->toAtomString(),
                 ];

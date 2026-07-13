@@ -61,14 +61,14 @@ class AiScoringService
         $totalScore = 0;
 
         // Verificar se é encerramento
-        if (in_array($terreno->workflow_stage, self::STAGE_ENCERRAMENTO, true)) {
+        if (in_array($terreno->workflow_status_code, self::STAGE_ENCERRAMENTO, true)) {
             return [
                 'score' => 0,
                 'tier' => 'sem_classificacao',
                 'factors' => [
                     'encerrado' => [
                         'score' => 0,
-                        'details' => 'Terreno encerrado (stage: '.$terreno->workflow_stage.')',
+                        'details' => 'Terreno encerrado (status: '.$terreno->workflow_status_code.')',
                     ],
                 ],
                 'version' => self::CURRENT_VERSION,
@@ -88,7 +88,7 @@ class AiScoringService
         $totalScore += $stageScore;
         $factors['estagio_workflow'] = [
             'raw' => $stageScore,
-            'stage' => $terreno->workflow_stage,
+            'stage' => $terreno->workflow_status_code,
             'weight' => self::WEIGHT_ESTAGIO_AVANCADO,
         ];
 
@@ -245,7 +245,7 @@ class AiScoringService
         }
 
         // Reprovada = penalização
-        if ($viab->approval_status === 'reprovada') {
+        if ($viab->approval_status === 'rejeitada') {
             return 0;
         }
 
@@ -264,7 +264,7 @@ class AiScoringService
      */
     protected function scoreEstagio(Terreno $terreno): float
     {
-        $stagePosition = self::STAGE_ORDER[$terreno->workflow_stage] ?? 0;
+        $stagePosition = self::STAGE_ORDER[$terreno->workflow_status_code] ?? 0;
         $maxPosition = count(self::STAGE_ORDER);
 
         if ($stagePosition === 0) {
@@ -328,7 +328,7 @@ class AiScoringService
             return self::WEIGHT_VGV * 0.1;
         }
 
-        $vgv = $viab->resultados_dre['indicadores']['vgv_total'] ?? 0;
+        $vgv = $viab->resultados_dre['vgv'] ?? 0;
         if ($vgv <= 0) {
             return self::WEIGHT_VGV * 0.1;
         }

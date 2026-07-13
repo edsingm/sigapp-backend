@@ -2,6 +2,8 @@
 
 namespace App\Services\Tenant\Viabilidade\v1;
 
+use Carbon\Carbon;
+
 /**
  * ImpostosService - Centraliza todos os cálculos de impostos e tributos
  *
@@ -10,6 +12,7 @@ namespace App\Services\Tenant\Viabilidade\v1;
  * - Cálculo de IRPJ, CSLL
  * - Cálculo de tributos sobre receitas
  * - Proporção de impostos por produto
+ * - Cronograma único da dívida PJ
  */
 class ImpostosService
 {
@@ -89,14 +92,35 @@ class ImpostosService
         $csll = 0;
         $outrasDeducoes = 0;
 
-        foreach ($produtos as $produto) {
-            // Proporção do produto na Receita Bruta total (para ratear PIS/COFINS)
-            $proporcaoBruta = $vgvSemTerrenista > 0
-                ? ($produto['vgv_produto'] ?? 0) / $vgvSemTerrenista
-                : 0;
-            $receitaBrutaProduto = $receitaBruta * $proporcaoBruta;
+        // Base de alocação única: VGV sem terrenista por produto (mesma base num/den).
+        // Evita proporções > 100% quando há permuta (VGV bruto no num e líquido no den).
+        $basesProduto = [];
+        $somaBases = 0.0;
+        foreach ($produtos as $idx => $produto) {
+            $unidades = max(0, (int) ($produto['quantidade_unidades'] ?? 0));
+            $permutas = max(0, (int) ($produto['permutas'] ?? 0));
+            $comercializaveis = max(0, $unidades - $permutas);
+            $preco = (float) ($produto['preco'] ?? 0);
+            $pgto = (float) ($produto['pgto_por_lote'] ?? 0);
+            $base = max(0.0, ($preco * $comercializaveis) - ($pgto * $comercializaveis));
+            if ($base <= 0.0 && isset($produto['financeiro'])) {
+                // fallback legado: vgv_produto líquido de permuta
+                $base = max(0.0, (float) ($produto['vgv_produto'] ?? 0) - ($permutas * $preco) - ($unidades * $pgto));
+            }
+            $basesProduto[$idx] = $base;
+            $somaBases += $base;
+        }
 
-            // PIS/COFINS: base = Receita Bruta × tributos%  (planilha DRE R53)
+        if ($somaBases <= 0.0 && $vgvSemTerrenista > 0) {
+            $somaBases = $vgvSemTerrenista;
+        }
+
+        foreach ($produtos as $idx => $produto) {
+            $proporcao = $somaBases > 0 ? ($basesProduto[$idx] / $somaBases) : 0.0;
+            $receitaBrutaProduto = $receitaBruta * $proporcao;
+            $vgvProdutoBase = $vgvSemTerrenista * $proporcao;
+
+            // PIS/COFINS: base legal = receita bruta rateada
             $tributosPct = $produto['imposto_tributos'] ?? 0;
             $valorImposto = $receitaBrutaProduto * $tributosPct;
             $pis += $valorImposto * 0.0925;
@@ -105,8 +129,8 @@ class ImpostosService
             if (isset($produto['financeiro'])) {
                 $issPct = (float) ($produto['imposto_iss'] ?? 0);
                 $outrasPct = (float) ($produto['imposto_outros'] ?? 0);
-                $iss += $receitaBrutaProduto * $issPct;
-                $outrasDeducoes += $vgvSemTerrenista * $proporcaoBruta * $outrasPct;
+                $iss += $vgvProdutoBase * $issPct;
+                $outrasDeducoes += $vgvProdutoBase * $outrasPct;
 
                 $tributosPctRaw = (float) ($produto['imposto_tributos'] ?? 0) * 100;
                 if ($tributosPctRaw > 5) {
@@ -129,6 +153,8 @@ class ImpostosService
             'outras_deducoes' => round($outrasDeducoes, 2),
             'total' => round($pis + $cofins + $iss + $outrasDeducoes, 2),
             'total_ir_csll' => round($irpj + $csll, 2),
+            'base_alocacao' => 'vgv_sem_terrenista',
+            'soma_proporcoes' => $somaBases > 0 ? 1.0 : 0.0,
         ];
     }
 
@@ -221,6 +247,155 @@ class ImpostosService
             'juros_totais' => round($jurosTotais, 2),
             'valor_total_pagar' => round($totalPagar, 2),
             'parcela_mensal' => $totalPagar > 0 ? round(($amortizacaoParcelas > 0 ? $valorAntecipado / $amortizacaoParcelas : 0) + ($jurosTotais / max(1, $mesesSimples + $amortizacaoParcelas)), 2) : 0,
+        ];
+    }
+
+    /**
+     * Cronograma único da dívida PJ usado pela DRE e pelo fluxo financeiro.
+     * Juros na carência são pagos (não capitalizados). Saldo final = 0.
+     *
+     * @return array{
+     *   valor_antecipado: float,
+     *   juros_totais: float,
+     *   principal_amortizado: float,
+     *   saldo_final: float,
+     *   por_mes: array<string, array{desembolso: float, juros_pagos: float, amortizacao: float, saldo_inicial: float, saldo_final: float}>
+     * }
+     */
+    public function gerarCronogramaDividaPj(
+        float $valorObra,
+        int $mesesObra,
+        float $taxaAnual,
+        float $percentualAntecipado,
+        float $valorBaseAdicional,
+        int $carenciaMeses,
+        int $amortizacaoParcelas,
+        Carbon|\DateTimeInterface $inicioObra,
+        Carbon|\DateTimeInterface $dataEntrega,
+    ): array {
+        unset($valorBaseAdicional);
+
+        $resumo = $this->calcularJurosPJ(
+            $valorObra,
+            $mesesObra,
+            'composto',
+            $taxaAnual,
+            $percentualAntecipado,
+            0.0,
+            $carenciaMeses,
+            $amortizacaoParcelas,
+        );
+
+        $valorAntecipado = (float) $resumo['valor_antecipado'];
+        $taxaMensal = (float) $resumo['taxa_mensal'];
+        $porMes = [];
+
+        if ($valorAntecipado <= 0.0) {
+            return [
+                'valor_antecipado' => 0.0,
+                'juros_totais' => 0.0,
+                'principal_amortizado' => 0.0,
+                'saldo_final' => 0.0,
+                'por_mes' => [],
+            ];
+        }
+
+        $inicio = $inicioObra instanceof Carbon
+            ? $inicioObra->copy()->startOfMonth()
+            : Carbon::instance(\DateTime::createFromInterface($inicioObra))->startOfMonth();
+        $entrega = $dataEntrega instanceof Carbon
+            ? $dataEntrega->copy()->startOfMonth()
+            : Carbon::instance(\DateTime::createFromInterface($dataEntrega))->startOfMonth();
+
+        $saldo = $valorAntecipado;
+        $jurosTotais = 0.0;
+        $principalAmortizado = 0.0;
+        $amortizacaoMensal = $amortizacaoParcelas > 0 ? ($valorAntecipado / $amortizacaoParcelas) : 0.0;
+        $inicioAmortizacao = $entrega->copy()->addMonths(max(0, $carenciaMeses) + 1)->startOfMonth();
+        $parcelaAmort = 0;
+
+        // Desembolso no início da obra.
+        $chaveInicio = $inicio->format('Y-m');
+        $porMes[$chaveInicio] = [
+            'desembolso' => round($valorAntecipado, 2),
+            'juros_pagos' => 0.0,
+            'amortizacao' => 0.0,
+            'saldo_inicial' => 0.0,
+            'saldo_final' => round($saldo, 2),
+        ];
+
+        // Carência: juros pagos mensalmente (não capitalizados).
+        $cursor = $inicio->copy()->addMonth();
+        $fimCarencia = $inicioAmortizacao->copy()->subMonth();
+        while ($cursor->lessThanOrEqualTo($fimCarencia) && $saldo > 0.0) {
+            $chave = $cursor->format('Y-m');
+            $juros = $saldo * $taxaMensal;
+            $jurosTotais += $juros;
+            $porMes[$chave] = [
+                'desembolso' => 0.0,
+                'juros_pagos' => round($juros, 2),
+                'amortizacao' => 0.0,
+                'saldo_inicial' => round($saldo, 2),
+                'saldo_final' => round($saldo, 2),
+            ];
+            $cursor->addMonth();
+        }
+
+        // Amortização: juros + principal até zerar.
+        while ($parcelaAmort < $amortizacaoParcelas && $saldo > 0.01) {
+            $chave = $cursor->format('Y-m');
+            $saldoInicial = $saldo;
+            $juros = $saldo * $taxaMensal;
+            $jurosTotais += $juros;
+            $amort = min($saldo, $amortizacaoMensal);
+            // Última parcela: balloon do residual.
+            if ($parcelaAmort === $amortizacaoParcelas - 1) {
+                $amort = $saldo;
+            }
+            $saldo = max(0.0, $saldo - $amort);
+            $principalAmortizado += $amort;
+            $parcelaAmort++;
+
+            $existente = $porMes[$chave] ?? [
+                'desembolso' => 0.0,
+                'juros_pagos' => 0.0,
+                'amortizacao' => 0.0,
+                'saldo_inicial' => round($saldoInicial, 2),
+                'saldo_final' => 0.0,
+            ];
+            $existente['juros_pagos'] = round((float) $existente['juros_pagos'] + $juros, 2);
+            $existente['amortizacao'] = round((float) $existente['amortizacao'] + $amort, 2);
+            $existente['saldo_inicial'] = round($saldoInicial, 2);
+            $existente['saldo_final'] = round($saldo, 2);
+            $porMes[$chave] = $existente;
+
+            $cursor->addMonth();
+        }
+
+        // Garante quitação residual.
+        if ($saldo > 0.01) {
+            $chave = $cursor->format('Y-m');
+            $saldoInicial = $saldo;
+            $juros = $saldo * $taxaMensal;
+            $jurosTotais += $juros;
+            $amort = $saldo;
+            $principalAmortizado += $amort;
+            $saldo = 0.0;
+            $porMes[$chave] = [
+                'desembolso' => 0.0,
+                'juros_pagos' => round($juros, 2),
+                'amortizacao' => round($amort, 2),
+                'saldo_inicial' => round($saldoInicial, 2),
+                'saldo_final' => 0.0,
+            ];
+        }
+
+        return [
+            'valor_antecipado' => round($valorAntecipado, 2),
+            'juros_totais' => round($jurosTotais, 2),
+            'principal_amortizado' => round($principalAmortizado, 2),
+            'saldo_final' => round($saldo, 2),
+            'por_mes' => $porMes,
         ];
     }
 }

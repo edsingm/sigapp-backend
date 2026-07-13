@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Tenant;
 
+use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\ActivateViabilidadeRequest;
 use App\Http\Requests\Tenant\CompareViabilidadesRequest;
@@ -114,6 +115,8 @@ class ViabilidadeController extends Controller
             return ApiResponseService::paginated(
                 $viabilidades->through(fn (Viabilidade $viabilidade): array => ViabilidadeResource::make($viabilidade)->resolve())
             );
+        } catch (DomainException $e) {
+            throw $e;
         } catch (Exception $e) {
             Log::error('Erro no ViabilidadeController::index', ['error' => $e->getMessage()]);
 
@@ -135,6 +138,8 @@ class ViabilidadeController extends Controller
                 'Viabilidade criada com sucesso'
             );
 
+        } catch (DomainException $e) {
+            throw $e;
         } catch (Exception $e) {
             Log::error('Erro no ViabilidadeController::store', [
                 'request_data' => $request->validated(),
@@ -175,6 +180,8 @@ class ViabilidadeController extends Controller
                 'Viabilidade atualizada com sucesso'
             );
 
+        } catch (DomainException $e) {
+            throw $e;
         } catch (Exception $e) {
             Log::error('Erro no ViabilidadeController::update', [
                 'viabilidade_id' => $id,
@@ -218,6 +225,8 @@ class ViabilidadeController extends Controller
             return ApiResponseService::success(
                 ViabilidadeResource::collection($this->viabilidadeService->listarViabilidadesPorTerreno($terrenoId))
             );
+        } catch (DomainException $e) {
+            throw $e;
         } catch (Exception $e) {
 
             Log::error('Erro no ViabilidadeController::byTerreno', [
@@ -244,6 +253,8 @@ class ViabilidadeController extends Controller
             }
 
             return ApiResponseService::success(new ViabilidadeResource($viabilidade));
+        } catch (DomainException $e) {
+            throw $e;
         } catch (Exception $e) {
 
             Log::error('Erro no ViabilidadeController::latest', [
@@ -266,6 +277,8 @@ class ViabilidadeController extends Controller
                 'Viabilidade duplicada com sucesso'
             );
 
+        } catch (DomainException $e) {
+            throw $e;
         } catch (Exception $e) {
             Log::error('Erro no ViabilidadeController::duplicate', [
                 'viabilidade_id' => $id,
@@ -291,6 +304,8 @@ class ViabilidadeController extends Controller
             }
 
             return ApiResponseService::serverError('Erro ao excluir viabilidade');
+        } catch (DomainException $e) {
+            throw $e;
         } catch (Exception $e) {
 
             Log::error('Erro no ViabilidadeController::destroy', [
@@ -319,6 +334,8 @@ class ViabilidadeController extends Controller
                 'viabilidade_1' => (new ViabilidadeCalculationResource($comparacao['viabilidade_1']))->resolve(),
                 'viabilidade_2' => (new ViabilidadeCalculationResource($comparacao['viabilidade_2']))->resolve(),
             ]);
+        } catch (DomainException $e) {
+            throw $e;
         } catch (Exception $e) {
 
             Log::error('Erro no ViabilidadeController::compare', [
@@ -343,6 +360,8 @@ class ViabilidadeController extends Controller
             $resultado = $this->viabilidadeService->buscarViabilidadeComDre($id);
 
             return ApiResponseService::success($resultado['dre_resultados']);
+        } catch (DomainException $e) {
+            throw $e;
         } catch (Exception $e) {
 
             Log::error('Erro no ViabilidadeController::gerarDre', [
@@ -367,6 +386,8 @@ class ViabilidadeController extends Controller
                 'Viabilidade recalculada com sucesso'
             );
 
+        } catch (DomainException $e) {
+            throw $e;
         } catch (Exception $e) {
             Log::error('Erro no ViabilidadeController::recalcular', [
                 'viabilidade_id' => $id,
@@ -391,6 +412,8 @@ class ViabilidadeController extends Controller
                 new ViabilidadeResource($this->viabilidadeService->restore($id)),
                 'Viabilidade restaurada com sucesso'
             );
+        } catch (DomainException $e) {
+            throw $e;
         } catch (Exception $e) {
 
             Log::error('Erro no ViabilidadeController::restore', [
@@ -444,6 +467,8 @@ class ViabilidadeController extends Controller
                 ->name("viabilidade-{$id}-".now()->format('Y-m-d').'.pdf')
                 ->toResponse(request());
 
+        } catch (DomainException $e) {
+            throw $e;
         } catch (Exception $e) {
             Log::error('Erro no ViabilidadeController::exportPdf', [
                 'viabilidade_id' => $id,
@@ -472,6 +497,8 @@ class ViabilidadeController extends Controller
                     $this->viabilidadeService->forSelect($request->integer('terreno_id') ?: null)
                 )
             );
+        } catch (DomainException $e) {
+            throw $e;
         } catch (Exception $e) {
 
             Log::error('Erro no ViabilidadeController::forSelect', [

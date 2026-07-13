@@ -3,6 +3,7 @@
 namespace App\Models\Tenant;
 
 use App\Enums\PerfilFinanciamento;
+use App\Enums\ViabilidadeApprovalStatus;
 use App\Traits\HasDashboardCache;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -309,7 +310,24 @@ class Viabilidade extends Model
 
     public function isApproved(): bool
     {
-        return $this->approval_status === 'aprovada' || $this->status === 'ativo';
+        return $this->approvalStatus() === ViabilidadeApprovalStatus::Aprovada
+            || $this->status === 'ativo';
+    }
+
+    public function approvalStatus(): ViabilidadeApprovalStatus
+    {
+        return ViabilidadeApprovalStatus::fromMixed(
+            $this->approval_status,
+            is_string($this->status) ? $this->status : null,
+        );
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function allowedActions(): array
+    {
+        return $this->approvalStatus()->allowedActions();
     }
 
     /**

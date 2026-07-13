@@ -63,10 +63,15 @@ class ProdutosProcessor
             }
             $cp = $customMap[$terrenoProduto->getKey()] ?? [];
 
-            $unidades = $cp['unidades'] ?? $terrenoProduto->unidades ?? 1;
-            $valor = $cp['valor'] ?? $terrenoProduto->valor ?? 0;
-            $permutas = $cp['permuta'] ?? $terrenoProduto->permuta ?? 0;
-            $pgtoPorLote = $cp['pgto_por_lote'] ?? $terrenoProduto->pgto_por_lote ?? 0;
+            $unidades = max(0, (int) ($cp['unidades'] ?? $terrenoProduto->unidades ?? 0));
+            $valor = (float) ($cp['valor'] ?? $terrenoProduto->valor ?? 0);
+            $permutas = max(0, (int) ($cp['permuta'] ?? $terrenoProduto->permuta ?? 0));
+            $pgtoPorLote = max(0.0, (float) ($cp['pgto_por_lote'] ?? $terrenoProduto->pgto_por_lote ?? 0));
+
+            // Permuta nunca pode superar unidades; zero comercializável é estado válido.
+            if ($permutas > $unidades) {
+                $permutas = $unidades;
+            }
 
             $avaliacaoLotesCef = $produto->avaliacao_lotesCef ?? 0;
             $custoM2 = $cp['custo_m2'] ?? $produto->m2_cost ?? 0;
@@ -74,18 +79,20 @@ class ProdutosProcessor
             $areaPrivativa = $produto->private_area ?? 0;
             $demandaMinCef = $produto->demanda_minCef ?? 0;
 
+            $unidadesComercializaveis = max(0, $unidades - $permutas);
+
             $dados['totalUnidades'] += $unidades;
             $dados['permutas'] += $permutas;
-            $dados['totalUnidadesConstrutora'] += ($unidades - $permutas);
+            $dados['totalUnidadesConstrutora'] += $unidadesComercializaveis;
 
             $vgvProduto = $valor * $unidades;
             $dados['vgv'] += $vgvProduto;
             $dados['areaConstruida'] += $areaPrivativa * $unidades;
 
-            $vgvSemPermuta = $vgvProduto - ($permutas * $valor);
-            $vgvSemTerrenista = $vgvSemPermuta - ($unidades * $pgtoPorLote);
+            $vgvSemPermuta = $valor * $unidadesComercializaveis;
+            $vgvSemTerrenista = $vgvSemPermuta - ($unidadesComercializaveis * $pgtoPorLote);
             $dados['vgvSemUnidPermutas'] += $vgvSemPermuta;
-            $dados['vgvSemValorTerrenista'] += $vgvSemTerrenista;
+            $dados['vgvSemValorTerrenista'] += max(0.0, $vgvSemTerrenista);
 
             $imps = $this->impostosService->calcularImpostosProduto(
                 $vgvSemTerrenista,
@@ -109,8 +116,8 @@ class ProdutosProcessor
             $dados['irrpj'] += $irpjCorrigido;
             $dados['csll'] += $csllCorrigido;
 
-            $dados['custoObraHabitacao'] += $custoM2 * $areaPrivativa * ($unidades - $permutas);
-            $dados['custoInfraestrutura'] += $custoInfra * ($unidades - $permutas);
+            $dados['custoObraHabitacao'] += $custoM2 * $areaPrivativa * $unidadesComercializaveis;
+            $dados['custoInfraestrutura'] += $custoInfra * $unidadesComercializaveis;
 
             $dados['produtos'][] = [
                 'id' => $produto->getKey(),

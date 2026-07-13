@@ -2,13 +2,17 @@
 
 namespace App\Services\Tenant\Viabilidade\v1;
 
+use App\Enums\ViabilidadeApprovalStatus;
 use App\Enums\WorkflowStatus;
 use App\Events\Tenant\ViabilidadeDecided;
 use App\Events\Tenant\ViabilidadeSubmitted;
-use App\Models\Tenant\ComiteRevisao;
+use App\Exceptions\ViabilidadeConflictException;
+use App\Exceptions\ViabilidadeLockedException;
+use App\Exceptions\ViabilidadeTransitionNotAllowedException;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\User;
 use App\Models\Tenant\Viabilidade;
+use App\Repositories\Tenant\CommitteeRepository;
 use App\Repositories\Tenant\ViabilidadeRepository;
 use App\Services\Tenant\LandWorkflowService;
 use Exception;
@@ -18,7 +22,6 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Validation\ValidationException;
 
 class ViabilidadeService
 {
@@ -106,6 +109,8 @@ class ViabilidadeService
         private readonly ViabilidadeUnificadoService $unificadoService,
         private readonly LandWorkflowService $workflowService,
         private readonly ViabilidadeRepository $repository,
+        private readonly ViabilidadeSnapshotService $snapshotService,
+        private readonly CommitteeRepository $committeeRepository,
     ) {}
 
     public function findOrFail(int|string $id): Viabilidade
@@ -156,15 +161,23 @@ class ViabilidadeService
         return DB::transaction(function () use ($dados, $actor) {
             $actor ??= Auth::user();
             $this->validarDados($dados);
-            $terreno = $this->repository->findTerrenoOrFail($dados['terreno_id']);
-            $nextVersion = $this->repository->nextVersionForTerreno((int) $dados['terreno_id']);
+            $terrenoId = (int) $dados['terreno_id'];
+            $this->repository->lockTerrenoViabilidades($terrenoId);
+            $terreno = $this->repository->findTerrenoOrFail($terrenoId);
+            $nextVersion = $this->repository->nextVersionForTerreno($terrenoId);
+
+            // Congela data_lancamento na criação (nunca recalcular default dinâmico).
+            if (empty($dados['data_lancamento'])) {
+                $dados['data_lancamento'] = now()->addYears(2)->toDateString();
+            }
+
             $payload = $this->prepararPayloadPersistencia($dados, null, $actor);
 
             // A viabilidade aprovada permanece a "atual" (is_current) do terreno.
             // Novos rascunhos só assumem is_current quando ainda não há aprovada.
-            $isCurrent = $this->repository->approvedByTerreno((int) $dados['terreno_id']) === null;
+            $isCurrent = $this->repository->approvedByTerreno($terrenoId) === null;
             if ($isCurrent) {
-                $this->repository->clearCurrentForTerreno((int) $dados['terreno_id']);
+                $this->repository->clearCurrentForTerreno($terrenoId);
             }
 
             $viabilidade = $this->repository->create([
@@ -172,20 +185,18 @@ class ViabilidadeService
                 'version' => $nextVersion,
                 'is_current' => $isCurrent,
                 'status' => 'rascunho',
-                'approval_status' => 'pendente',
+                'approval_status' => ViabilidadeApprovalStatus::Pendente->value,
                 'created_by' => $actor?->id,
                 'updated_by' => $actor?->id,
             ]);
 
             $dreResultados = $this->unificadoService->gerarFluxoMensal(
-                $dados['terreno_id'],
+                $terrenoId,
                 $viabilidade->id,
                 $dados['produtos'] ?? null
             );
 
-            $viabilidade = $this->repository->update($viabilidade, [
-                'resultados_dre' => $dreResultados,
-            ]);
+            $viabilidade = $this->persistResultados($viabilidade, $dreResultados);
 
             $this->advanceWorkflowForNewViability(
                 $terreno,
@@ -207,34 +218,46 @@ class ViabilidadeService
         return DB::transaction(function () use ($viabilidade, $dados, $actor) {
             $actor ??= Auth::user();
             $viabilidade = $viabilidade instanceof Viabilidade ? $viabilidade : $this->repository->findOrFail($viabilidade);
+            $this->assertMutable($viabilidade, 'editar');
 
-            // Viabilidade aprovada é imutável — revogue a aprovação para editar.
-            if ($viabilidade->approval_status === 'aprovada') {
-                throw ValidationException::withMessages([
-                    'viabilidade' => ['Não é possível editar uma viabilidade aprovada. Revogue a aprovação antes de editar.'],
-                ]);
+            // terreno_id é imutável após criação.
+            if (array_key_exists('terreno_id', $dados) && (int) $dados['terreno_id'] !== (int) $viabilidade->terreno_id) {
+                throw new ViabilidadeConflictException(
+                    'Não é permitido alterar o terreno de uma viabilidade existente.',
+                    'VIABILIDADE_TERRENO_IMMUTABLE',
+                    ['terreno_id' => (int) $viabilidade->terreno_id],
+                );
+            }
+            unset($dados['terreno_id']);
+
+            // data_lancamento já materializada permanece se o cliente não enviar outra.
+            if (empty($dados['data_lancamento']) && $viabilidade->data_lancamento !== null) {
+                $dados['data_lancamento'] = $viabilidade->data_lancamento instanceof \DateTimeInterface
+                    ? $viabilidade->data_lancamento->format('Y-m-d')
+                    : (string) $viabilidade->data_lancamento;
             }
 
             $viabilidade->loadMissing('updatedBy');
             $payload = $this->prepararPayloadPersistencia($dados, $viabilidade, $actor);
-
-            // Se houver validação específica de update, chamar aqui
-            // $this->validarDados($dados); // Opcional, dependendo da regra
 
             $viabilidade = $this->repository->update($viabilidade, [
                 ...$payload,
                 'updated_by' => $actor?->id,
             ]);
 
+            $produtos = is_array($dados['produtos'] ?? null)
+                ? $dados['produtos']
+                : $this->snapshotService->extractProdutos(
+                    is_array($viabilidade->premissas_snapshot) ? $viabilidade->premissas_snapshot : null
+                );
+
             $dreResultados = $this->unificadoService->gerarFluxoMensal(
                 $viabilidade->terreno_id,
                 $viabilidade->id,
-                $dados['produtos'] ?? null
+                $produtos !== [] ? $produtos : null
             );
 
-            $viabilidade = $this->repository->update($viabilidade, [
-                'resultados_dre' => $dreResultados,
-            ]);
+            $viabilidade = $this->persistResultados($viabilidade, $dreResultados);
 
             return [
                 'viabilidade' => $this->repository->loadDefaultRelations($viabilidade),
@@ -253,7 +276,8 @@ class ViabilidadeService
 
         $dreResultados = $viabilidade->resultados_dre;
 
-        if ($this->precisaRecalcularDre($dreResultados)) {
+        // Nunca recalcular silenciosamente versões bloqueadas (em aprovação/aprovada/rejeitada/revogada).
+        if ($this->precisaRecalcularDre($dreResultados) && $this->resolveApprovalStatus($viabilidade)->isMutable()) {
             $dreResultados = $this->recalcularDre($viabilidade)['dre_resultados'];
         }
 
@@ -344,39 +368,42 @@ class ViabilidadeService
      */
     public function duplicarViabilidade(int $viabilidadeId, ?User $actor = null): Viabilidade
     {
-        $actor ??= Auth::user();
-        $viabilidadeOriginal = $this->repository->findOrFail($viabilidadeId);
-        $nextVersion = $this->repository->nextVersionForTerreno($viabilidadeOriginal->terreno_id);
+        return DB::transaction(function () use ($viabilidadeId, $actor) {
+            $actor ??= Auth::user();
+            $viabilidadeOriginal = $this->repository->findOrFail($viabilidadeId);
+            $this->repository->lockTerrenoViabilidades((int) $viabilidadeOriginal->terreno_id);
+            $nextVersion = $this->repository->nextVersionForTerreno($viabilidadeOriginal->terreno_id);
 
-        $dadosNova = $viabilidadeOriginal->toArray();
-        $dadosNova['created_by'] = $actor?->id;
-        $dadosNova['updated_by'] = $actor?->id;
-        $dadosNova['resultados_dre'] = null;
-        $dadosNova['approval_status'] = 'pendente';
-        $dadosNova['approval_requested_at'] = null;
-        $dadosNova['approval_decided_at'] = null;
-        $dadosNova['approval_decided_by'] = null;
-        $dadosNova['approval_notes'] = null;
-        $dadosNova['submitted_at'] = null;
-        $dadosNova['locked_at'] = null;
-        $dadosNova['status'] = 'rascunho';
-        $dadosNova['version'] = $nextVersion;
+            $dadosNova = $viabilidadeOriginal->toArray();
+            $dadosNova['created_by'] = $actor?->id;
+            $dadosNova['updated_by'] = $actor?->id;
+            $dadosNova['resultados_dre'] = null;
+            $dadosNova['approval_status'] = ViabilidadeApprovalStatus::Pendente->value;
+            $dadosNova['approval_requested_at'] = null;
+            $dadosNova['approval_decided_at'] = null;
+            $dadosNova['approval_decided_by'] = null;
+            $dadosNova['approval_notes'] = null;
+            $dadosNova['submitted_at'] = null;
+            $dadosNova['locked_at'] = null;
+            $dadosNova['status'] = 'rascunho';
+            $dadosNova['version'] = $nextVersion;
 
-        // Mantém a viabilidade aprovada como a "atual" do terreno; a cópia só
-        // vira is_current quando ainda não há aprovada.
-        $dadosNova['is_current'] =
-            $this->repository->approvedByTerreno($viabilidadeOriginal->terreno_id) === null;
-        if ($dadosNova['is_current']) {
-            $this->repository->clearCurrentForTerreno($viabilidadeOriginal->terreno_id);
-        }
+            // Mantém a viabilidade aprovada como a "atual" do terreno; a cópia só
+            // vira is_current quando ainda não há aprovada.
+            $dadosNova['is_current'] =
+                $this->repository->approvedByTerreno($viabilidadeOriginal->terreno_id) === null;
+            if ($dadosNova['is_current']) {
+                $this->repository->clearCurrentForTerreno($viabilidadeOriginal->terreno_id);
+            }
 
-        // Remove campos gerados automaticamente
-        unset($dadosNova['id'], $dadosNova['created_at'], $dadosNova['updated_at'], $dadosNova['deleted_at']);
+            // Remove campos gerados automaticamente
+            unset($dadosNova['id'], $dadosNova['created_at'], $dadosNova['updated_at'], $dadosNova['deleted_at']);
 
-        $novaViabilidade = $this->repository->create($dadosNova);
-        $this->repository->copySections($viabilidadeOriginal, $novaViabilidade);
+            $novaViabilidade = $this->repository->create($dadosNova);
+            $this->repository->copySections($viabilidadeOriginal, $novaViabilidade);
 
-        return $this->repository->loadDefaultRelations($novaViabilidade);
+            return $this->repository->loadDefaultRelations($novaViabilidade);
+        });
     }
 
     /**
@@ -397,17 +424,39 @@ class ViabilidadeService
         return DB::transaction(function () use ($viabilidade, $actor) {
             $actor ??= Auth::user();
             $viabilidade = $viabilidade instanceof Viabilidade ? $viabilidade : $this->repository->findOrFail($viabilidade);
+            $status = $this->resolveApprovalStatus($viabilidade);
+
+            // Estudo em aprovação nunca é sobrescrito.
+            if ($status === ViabilidadeApprovalStatus::EmAprovacao) {
+                throw new ViabilidadeLockedException(
+                    'Não é possível recalcular uma viabilidade em aprovação.',
+                    'VIABILIDADE_LOCKED',
+                    ['approval_status' => $status->value],
+                );
+            }
+
+            // Estudo decidido/revogado: cria nova versão pendente e preserva o original.
+            if (in_array($status, [
+                ViabilidadeApprovalStatus::Aprovada,
+                ViabilidadeApprovalStatus::Rejeitada,
+                ViabilidadeApprovalStatus::Revogada,
+            ], true)) {
+                $nova = $this->duplicarViabilidade($viabilidade->id, $actor);
+
+                return $this->recalcularDre($nova, $actor);
+            }
+
+            $produtos = $this->snapshotService->extractProdutos(
+                is_array($viabilidade->premissas_snapshot) ? $viabilidade->premissas_snapshot : null
+            );
 
             $dreResultados = $this->unificadoService->gerarFluxoMensal(
                 $viabilidade->terreno_id,
-                $viabilidade->id
+                $viabilidade->id,
+                $produtos !== [] ? $produtos : null
             );
 
-            $viabilidade = $this->repository->update($viabilidade, [
-                'resultados_dre' => $dreResultados,
-                'updated_by' => $actor?->id,
-                'updated_at' => now(),
-            ]);
+            $viabilidade = $this->persistResultados($viabilidade, $dreResultados, $actor);
 
             return [
                 'viabilidade' => $this->repository->loadDefaultRelations($viabilidade),
@@ -444,42 +493,87 @@ class ViabilidadeService
 
         $snapshotAtual = $viabilidade?->getAttribute('premissas_snapshot');
         $snapshotBase = is_array($snapshotAtual) ? $snapshotAtual : [];
-        $formValues = $viabilidade instanceof Viabilidade
+        $beforeFormValues = $viabilidade instanceof Viabilidade
             ? $this->snapshotFromCurrentViabilidade($viabilidade)
-            : $dados;
+            : [];
+        $afterFormValues = $viabilidade instanceof Viabilidade
+            ? $this->mergeSnapshotFormValues($beforeFormValues, $dados)
+            : $this->mergeSnapshotFormValues([], $dados);
+
+        $produtos = is_array($dados['produtos'] ?? null)
+            ? array_values($dados['produtos'])
+            : $this->snapshotService->extractProdutos($snapshotBase);
+
         $historicoAtual = is_array($snapshotBase['historico'] ?? null)
             ? $snapshotBase['historico']
             : [];
         $novoHistorico = $historicoAtual;
 
         if ($viabilidade instanceof Viabilidade) {
-            $afterFormValues = $this->mergeSnapshotFormValues($formValues, $dados);
             $novoHistorico[] = [
                 'alterado_em' => now()->toIso8601String(),
                 'alterado_por_user' => $actor ? [
                     'id' => $actor->id,
                     'name' => $actor->name,
                 ] : null,
-                'before_form_values' => $formValues,
+                'before_form_values' => $beforeFormValues,
                 'after_form_values' => $afterFormValues,
             ];
         }
 
-        $payload['premissas_snapshot'] = [
-            ...$snapshotBase,
-            'form_values' => $formValues,
-            'historico' => $novoHistorico,
-            'alterado_em' => now()->toIso8601String(),
-            'alterado_por_user' => $actor ? [
-                'id' => $actor->id,
-                'name' => $actor->name,
-            ] : ($snapshotBase['alterado_por_user'] ?? null),
-        ];
+        $premissasMeta = is_array($snapshotBase['premissas'] ?? null) ? $snapshotBase['premissas'] : [];
+        // Garante referência imutável à premissa usada (impede exclusão destrutiva).
+        if (! isset($premissasMeta['id'])) {
+            try {
+                $defaults = app(PremissasViabilidadeService::class)->resolverDefaults(
+                    is_string($payload['perfil_financiamento'] ?? null)
+                        ? $payload['perfil_financiamento']
+                        : (is_string($afterFormValues['perfil_financiamento'] ?? null)
+                            ? $afterFormValues['perfil_financiamento']
+                            : 'cef')
+                );
+                if (isset($defaults['premissa_id'])) {
+                    $premissasMeta = [
+                        'id' => (int) $defaults['premissa_id'],
+                        'version' => (int) ($defaults['premissa_versao'] ?? 0),
+                        'values' => [],
+                    ];
+                }
+            } catch (\Throwable) {
+                // Premissa ausente: snapshot segue sem referência.
+            }
+        }
+
+        $canonical = $this->snapshotService->buildCanonical(
+            inputs: [
+                'terreno_id' => $payload['terreno_id']
+                    ?? $viabilidade?->terreno_id
+                    ?? ($afterFormValues['terreno_id'] ?? null),
+                'data_lancamento' => $payload['data_lancamento']
+                    ?? $afterFormValues['data_lancamento']
+                    ?? null,
+                'perfil_financiamento' => $payload['perfil_financiamento']
+                    ?? $afterFormValues['perfil_financiamento']
+                    ?? null,
+                'form_values' => $afterFormValues,
+            ],
+            produtos: $produtos,
+            premissas: $premissasMeta,
+            existing: [
+                ...$snapshotBase,
+                'historico' => $novoHistorico,
+            ],
+        );
+
+        $canonical['alterado_em'] = now()->toIso8601String();
+        $canonical['alterado_por_user'] = $actor ? [
+            'id' => $actor->id,
+            'name' => $actor->name,
+        ] : ($snapshotBase['alterado_por_user'] ?? null);
 
         if ($viabilidade instanceof Viabilidade) {
-            $payload['premissas_snapshot']['referencia_atualizada_em'] =
-                $viabilidade->updated_at?->toIso8601String();
-            $payload['premissas_snapshot']['referencia_atualizada_por_user'] =
+            $canonical['referencia_atualizada_em'] = $viabilidade->updated_at?->toIso8601String();
+            $canonical['referencia_atualizada_por_user'] =
                 $viabilidade->relationLoaded('updatedBy') && $viabilidade->updatedBy
                     ? [
                         'id' => $viabilidade->updatedBy->id,
@@ -487,6 +581,8 @@ class ViabilidadeService
                     ]
                     : null;
         }
+
+        $payload['premissas_snapshot'] = $canonical;
 
         $columns = $this->viabilidadeColumns();
 
@@ -579,149 +675,203 @@ class ViabilidadeService
 
     public function solicitarAprovacao(int|string $viabilidadeId, ?string $approvalNotes, ?User $actor = null): Viabilidade
     {
-        $actor ??= Auth::user();
-        $viabilidade = $this->repository->loadDefaultRelations(
-            $this->repository->findOrFail($viabilidadeId)
-        );
+        return DB::transaction(function () use ($viabilidadeId, $approvalNotes, $actor) {
+            $actor ??= Auth::user();
+            $viabilidade = $this->repository->findOrFail($viabilidadeId);
+            $status = $this->resolveApprovalStatus($viabilidade);
 
-        $viabilidade = $this->repository->update($viabilidade, [
-            'approval_status' => 'em_aprovacao',
-            'approval_requested_at' => now(),
-            'submitted_at' => now(),
-            'approval_decided_at' => null,
-            'approval_decided_by' => null,
-            'approval_notes' => $approvalNotes,
-            'updated_by' => $actor?->id,
-        ]);
+            if (! $status->canSubmit()) {
+                throw new ViabilidadeTransitionNotAllowedException(
+                    'Só é possível submeter uma viabilidade pendente para aprovação.',
+                    'VIABILIDADE_SUBMIT_NOT_ALLOWED',
+                    ['approval_status' => $status->value],
+                );
+            }
 
-        $terreno = $viabilidade->terreno ?? $this->repository->findTerrenoOrFail($viabilidade->terreno_id);
+            if (empty($viabilidade->resultados_dre) || ! is_array($viabilidade->resultados_dre)) {
+                throw new ViabilidadeTransitionNotAllowedException(
+                    'A viabilidade precisa ter resultado calculado antes da submissão.',
+                    'VIABILIDADE_MISSING_RESULT',
+                );
+            }
 
-        $this->workflowService->transition(
-            $terreno,
-            WorkflowStatus::AGUARDANDO_VIABILIDADE->value,
-            $actor,
-            'viability_submitted',
-            $approvalNotes,
-        );
+            $reconciliation = $viabilidade->resultados_dre['reconciliation'] ?? null;
+            if (is_array($reconciliation) && ($reconciliation['status'] ?? null) === 'failed') {
+                throw new ViabilidadeTransitionNotAllowedException(
+                    'A viabilidade possui erros de reconciliação e não pode ser submetida.',
+                    'VIABILIDADE_RECONCILIATION_FAILED',
+                    ['reconciliation' => $reconciliation],
+                );
+            }
 
-        ViabilidadeSubmitted::dispatch($viabilidade, $terreno, $actor);
+            $now = now();
+            $snapshot = is_array($viabilidade->premissas_snapshot) ? $viabilidade->premissas_snapshot : [];
+            $snapshot['result_hash'] = $this->snapshotService->resultHash($viabilidade->resultados_dre);
+            $snapshot['submitted_result_hash'] = $snapshot['result_hash'];
 
-        return $this->repository->loadDefaultRelations($viabilidade);
+            $viabilidade = $this->repository->update($viabilidade, [
+                'approval_status' => ViabilidadeApprovalStatus::EmAprovacao->value,
+                'approval_requested_at' => $now,
+                'submitted_at' => $now,
+                'locked_at' => $now,
+                'approval_decided_at' => null,
+                'approval_decided_by' => null,
+                'approval_notes' => $approvalNotes,
+                'premissas_snapshot' => $snapshot,
+                'updated_by' => $actor?->id,
+            ]);
+
+            $terreno = $viabilidade->terreno ?? $this->repository->findTerrenoOrFail($viabilidade->terreno_id);
+
+            $this->workflowService->transition(
+                $terreno,
+                WorkflowStatus::AGUARDANDO_VIABILIDADE->value,
+                $actor,
+                'viability_submitted',
+                $approvalNotes,
+            );
+
+            DB::afterCommit(static function () use ($viabilidade, $terreno, $actor): void {
+                ViabilidadeSubmitted::dispatch($viabilidade, $terreno, $actor);
+            });
+
+            return $this->repository->loadDefaultRelations($viabilidade);
+        });
     }
 
     public function decidirAprovacao(int|string $viabilidadeId, string $decision, ?string $approvalNotes, ?User $actor = null): Viabilidade
     {
-        $actor ??= Auth::user();
-        $viabilidade = $this->repository->loadDefaultRelations(
-            $this->repository->findOrFail($viabilidadeId)
-        );
+        return DB::transaction(function () use ($viabilidadeId, $decision, $approvalNotes, $actor) {
+            $actor ??= Auth::user();
+            $viabilidade = $this->repository->lockById($viabilidadeId);
+            $this->repository->lockTerrenoViabilidades((int) $viabilidade->terreno_id);
 
-        $approvalStatus = $viabilidade->approval_status ?? ($viabilidade->status === 'ativo' ? 'aprovada' : 'pendente');
-
-        if ($approvalStatus !== 'em_aprovacao') {
-            throw ValidationException::withMessages([
-                'approval_notes' => ['A viabilidade precisa estar em aprovação antes desta decisão.'],
-            ]);
-        }
-
-        $payload = [
-            'approval_status' => $decision,
-            'approval_decided_at' => now(),
-            'approval_decided_by' => $actor?->id,
-            'approval_notes' => $approvalNotes ?? $viabilidade->approval_notes,
-            'updated_by' => $actor?->id,
-        ];
-
-        if ($decision === 'aprovada') {
-            // Regra de negócio: no máximo uma viabilidade aprovada por terreno.
-            if ($this->repository->approvedByTerreno($viabilidade->terreno_id, $viabilidade->id) !== null) {
-                throw ValidationException::withMessages([
-                    'approval_notes' => ['Já existe uma viabilidade aprovada para este terreno. Reprove-a antes de aprovar outra.'],
-                ]);
+            $status = $this->resolveApprovalStatus($viabilidade);
+            if (! $status->canDecide()) {
+                throw new ViabilidadeTransitionNotAllowedException(
+                    'A viabilidade precisa estar em aprovação antes desta decisão.',
+                    'VIABILIDADE_DECIDE_NOT_ALLOWED',
+                    ['approval_status' => $status->value],
+                );
             }
 
-            $payload['status'] = 'ativo';
-            $payload['locked_at'] = now();
-            // A aprovada passa a ser a viabilidade atual (is_current) do terreno.
-            // Limpa apenas as OUTRAS para não conflitar com o dirty-tracking do
-            // Eloquent ao regravar is_current=true nesta viabilidade.
-            $payload['is_current'] = true;
-            $this->repository->clearCurrentForTerreno($viabilidade->terreno_id, $viabilidade->id);
-        } else {
-            $payload['status'] = 'rascunho';
-            $payload['locked_at'] = null;
-        }
+            $target = ViabilidadeApprovalStatus::fromMixed($decision);
+            if (! in_array($target, [ViabilidadeApprovalStatus::Aprovada, ViabilidadeApprovalStatus::Rejeitada], true)) {
+                throw new ViabilidadeTransitionNotAllowedException(
+                    'Decisão de aprovação inválida.',
+                    'VIABILIDADE_INVALID_DECISION',
+                    ['decision' => $decision],
+                );
+            }
 
-        $viabilidade = $this->repository->update($viabilidade, $payload);
-        $this->registrarAprovacao($viabilidade, $decision, $approvalNotes, $actor);
+            $payload = [
+                'approval_status' => $target->value,
+                'approval_decided_at' => now(),
+                'approval_decided_by' => $actor?->id,
+                'approval_notes' => $approvalNotes ?? $viabilidade->approval_notes,
+                'updated_by' => $actor?->id,
+            ];
 
-        $terreno = $viabilidade->terreno ?? $this->repository->findTerrenoOrFail($viabilidade->terreno_id);
+            if ($target === ViabilidadeApprovalStatus::Aprovada) {
+                if ($this->repository->approvedByTerreno($viabilidade->terreno_id, $viabilidade->id) !== null) {
+                    throw new ViabilidadeConflictException(
+                        'Já existe uma viabilidade aprovada para este terreno. Reprove-a antes de aprovar outra.',
+                        'VIABILIDADE_ALREADY_APPROVED_FOR_TERRENO',
+                    );
+                }
 
-        $this->workflowService->transition(
-            $terreno,
-            $decision === 'aprovada' ? WorkflowStatus::VIABILIDADE_APROVADA->value : WorkflowStatus::EM_ANALISE->value,
-            $actor,
-            'viability_decided',
-            $approvalNotes,
-        );
+                $snapshot = is_array($viabilidade->premissas_snapshot) ? $viabilidade->premissas_snapshot : [];
+                if (is_array($viabilidade->resultados_dre)) {
+                    $snapshot['approved_result_hash'] = $this->snapshotService->resultHash($viabilidade->resultados_dre);
+                    $snapshot['result_hash'] = $snapshot['approved_result_hash'];
+                }
+                $payload['premissas_snapshot'] = $snapshot;
+                $payload['status'] = 'ativo';
+                $payload['locked_at'] = now();
+                $payload['is_current'] = true;
+                $this->repository->clearCurrentForTerreno($viabilidade->terreno_id, $viabilidade->id);
+            } else {
+                $payload['status'] = 'rascunho';
+                $payload['locked_at'] = now();
+            }
 
-        ViabilidadeDecided::dispatch($viabilidade, $terreno, $decision, $actor);
+            $viabilidade = $this->repository->update($viabilidade, $payload);
+            $this->registrarAprovacao($viabilidade, $target->value, $approvalNotes, $actor);
 
-        return $this->repository->loadDefaultRelations($viabilidade);
+            $terreno = $viabilidade->terreno ?? $this->repository->findTerrenoOrFail($viabilidade->terreno_id);
+
+            $this->workflowService->transition(
+                $terreno,
+                $target === ViabilidadeApprovalStatus::Aprovada
+                    ? WorkflowStatus::VIABILIDADE_APROVADA->value
+                    : WorkflowStatus::EM_ANALISE->value,
+                $actor,
+                'viability_decided',
+                $approvalNotes,
+            );
+
+            $decisionValue = $target->value;
+            DB::afterCommit(static function () use ($viabilidade, $terreno, $decisionValue, $actor): void {
+                ViabilidadeDecided::dispatch($viabilidade, $terreno, $decisionValue, $actor);
+            });
+
+            return $this->repository->loadDefaultRelations($viabilidade);
+        });
     }
 
     /**
-     * Revoga a aprovação de uma viabilidade, devolvendo-a para edição.
+     * Revoga a aprovação de uma viabilidade.
+     * Preferimos estado explícito `revogada`; edição exige nova versão via duplicação/recálculo.
      * A autorização (somente Diretor) é feita no FormRequest.
      */
     public function revogarAprovacao(int|string $viabilidadeId, ?string $notes, ?User $actor = null): Viabilidade
     {
-        $actor ??= Auth::user();
-        $viabilidade = $this->repository->loadDefaultRelations(
-            $this->repository->findOrFail($viabilidadeId)
-        );
+        return DB::transaction(function () use ($viabilidadeId, $notes, $actor) {
+            $actor ??= Auth::user();
+            $viabilidade = $this->repository->lockById($viabilidadeId);
+            $status = $this->resolveApprovalStatus($viabilidade);
 
-        if ($viabilidade->approval_status !== 'aprovada') {
-            throw ValidationException::withMessages([
-                'viabilidade' => ['Só é possível revogar uma viabilidade aprovada.'],
+            if (! $status->canRevoke()) {
+                throw new ViabilidadeTransitionNotAllowedException(
+                    'Só é possível revogar uma viabilidade aprovada.',
+                    'VIABILIDADE_REVOKE_NOT_ALLOWED',
+                    ['approval_status' => $status->value],
+                );
+            }
+
+            if ($this->committeeRepository->findOpenReviewByTerreno((int) $viabilidade->terreno_id) !== null) {
+                throw new ViabilidadeTransitionNotAllowedException(
+                    'Existe uma revisão de comitê em andamento para este terreno. Finalize-a antes de revogar a aprovação.',
+                    'VIABILIDADE_COMMITTEE_PENDING',
+                );
+            }
+
+            // Mantém resultados aprovados para auditoria; status de aprovação vira revogada.
+            // Compatibilidade: status operacional volta a rascunho.
+            $viabilidade = $this->repository->update($viabilidade, [
+                'approval_status' => ViabilidadeApprovalStatus::Revogada->value,
+                'status' => 'rascunho',
+                'locked_at' => now(),
+                'approval_decided_at' => now(),
+                'approval_decided_by' => $actor?->id,
+                'approval_notes' => $notes ?? $viabilidade->approval_notes,
+                'updated_by' => $actor?->id,
             ]);
-        }
 
-        // Não revogar se houver revisão de comitê em andamento para o terreno.
-        $comiteAberto = ComiteRevisao::query()
-            ->where('terreno_id', $viabilidade->terreno_id)
-            ->whereNull('final_decision')
-            ->exists();
+            $this->registrarAprovacao($viabilidade, ViabilidadeApprovalStatus::Revogada->value, $notes, $actor);
 
-        if ($comiteAberto) {
-            throw ValidationException::withMessages([
-                'viabilidade' => ['Existe uma revisão de comitê em andamento para este terreno. Finalize-a antes de revogar a aprovação.'],
-            ]);
-        }
+            $terreno = $viabilidade->terreno ?? $this->repository->findTerrenoOrFail($viabilidade->terreno_id);
 
-        $viabilidade = $this->repository->update($viabilidade, [
-            'approval_status' => 'pendente',
-            'status' => 'rascunho',
-            'locked_at' => null,
-            'approval_decided_at' => now(),
-            'approval_decided_by' => $actor?->id,
-            'approval_notes' => $notes ?? $viabilidade->approval_notes,
-            'updated_by' => $actor?->id,
-        ]);
+            $this->workflowService->transition(
+                $terreno,
+                WorkflowStatus::EM_ANALISE->value,
+                $actor,
+                'viability_approval_revoked',
+                $notes,
+            );
 
-        $this->registrarAprovacao($viabilidade, 'revogada', $notes, $actor);
-
-        $terreno = $viabilidade->terreno ?? $this->repository->findTerrenoOrFail($viabilidade->terreno_id);
-
-        $this->workflowService->transition(
-            $terreno,
-            WorkflowStatus::EM_ANALISE->value,
-            $actor,
-            'viability_approval_revoked',
-            $notes,
-        );
-
-        return $this->repository->loadDefaultRelations($viabilidade);
+            return $this->repository->loadDefaultRelations($viabilidade);
+        });
     }
 
     public function restore(int|string $viabilidadeId): Viabilidade
@@ -736,9 +886,9 @@ class ViabilidadeService
     /**
      * @return Collection<int, array{id: int, label: string, terreno_id: int}>
      */
-    public function forSelect(?int $terrenoId = null): Collection
+    public function forSelect(?int $terrenoId = null, int $limit = 100): Collection
     {
-        return $this->repository->forSelect($terrenoId)->map(function (Viabilidade $viabilidade): array {
+        return $this->repository->forSelect($terrenoId, $limit)->map(function (Viabilidade $viabilidade): array {
             $data = $viabilidade->created_at?->format('d/m/Y H:i') ?? '';
 
             return [
@@ -784,6 +934,51 @@ class ViabilidadeService
             'dre' => $dre,
             'dataGeracao' => now()->format('d/m/Y H:i'),
         ];
+    }
+
+    private function assertMutable(Viabilidade $viabilidade, string $action): void
+    {
+        $status = $this->resolveApprovalStatus($viabilidade);
+
+        if (! $status->isMutable()) {
+            throw new ViabilidadeLockedException(
+                "Não é possível {$action} uma viabilidade com status '{$status->value}'.",
+                'VIABILIDADE_LOCKED',
+                [
+                    'approval_status' => $status->value,
+                    'allowed_actions' => $status->allowedActions(),
+                ],
+            );
+        }
+    }
+
+    private function resolveApprovalStatus(Viabilidade $viabilidade): ViabilidadeApprovalStatus
+    {
+        return ViabilidadeApprovalStatus::fromMixed(
+            $viabilidade->approval_status,
+            is_string($viabilidade->status) ? $viabilidade->status : null,
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $dreResultados
+     */
+    private function persistResultados(Viabilidade $viabilidade, array $dreResultados, ?User $actor = null): Viabilidade
+    {
+        $snapshot = is_array($viabilidade->premissas_snapshot) ? $viabilidade->premissas_snapshot : [];
+        $snapshot = $this->snapshotService->attachResultMetadata($snapshot, $dreResultados);
+
+        $payload = [
+            'resultados_dre' => $dreResultados,
+            'premissas_snapshot' => $snapshot,
+        ];
+
+        if ($actor !== null) {
+            $payload['updated_by'] = $actor->id;
+            $payload['updated_at'] = now();
+        }
+
+        return $this->repository->update($viabilidade, $payload);
     }
 
     protected function advanceWorkflowForNewViability(Terreno $terreno, int $version): void

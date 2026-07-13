@@ -38,17 +38,32 @@ class ViabilidadeRequest extends FormRequest
      */
     public function rules(): array
     {
+        $isStore = $this->isMethod('post');
+
         return [
-            'terreno_id' => [
-                $this->isMethod('post') ? 'required' : 'sometimes',
+            // terreno_id obrigatório no store; no update só aceita se for o mesmo terreno.
+            'terreno_id' => array_values(array_filter([
+                $isStore ? 'required' : 'sometimes',
                 'exists:terrenos,id',
-                function ($attribute, $value, $fail) {
+                function ($attribute, $value, $fail) use ($isStore) {
+                    if (! $isStore) {
+                        $viabilidadeId = $this->route('viabilidade') ?? $this->route('id');
+                        $viabilidade = $viabilidadeId instanceof Viabilidade
+                            ? $viabilidadeId
+                            : Viabilidade::query()->find($viabilidadeId);
+                        if ($viabilidade instanceof Viabilidade && (int) $value !== (int) $viabilidade->terreno_id) {
+                            $fail('Não é permitido alterar o terreno de uma viabilidade existente.');
+                        }
+                    }
+
                     $hasProducts = TerrenoProduto::where('terreno_id', $value)->exists();
                     if (! $hasProducts) {
                         $fail('O terreno selecionado não possui produtos associados. Cadastre produtos antes de criar uma viabilidade.');
                     }
                 },
-            ],
+            ])),
+            // Se ausente no store, o service materializa um default fixo e persiste.
+            'data_lancamento' => ['nullable', 'date'],
             'parceria_vgv' => 'nullable|numeric|min:0',
             'compra_terreno' => 'nullable|numeric|min:0',
             'infra_nao_incidente' => 'nullable|numeric|min:0|max:100',
@@ -120,10 +135,53 @@ class ViabilidadeRequest extends FormRequest
             'taxa_perda' => 'nullable|numeric|min:0|max:100',
             'perfil_financiamento' => 'nullable|string|in:cef,proprio',
             'produtos' => 'nullable|array',
-            'produtos.*.id' => 'required|exists:terreno_produtos,id',
-            'produtos.*.unidades' => 'required|numeric|min:0',
+            'produtos.*.id' => [
+                'required',
+                'integer',
+                'distinct',
+                'exists:terreno_produtos,id',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    $terrenoId = $this->input('terreno_id');
+                    if ($terrenoId === null && $this->route('id')) {
+                        $viabilidade = Viabilidade::query()->find($this->route('id'));
+                        $terrenoId = $viabilidade?->terreno_id;
+                    }
+                    if ($terrenoId === null && $this->route('viabilidade')) {
+                        $routeViabilidade = $this->route('viabilidade');
+                        $terrenoId = $routeViabilidade instanceof Viabilidade
+                            ? $routeViabilidade->terreno_id
+                            : Viabilidade::query()->find($routeViabilidade)?->terreno_id;
+                    }
+
+                    if ($terrenoId === null) {
+                        return;
+                    }
+
+                    $belongs = TerrenoProduto::query()
+                        ->whereKey($value)
+                        ->where('terreno_id', $terrenoId)
+                        ->exists();
+
+                    if (! $belongs) {
+                        $fail('O produto informado não pertence ao terreno da viabilidade.');
+                    }
+                },
+            ],
+            'produtos.*.unidades' => 'required|integer|min:0',
             'produtos.*.valor' => 'required|numeric|min:0',
-            'produtos.*.permuta' => 'required|numeric|min:0',
+            'produtos.*.permuta' => [
+                'required',
+                'integer',
+                'min:0',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    // produtos.0.permuta → produtos.0.unidades
+                    $unidadesKey = preg_replace('/permuta$/', 'unidades', $attribute) ?? $attribute;
+                    $unidades = $this->input($unidadesKey);
+                    if (is_numeric($unidades) && is_numeric($value) && (int) $value > (int) $unidades) {
+                        $fail('A permuta não pode ser maior que o número de unidades do produto.');
+                    }
+                },
+            ],
             'produtos.*.pgto_por_lote' => 'required|numeric|min:0',
             'produtos.*.custo_m2' => 'required|numeric|min:0',
             'produtos.*.custo_infra' => 'required|numeric|min:0',
@@ -139,6 +197,7 @@ class ViabilidadeRequest extends FormRequest
     {
         return [
             'terreno_id' => 'terreno',
+            'data_lancamento' => 'data de lançamento',
             'parceria_vgv' => 'parceria VGV',
             'compra_terreno' => 'compra do terreno',
             'infra_nao_incidente' => 'infraestrutura não incidente',
@@ -220,7 +279,12 @@ class ViabilidadeRequest extends FormRequest
         return [
             'terreno_id.required' => 'O campo :attribute é obrigatório.',
             'terreno_id.exists' => 'O :attribute selecionado não existe.',
+            'terreno_id.prohibited' => 'Não é permitido alterar o terreno de uma viabilidade existente.',
+            'data_lancamento.required' => 'O campo :attribute é obrigatório.',
+            'data_lancamento.date' => 'O campo :attribute deve ser uma data válida.',
             'prazo_obra.in' => 'O :attribute deve ser 18, 24, 36, 48 ou 60 meses.',
+            'produtos.*.id.distinct' => 'Há produtos duplicados no payload.',
+            'produtos.*.permuta' => 'A permuta do produto é inválida.',
             '*.numeric' => 'O campo :attribute deve ser um número.',
             '*.min' => 'O campo :attribute deve ser maior ou igual a :min.',
             '*.max' => 'O campo :attribute deve ser menor ou igual a :max.',

@@ -191,7 +191,8 @@ class ReceitasCalculator
         $dataAtual = Carbon::parse($mes.'-01');
         $inicioObra = $datas['inicioObra']->copy()->startOfMonth();
         $fimObra = $datas['fimObra']->copy()->startOfMonth();
-        $fimMedicao = $fimObra->copy()->addMonths(5);
+        // Curva financeira se estende até +6 meses após o fim da obra (3% finais).
+        $fimMedicao = $fimObra->copy()->addMonths(6);
 
         if ($dataAtual->startOfMonth() < $inicioObra || $dataAtual->startOfMonth() > $fimMedicao) {
             return ['valor' => 0];

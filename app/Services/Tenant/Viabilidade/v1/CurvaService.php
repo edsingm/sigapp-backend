@@ -1,165 +1,229 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Tenant\Viabilidade\v1;
 
 use Carbon\Carbon;
+use RuntimeException;
 
 /**
- * CurvaService - Centraliza todas as curvas do sistema de viabilidade
+ * CurvaService — curvas oficiais de obra (Aux_Obras) e curva financeira de medição CEF.
  *
- * Responsabilidades:
- * - Curva S de desembolso de obra
- * - Curvas de vendas por tipo de produto
- * - Interpolação e normalização
+ * Fonte canônica: docs/viabilidade-modelo → aba Aux_Obras (prazos 12–36).
+ * Prazos fora da tabela usam redistribuição monotônica com warning explícito.
  */
 class CurvaService
 {
     /**
-     * Curvas de desembolso de obra por período de construção (Curva S)
-     * Valores em percentual do custo total de obra.
-     * Fonte: Dados históricos do projeto legado.
-     *
-     * @var array<int, list<float>>
+     * @var array<int, list<float>>|null
      */
-    private array $curvasObra = [
-        18 => [1.5, 2.0, 3.0, 4.5, 5.5, 6.5, 7.5, 8.5, 9.0, 9.0, 8.5, 7.5, 6.5, 5.5, 4.5, 4.0, 3.5, 2.5],
-        20 => [0.8, 1.3, 1.5, 3.5, 4.5, 4.8, 6.0, 6.5, 7.0, 8.0, 8.0, 9.0, 8.0, 7.0, 6.5, 4.5, 3.0, 1.5, 1.2],
-        24 => [0.8, 1.3, 1.5, 3.5, 4.0, 4.0, 4.5, 4.5, 5.5, 6.0, 7.0, 7.0, 7.5, 6.5, 6.0, 5.0, 5.0, 5.0, 4.5, 4.5, 2.5, 2.0, 1.5, 0.5],
-        30 => [2.0, 2.5, 2.9, 3.3, 3.5, 4.5, 5.0, 6.0, 7.0, 7.0, 5.5, 5.5, 4.0, 4.0, 4.0, 4.0, 4.0, 3.0, 3.0, 3.0, 2.8, 2.5, 2.5, 2.5, 2.0, 1.0, 1.5, 0.5, 0.5, 0.5],
-        36 => [0.99, 1.188, 1.386, 1.584, 1.782, 1.98, 2.178, 2.376, 2.574, 2.772, 2.97, 3.168, 3.366, 3.564, 3.762, 3.96, 4.158, 4.257, 4.257, 4.257, 4.257, 3.96, 3.762, 3.564, 3.366, 3.168, 2.97, 2.772, 2.574, 2.376, 2.178, 1.98, 1.782, 1.584, 1.386, 0.792],
-    ];
+    private static ?array $curvasOficiais = null;
 
     /**
-     * Retorna o percentual de custo de obra para um mês específico usando Curva S
-     *
-     * @param  int  $mesesTotal  Duração total da obra em meses
-     * @param  int  $mesAtual  Mês atual da obra (1 a N)
-     * @return float Percentual do custo total para o mês
+     * @var list<string>
+     */
+    private array $warnings = [];
+
+    /**
+     * @return list<string>
+     */
+    public function pullWarnings(): array
+    {
+        $warnings = $this->warnings;
+        $this->warnings = [];
+
+        return $warnings;
+    }
+
+    /**
+     * Percentual de desembolso de obra no mês (1..N), curva física normalizada a 100%.
      */
     public function getPercentualCustoObra(int $mesesTotal, int $mesAtual): float
     {
         $curva = $this->getCurvaObraParaPrazo($mesesTotal);
+        $indice = $mesAtual - 1;
 
-        if ($mesesTotal === $this->getPrazoMaisProximo($mesesTotal)) {
-            $indice = $mesAtual - 1;
-
-            return $curva[$indice] ?? 0;
-        }
-
-        // Interpolação para prazos diferentes
-        $progresso = $mesAtual / $mesesTotal;
-        $indiceVirtual = (int) round($progresso * count($curva)) - 1;
-        $indiceVirtual = max(0, min($indiceVirtual, count($curva) - 1));
-
-        return $curva[$indiceVirtual] ?? 0;
+        return $curva[$indice] ?? 0.0;
     }
 
     /**
-     * Retorna a curva de obra completa normalizada para um prazo específico
+     * Curva física de obra normalizada (soma = 100%).
      *
-     * @param  int  $mesesTotal  Duração total da obra
-     * @return array Curva normalizada para 100%
-     */
-    /**
      * @return list<float>
      */
     public function getCurvaObraParaPrazo(int $mesesTotal): array
     {
-        $prazoMaisProximo = $this->getPrazoMaisProximo($mesesTotal);
-        $curva = $this->curvasObra[$prazoMaisProximo];
-
-        return $this->normalizarCurva($curva);
+        return $this->normalizarCurva($this->resolverCurvaBase($mesesTotal));
     }
 
     /**
+     * Curva base (percentuais oficiais ou interpolados) sem reescalar além da normalização.
+     *
      * @return list<float>
      */
     public function getCurvaObraBaseParaPrazo(int $mesesTotal): array
     {
-        $prazoMaisProximo = $this->getPrazoMaisProximo($mesesTotal);
-        $curvaBase = $this->curvasObra[$prazoMaisProximo];
-
-        if ($mesesTotal === $prazoMaisProximo) {
-            return $curvaBase;
-        }
-
-        $somaBase = array_sum($curvaBase);
-        $curvaInterpoladaNormalizada = $this->interpolarCurva($curvaBase, $mesesTotal);
-        if ($somaBase <= 0.0) {
-            return $curvaInterpoladaNormalizada;
-        }
-
-        $fator = $somaBase / 100.0;
-
-        return array_map(
-            static fn (float $valor): float => $valor * $fator,
-            $curvaInterpoladaNormalizada,
-        );
+        return $this->resolverCurvaBase($mesesTotal);
     }
 
     /**
+     * Curva financeira de medição CEF.
+     *
+     * Regra oficial dos 5% finais (Lista de Desenv. / Aux_Obras):
+     * - 95% durante a obra (curva física reescalada);
+     * - 2% dois meses após a entrega (índice mesesObra+2);
+     * - 3% seis meses após a entrega (índice mesesObra+6).
+     *
+     * Índices 0-based relativos ao início da obra. O vetor se estende até mesesObra+6.
+     *
      * @return array<int, float>
      */
     public function getCurvaFinanceiraMedicaoParaPrazo(int $mesesTotal, float $obraAteLancamento = 0.0): array
     {
-        unset($obraAteLancamento);
+        $mesesTotal = max(1, $mesesTotal);
+        $obraAteLancamento = max(0.0, min(1.0, $obraAteLancamento));
 
-        $curvaObra = array_map(
-            static fn (float $percentual): float => round($percentual, 1),
-            $this->getCurvaObraParaPrazo($mesesTotal),
-        );
-        $curvaFinanceira = array_fill(0, $mesesTotal + 5, 0.0);
-        $acumulado = 0.0;
+        $curvaFisica = $this->getCurvaObraParaPrazo($mesesTotal);
+        // 95% do total é liberado ao longo da obra; 5% retidos.
+        $fatorObra = 0.95;
+        $curvaFinanceira = array_fill(0, $mesesTotal + 7, 0.0);
 
-        foreach ($curvaObra as $indice => $percentualFinanceiro) {
-            if ($percentualFinanceiro <= 0.0) {
-                continue;
-            }
-
-            $novoAcumulado = round($acumulado + $percentualFinanceiro, 1);
-            if ($novoAcumulado > 95.0) {
-                break;
-            }
-
-            $curvaFinanceira[$indice] = $percentualFinanceiro;
-            $acumulado = $novoAcumulado;
+        $parcelaObra = [];
+        foreach ($curvaFisica as $indice => $percentual) {
+            $parcelaObra[$indice] = $percentual * $fatorObra;
         }
 
-        $saldoFinal = round(100.0 - $acumulado, 1);
-        if ($saldoFinal > 0.0) {
-            $primeiraParcela = round($saldoFinal * 0.55, 1);
-            $segundaParcela = round($saldoFinal - $primeiraParcela, 1);
+        // obra_ate_lancamento: antecipa essa fração do desembolso de medição para o 1º mês de obra,
+        // reduzindo proporcionalmente os meses seguintes (efeito real na curva financeira).
+        if ($obraAteLancamento > 0.0 && $parcelaObra !== []) {
+            $totalObra = array_sum($parcelaObra);
+            $antecipado = $totalObra * $obraAteLancamento;
+            $restanteAlvo = $totalObra - $antecipado;
+            $restanteAtual = $totalObra - ($parcelaObra[0] ?? 0.0);
+            $parcelaObra[0] = ($parcelaObra[0] ?? 0.0) + $antecipado;
+            if ($restanteAtual > 0.0) {
+                $fatorRestante = $restanteAlvo / $restanteAtual;
+                foreach ($parcelaObra as $indice => $valor) {
+                    if ($indice === 0) {
+                        continue;
+                    }
+                    $parcelaObra[$indice] = $valor * $fatorRestante;
+                }
+            }
+        }
 
-            $curvaFinanceira[$mesesTotal + 1] = $primeiraParcela;
-            $curvaFinanceira[$mesesTotal + 4] = $segundaParcela;
+        foreach ($parcelaObra as $indice => $percentual) {
+            $curvaFinanceira[$indice] = round($percentual, 6);
+        }
+
+        // 5% finais: 2% em entrega+2 e 3% em entrega+6 (índices 1-based = mesesObra+N).
+        $curvaFinanceira[$mesesTotal + 1] = 2.0; // +2 meses após fim da obra (0-based: mesesTotal+1)
+        $curvaFinanceira[$mesesTotal + 5] = 3.0; // +6 meses (0-based: mesesTotal+5)
+
+        $soma = array_sum($curvaFinanceira);
+        if (abs($soma - 100.0) > 0.01 && $soma > 0) {
+            $ajuste = 100.0 - $soma;
+            $curvaFinanceira[$mesesTotal - 1] = ($curvaFinanceira[$mesesTotal - 1] ?? 0.0) + $ajuste;
         }
 
         return $curvaFinanceira;
     }
 
     /**
-     * Encontra o prazo de curva mais próximo disponível
+     * @return list<float>
      */
-    private function getPrazoMaisProximo(int $mesesTotal): int
+    private function resolverCurvaBase(int $mesesTotal): array
     {
-        $prazosDisponiveis = array_keys($this->curvasObra);
-        $prazoMaisProximo = $prazosDisponiveis[0];
-        $menorDiferenca = PHP_INT_MAX;
+        $mesesTotal = max(1, $mesesTotal);
+        $curvas = $this->curvasOficiais();
 
-        foreach ($prazosDisponiveis as $prazo) {
-            $diff = abs($prazo - $mesesTotal);
-            if ($diff < $menorDiferenca) {
-                $menorDiferenca = $diff;
-                $prazoMaisProximo = $prazo;
+        if (isset($curvas[$mesesTotal])) {
+            return $curvas[$mesesTotal];
+        }
+
+        $prazos = array_keys($curvas);
+        sort($prazos);
+
+        $min = $prazos[0];
+        $max = $prazos[array_key_last($prazos)];
+
+        if ($mesesTotal < $min) {
+            $this->warnings[] = "Prazo de obra {$mesesTotal}m abaixo da tabela oficial ({$min}–{$max}); redistribuindo curva de {$min}m.";
+
+            return $this->interpolarCurva($curvas[$min], $mesesTotal);
+        }
+
+        if ($mesesTotal > $max) {
+            $this->warnings[] = "Prazo de obra {$mesesTotal}m acima da tabela oficial ({$min}–{$max}); redistribuindo monotônica a partir de {$max}m (não reutiliza o vetor de {$max} posições).";
+
+            return $this->interpolarCurva($curvas[$max], $mesesTotal);
+        }
+
+        // Entre dois prazos tabelados: interpola a curva-alvo a partir do vizinho mais próximo
+        // e redistribui monotônica para o tamanho exato (nunca devolve o vetor vizinho cru).
+        $inferior = $min;
+        $superior = $max;
+        foreach ($prazos as $prazo) {
+            if ($prazo <= $mesesTotal) {
+                $inferior = $prazo;
+            }
+            if ($prazo >= $mesesTotal) {
+                $superior = $prazo;
+                break;
             }
         }
 
-        return $prazoMaisProximo;
+        $this->warnings[] = "Prazo de obra {$mesesTotal}m sem curva oficial; interpolando entre {$inferior}m e {$superior}m.";
+
+        if ($inferior === $superior) {
+            return $this->interpolarCurva($curvas[$inferior], $mesesTotal);
+        }
+
+        $peso = ($mesesTotal - $inferior) / max(1, $superior - $inferior);
+        $curvaInf = $this->interpolarCurva($curvas[$inferior], $mesesTotal);
+        $curvaSup = $this->interpolarCurva($curvas[$superior], $mesesTotal);
+        $misturada = [];
+        for ($i = 0; $i < $mesesTotal; $i++) {
+            $misturada[] = (($curvaInf[$i] ?? 0.0) * (1 - $peso)) + (($curvaSup[$i] ?? 0.0) * $peso);
+        }
+
+        return $this->normalizarCurva($misturada);
     }
 
     /**
-     * Normaliza uma curva para que a soma seja exatamente 100%
+     * @return array<int, list<float>>
      */
+    private function curvasOficiais(): array
+    {
+        if (self::$curvasOficiais !== null) {
+            return self::$curvasOficiais;
+        }
+
+        $path = __DIR__.'/Data/curvas_obra_aux_obras.json';
+        if (! is_file($path)) {
+            throw new RuntimeException('Fixture de curvas oficiais Aux_Obras não encontrada: '.$path);
+        }
+
+        $decoded = json_decode((string) file_get_contents($path), true);
+        if (! is_array($decoded) || ! is_array($decoded['curves'] ?? null)) {
+            throw new RuntimeException('Fixture de curvas oficiais inválida.');
+        }
+
+        $map = [];
+        foreach ($decoded['curves'] as $prazo => $valores) {
+            if (! is_array($valores)) {
+                continue;
+            }
+            $map[(int) $prazo] = array_map(static fn (mixed $v): float => (float) $v, array_values($valores));
+        }
+
+        ksort($map);
+        self::$curvasOficiais = $map;
+
+        return self::$curvasOficiais;
+    }
+
     /**
      * @param  list<float>  $curva
      * @return list<float>
@@ -167,23 +231,19 @@ class CurvaService
     public function normalizarCurva(array $curva): array
     {
         $soma = array_sum($curva);
-
-        if ($soma > 0 && abs($soma - 100) > 0.1) {
-            $fator = 100 / $soma;
-            $curva = array_map(static fn (float $val): float => $val * $fator, $curva);
+        if ($soma <= 0.0) {
+            return $curva;
         }
 
-        return $curva;
+        if (abs($soma - 100.0) <= 0.0001) {
+            return array_values($curva);
+        }
+
+        $fator = 100.0 / $soma;
+
+        return array_map(static fn (float $val): float => $val * $fator, array_values($curva));
     }
 
-    /**
-     * Distribui um valor total ao longo do tempo baseado em uma curva
-     *
-     * @param  float  $total  Valor total a distribuir
-     * @param  Carbon  $dataInicio  Data de início da distribuição
-     * @param  array  $curva  Curva de distribuição (percentuais)
-     * @return array Array associativo [Y-m => valor]
-     */
     /**
      * @param  list<float>  $curva
      * @return array<string, float>
@@ -202,7 +262,6 @@ class CurvaService
 
             $valorMes = $total * ($percentual / 100);
             $chaveMes = $dataAtual->format('Y-m');
-
             $distribuicao[$chaveMes] = ($distribuicao[$chaveMes] ?? 0) + $valorMes;
             $dataAtual->addMonth();
         }
@@ -264,6 +323,8 @@ class CurvaService
     }
 
     /**
+     * Redistribuição monotônica: redimensiona preservando a forma e normaliza a 100%.
+     *
      * @param  list<float>  $curva
      * @return list<float>
      */
@@ -288,18 +349,39 @@ class CurvaService
             return $this->normalizarCurva(array_fill(0, $meses, (float) $curva[0]));
         }
 
-        $resultado = [];
+        // Trabalha no acumulado para garantir monotonicidade do acumulado final.
+        $acumulado = [];
+        $running = 0.0;
+        foreach ($curva as $valor) {
+            $running += max(0.0, (float) $valor);
+            $acumulado[] = $running;
+        }
+        $total = $running > 0 ? $running : 100.0;
+
+        $resultadoAcum = [];
         for ($i = 0; $i < $meses; $i++) {
             $pos = ($i * ($n - 1)) / ($meses - 1);
             $left = (int) floor($pos);
-            $right = (int) ceil($pos);
+            $right = min($n - 1, (int) ceil($pos));
             $weight = $pos - $left;
-            $vl = (float) ($curva[$left] ?? 0.0);
-            $vr = (float) ($curva[$right] ?? $vl);
-            $resultado[] = ($vl * (1 - $weight)) + ($vr * $weight);
+            $vl = (float) ($acumulado[$left] ?? 0.0);
+            $vr = (float) ($acumulado[$right] ?? $vl);
+            $resultadoAcum[] = ($vl * (1 - $weight)) + ($vr * $weight);
         }
 
-        return $this->normalizarCurva($resultado);
+        // Garante monotonia e fecha em 100% do total original antes de normalizar.
+        $prev = 0.0;
+        $mensal = [];
+        for ($i = 0; $i < $meses; $i++) {
+            $atual = max($prev, min($total, $resultadoAcum[$i]));
+            if ($i === $meses - 1) {
+                $atual = $total;
+            }
+            $mensal[] = $atual - $prev;
+            $prev = $atual;
+        }
+
+        return $this->normalizarCurva($mensal);
     }
 
     /**
@@ -327,5 +409,13 @@ class CurvaService
             'valid' => $faltando === [],
             'faltando' => $faltando,
         ];
+    }
+
+    /**
+     * @return list<int>
+     */
+    public function prazosOficiais(): array
+    {
+        return array_keys($this->curvasOficiais());
     }
 }

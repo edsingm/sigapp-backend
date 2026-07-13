@@ -12,7 +12,7 @@ class PocCalculator
      */
     public function calcularDreContabilPoc(array $fluxo, array $dre, array $dadosProdutos): array
     {
-        $custoOrcadoObra = (float) ($dadosProdutos['custoObraHabitacao'] ?? 0) + (float) ($dadosProdutos['custoInfraestrutura'] ?? 0);
+        $custoOrcadoObra = $this->custoOrcadoPoc($dadosProdutos);
         $custoIncorridoObra = 0.0;
         $custoIncorridoTotal = 0.0;
         foreach ($fluxo as $linha) {
@@ -21,7 +21,11 @@ class PocCalculator
             $custoIncorridoTotal += $this->extractTotalDespesasMes($linha);
         }
 
-        $percentualExecucaoObra = $custoOrcadoObra > 0 ? min(1, $custoIncorridoObra / $custoOrcadoObra) : 0;
+        $estouro = $custoOrcadoObra > 0 && $custoIncorridoObra > $custoOrcadoObra + 0.01;
+        $percentualExecucaoObra = $custoOrcadoObra > 0 ? ($custoIncorridoObra / $custoOrcadoObra) : 0;
+        if ($percentualExecucaoObra > 1.0) {
+            $percentualExecucaoObra = 1.0;
+        }
         $receitaTotalVendas = (float) ($dre['receita_total_vendas'] ?? 0);
         $receitaReconhecida = $receitaTotalVendas * $percentualExecucaoObra;
         $lucroBrutoContabil = $receitaReconhecida - $custoIncorridoTotal;
@@ -35,6 +39,8 @@ class PocCalculator
             'custo_incorrido_total' => round($custoIncorridoTotal, 2),
             'lucro_bruto_contabil' => round($lucroBrutoContabil, 2),
             'margem_bruta_contabil_percentual' => round($margemBrutaContabil * 100, 2),
+            'estouro_orcamento' => $estouro,
+            'warning' => $estouro ? 'Custo de obra incorrido ultrapassou o orçamento POC.' : null,
         ];
     }
 
@@ -238,21 +244,41 @@ class PocCalculator
         ];
     }
 
+    /**
+     * Custo de obra POC: mesmas categorias do orçamento habitação+infra.
+     * Inclui "Obra" e "Obra (Lançamento)"; exclui canteiro/seguros/não incidente.
+     */
     private function extractObraMes(array $despesas): float
     {
+        $total = 0.0;
+
         if (isset($despesas['obra'])) {
             if (is_array($despesas['obra'])) {
-                return (float) ($despesas['obra']['obra_periodo_obra'] ?? 0.0);
+                $total += (float) ($despesas['obra']['obra_periodo_obra'] ?? 0.0);
+                $total += (float) ($despesas['obra']['obra_lancamento'] ?? 0.0);
+            } else {
+                $total += (float) $despesas['obra'];
             }
-
-            return (float) $despesas['obra'];
         }
 
-        if (isset($despesas['Obra'])) {
-            return (float) $despesas['Obra'];
-        }
+        // Detalhes flat do fluxo mensal
+        $total += (float) ($despesas['Obra'] ?? 0.0);
+        $total += (float) ($despesas['Obra (Lançamento)'] ?? 0.0);
 
-        return 0.0;
+        return max(0.0, $total);
+    }
+
+    /**
+     * Base orçada única do POC (habitação + infraestrutura).
+     *
+     * @param  array<string, mixed>  $dadosProdutos
+     */
+    public function custoOrcadoPoc(array $dadosProdutos): float
+    {
+        return max(
+            0.0,
+            (float) ($dadosProdutos['custoObraHabitacao'] ?? 0) + (float) ($dadosProdutos['custoInfraestrutura'] ?? 0)
+        );
     }
 
     private function extractImpostosMes(array $despesas): float

@@ -61,6 +61,17 @@ class ViabilidadeUnificadoService
             $viabilidade = $this->buscarViabilidade($terrenoId, $viabilidadeRef);
             $params = $this->montarParametros($viabilidade);
             $produtosCustomizados = is_array($customProdutos) ? array_values($customProdutos) : null;
+
+            // Recálculo determinístico: usa produtos do snapshot canônico quando não vier override.
+            if ($produtosCustomizados === null && $viabilidade instanceof Viabilidade) {
+                $snapshotProdutos = app(ViabilidadeSnapshotService::class)->extractProdutos(
+                    is_array($viabilidade->premissas_snapshot) ? $viabilidade->premissas_snapshot : null
+                );
+                if ($snapshotProdutos !== []) {
+                    $produtosCustomizados = $snapshotProdutos;
+                }
+            }
+
             $resultado = $this->fluxoMensalCalculator->calcular($terreno, $params, $produtosCustomizados);
 
             $this->salvarSnapshot($viabilidade, $resultado);
@@ -249,6 +260,19 @@ class ViabilidadeUnificadoService
             'mesesLancamento' => (int) ($v->prazo_lancamento ?? $defaults['meses_lancamento']),
             'mesesEntrega' => $this->resolverInteiro($v, $formValues, $snapshotParams, $defaults, [], 'meses_entrega', 'mesesEntrega', 'meses_entrega'),
             'mesesPosObra' => $this->resolverInteiro($v, $formValues, $snapshotParams, $defaults, [], 'meses_pos_obra', 'mesesPosObra', 'meses_pos_obra'),
+            // Taxa anual global de correção adicional — só aplica se enviada no estudo
+            // (não herda o default seed da premissa, que distorceria a planilha).
+            'variavelCorrecao' => $this->resolverPercentual(
+                $v,
+                $formValues,
+                $snapshotParams,
+                ['variavel_correcao' => 0.0],
+                ['variavel_correcao'],
+                'variavel_correcao',
+                'variavelCorrecao',
+                'variavel_correcao',
+                true,
+            ),
             'compraTerreno' => (float) ($v->compra_terreno ?? $defaults['compra_terreno']),
             'taxaJurosPj' => $this->resolverPercentual($v, $formValues, $snapshotParams, $defaults, ['taxa_juros_pj'], 'taxa_juros_pj', 'taxaJurosPj', 'taxa_juros_pj'),
             'carenciaPjMeses' => $this->resolverInteiro($v, $formValues, $snapshotParams, $defaults, ['carencia_pj_meses'], 'carencia_pj_meses', 'carenciaPjMeses', 'carencia_pj_meses'),

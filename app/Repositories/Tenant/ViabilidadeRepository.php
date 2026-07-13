@@ -86,6 +86,26 @@ class ViabilidadeRepository implements ViabilidadeRepositoryInterface
             ->max('version')) + 1;
     }
 
+    /**
+     * Adquire lock nas viabilidades do terreno para serializar versionamento/aprovação.
+     */
+    public function lockTerrenoViabilidades(int $terrenoId): void
+    {
+        Viabilidade::query()
+            ->where('terreno_id', $terrenoId)
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->get(['id']);
+    }
+
+    public function lockById(int|string $id): Viabilidade
+    {
+        return Viabilidade::query()
+            ->whereKey($id)
+            ->lockForUpdate()
+            ->firstOrFail();
+    }
+
     public function clearCurrentForTerreno(int $terrenoId, ?int $exceptId = null): void
     {
         Viabilidade::query()
@@ -188,12 +208,16 @@ class ViabilidadeRepository implements ViabilidadeRepositoryInterface
     /**
      * @return Collection<int, Viabilidade>
      */
-    public function forSelect(?int $terrenoId = null): Collection
+    public function forSelect(?int $terrenoId = null, int $limit = 100): Collection
     {
+        $limit = max(1, min($limit, 500));
+
         return Viabilidade::query()
-            ->with('terreno')
+            ->with('terreno:id,nome')
+            ->select(['id', 'terreno_id', 'version', 'status', 'approval_status', 'created_at'])
             ->when($terrenoId !== null, fn ($query) => $query->where('terreno_id', $terrenoId))
             ->orderByDesc('created_at')
+            ->limit($limit)
             ->get();
     }
 

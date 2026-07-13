@@ -27,6 +27,10 @@ interface ViabilidadeRepositoryInterface
 
     public function nextVersionForTerreno(int $terrenoId): int;
 
+    public function lockTerrenoViabilidades(int $terrenoId): void;
+
+    public function lockById(int|string $id): Viabilidade;
+
     public function clearCurrentForTerreno(int $terrenoId, ?int $exceptId = null): void;
 
     public function approvedByTerreno(int $terrenoId, ?int $exceptId = null): ?Viabilidade;
@@ -50,7 +54,7 @@ interface ViabilidadeRepositoryInterface
     /**
      * @return Collection<int, Viabilidade>
      */
-    public function forSelect(?int $terrenoId = null): Collection;
+    public function forSelect(?int $terrenoId = null, int $limit = 100): Collection;
 
     public function loadDefaultRelations(Viabilidade $viabilidade): Viabilidade;
 

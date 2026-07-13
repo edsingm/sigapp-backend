@@ -169,6 +169,13 @@ class ViabilidadeApiTest extends TestCase
             'is_current' => true,
             'status' => 'rascunho',
             'approval_status' => 'pendente',
+            'resultados_dre' => [
+                'vgv' => 1_000_000,
+                'totalUnidades' => 12,
+                'totais' => ['receita' => 1_000_000],
+                'indicadores' => ['margem_liquida_percentual' => 20],
+                'reconciliation' => ['status' => 'ok'],
+            ],
             'created_by' => $this->admin->id,
             'updated_by' => $this->admin->id,
         ]);
@@ -188,12 +195,24 @@ class ViabilidadeApiTest extends TestCase
             ->assertJsonPath('data.approval_status', 'aprovada')
             ->assertJsonPath('data.status', 'ativo');
 
-        $this->actingAs($this->admin)
+        // Recálculo de aprovada cria nova versão e preserva a original.
+        $recalc = $this->actingAs($this->admin)
             ->postJson("/api/v1/viabilidades/{$viabilidade->id}/recalcular")
             ->assertOk()
-            ->assertJsonPath('data.viabilidade.id', $viabilidade->id)
             ->assertJsonStructure(['data' => ['resumo', 'indicadores', 'produtos_resumo']])
-            ->assertJsonMissingPath('data.dre');
+            ->assertJsonMissingPath('data.dre')
+            ->json('data.viabilidade.id');
+
+        $this->assertNotEquals($viabilidade->id, $recalc);
+        $this->assertDatabaseHas('viabilidades', [
+            'id' => $viabilidade->id,
+            'approval_status' => 'aprovada',
+        ]);
+        $this->assertDatabaseHas('viabilidades', [
+            'id' => $recalc,
+            'approval_status' => 'pendente',
+            'terreno_id' => $viabilidade->terreno_id,
+        ]);
 
         $this->assertDatabaseHas('viabilidade_aprovacoes', [
             'viabilidade_id' => $viabilidade->id,
@@ -218,7 +237,59 @@ class ViabilidadeApiTest extends TestCase
         $this->actingAs($this->admin)
             ->putJson("/api/v1/viabilidades/{$viabilidade->id}", $this->makePayload($terrenoProduto))
             ->assertUnprocessable()
-            ->assertJsonValidationErrors(['viabilidade']);
+            ->assertJsonPath('error.code', 'VIABILIDADE_LOCKED');
+    }
+
+    public function test_nao_permite_editar_nem_recalcular_viabilidade_em_aprovacao(): void
+    {
+        $terrenoProduto = $this->createViabilityFixture();
+        $viabilidade = Viabilidade::create([
+            'terreno_id' => $terrenoProduto->getAttribute('terreno_id'),
+            'version' => 1,
+            'is_current' => true,
+            'status' => 'rascunho',
+            'approval_status' => 'em_aprovacao',
+            'resultados_dre' => ['vgv' => 1, 'totais' => ['receita' => 1], 'indicadores' => []],
+            'created_by' => $this->admin->id,
+            'updated_by' => $this->admin->id,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->putJson("/api/v1/viabilidades/{$viabilidade->id}", $this->makePayload($terrenoProduto))
+            ->assertUnprocessable()
+            ->assertJsonPath('error.code', 'VIABILIDADE_LOCKED');
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/viabilidades/{$viabilidade->id}/recalcular")
+            ->assertUnprocessable()
+            ->assertJsonPath('error.code', 'VIABILIDADE_LOCKED');
+    }
+
+    public function test_nao_permite_submeter_viabilidade_ja_em_aprovacao_ou_aprovada(): void
+    {
+        $terrenoProduto = $this->createViabilityFixture();
+        $viabilidade = Viabilidade::create([
+            'terreno_id' => $terrenoProduto->getAttribute('terreno_id'),
+            'version' => 1,
+            'is_current' => true,
+            'status' => 'rascunho',
+            'approval_status' => 'em_aprovacao',
+            'resultados_dre' => ['vgv' => 1],
+            'created_by' => $this->admin->id,
+            'updated_by' => $this->admin->id,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/viabilidades/{$viabilidade->id}/solicitar-aprovacao", [])
+            ->assertUnprocessable()
+            ->assertJsonPath('error.code', 'VIABILIDADE_SUBMIT_NOT_ALLOWED');
+
+        $viabilidade->update(['approval_status' => 'aprovada', 'status' => 'ativo']);
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/viabilidades/{$viabilidade->id}/solicitar-aprovacao", [])
+            ->assertUnprocessable()
+            ->assertJsonPath('error.code', 'VIABILIDADE_SUBMIT_NOT_ALLOWED');
     }
 
     public function test_apenas_diretor_pode_revogar_aprovacao(): void
@@ -239,14 +310,14 @@ class ViabilidadeApiTest extends TestCase
             ->postJson("/api/v1/viabilidades/{$viabilidade->id}/revogar-aprovacao", [])
             ->assertForbidden();
 
-        // Diretor pode revogar: volta para pendente/rascunho e editável.
+        // Diretor pode revogar: estado explícito revogada; edição exige nova versão.
         $diretor = $this->makeDiretor();
         $this->actingAs($diretor)
             ->postJson("/api/v1/viabilidades/{$viabilidade->id}/revogar-aprovacao", [
                 'approval_notes' => 'Revisão de premissas necessária.',
             ])
             ->assertOk()
-            ->assertJsonPath('data.approval_status', 'pendente')
+            ->assertJsonPath('data.approval_status', 'revogada')
             ->assertJsonPath('data.status', 'rascunho');
 
         $this->assertDatabaseHas('viabilidade_aprovacoes', [
@@ -254,6 +325,11 @@ class ViabilidadeApiTest extends TestCase
             'decision' => 'revogada',
             'user_id' => $diretor->id,
         ]);
+
+        $this->actingAs($this->admin)
+            ->putJson("/api/v1/viabilidades/{$viabilidade->id}", $this->makePayload($terrenoProduto))
+            ->assertUnprocessable()
+            ->assertJsonPath('error.code', 'VIABILIDADE_LOCKED');
     }
 
     public function test_revogar_bloqueado_com_comite_aberto(): void
@@ -281,7 +357,7 @@ class ViabilidadeApiTest extends TestCase
         $this->actingAs($diretor)
             ->postJson("/api/v1/viabilidades/{$viabilidade->id}/revogar-aprovacao", [])
             ->assertUnprocessable()
-            ->assertJsonValidationErrors(['viabilidade']);
+            ->assertJsonPath('error.code', 'VIABILIDADE_COMMITTEE_PENDING');
     }
 
     private function makeDiretor(): User
@@ -329,8 +405,8 @@ class ViabilidadeApiTest extends TestCase
             ->postJson("/api/v1/viabilidades/{$nova->id}/aprovar", [
                 'approval_notes' => 'Tentando aprovar a segunda.',
             ])
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors(['approval_notes']);
+            ->assertStatus(409)
+            ->assertJsonPath('error.code', 'VIABILIDADE_ALREADY_APPROVED_FOR_TERRENO');
 
         // A viabilidade aprovada continua sendo a atual (is_current) do terreno.
         $this->assertDatabaseHas('viabilidades', ['id' => $aprovada->id, 'is_current' => true]);
@@ -549,9 +625,22 @@ class ViabilidadeApiTest extends TestCase
             ->getJson("/api/v1/viabilidades/{$viabilidadeId}?include=auditoria,premissas_snapshot")
             ->assertOk()
             ->assertJsonPath('data.viabilidade.compra_terreno', 1250000)
+            // Snapshot canônico (schema v2) persiste after_form_values como form_values.
             ->assertJsonPath(
                 'data.viabilidade.premissas_snapshot.form_values.compra_terreno',
+                1250000
+            )
+            ->assertJsonPath(
+                'data.viabilidade.premissas_snapshot.schema_version',
+                2
+            )
+            ->assertJsonPath(
+                'data.viabilidade.premissas_snapshot.historico.0.before_form_values.compra_terreno',
                 '1000000.00'
+            )
+            ->assertJsonPath(
+                'data.viabilidade.premissas_snapshot.historico.0.after_form_values.compra_terreno',
+                1250000
             )
             ->assertJsonPath(
                 'data.viabilidade.premissas_snapshot.alterado_por_user.name',

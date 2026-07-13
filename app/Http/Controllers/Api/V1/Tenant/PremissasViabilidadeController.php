@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Tenant;
 
+use App\Exceptions\PremissasViabilidadeException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Tenant\DestroyPremissasViabilidadeRequest;
 use App\Http\Requests\Tenant\StorePremissasViabilidadeRequest;
 use App\Http\Requests\Tenant\UpdatePremissasViabilidadeRequest;
 use App\Http\Resources\Tenant\PremissasViabilidadeResource;
@@ -70,7 +72,11 @@ class PremissasViabilidadeController extends Controller
         $validated['created_by'] = $request->user()->id;
         $validated['updated_by'] = $request->user()->id;
 
-        $premissa = $this->service->create($validated);
+        try {
+            $premissa = $this->service->create($validated);
+        } catch (PremissasViabilidadeException $e) {
+            throw $e;
+        }
 
         return ApiResponseService::created(
             new PremissasViabilidadeResource($premissa),
@@ -90,7 +96,11 @@ class PremissasViabilidadeController extends Controller
         $validated['created_by'] = $request->user()->id;
         $validated['updated_by'] = $request->user()->id;
 
-        $premissa = $this->service->update($premissa, $validated);
+        try {
+            $premissa = $this->service->update($premissa, $validated);
+        } catch (PremissasViabilidadeException $e) {
+            throw $e;
+        }
 
         return ApiResponseService::success(
             new PremissasViabilidadeResource($premissa),
@@ -98,7 +108,7 @@ class PremissasViabilidadeController extends Controller
         );
     }
 
-    public function destroy(int $id): JsonResponse
+    public function destroy(DestroyPremissasViabilidadeRequest $request, int $id): JsonResponse
     {
         $premissa = $this->service->findById($id);
 
@@ -106,7 +116,18 @@ class PremissasViabilidadeController extends Controller
             return ApiResponseService::notFound('Premissas não encontradas');
         }
 
-        $this->service->delete($premissa);
+        try {
+            $result = $this->service->delete($premissa);
+        } catch (PremissasViabilidadeException $e) {
+            throw $e;
+        }
+
+        if (($result['action'] ?? null) === 'deactivated') {
+            return ApiResponseService::success(
+                new PremissasViabilidadeResource($result['premissa']),
+                'Premissas referenciadas por estudos foram inativadas (não excluídas).'
+            );
+        }
 
         return ApiResponseService::success(null, 'Premissas excluídas com sucesso');
     }

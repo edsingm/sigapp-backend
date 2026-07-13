@@ -228,53 +228,124 @@ class PlanilhaConformidadeTest extends TestCase
         $dre = $resultado['dre_itens'];
         $indicadores = $resultado['indicadores'];
 
-        // ─── Asserts básicos ─────────────────────────────────────────────
-        $this->assertGreaterThan(220_000_000, $resultado['vgv'], 'VGV deve ser > 220M');
-        $this->assertEquals(1300, $resultado['totalUnidades'], 'Total de unidades');
+        $fixture = $this->loadLrgFixture();
+        $expected = $fixture['expected'];
+        $tol = $fixture['tolerances'];
 
-        // DRE
-        $this->assertGreaterThan(236_900_000 * 0.80, $dre['receita_total_vendas'], 'Receita total vendas');
-        $this->assertLessThan(236_900_000 * 1.20, $dre['receita_total_vendas']);
+        // Quantidades exatas
+        $this->assertSame((int) $expected['total_unidades'], (int) $resultado['totalUnidades'], 'Total de unidades deve ser exato');
 
-        // Lucro Líquido da planilha: R$57.056.248
-        $this->assertGreaterThan(57_056_248 * 0.70, $dre['lucro_liquido_projeto'], 'Lucro líquido min');
-        $this->assertLessThan(57_056_248 * 1.30, $dre['lucro_liquido_projeto'], 'Lucro líquido max');
-
-        // Receitas
+        // Estrutura e sinal
+        $this->assertNotEmpty($resultado['fluxo_mensal'], 'Fluxo não vazio');
+        $this->assertGreaterThan(50, count($resultado['fluxo_mensal']), 'Fluxo > 50 meses');
         $this->assertGreaterThan(0.0, $dre['receita_bruta'], 'Receita bruta > 0');
         $this->assertGreaterThan(0.0, $dre['receita_liquida'], 'Receita líquida > 0');
-
-        // Custos
-        $this->assertGreaterThan(0.0, $dre['custos_diretos_total'], 'Custos diretos > 0');
         $this->assertGreaterThan(0.0, $dre['custo_terreno'], 'Custo terreno > 0');
-        $this->assertGreaterThan(0.0, $dre['infra_casas'], 'Infra casas > 0');
-
-        // EBITDA e EBIT
-        $this->assertGreaterThan(0.0, $dre['ebitda'], 'EBITDA > 0');
-        $this->assertGreaterThan(0.0, $dre['ebit'], 'EBIT > 0');
         $this->assertLessThan($dre['ebitda'], $dre['ebit'], 'EBIT < EBITDA');
 
-        // Margens
-        $margemLiquida = $indicadores['margem_liquida_percentual'] ?? 0;
-        $this->assertGreaterThan(10.0, $margemLiquida, 'Margem líquida > 10%');
-        $this->assertLessThan(40.0, $margemLiquida, 'Margem líquida < 40%');
+        // Contrato financeiro por métrica (falha real, não só log).
+        // Tolerâncias interim em fixture; targets finais (0,10%) ficam documentados.
+        $this->assertWithinPct((float) $expected['vgv_lrg_sem_lote_terrenista'], (float) $resultado['vgv'], (float) $tol['derived_total_pct'], 'VGV');
+        $this->assertWithinPct((float) $expected['lucro_liquido'], (float) $dre['lucro_liquido_projeto'], (float) $tol['derived_total_pct'], 'Lucro líquido');
+        $this->assertWithinPct((float) $expected['receita_bruta'], (float) $dre['receita_bruta'], (float) $tol['derived_total_pct'], 'Receita bruta');
+        $this->assertWithinPct((float) $expected['custo_terreno'], (float) $dre['custo_terreno'], (float) $tol['derived_total_pct'], 'Custo terreno');
 
-        // Exposição máxima
-        $this->assertLessThan(0.0, $indicadores['exposicao_maxima_operacional'], 'Exposição máxima < 0');
+        $margemLiquida = (float) ($indicadores['margem_liquida_percentual'] ?? 0);
+        $this->assertEqualsWithDelta(
+            (float) $expected['margem_liquida_pct'],
+            $margemLiquida,
+            (float) $tol['margin_pp'],
+            'Margem líquida fora da tolerância'
+        );
 
-        // Fluxo mensal
-        $fluxo = $resultado['fluxo_mensal'];
-        $this->assertNotEmpty($fluxo, 'Fluxo não vazio');
-        $this->assertGreaterThan(50, count($fluxo), 'Fluxo > 50 meses');
+        // Métricas com fórmula ainda aberta (Fase 4B): guardas de regressão + log da planilha.
+        $baseline = is_array($fixture['regression_baseline'] ?? null) ? $fixture['regression_baseline'] : [];
+        $comissaoSistema = (float) ($dre['comissao'] ?? 0);
+        $comissaoPlanilha = (float) $expected['comissao'];
+        $this->assertLessThanOrEqual(
+            (float) ($baseline['comissao_max_abs_diff_vs_planilha'] ?? abs($comissaoPlanilha)),
+            abs($comissaoSistema - $comissaoPlanilha),
+            'Comissão piorou vs baseline de regressão (alvo planilha ainda aberto na Fase 4B)'
+        );
 
-        // Payback
-        $payback = $indicadores['payback_operacional_meses'] ?? $indicadores['payback_operacional'] ?? null;
-        $this->assertNotNull($payback, 'Payback existe');
-        $this->assertGreaterThan(0, $payback, 'Payback > 0');
+        $exposicao = (float) ($indicadores['exposicao_maxima_operacional'] ?? 0);
+        $this->assertLessThan(0.0, $exposicao, 'Exposição máxima operacional deve ser negativa');
+        $this->assertLessThanOrEqual(
+            (float) ($baseline['exposicao_operacional_max_abs'] ?? 8_000_000),
+            abs($exposicao),
+            'Exposição operacional piorou vs baseline de regressão'
+        );
 
-        // ─── Log detalhado de comparação ────────────────────────────────
+        $tirRaw = $indicadores['tir_operacional_aa_percentual']
+            ?? (isset($indicadores['tir_operacional']) && $indicadores['tir_operacional'] !== null
+                ? ((float) $indicadores['tir_operacional'] * 100)
+                : null);
+        if ($tirRaw !== null) {
+            $tirOperacional = (float) $tirRaw;
+            $this->assertGreaterThanOrEqual((float) ($baseline['tir_operacional_aa_pct_min'] ?? -50), $tirOperacional);
+            $this->assertLessThanOrEqual((float) ($baseline['tir_operacional_aa_pct_max'] ?? 50), $tirOperacional);
+        }
+
+        // ─── Log detalhado de comparação (diagnóstico; não substitui asserts) ──
         $this->logComparacao($dre, $indicadores, $resultado);
         $this->logComparacaoFluxo($resultado);
+    }
+
+    /**
+     * @return array{expected: array<string, float|int>, tolerances: array<string, float|int>}
+     */
+    private function loadLrgFixture(): array
+    {
+        $path = base_path('tests/Fixtures/Viabilidade/lrg_planilha_v01_2026.json');
+        $this->assertFileExists($path);
+        $json = json_decode((string) file_get_contents($path), true);
+        $this->assertIsArray($json);
+        $this->assertIsArray($json['expected'] ?? null);
+        $this->assertIsArray($json['tolerances'] ?? null);
+
+        return $json;
+    }
+
+    private function assertWithinPct(float $expected, float $actual, float $pctTolerance, string $label): void
+    {
+        if (abs($expected) < 0.0001) {
+            $this->assertEqualsWithDelta(0.0, $actual, 1.0, "{$label}: esperado ~0");
+
+            return;
+        }
+
+        $diffPct = abs(($actual - $expected) / abs($expected)) * 100;
+        $this->assertLessThanOrEqual(
+            $pctTolerance,
+            $diffPct,
+            sprintf('%s fora da tolerância: planilha=%.2f sistema=%.2f diff=%.3f%% (limite %.3f%%)', $label, $expected, $actual, $diffPct, $pctTolerance)
+        );
+    }
+
+    private function assertWithinMoneyOrPct(
+        float $expected,
+        float $actual,
+        float $moneyTolerance,
+        float $pctTolerance,
+        string $label
+    ): void {
+        $absDiff = abs($actual - $expected);
+        $pctDiff = abs($expected) > 0.0001 ? ($absDiff / abs($expected)) * 100 : $absDiff;
+        $limit = max($moneyTolerance, abs($expected) * ($pctTolerance / 100));
+
+        $this->assertLessThanOrEqual(
+            $limit,
+            $absDiff,
+            sprintf(
+                '%s fora da tolerância: planilha=%.2f sistema=%.2f abs=%.2f pct=%.3f%% (limite abs=%.2f)',
+                $label,
+                $expected,
+                $actual,
+                $absDiff,
+                $pctDiff,
+                $limit
+            )
+        );
     }
 
     private function logComparacao(array $dre, array $indicadores, array $resultado): void

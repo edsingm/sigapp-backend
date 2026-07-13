@@ -4,19 +4,20 @@ namespace App\Services\Tenant\Viabilidade\v1;
 
 use App\Enums\PerfilFinanciamento;
 use App\Models\Tenant\PremissasViabilidade;
+use App\Repositories\Contracts\PremissasViabilidadeRepositoryInterface;
 use Carbon\Carbon;
 use RuntimeException;
 
 class PremissasViabilidadeService
 {
+    public function __construct(
+        private readonly ?PremissasViabilidadeRepositoryInterface $repository = null,
+    ) {}
+
     /**
      * Resolve os valores padrão das premissas exclusivamente do banco de dados.
      *
-     * Se não houver registro ativo e vigente em premissas_viabilidade para o
-     * perfil solicitado, lança RuntimeException.
-     *
-     * O config/viabilidade.php é usado apenas como fonte de seed inicial e
-     * NÃO é consultado em runtime.
+     * Seleção determinística: vigente na data, ordenada por vigente_em, version e id.
      *
      * @param  string|null  $perfil  Perfil de financiamento ('cef' ou 'proprio')
      * @return array<string, mixed>
@@ -25,17 +26,20 @@ class PremissasViabilidadeService
      */
     public function resolverDefaults(?string $perfil = null): array
     {
-        $premissa = PremissasViabilidade::carregarAtiva($perfil);
+        $perfil ??= 'cef';
+        $premissa = $this->repository?->findActiveForPerfilAt($perfil)
+            ?? PremissasViabilidade::carregarAtiva($perfil);
 
         if (! $premissa) {
-            $perfilLabel = $perfil ?? 'qualquer';
             throw new RuntimeException(
-                "Nenhuma premissa de viabilidade ativa encontrada para o perfil '{$perfilLabel}'. ".
+                "Nenhuma premissa de viabilidade ativa encontrada para o perfil '{$perfil}'. ".
                 'Execute o PremissasViabilidadeSeeder ou cadastre as premissas manualmente.'
             );
         }
 
         return [
+            'premissa_id' => $premissa->id,
+            'premissa_versao' => (int) $premissa->versao,
             'pis_cofins' => $this->floatAttribute($premissa, 'pis_cofins'),
             'iss' => $this->floatAttribute($premissa, 'iss'),
             'outros_impostos' => $this->floatAttribute($premissa, 'outros_impostos'),
@@ -105,7 +109,8 @@ class PremissasViabilidadeService
             'meses_pos_obra' => $this->intAttribute($premissa, 'meses_pos_obra'),
             'variavel_correcao' => $this->floatAttribute($premissa, 'variavel_correcao'),
             'obra_ate_lancamento' => $this->floatAttribute($premissa, 'obra_ate_lancamento'),
-            'data_lancamento_padrao' => Carbon::now()->addYears(2),
+            // Default de data_lancamento só para bootstrap de UI; o estudo materializa e congela na criação.
+            'data_lancamento_padrao' => Carbon::now()->addYears(2)->startOfDay(),
         ];
     }
 

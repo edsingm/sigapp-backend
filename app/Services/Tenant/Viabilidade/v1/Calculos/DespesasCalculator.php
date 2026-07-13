@@ -49,7 +49,10 @@ class DespesasCalculator
             $financeiros = (float) ($params['outrasDespesasFinanceirasMensal'] ?? 0.0);
         }
 
-        $custoTerreno = $this->calcularCustoTerreno($receitas['total'], $dadosProdutos, $params);
+        // Compra direta NÃO entra no caixa como reconhecimento proporcional à receita.
+        // O desembolso real está apenas em `pagamentoTerreno` (cronograma de obra).
+        // O reconhecimento econômico permanece exclusivo da DRE (DreCalculator).
+        $custoTerreno = 0.0;
         $pagamentoTerreno = $this->calcularPagamentoTerreno($mes, $periodo, $receitas, $dadosProdutos, $datas, $params, $ctx);
 
         $detalhesOperacionais = [];
@@ -359,7 +362,7 @@ class DespesasCalculator
         $saldoParceria = max(0.0, $parceriaTotal - $ctx->parceriaVgvPago);
         $parceriaRateadaMes = min($parceriaRateadaMes, $saldoParceria);
         $ctx->parceriaVgvPago += $parceriaRateadaMes;
-        $compraTerrenoMensal = $this->calcularCompraTerrenoMensal($periodo, $params);
+        $compraTerrenoMensal = $this->calcularCompraTerrenoMensal($mes, $datas, $params);
         $parceria = $parceriaRateadaMes + $compraTerrenoMensal;
         $permutaFisica = $this->calcularPagamentoPermutaFisicaTerreno($mes, $periodo, $dadosProdutos, $datas, $params);
         $comissaoCorretor = $this->calcularComissaoCorretorTerreno($mes, $dadosProdutos, $datas, $params, $ctx);
@@ -373,13 +376,32 @@ class DespesasCalculator
         ];
     }
 
-    private function calcularCompraTerrenoMensal(string $periodo, array $params): float
+    /**
+     * Compra direta do terreno: 4 parcelas semestrais iguais (planilha Terreno!T8/T14/T20/T26),
+     * a partir do mês de lançamento. Se o valor for zero, não lança nada.
+     *
+     * @param  array<string, Carbon>  $datas
+     * @param  array<string, mixed>  $params
+     */
+    private function calcularCompraTerrenoMensal(string $mes, array $datas, array $params): float
     {
-        if ($periodo !== 'Obra') {
+        $total = max(0.0, (float) ($params['compraTerreno'] ?? 0.0));
+        if ($total <= 0.0) {
             return 0.0;
         }
 
-        return max(0.0, (float) ($params['compraTerreno'] ?? 0.0)) / max(1, (int) ($params['mesesObra'] ?? 1));
+        $dataAtual = Carbon::parse($mes.'-01')->startOfMonth();
+        $inicio = $datas['dataLancamento']->copy()->startOfMonth();
+        $parcela = $total / 4.0;
+
+        for ($i = 0; $i < 4; $i++) {
+            $dataParcela = $inicio->copy()->addMonths($i * 6);
+            if ($this->mesAno($dataAtual) === $this->mesAno($dataParcela)) {
+                return $parcela;
+            }
+        }
+
+        return 0.0;
     }
 
     private function calcularPagamentoPermutaFisicaTerreno(string $mes, string $periodo, array $dadosProdutos, array $datas, array $params): float

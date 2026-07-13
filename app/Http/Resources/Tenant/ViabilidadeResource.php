@@ -3,10 +3,12 @@
 namespace App\Http\Resources\Tenant;
 
 use App\Enums\PerfilFinanciamento;
+use App\Enums\ViabilidadeApprovalStatus;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\User;
 use App\Models\Tenant\Viabilidade;
 use App\Services\Tenant\Viabilidade\v1\PremissasViabilidadeService;
+use App\Services\Tenant\Viabilidade\v1\ViabilidadeSnapshotService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -37,12 +39,36 @@ class ViabilidadeResource extends JsonResource
         $perfil = $perfilFinanciamento instanceof PerfilFinanciamento
             ? $perfilFinanciamento->value
             : 'cef';
+        $approvalStatus = ViabilidadeApprovalStatus::fromMixed(
+            $this->approval_status,
+            is_string($this->status) ? $this->status : null,
+        );
+        $snapshot = $this->snapshot();
+        $engineVersion = is_string($snapshot['calculation_engine_version'] ?? null)
+            ? $snapshot['calculation_engine_version']
+            : null;
+        $inputHash = is_string($snapshot['input_hash'] ?? null) ? $snapshot['input_hash'] : null;
+        $resultHash = is_string($snapshot['result_hash'] ?? null) ? $snapshot['result_hash'] : null;
+
+        $dataLancamento = $this->getAttribute('data_lancamento');
+        if ($dataLancamento instanceof \DateTimeInterface) {
+            $dataLancamento = $dataLancamento->format('Y-m-d');
+        } elseif (is_string($dataLancamento) && $dataLancamento !== '') {
+            $dataLancamento = substr($dataLancamento, 0, 10);
+        } else {
+            $dataLancamento = null;
+        }
 
         $data = [
             'id' => $this->id,
             'terreno_id' => $this->terreno_id,
             'version' => $this->version,
             'is_current' => $this->is_current,
+            'data_lancamento' => $dataLancamento,
+            'calculation_engine_version' => $engineVersion,
+            'input_hash' => $inputHash,
+            'result_hash' => $resultHash,
+            'allowed_actions' => $approvalStatus->allowedActions(),
             'parceria_vgv' => (float) $this->parceria_vgv,
             'compra_terreno' => (float) $this->compra_terreno,
             'infra_nao_incidente' => (float) $this->infra_nao_incidente,
@@ -114,7 +140,7 @@ class ViabilidadeResource extends JsonResource
             'produtos' => $this->resolveProdutos(),
             'perfil_financiamento' => $perfil,
             'status' => $this->status,
-            'approval_status' => $this->approval_status ?? ($this->status === 'ativo' ? 'aprovada' : 'pendente'),
+            'approval_status' => $approvalStatus->value,
             'approval_requested_at' => $this->approval_requested_at?->toIso8601String(),
             'approval_decided_at' => $this->approval_decided_at?->toIso8601String(),
             'approval_notes' => $this->approval_notes,
@@ -123,6 +149,9 @@ class ViabilidadeResource extends JsonResource
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
             'deleted_at' => $this->deleted_at?->format('Y-m-d H:i:s'),
+            // Fluxo mensal completo sob demanda: include=monthly_cash_flow|resultados_dre|*.
+            // Por padrão devolve o payload persistido (compatibilidade). Listagens leves
+            // devem usar select sem a coluna JSON no repository.
             'resultados_dre' => $this->getAttribute('resultados_dre'),
             'terreno' => $terreno instanceof Terreno ? [
                 'id' => $terreno->id,
@@ -251,6 +280,32 @@ class ViabilidadeResource extends JsonResource
      */
     private function resolveProdutos(): array
     {
+        $snapshotProdutos = app(ViabilidadeSnapshotService::class)->extractProdutos($this->snapshot());
+        if ($snapshotProdutos !== []) {
+            /** @var list<array<string, mixed>> $items */
+            $items = array_values(collect($snapshotProdutos)
+                ->filter(fn (mixed $produto): bool => is_array($produto))
+                ->map(function (array $produto): array {
+                    return [
+                        'id' => (int) ($produto['id'] ?? 0),
+                        'unidades' => (float) ($produto['unidades'] ?? 0),
+                        'valor' => (float) ($produto['valor'] ?? 0),
+                        'permuta' => (float) ($produto['permuta'] ?? 0),
+                        'pgto_por_lote' => (float) ($produto['pgto_por_lote'] ?? 0),
+                        'custo_m2' => (float) ($produto['custo_m2'] ?? 0),
+                        'custo_infra' => (float) ($produto['custo_infra'] ?? 0),
+                        '_nome' => $produto['_nome'] ?? null,
+                        '_area_privativa' => isset($produto['_area_privativa'])
+                            ? (float) $produto['_area_privativa']
+                            : null,
+                    ];
+                })
+                ->values()
+                ->all());
+
+            return $items;
+        }
+
         $formValues = $this->snapshotFormValues();
         $produtos = $formValues['produtos'] ?? null;
 
@@ -387,5 +442,40 @@ class ViabilidadeResource extends JsonResource
     private function shouldInclude(array $include, string $key): bool
     {
         return in_array('*', $include, true) || in_array($key, $include, true);
+    }
+
+    /**
+     * Lista/detalhe leve: KPIs sem fluxo mensal completo.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function summarizeResultados(mixed $resultados): ?array
+    {
+        if (! is_array($resultados)) {
+            return null;
+        }
+
+        return [
+            'vgv' => $resultados['vgv'] ?? null,
+            'totalUnidades' => $resultados['totalUnidades'] ?? null,
+            'indicadores' => $resultados['indicadores'] ?? null,
+            'dre_itens' => $resultados['dre_itens'] ?? null,
+            'totais' => $resultados['totais'] ?? null,
+            'reconciliation' => $resultados['reconciliation'] ?? null,
+            'produtos_resumo' => is_array($resultados['produtos'] ?? null)
+                ? array_map(static function (mixed $produto): array {
+                    if (! is_array($produto)) {
+                        return [];
+                    }
+
+                    return [
+                        'id' => $produto['terreno_produto_id'] ?? $produto['id'] ?? null,
+                        'nome' => $produto['nome'] ?? null,
+                        'unidades' => $produto['quantidade_unidades'] ?? null,
+                        'vgv_produto' => $produto['vgv_produto'] ?? null,
+                    ];
+                }, $resultados['produtos'])
+                : [],
+        ];
     }
 }

@@ -235,20 +235,22 @@ class PremissasViabilidade extends Model
 
     public static function carregarAtiva(?string $perfil = null): ?self
     {
+        $hoje = now()->toDateString();
+
         /** @var Builder<self> $query */
         $query = static::query()
-            ->where('ativo', true)
-            ->where(function (Builder $q): void {
-                $hoje = now()->toDateString();
+            ->where(function (Builder $q) use ($hoje): void {
                 $q->whereDate('vigente_em', '<=', $hoje)
                     ->orWhereNull('vigente_em');
             })
-            ->where(function (Builder $q): void {
-                $hoje = now()->toDateString();
+            ->where(function (Builder $q) use ($hoje): void {
                 $q->whereDate('encerrada_em', '>=', $hoje)
                     ->orWhereNull('encerrada_em');
             })
-            ->orderBy('vigente_em', 'desc');
+            // Determinístico: data, versão, id.
+            ->orderByDesc('vigente_em')
+            ->orderByDesc('versao')
+            ->orderByDesc('id');
 
         if ($perfil !== null) {
             $query->where('perfil_financiamento', $perfil);

@@ -5,6 +5,7 @@ namespace App\Services\Tenant\Viabilidade\v1\Calculos;
 use App\Models\Tenant\Terreno;
 use App\Services\Tenant\Viabilidade\v1\CurvaService;
 use App\Services\Tenant\Viabilidade\v1\ViabilidadeFluxoContext;
+use App\Services\Tenant\Viabilidade\v1\ViabilidadeSnapshotService;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 
@@ -41,7 +42,12 @@ class FluxoMensalCalculator
             throw new \Exception('Não foi possível calcular dados válidos dos produtos.');
         }
 
-        $dadosProdutos['curvaObraAgregada'] = $this->agregarCurvaObra($params['mesesObra']);
+        $dadosProdutos['curvaObraAgregada'] = $this->agregarCurvaObra((int) $params['mesesObra']);
+        $dadosProdutos['curvaFinanceiraMedicaoAgregada'] = $this->curvaService->getCurvaFinanceiraMedicaoParaPrazo(
+            (int) $params['mesesObra'],
+            (float) ($params['obraAteLancamento'] ?? 0.0),
+        );
+        $curveWarnings = $this->curvaService->pullWarnings();
         $datas = $this->calcularPeriodos($dadosProdutos['dataInicio'], $params);
 
         $ctx = new ViabilidadeFluxoContext;
@@ -161,16 +167,20 @@ class FluxoMensalCalculator
 
         $tirOperacionalAnual = $this->indicadoresCalculator->calcularTir($fluxoTir);
         $tirSemCefAnual = $this->indicadoresCalculator->calcularTir($fluxoTirSemCef);
-        $tirOperacionalMensal = $tirOperacionalAnual > -1.0 ? (pow(1 + $tirOperacionalAnual, 1 / 12) - 1) : 0.0;
-        $tirSemCefMensal = $tirSemCefAnual > -1.0 ? (pow(1 + $tirSemCefAnual, 1 / 12) - 1) : 0.0;
+        $tirOperacionalMensal = ($tirOperacionalAnual !== null && $tirOperacionalAnual > -1.0)
+            ? (pow(1 + $tirOperacionalAnual, 1 / 12) - 1)
+            : null;
+        $tirSemCefMensal = ($tirSemCefAnual !== null && $tirSemCefAnual > -1.0)
+            ? (pow(1 + $tirSemCefAnual, 1 / 12) - 1)
+            : null;
 
         $indicadores = [
             'tir_operacional' => $tirOperacionalAnual,
-            'tir_operacional_am_percentual' => round($tirOperacionalMensal * 100, 2),
-            'tir_operacional_aa_percentual' => round($tirOperacionalAnual * 100, 2),
+            'tir_operacional_am_percentual' => $tirOperacionalMensal !== null ? round($tirOperacionalMensal * 100, 2) : null,
+            'tir_operacional_aa_percentual' => $tirOperacionalAnual !== null ? round($tirOperacionalAnual * 100, 2) : null,
             'tir_sem_cef' => $tirSemCefAnual,
-            'tir_sem_cef_am_percentual' => round($tirSemCefMensal * 100, 2),
-            'tir_sem_cef_aa_percentual' => round($tirSemCefAnual * 100, 2),
+            'tir_sem_cef_am_percentual' => $tirSemCefMensal !== null ? round($tirSemCefMensal * 100, 2) : null,
+            'tir_sem_cef_aa_percentual' => $tirSemCefAnual !== null ? round($tirSemCefAnual * 100, 2) : null,
             'exposicao_maxima_operacional' => collect($fluxo)->min('saldo_acumulado_mes'),
             'margem_liquida' => $totais['receita'] > 0 ? ($totais['lucro'] / $totais['receita']) : 0.0,
         ];
@@ -181,6 +191,14 @@ class FluxoMensalCalculator
         $dreContabilPocMensalBlocos = $this->pocCalculator->calcularQuadroPocMensalPorBlocos($fluxo, $dre, $dadosProdutos);
         $dreCaixa = $this->pocCalculator->calcularDreCaixa($totais);
         $ponteReconcilicao = $this->pocCalculator->calcularPonteReconcilicao($dreCaixa, $dre, $dreContabilPocMensalBlocos);
+        $reconciliation = $this->buildReconciliation(
+            $totais,
+            $fluxo,
+            $dadosProdutos,
+            $dre,
+            $dreContabilPoc,
+            $indicadoresFinanceiros,
+        );
 
         return [
             'terreno' => $terreno,
@@ -196,6 +214,7 @@ class FluxoMensalCalculator
             'dre_contabil_poc_mensal' => $dreContabilPocMensal,
             'dre_contabil_poc_mensal_blocos' => $dreContabilPocMensalBlocos,
             'ponte_reconciliacao' => $ponteReconcilicao,
+            'reconciliation' => $reconciliation,
             'indicadores' => array_merge($dre['indicadores'], $indicadores, $indicadoresFinanceiros, $indicadoresVso, $indicadoresVsoJanelas),
             'dados_produtos' => [
                 'total_unidades' => $dadosProdutos['totalUnidades'],
@@ -206,6 +225,109 @@ class FluxoMensalCalculator
             'fluxo_mensal_financeiro' => $fluxoFinanceiro,
             'totais' => $totais,
             'parametros_utilizados' => $params,
+            'calculation_engine_version' => ViabilidadeSnapshotService::ENGINE_VERSION,
+            'warnings' => array_values(array_unique(array_merge(
+                $curveWarnings,
+                is_array($reconciliation['warnings'] ?? null) ? $reconciliation['warnings'] : [],
+            ))),
+        ];
+    }
+
+    /**
+     * @param  array<string, float>  $totais
+     * @param  array<string, array<string, mixed>>  $fluxo
+     * @param  array<string, mixed>  $dadosProdutos
+     * @param  array<string, mixed>  $dre
+     * @param  array<string, mixed>  $dreContabilPoc
+     * @return array{status: string, differences: array<string, float>, warnings: list<string>}
+     */
+    /**
+     * @param  array<string, float>  $totais
+     * @param  array<string, array<string, mixed>>  $fluxo
+     * @param  array<string, mixed>  $dadosProdutos
+     * @param  array<string, mixed>  $dre
+     * @param  array<string, mixed>  $dreContabilPoc
+     * @param  array<string, mixed>  $indicadoresFinanceiros
+     * @return array{status: string, differences: array<string, float>, warnings: list<string>, checks: array<string, mixed>}
+     */
+    private function buildReconciliation(
+        array $totais,
+        array $fluxo,
+        array $dadosProdutos,
+        array $dre,
+        array $dreContabilPoc,
+        array $indicadoresFinanceiros = [],
+    ): array {
+        $receitaFluxo = (float) ($totais['receita'] ?? 0.0);
+        $despesaFluxo = (float) (($totais['custo_direto'] ?? 0.0)
+            + ($totais['impostos'] ?? 0.0)
+            + ($totais['custos_operacionais'] ?? 0.0)
+            + ($totais['custos_financeiros'] ?? 0.0));
+        $saldoFinal = $receitaFluxo - $despesaFluxo;
+        $lucroTotais = (float) ($totais['lucro'] ?? 0.0);
+
+        $unidadesTotais = (float) ($dadosProdutos['totalUnidades'] ?? 0.0);
+        $permutas = (float) ($dadosProdutos['permutas'] ?? 0.0);
+        $unidadesComercializaveis = (float) ($dadosProdutos['totalUnidadesConstrutora'] ?? max(0.0, $unidadesTotais - $permutas));
+        $vendasAcumuladas = 0.0;
+        foreach ($fluxo as $linha) {
+            $vendasAcumuladas += (float) ($linha['unidades_vendidas'] ?? 0);
+        }
+        $estoqueFinal = max(0.0, $unidadesComercializaveis - $vendasAcumuladas);
+
+        $saldoDividaFinal = (float) (data_get($indicadoresFinanceiros, 'divida_pj.saldo_final') ?? 0.0);
+        $curvaObra = $dadosProdutos['curvaObraAgregada'] ?? [];
+        $somaCurva = is_array($curvaObra) ? array_sum($curvaObra) : 0.0;
+
+        $differences = [
+            'saldo_vs_lucro_totais' => round($saldoFinal - $lucroTotais, 2),
+            'unidades_identidade' => round(($unidadesComercializaveis + $permutas) - $unidadesTotais, 4),
+            'unidades_vendidas_estoque_permutas' => round(($vendasAcumuladas + $estoqueFinal + $permutas) - $unidadesTotais, 4),
+            'saldo_divida_final' => round($saldoDividaFinal, 2),
+            'curva_obra_vs_100' => round($somaCurva - 100.0, 4),
+        ];
+
+        $warnings = [];
+        $failed = false;
+
+        foreach ($differences as $key => $diff) {
+            $tolerance = match (true) {
+                str_contains($key, 'unidades') => 0.0001,
+                str_contains($key, 'curva') => 0.01,
+                default => 1.0,
+            };
+            if (abs($diff) > $tolerance) {
+                $failed = true;
+                $warnings[] = "Invariante {$key} divergiu por {$diff}.";
+            }
+        }
+
+        if (! empty($dreContabilPoc['estouro_orcamento'])) {
+            $warnings[] = (string) ($dreContabilPoc['warning'] ?? 'Estouro de orçamento POC.');
+        }
+
+        if (! is_finite($receitaFluxo) || ! is_finite($despesaFluxo)) {
+            $failed = true;
+            $warnings[] = 'Totais de fluxo contêm valores não finitos.';
+        }
+
+        return [
+            'status' => $failed ? 'failed' : 'ok',
+            'differences' => $differences,
+            'warnings' => $warnings,
+            'checks' => [
+                'receita_caixa_total' => round($receitaFluxo, 2),
+                'despesa_caixa_total' => round($despesaFluxo, 2),
+                'saldo_final' => round($saldoFinal, 2),
+                'unidades_totais' => $unidadesTotais,
+                'unidades_permuta' => $permutas,
+                'unidades_comercializaveis' => $unidadesComercializaveis,
+                'unidades_vendidas' => round($vendasAcumuladas, 2),
+                'estoque_final' => round($estoqueFinal, 2),
+                'poc_receita' => $dreContabilPoc['receita_reconhecida_poc'] ?? null,
+                'saldo_divida_final' => $saldoDividaFinal,
+                'curva_obra_soma' => round($somaCurva, 4),
+            ],
         ];
     }
 
@@ -225,13 +347,15 @@ class FluxoMensalCalculator
     private function calcularPeriodos(Carbon $dataInicio, array $params): array
     {
         $dataLancamento = $dataInicio->copy()->startOfMonth();
-        $inicioIncorporacao = $dataLancamento->copy()->subMonths($params['mesesIncorporacao']);
-        $fimLancamento = $dataLancamento->copy()->addMonths($params['mesesLancamento'] - 1);
+        $inicioIncorporacao = $dataLancamento->copy()->subMonths(max(1, (int) ($params['mesesIncorporacao'] ?? 1)));
+        $fimLancamento = $dataLancamento->copy()->addMonths(max(1, (int) ($params['mesesLancamento'] ?? 1)) - 1);
         $inicioObra = $fimLancamento->copy()->addMonth();
-        $fimObra = $inicioObra->copy()->addMonths($params['mesesObra'] - 1);
-        $dataEntrega = $fimObra->copy()->addMonth();
+        $fimObra = $inicioObra->copy()->addMonths(max(1, (int) ($params['mesesObra'] ?? 1)) - 1);
+        // meses_entrega: meses entre fim da obra e a data de entrega (mínimo 1).
+        $mesesEntrega = max(1, (int) ($params['mesesEntrega'] ?? 1));
+        $dataEntrega = $fimObra->copy()->addMonths($mesesEntrega);
         $inicioPos = $dataEntrega->copy();
-        $fimPos = $inicioPos->copy()->addMonths($params['mesesPosObra'] - 1);
+        $fimPos = $inicioPos->copy()->addMonths(max(1, (int) ($params['mesesPosObra'] ?? 1)) - 1);
 
         return compact('inicioIncorporacao', 'dataLancamento', 'fimLancamento', 'inicioObra', 'fimObra', 'dataEntrega', 'inicioPos', 'fimPos');
     }
@@ -319,6 +443,10 @@ class FluxoMensalCalculator
 
             $taxaCorrecaoObraAnual = $this->normalizarPercentual($fin['correcao_anualObra'] ?? null, 0.0, true);
             $taxaCorrecaoPosAnual = $this->normalizarPercentual($fin['correcao_anualPosChave'] ?? null, 0.045, true);
+            // variavel_correcao: taxa anual global adicional (premissa/viabilidade).
+            $variavelCorrecao = max(0.0, (float) ($params['variavelCorrecao'] ?? 0.0));
+            $taxaCorrecaoObraAnual += $variavelCorrecao;
+            $taxaCorrecaoPosAnual += $variavelCorrecao;
             $jurosMensalPos = $this->normalizarPercentual($fin['juros_mensalPosChave'] ?? null, 0.01, true);
 
             $r_obra = $taxaCorrecaoObraAnual > 0
@@ -587,11 +715,17 @@ class FluxoMensalCalculator
         $ctx->mesObraAtual = 0;
         $ctx->valorMedicaoTotal = 0.0;
 
-        $unidadesTotais = max(1, $dadosProdutos['totalUnidadesConstrutora'] ?? $dadosProdutos['totalUnidades'] ?? 1);
+        // Demanda mínima CEF ponderada por produto:
+        // sum(unidades_comercializáveis_produto × demanda_produto).
+        // Dois produtos a 30% => 30% do total comercializável, não 60%.
         $ctx->demandaMinima = 0.0;
         foreach ($dadosProdutos['produtos'] as $produto) {
+            $unidadesProduto = max(
+                0,
+                (int) ($produto['quantidade_unidades'] ?? 0) - (int) ($produto['permutas'] ?? 0)
+            );
             $demandaPct = $this->normalizarPercentual($produto['demanda_minCef'] ?? null);
-            $ctx->demandaMinima += $unidadesTotais * $demandaPct;
+            $ctx->demandaMinima += $unidadesProduto * $demandaPct;
         }
 
         $this->receitasCalculator->inicializarValorMedicaoTotal($dadosProdutos, $datas, $ctx);

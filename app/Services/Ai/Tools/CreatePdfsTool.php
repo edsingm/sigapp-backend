@@ -2,6 +2,7 @@
 
 namespace App\Services\Ai\Tools;
 
+use App\Models\Tenant\AiGeneratedReport;
 use App\Repositories\Tenant\AiGeneratedReportRepository;
 use App\Services\PlanMatrixService;
 use App\Services\UsageMetricsService;
@@ -17,6 +18,8 @@ use Throwable;
 
 class CreatePdfsTool implements Tool
 {
+    private ?AiGeneratedReport $lastGeneratedReport = null;
+
     public function __construct(
         private readonly PlanMatrixService $planMatrix,
         private readonly UsageMetricsService $usageService,
@@ -30,6 +33,11 @@ class CreatePdfsTool implements Tool
 
     public function handle(Request $request): Stringable|string
     {
+        // The same tool instance may be reused by the container during a request.
+        // Clear the previous result before starting a new generation so callers
+        // can never mistake a stale report for the current one.
+        $this->lastGeneratedReport = null;
+
         $filename = Str::slug($request['filename']).'-'.Str::uuid().'.pdf';
         $path = 'pdfs/'.$filename;
 
@@ -99,12 +107,19 @@ class CreatePdfsTool implements Tool
             'created_by' => auth()->id(),
         ]);
 
+        $this->lastGeneratedReport = $report;
+
         $url = route('ai.reports.download', ['id' => $report->getKey()]);
 
         return "✅ PDF gerado com sucesso!\n\n".
                "📄 Nome do arquivo: {$filename}\n".
                '🔗 Link para download: '.$url."\n\n".
                'O usuário pode baixar diretamente nesse link.';
+    }
+
+    public function lastGeneratedReport(): ?AiGeneratedReport
+    {
+        return $this->lastGeneratedReport;
     }
 
     public function schema(JsonSchema $schema): array

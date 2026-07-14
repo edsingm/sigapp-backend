@@ -66,6 +66,14 @@ Route::middleware('check.feature:ai')->group(function () {
     Route::post('/ai/terrenos/{id}/relatorio-pdf', [AiTerrenoReportController::class, 'generate'])
         ->middleware('ai.rate_limit', 'ai.budget')
         ->whereNumber('id');
+    Route::post('/ai/terrenos/{id}/relatorio-pdf/jobs', [AiTerrenoReportController::class, 'generateAsync'])
+        ->middleware('ai.rate_limit', 'ai.budget')
+        ->whereNumber('id')
+        ->name('ai.terreno-reports.store');
+    Route::get('/ai/terrenos/{id}/relatorio-pdf/jobs/{generation}', [AiTerrenoReportController::class, 'status'])
+        ->whereNumber('id')
+        ->whereNumber('generation')
+        ->name('ai.terreno-reports.status');
     Route::get('/ai/reports/{id}/download', [AiGeneratedReportController::class, 'download'])
         ->whereNumber('id')
         ->name('ai.reports.download');

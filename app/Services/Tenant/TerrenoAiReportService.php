@@ -7,7 +7,7 @@ namespace App\Services\Tenant;
 use App\Models\Tenant\Terreno;
 use Illuminate\Support\Str;
 
-final class TerrenoAiReportService
+class TerrenoAiReportService
 {
     public function __construct(
         private readonly TerrenoAiReportDataService $dataService,

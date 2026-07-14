@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Models\Tenant\AiGeneratedReport;
 use App\Services\Ai\Agents\SIG_IA;
 use App\Services\Ai\Tools\AiAnomalyDetectionService;
 use App\Services\Ai\Tools\AiIbgeCityProfileService;
@@ -332,6 +333,26 @@ class AiToolsTest extends TestCase
 
         $this->assertStringContainsString('Chrome/Chromium', $result);
         $this->assertStringContainsString('infraestrutura de PDF', $result);
+        $this->assertNull($tool->lastGeneratedReport());
+    }
+
+    public function test_create_pdfs_tool_clears_previous_report_before_a_new_generation(): void
+    {
+        $tool = app(CreatePdfsTool::class);
+        $reflection = new \ReflectionProperty($tool, 'lastGeneratedReport');
+        $reflection->setValue($tool, new AiGeneratedReport(['id' => 12, 'terreno_id' => 42]));
+
+        Pdf::shouldReceive('view')
+            ->once()
+            ->andThrow(new RuntimeException('Could not find Chrome.'));
+
+        $tool->handle(new Request([
+            'filename' => 'relatorio-ibge',
+            'title' => 'Relatorio IBGE',
+            'html_content' => '<h1>Teste</h1>',
+        ]));
+
+        $this->assertNull($tool->lastGeneratedReport());
     }
 
     public function test_sig_ia_uses_configured_provider(): void

@@ -145,6 +145,10 @@ class CurvaService
         $prazos = array_keys($curvas);
         sort($prazos);
 
+        if ($prazos === []) {
+            throw new RuntimeException('Fixture de curvas oficiais não contém curvas válidas.');
+        }
+
         $min = $prazos[0];
         $max = $prazos[array_key_last($prazos)];
 
@@ -236,12 +240,12 @@ class CurvaService
         }
 
         if (abs($soma - 100.0) <= 0.0001) {
-            return array_values($curva);
+            return $curva;
         }
 
         $fator = 100.0 / $soma;
 
-        return array_map(static fn (float $val): float => $val * $fator, array_values($curva));
+        return array_map(static fn (float $val): float => $val * $fator, $curva);
     }
 
     /**

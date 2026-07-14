@@ -20,7 +20,7 @@ class IndicadoresCalculator
      * @param  array<string, mixed>  $dadosProdutos
      * @return array{
      *   0: array<string, array<string, float|int>>,
-     *   1: array<string, float|int|string|null>
+     *   1: array<string, mixed>
      * }
      */
     public function calcularIndicadoresFinanceiros(array $fluxo, array $datas, array $params, array $dadosProdutos): array
@@ -59,7 +59,7 @@ class IndicadoresCalculator
             ? (($totalAportes * $taxaDevolucaoAporte) / $params['mesesPosObra'])
             : 0;
 
-        $valorAntecipado = (float) ($cronogramaDivida['valor_antecipado'] ?? 0);
+        $valorAntecipado = $cronogramaDivida['valor_antecipado'];
 
         foreach ($fluxo as $mes => $linha) {
             $dataAtual = Carbon::parse($mes.'-01');
@@ -92,11 +92,14 @@ class IndicadoresCalculator
 
             $linhaDivida = $cronogramaPorMes[$mes] ?? null;
             $entradaAntecipacaoMes = $linhaDivida !== null
-                ? (float) ($linhaDivida['desembolso'] ?? 0)
+                ? $linhaDivida['desembolso']
                 : ($dataAtual->format('Y-m') === $datas['inicioObra']->format('Y-m') ? $valorAntecipado : 0);
             $pagamentoPjMes = $linhaDivida !== null
-                ? (float) ($linhaDivida['juros_pagos'] ?? 0) + (float) ($linhaDivida['amortizacao'] ?? 0)
+                ? $linhaDivida['juros_pagos'] + $linhaDivida['amortizacao']
                 : 0.0;
+            $jurosPjMes = $linhaDivida !== null ? $linhaDivida['juros_pagos'] : 0.0;
+            $amortizacaoPjMes = $linhaDivida !== null ? $linhaDivida['amortizacao'] : 0.0;
+            $saldoDividaPjMes = $linhaDivida !== null ? $linhaDivida['saldo_final'] : 0.0;
 
             $ajusteFinanceiroBase = $aporteMes - $devolucaoAporteMes + $entradaAntecipacaoMes - $pagamentoPjMes - $distribuicaoLucrosMes;
             $valorFinanceiroMes = $valorOperacional + $ajusteFinanceiroBase;
@@ -121,9 +124,9 @@ class IndicadoresCalculator
                 'distribuicao_lucros' => round($distribuicaoLucrosMes, 2),
                 'entrada_antecipacao_pj' => round($entradaAntecipacaoMes, 2),
                 'pagamento_pj' => round($pagamentoPjMes, 2),
-                'juros_pj' => round((float) ($linhaDivida['juros_pagos'] ?? 0), 2),
-                'amortizacao_pj' => round((float) ($linhaDivida['amortizacao'] ?? 0), 2),
-                'saldo_divida_pj' => round((float) ($linhaDivida['saldo_final'] ?? 0), 2),
+                'juros_pj' => round($jurosPjMes, 2),
+                'amortizacao_pj' => round($amortizacaoPjMes, 2),
+                'saldo_divida_pj' => round($saldoDividaPjMes, 2),
                 'exposicao_aplicada' => round($exposicaoAplicadaMes, 2),
             ];
             $fluxoFinanceiroTir[] = ['data' => $dataAtual->copy(), 'valor' => $valorFinanceiroMes];
@@ -137,23 +140,23 @@ class IndicadoresCalculator
             if (isset($fluxoFinanceiro[$mesDivida])) {
                 continue;
             }
-            $pagamento = (float) ($linhaDivida['juros_pagos'] ?? 0) + (float) ($linhaDivida['amortizacao'] ?? 0);
-            if ($pagamento <= 0.0 && (float) ($linhaDivida['desembolso'] ?? 0) <= 0.0) {
+            $pagamento = $linhaDivida['juros_pagos'] + $linhaDivida['amortizacao'];
+            if ($pagamento <= 0.0 && $linhaDivida['desembolso'] <= 0.0) {
                 continue;
             }
             $dataAtual = Carbon::parse($mesDivida.'-01');
-            $valorFinanceiroMes = (float) ($linhaDivida['desembolso'] ?? 0) - $pagamento;
+            $valorFinanceiroMes = $linhaDivida['desembolso'] - $pagamento;
             $saldoFinanceiro += $valorFinanceiroMes;
             $fluxoFinanceiro[$mesDivida] = [
                 'valor' => round($valorFinanceiroMes, 2),
                 'saldo_acumulado' => round($saldoFinanceiro, 2),
                 'aporte' => 0.0,
                 'devolucao_aporte' => 0.0,
-                'entrada_antecipacao_pj' => round((float) ($linhaDivida['desembolso'] ?? 0), 2),
+                'entrada_antecipacao_pj' => round($linhaDivida['desembolso'], 2),
                 'pagamento_pj' => round($pagamento, 2),
-                'juros_pj' => round((float) ($linhaDivida['juros_pagos'] ?? 0), 2),
-                'amortizacao_pj' => round((float) ($linhaDivida['amortizacao'] ?? 0), 2),
-                'saldo_divida_pj' => round((float) ($linhaDivida['saldo_final'] ?? 0), 2),
+                'juros_pj' => round($linhaDivida['juros_pagos'], 2),
+                'amortizacao_pj' => round($linhaDivida['amortizacao'], 2),
+                'saldo_divida_pj' => round($linhaDivida['saldo_final'], 2),
                 'exposicao_aplicada' => 0.0,
             ];
             $fluxoFinanceiroTir[] = ['data' => $dataAtual->copy(), 'valor' => $valorFinanceiroMes];
@@ -304,7 +307,7 @@ class IndicadoresCalculator
         $dates = [];
 
         foreach ($fluxo as $item) {
-            $valor = (float) ($item['valor'] ?? 0);
+            $valor = (float) $item['valor'];
             $data = $item['data'] ?? null;
             if ($data instanceof Carbon) {
                 $carbon = $data->copy()->startOfDay();

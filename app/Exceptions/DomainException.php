@@ -16,9 +16,7 @@ abstract class DomainException extends RuntimeException
 {
     abstract public function statusCode(): int;
 
-    /**
-     * @return array{message: string, errors?: array<string, array<int, string>>}
-     */
+    /** @return array<string, mixed> */
     public function toResponsePayload(): array
     {
         return ['message' => $this->getMessage()];

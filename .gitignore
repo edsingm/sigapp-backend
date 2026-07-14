@@ -8,6 +8,7 @@
 .phpactor.json
 .phpunit.result.cache
 /graphify-out
+/app/Services/graphify-out/
 /.fleet
 /.idea
 /.nova

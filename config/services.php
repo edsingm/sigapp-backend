@@ -64,4 +64,15 @@ return [
         'key' => env('SERPER_API_KEY'),
     ],
 
+    'portal_terrenos' => [
+        'username' => env('PORTAL_TERRENOS_USERNAME', ''),
+        'password' => env('PORTAL_TERRENOS_PASSWORD', ''),
+    ],
+
+    'browsershot' => [
+        'chrome_path' => env('BROWSERSHOT_CHROME_PATH'),
+        'puppeteer_executable_path' => env('PUPPETEER_EXECUTABLE_PATH'),
+        'no_sandbox' => (bool) env('BROWSERSHOT_NO_SANDBOX', false),
+    ],
+
 ];

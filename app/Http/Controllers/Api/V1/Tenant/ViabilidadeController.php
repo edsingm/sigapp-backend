@@ -430,8 +430,8 @@ class ViabilidadeController extends Controller
     private function resolveChromePath(): ?string
     {
         $candidates = array_filter([
-            env('BROWSERSHOT_CHROME_PATH'),
-            env('PUPPETEER_EXECUTABLE_PATH'),
+            config('services.browsershot.chrome_path'),
+            config('services.browsershot.puppeteer_executable_path'),
             '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
             '/usr/bin/google-chrome',
             '/usr/bin/chromium-browser',

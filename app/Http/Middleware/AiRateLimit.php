@@ -24,7 +24,7 @@ class AiRateLimit
         $userId = Auth::id();
         $key = "ai-chat:tenant:{$tenantId}:user:{$userId}";
 
-        $maxAttempts = (int) env('AI_RATE_LIMIT_PER_MINUTE', 30);
+        $maxAttempts = (int) config('ai.rate_limit_per_minute', 30);
         $decayMinutes = 1;
 
         if (RateLimiter::tooManyAttempts($key, $maxAttempts)) {

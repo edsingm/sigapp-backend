@@ -19,9 +19,9 @@ class BootstrapCentralAdminCommand extends Command
             return self::FAILURE;
         }
 
-        $email = trim((string) env('CENTRAL_ADMIN_EMAIL', ''));
-        $password = (string) env('CENTRAL_ADMIN_PASSWORD', '');
-        $name = trim((string) env('CENTRAL_ADMIN_NAME', 'Admin Central'));
+        $email = trim((string) config('app.central_admin.email'));
+        $password = (string) config('app.central_admin.password');
+        $name = trim((string) config('app.central_admin.name'));
 
         if ($email === '' || $password === '') {
             $this->error('Defina CENTRAL_ADMIN_EMAIL e CENTRAL_ADMIN_PASSWORD no ambiente local.');

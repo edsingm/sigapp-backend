@@ -42,7 +42,7 @@ class ViabilidadeRequest extends FormRequest
 
         return [
             // terreno_id obrigatório no store; no update só aceita se for o mesmo terreno.
-            'terreno_id' => array_values(array_filter([
+            'terreno_id' => [
                 $isStore ? 'required' : 'sometimes',
                 'exists:terrenos,id',
                 function ($attribute, $value, $fail) use ($isStore) {
@@ -61,7 +61,7 @@ class ViabilidadeRequest extends FormRequest
                         $fail('O terreno selecionado não possui produtos associados. Cadastre produtos antes de criar uma viabilidade.');
                     }
                 },
-            ])),
+            ],
             // Se ausente no store, o service materializa um default fixo e persiste.
             'data_lancamento' => ['nullable', 'date'],
             'parceria_vgv' => 'nullable|numeric|min:0',
@@ -144,13 +144,20 @@ class ViabilidadeRequest extends FormRequest
                     $terrenoId = $this->input('terreno_id');
                     if ($terrenoId === null && $this->route('id')) {
                         $viabilidade = Viabilidade::query()->find($this->route('id'));
-                        $terrenoId = $viabilidade?->terreno_id;
+                        $terrenoId = $viabilidade instanceof Viabilidade
+                            ? $viabilidade->getAttribute('terreno_id')
+                            : null;
                     }
                     if ($terrenoId === null && $this->route('viabilidade')) {
                         $routeViabilidade = $this->route('viabilidade');
-                        $terrenoId = $routeViabilidade instanceof Viabilidade
-                            ? $routeViabilidade->terreno_id
-                            : Viabilidade::query()->find($routeViabilidade)?->terreno_id;
+                        if ($routeViabilidade instanceof Viabilidade) {
+                            $terrenoId = $routeViabilidade->getAttribute('terreno_id');
+                        } else {
+                            $viabilidade = Viabilidade::query()->find($routeViabilidade);
+                            $terrenoId = $viabilidade instanceof Viabilidade
+                                ? $viabilidade->getAttribute('terreno_id')
+                                : null;
+                        }
                     }
 
                     if ($terrenoId === null) {

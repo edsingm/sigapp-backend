@@ -24,8 +24,8 @@ class AiProviderRouter
         $primaryProvider = $agent->provider();
         $primaryModel = $agent->model();
         $providers = [$primaryProvider => $primaryModel];
-        $fallbackProvider = (string) env('AI_FALLBACK_PROVIDER', '');
-        $fallbackModel = (string) env('AI_FALLBACK_AGENT_MODEL', '');
+        $fallbackProvider = (string) config('ai.fallback_provider');
+        $fallbackModel = (string) config('ai.fallback_agent_model');
 
         if ($fallbackProvider !== '' && $fallbackModel !== '' && $fallbackProvider !== $primaryProvider) {
             $providers[$fallbackProvider] = $fallbackModel;
@@ -47,8 +47,8 @@ class AiProviderRouter
      */
     public function getFallbackAgent(): array
     {
-        $fallbackProvider = (string) env('AI_FALLBACK_PROVIDER', 'anthropic');
-        $fallbackModel = (string) env('AI_FALLBACK_AGENT_MODEL', 'claude-sonnet-4-6');
+        $fallbackProvider = (string) config('ai.fallback_provider');
+        $fallbackModel = (string) config('ai.fallback_agent_model');
 
         if (! $fallbackProvider) {
             Log::warning('AI fallback provider not configured');

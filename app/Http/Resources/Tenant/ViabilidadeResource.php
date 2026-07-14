@@ -40,7 +40,7 @@ class ViabilidadeResource extends JsonResource
             ? $perfilFinanciamento->value
             : 'cef';
         $approvalStatus = ViabilidadeApprovalStatus::fromMixed(
-            $this->approval_status,
+            $this->getAttribute('approval_status'),
             is_string($this->status) ? $this->status : null,
         );
         $snapshot = $this->snapshot();
@@ -284,7 +284,6 @@ class ViabilidadeResource extends JsonResource
         if ($snapshotProdutos !== []) {
             /** @var list<array<string, mixed>> $items */
             $items = array_values(collect($snapshotProdutos)
-                ->filter(fn (mixed $produto): bool => is_array($produto))
                 ->map(function (array $produto): array {
                     return [
                         'id' => (int) ($produto['id'] ?? 0),
@@ -442,40 +441,5 @@ class ViabilidadeResource extends JsonResource
     private function shouldInclude(array $include, string $key): bool
     {
         return in_array('*', $include, true) || in_array($key, $include, true);
-    }
-
-    /**
-     * Lista/detalhe leve: KPIs sem fluxo mensal completo.
-     *
-     * @return array<string, mixed>|null
-     */
-    private function summarizeResultados(mixed $resultados): ?array
-    {
-        if (! is_array($resultados)) {
-            return null;
-        }
-
-        return [
-            'vgv' => $resultados['vgv'] ?? null,
-            'totalUnidades' => $resultados['totalUnidades'] ?? null,
-            'indicadores' => $resultados['indicadores'] ?? null,
-            'dre_itens' => $resultados['dre_itens'] ?? null,
-            'totais' => $resultados['totais'] ?? null,
-            'reconciliation' => $resultados['reconciliation'] ?? null,
-            'produtos_resumo' => is_array($resultados['produtos'] ?? null)
-                ? array_map(static function (mixed $produto): array {
-                    if (! is_array($produto)) {
-                        return [];
-                    }
-
-                    return [
-                        'id' => $produto['terreno_produto_id'] ?? $produto['id'] ?? null,
-                        'nome' => $produto['nome'] ?? null,
-                        'unidades' => $produto['quantidade_unidades'] ?? null,
-                        'vgv_produto' => $produto['vgv_produto'] ?? null,
-                    ];
-                }, $resultados['produtos'])
-                : [],
-        ];
     }
 }

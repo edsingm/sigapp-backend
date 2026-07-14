@@ -259,11 +259,11 @@ class PlanilhaConformidadeTest extends TestCase
         );
 
         // Métricas com fórmula ainda aberta (Fase 4B): guardas de regressão + log da planilha.
-        $baseline = is_array($fixture['regression_baseline'] ?? null) ? $fixture['regression_baseline'] : [];
+        $baseline = $fixture['regression_baseline'];
         $comissaoSistema = (float) ($dre['comissao'] ?? 0);
         $comissaoPlanilha = (float) $expected['comissao'];
         $this->assertLessThanOrEqual(
-            (float) ($baseline['comissao_max_abs_diff_vs_planilha'] ?? abs($comissaoPlanilha)),
+            (float) $baseline['comissao_max_abs_diff_vs_planilha'],
             abs($comissaoSistema - $comissaoPlanilha),
             'Comissão piorou vs baseline de regressão (alvo planilha ainda aberto na Fase 4B)'
         );
@@ -271,19 +271,19 @@ class PlanilhaConformidadeTest extends TestCase
         $exposicao = (float) ($indicadores['exposicao_maxima_operacional'] ?? 0);
         $this->assertLessThan(0.0, $exposicao, 'Exposição máxima operacional deve ser negativa');
         $this->assertLessThanOrEqual(
-            (float) ($baseline['exposicao_operacional_max_abs'] ?? 8_000_000),
+            (float) $baseline['exposicao_operacional_max_abs'],
             abs($exposicao),
             'Exposição operacional piorou vs baseline de regressão'
         );
 
         $tirRaw = $indicadores['tir_operacional_aa_percentual']
-            ?? (isset($indicadores['tir_operacional']) && $indicadores['tir_operacional'] !== null
+            ?? (isset($indicadores['tir_operacional'])
                 ? ((float) $indicadores['tir_operacional'] * 100)
                 : null);
         if ($tirRaw !== null) {
             $tirOperacional = (float) $tirRaw;
-            $this->assertGreaterThanOrEqual((float) ($baseline['tir_operacional_aa_pct_min'] ?? -50), $tirOperacional);
-            $this->assertLessThanOrEqual((float) ($baseline['tir_operacional_aa_pct_max'] ?? 50), $tirOperacional);
+            $this->assertGreaterThanOrEqual((float) $baseline['tir_operacional_aa_pct_min'], $tirOperacional);
+            $this->assertLessThanOrEqual((float) $baseline['tir_operacional_aa_pct_max'], $tirOperacional);
         }
 
         // ─── Log detalhado de comparação (diagnóstico; não substitui asserts) ──
@@ -292,7 +292,11 @@ class PlanilhaConformidadeTest extends TestCase
     }
 
     /**
-     * @return array{expected: array<string, float|int>, tolerances: array<string, float|int>}
+     * @return array{
+     *   expected: array<string, mixed>,
+     *   tolerances: array<string, mixed>,
+     *   regression_baseline: array<string, mixed>
+     * }
      */
     private function loadLrgFixture(): array
     {
@@ -302,8 +306,13 @@ class PlanilhaConformidadeTest extends TestCase
         $this->assertIsArray($json);
         $this->assertIsArray($json['expected'] ?? null);
         $this->assertIsArray($json['tolerances'] ?? null);
+        $this->assertIsArray($json['regression_baseline'] ?? null);
 
-        return $json;
+        return [
+            'expected' => $json['expected'],
+            'tolerances' => $json['tolerances'],
+            'regression_baseline' => $json['regression_baseline'],
+        ];
     }
 
     private function assertWithinPct(float $expected, float $actual, float $pctTolerance, string $label): void
@@ -319,32 +328,6 @@ class PlanilhaConformidadeTest extends TestCase
             $pctTolerance,
             $diffPct,
             sprintf('%s fora da tolerância: planilha=%.2f sistema=%.2f diff=%.3f%% (limite %.3f%%)', $label, $expected, $actual, $diffPct, $pctTolerance)
-        );
-    }
-
-    private function assertWithinMoneyOrPct(
-        float $expected,
-        float $actual,
-        float $moneyTolerance,
-        float $pctTolerance,
-        string $label
-    ): void {
-        $absDiff = abs($actual - $expected);
-        $pctDiff = abs($expected) > 0.0001 ? ($absDiff / abs($expected)) * 100 : $absDiff;
-        $limit = max($moneyTolerance, abs($expected) * ($pctTolerance / 100));
-
-        $this->assertLessThanOrEqual(
-            $limit,
-            $absDiff,
-            sprintf(
-                '%s fora da tolerância: planilha=%.2f sistema=%.2f abs=%.2f pct=%.3f%% (limite abs=%.2f)',
-                $label,
-                $expected,
-                $actual,
-                $absDiff,
-                $pctDiff,
-                $limit
-            )
         );
     }
 

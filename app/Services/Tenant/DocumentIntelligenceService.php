@@ -11,58 +11,44 @@ use App\Models\Tenant\DocumentRequirement;
 use App\Models\Tenant\DocumentReview;
 use App\Models\Tenant\DocumentVersion;
 use App\Models\Tenant\User;
+use App\Repositories\Tenant\DocumentIntelligenceRepository;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
 
 class DocumentIntelligenceService
 {
+    public function __construct(
+        private readonly DocumentIntelligenceRepository $repository,
+    ) {}
+
     /** @return array<int, DocumentRequirement> */
     public function requirements(string $entityType, ?int $entityId, ?string $phase): array
     {
-        $query = DocumentRequirement::query()
-            ->where('entity_type', $entityType)
-            ->whereRaw('(entity_id IS NULL OR entity_id = ?)', [$entityId]);
-        if ($phase !== null) {
-            $query->where('phase', $phase);
-        }
-
-        $rows = $query
-            ->where('active', true)
-            ->orderBy('required', 'desc')
-            ->orderBy('label')
-            ->get()
-            ->toArray();
-        $requirements = array_map(function (array $row): DocumentRequirement {
-            $requirement = new DocumentRequirement;
-            $requirement->setRawAttributes($row, true);
-
-            return $requirement;
-        }, $rows);
-
-        return $requirements;
+        return $this->repository->requirements($entityType, $entityId, $phase);
     }
 
     /** @return array<int, DocumentVersion> */
     public function versions(Documento $documento): array
     {
-        return $documento->versions()->latest('version')->get()->all();
+        return $this->repository->versions($documento);
     }
 
     public function createVersion(Documento $documento, UploadedFile $file, User $user): DocumentVersion
     {
-        $checksum = hash_file('sha256', $file->getRealPath());
-        if ($documento->versions()->where('checksum', $checksum)->exists()) {
-            return $documento->versions()->where('checksum', $checksum)->firstOrFail();
+        $checksum = (string) hash_file('sha256', $file->getRealPath());
+        $existingVersion = $this->repository->findVersionByChecksum($documento, $checksum);
+        if ($existingVersion !== null) {
+            return $existingVersion;
         }
 
-        $version = ((int) $documento->versions()->max('version')) + 1;
+        $version = $this->repository->nextVersion($documento);
         $path = $file->storeAs(
             'documentos/versions/'.$documento->id,
             $version.'_'.Str::uuid().'_'.Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)).'.'.($file->guessExtension() ?: 'bin'),
             's3',
         );
 
-        return $documento->versions()->create([
+        return $this->repository->createVersion($documento, [
             'version' => $version,
             'file_path' => $path,
             'disk' => 's3',
@@ -76,22 +62,12 @@ class DocumentIntelligenceService
 
     public function requestAnalysis(Documento $documento, User $user): DocumentAnalysis
     {
-        $rows = DocumentAnalysis::query()
-            ->where('documento_id', $documento->id)
-            ->whereIn('status', ['queued', 'running'])
-            ->latest('id')
-            ->get()
-            ->toArray();
-        $current = null;
-        if ($rows !== []) {
-            $current = new DocumentAnalysis;
-            $current->setRawAttributes($rows[0], true);
-        }
+        $current = $this->repository->findPendingAnalysis($documento);
         if ($current !== null) {
             return $current;
         }
 
-        $analysis = new DocumentAnalysis([
+        $analysis = $this->repository->createAnalysis([
             'documento_id' => $documento->id,
             'requested_by' => $user->id,
             'status' => 'queued',
@@ -99,7 +75,6 @@ class DocumentIntelligenceService
             'model' => null,
             'limitations' => ['A extração automática depende de um provedor OCR configurado.'],
         ]);
-        $analysis->save();
         AnalyzeDocumentJob::dispatch($analysis->id);
 
         return $analysis;
@@ -108,7 +83,7 @@ class DocumentIntelligenceService
     /** @param array<string, mixed> $data */
     public function review(Documento $documento, User $user, array $data): DocumentReview
     {
-        return $documento->reviews()->create([
+        return $this->repository->createReview($documento, [
             'reviewer_id' => $user->id,
             'status' => $data['status'],
             'valid_until' => $data['valid_until'] ?? null,

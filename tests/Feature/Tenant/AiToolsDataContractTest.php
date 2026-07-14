@@ -20,6 +20,8 @@ use App\Services\Ai\Tools\GetLegalizacaoTool;
 use App\Services\Ai\Tools\GetNegociacaoTool;
 use App\Services\Ai\Tools\GetTasksTool;
 use App\Services\PlanMatrixService;
+use Database\Factories\Tenant\TerrenoFactory;
+use Database\Factories\Tenant\UserFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Laravel\Ai\Tools\Request;
@@ -40,8 +42,8 @@ class AiToolsDataContractTest extends TestCase
         parent::setUp();
 
         $this->artisan('migrate', ['--path' => 'database/migrations/tenant', '--realpath' => false]);
-        $this->user = User::factory()->create();
-        $this->terreno = Terreno::factory()->create(['created_by' => $this->user->id]);
+        $this->user = UserFactory::new()->createOne();
+        $this->terreno = TerrenoFactory::new()->createOne(['created_by' => $this->user->id]);
 
         app(Tenancy::class)->tenant = new Tenant;
         $this->app->instance(PlanMatrixService::class, Mockery::mock(PlanMatrixService::class, function ($mock): void {

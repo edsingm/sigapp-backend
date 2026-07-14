@@ -23,6 +23,34 @@ return [
     'embedding_provider' => env('AI_EMBEDDING_PROVIDER', 'openai'),
     'embedding_model' => env('AI_EMBEDDING_MODEL', 'text-embedding-3-small'),
     'embedding_min_similarity' => (float) env('AI_EMBEDDING_MIN_SIMILARITY', 0.35),
+    'fallback_provider' => env('AI_FALLBACK_PROVIDER', ''),
+    'fallback_agent_model' => env('AI_FALLBACK_AGENT_MODEL', ''),
+    'tenant_budget_default' => (float) env('AI_TENANT_BUDGET_DEFAULT', 10.00),
+    'rate_limit_per_minute' => (int) env('AI_RATE_LIMIT_PER_MINUTE', 30),
+
+    'prices_per_million_tokens' => [
+        'deepseek' => [
+            'input_cache_hit' => (float) env('AI_DEEPSEEK_INPUT_PRICE_PER_M', 0.0028),
+            'input_cache_miss' => (float) env('AI_DEEPSEEK_INPUT_CACHE_MISS_PRICE_PER_M', 0.14),
+            'output' => (float) env('AI_DEEPSEEK_OUTPUT_PRICE_PER_M', 0.28),
+        ],
+        'openrouter' => [
+            'input' => (float) env('AI_OPENROUTER_INPUT_PRICE_PER_M', 0.00),
+            'output' => (float) env('AI_OPENROUTER_OUTPUT_PRICE_PER_M', 0.00),
+        ],
+        'gemini' => [
+            'input' => (float) env('AI_GEMINI_INPUT_PRICE_PER_M', 0.00),
+            'output' => (float) env('AI_GEMINI_OUTPUT_PRICE_PER_M', 0.00),
+        ],
+        'anthropic' => [
+            'input' => (float) env('AI_ANTHROPIC_INPUT_PRICE_PER_M', 3.00),
+            'output' => (float) env('AI_ANTHROPIC_OUTPUT_PRICE_PER_M', 15.00),
+        ],
+        'openai' => [
+            'input' => (float) env('AI_OPENAI_INPUT_PRICE_PER_M', 2.50),
+            'output' => (float) env('AI_OPENAI_OUTPUT_PRICE_PER_M', 10.00),
+        ],
+    ],
 
     /*
     |--------------------------------------------------------------------------

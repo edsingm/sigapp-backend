@@ -63,7 +63,7 @@ class ViabilidadeUnificadoService
             $produtosCustomizados = is_array($customProdutos) ? array_values($customProdutos) : null;
 
             // Recálculo determinístico: usa produtos do snapshot canônico quando não vier override.
-            if ($produtosCustomizados === null && $viabilidade instanceof Viabilidade) {
+            if ($produtosCustomizados === null) {
                 $snapshotProdutos = app(ViabilidadeSnapshotService::class)->extractProdutos(
                     is_array($viabilidade->premissas_snapshot) ? $viabilidade->premissas_snapshot : null
                 );

@@ -72,6 +72,7 @@ class ViabilidadeSnapshotService
         $produtos = is_array($formValues['produtos'] ?? null)
             ? $formValues['produtos']
             : (is_array($snapshot['produtos'] ?? null) ? $snapshot['produtos'] : []);
+        $produtos = array_values(array_filter($produtos, 'is_array'));
 
         return $this->buildCanonical(
             inputs: [
@@ -80,7 +81,7 @@ class ViabilidadeSnapshotService
                 'perfil_financiamento' => $formValues['perfil_financiamento'] ?? null,
                 'form_values' => $formValues,
             ],
-            produtos: is_array($produtos) ? $produtos : [],
+            produtos: $produtos,
             premissas: is_array($snapshot['premissas'] ?? null) ? $snapshot['premissas'] : [],
             existing: $snapshot,
             calculatedAt: is_string($snapshot['calculado_em'] ?? null) ? $snapshot['calculado_em'] : null,
@@ -93,7 +94,7 @@ class ViabilidadeSnapshotService
      */
     public function extractProdutos(?array $snapshot): array
     {
-        if (! is_array($snapshot)) {
+        if ($snapshot === null) {
             return [];
         }
 
@@ -117,6 +118,11 @@ class ViabilidadeSnapshotService
         ]);
     }
 
+    /**
+     * @param  array<string, mixed>  $snapshot
+     * @param  array<string, mixed>  $resultados
+     * @return array<string, mixed>
+     */
     public function attachResultMetadata(array $snapshot, array $resultados, ?string $calculatedAt = null): array
     {
         $snapshot['calculated_at'] = $calculatedAt ?? now()->toIso8601String();
@@ -178,10 +184,6 @@ class ViabilidadeSnapshotService
         $normalized = [];
 
         foreach ($produtos as $produto) {
-            if (! is_array($produto)) {
-                continue;
-            }
-
             $id = (int) ($produto['id'] ?? $produto['terreno_produto_id'] ?? 0);
             $row = [
                 'id' => $id,
@@ -236,6 +238,7 @@ class ViabilidadeSnapshotService
         return $value;
     }
 
+    /** @return array<string, mixed> */
     public function fromViabilidade(Viabilidade $viabilidade): array
     {
         $snapshot = $viabilidade->getAttribute('premissas_snapshot');

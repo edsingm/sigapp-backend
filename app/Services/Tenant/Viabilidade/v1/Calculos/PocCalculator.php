@@ -8,7 +8,7 @@ class PocCalculator
      * @param  array<string, array<string, mixed>>  $fluxo
      * @param  array<string, mixed>  $dre
      * @param  array<string, mixed>  $dadosProdutos
-     * @return array<string, float>
+     * @return array<string, float|bool|string|null>
      */
     public function calcularDreContabilPoc(array $fluxo, array $dre, array $dadosProdutos): array
     {

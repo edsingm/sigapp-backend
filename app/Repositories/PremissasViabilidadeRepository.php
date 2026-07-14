@@ -61,12 +61,14 @@ class PremissasViabilidadeRepository implements PremissasViabilidadeRepositoryIn
      */
     private function previousVersionQuery(PremissasViabilidade $premissa): Builder
     {
-        return PremissasViabilidade::query()
-            ->with(['createdBy', 'updatedBy'])
-            ->where('perfil_financiamento', $premissa->perfil_financiamento)
-            ->where('versao', '<', $premissa->versao)
-            ->orderByDesc('versao')
-            ->orderByDesc('id');
+        $query = PremissasViabilidade::query();
+        $query->with(['createdBy', 'updatedBy']);
+        $query->where('perfil_financiamento', $premissa->perfil_financiamento);
+        $query->where('versao', '<', $premissa->versao);
+        $query->orderByDesc('versao');
+        $query->orderByDesc('id');
+
+        return $query;
     }
 
     /**
@@ -167,31 +169,33 @@ class PremissasViabilidadeRepository implements PremissasViabilidadeRepositoryIn
     {
         $date ??= now()->toDateString();
 
-        return PremissasViabilidade::query()
-            ->where('perfil_financiamento', $perfil)
-            ->where(function (Builder $q) use ($date): void {
-                $q->whereDate('vigente_em', '<=', $date)
-                    ->orWhereNull('vigente_em');
-            })
-            ->where(function (Builder $q) use ($date): void {
-                $q->whereDate('encerrada_em', '>=', $date)
-                    ->orWhereNull('encerrada_em');
-            })
-            // Preferência determinística: mais recente, maior versão, maior id.
-            ->orderByDesc('vigente_em')
-            ->orderByDesc('versao')
-            ->orderByDesc('id')
-            ->first();
+        $query = PremissasViabilidade::query();
+        $query->where('perfil_financiamento', $perfil);
+        $query->where(function (Builder $q) use ($date): void {
+            $q->whereDate('vigente_em', '<=', $date)
+                ->orWhereNull('vigente_em');
+        });
+        $query->where(function (Builder $q) use ($date): void {
+            $q->whereDate('encerrada_em', '>=', $date)
+                ->orWhereNull('encerrada_em');
+        });
+        // Preferência determinística: mais recente, maior versão, maior id.
+        $query->orderByDesc('vigente_em');
+        $query->orderByDesc('versao');
+        $query->orderByDesc('id');
+
+        return $query->first();
     }
 
     public function isReferencedInSnapshots(int $premissaId): bool
     {
         // Busca em lotes pequenos; snapshot JSON não tem índice de premissa_id.
-        return Viabilidade::query()
-            ->whereNotNull('premissas_snapshot')
-            ->orderBy('id')
-            ->limit(500)
-            ->get(['id', 'premissas_snapshot'])
+        $query = Viabilidade::query();
+        $query->whereNotNull('premissas_snapshot');
+        $query->orderBy('id');
+        $query->limit(500);
+
+        return $query->get(['id', 'premissas_snapshot'])
             ->contains(static function (Viabilidade $viabilidade) use ($premissaId): bool {
                 $snapshot = $viabilidade->premissas_snapshot;
                 if (! is_array($snapshot)) {

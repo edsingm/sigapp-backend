@@ -122,7 +122,7 @@ class PremissasViabilidadeController extends Controller
             throw $e;
         }
 
-        if (($result['action'] ?? null) === 'deactivated') {
+        if ($result['action'] === 'deactivated') {
             return ApiResponseService::success(
                 new PremissasViabilidadeResource($result['premissa']),
                 'Premissas referenciadas por estudos foram inativadas (não excluídas).'

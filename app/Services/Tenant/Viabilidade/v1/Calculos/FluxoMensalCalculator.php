@@ -228,7 +228,7 @@ class FluxoMensalCalculator
             'calculation_engine_version' => ViabilidadeSnapshotService::ENGINE_VERSION,
             'warnings' => array_values(array_unique(array_merge(
                 $curveWarnings,
-                is_array($reconciliation['warnings'] ?? null) ? $reconciliation['warnings'] : [],
+                $reconciliation['warnings'],
             ))),
         ];
     }

@@ -60,6 +60,12 @@ return [
 
     'landing_url' => env('LANDING_URL', 'http://localhost:8081'),
 
+    'central_admin' => [
+        'name' => env('CENTRAL_ADMIN_NAME', 'Admin Central'),
+        'email' => env('CENTRAL_ADMIN_EMAIL', ''),
+        'password' => env('CENTRAL_ADMIN_PASSWORD', ''),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone

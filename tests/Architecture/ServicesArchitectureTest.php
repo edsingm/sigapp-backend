@@ -40,6 +40,8 @@ class ServicesArchitectureTest extends TestCase
         'app/Services/Tenant/AiMonitorService.php',
         'app/Services/Tenant/ProjetoService.php',
         'app/Services/Tenant/TerrenoService.php',
+        'app/Services/Tenant/DocumentIntelligenceService.php',
+        'app/Services/Ai/Tools/CreatePdfsTool.php',
     ];
 
     /**
@@ -77,13 +79,16 @@ class ServicesArchitectureTest extends TestCase
             $code = $this->stripPhpComments($contents);
 
             $tokens = token_get_all($code);
-            $violations = $this->findForbiddenStaticCalls($tokens);
+            $violations = [
+                ...$this->findForbiddenStaticCalls($tokens),
+                ...$this->findForbiddenInstancePersistence($code),
+            ];
 
             $this->assertSame(
                 [],
                 $violations,
                 sprintf(
-                    "Service '%s' must not use Eloquent directly. Found forbidden static calls: %s. ".
+                    "Service '%s' must not use Eloquent directly. Found forbidden calls: %s. ".
                     'Move the queries to a Repository (Contracts/XxxRepositoryInterface + concrete) and inject it.',
                     $relativePath,
                     implode(', ', $violations)
@@ -193,6 +198,24 @@ class ServicesArchitectureTest extends TestCase
         }
 
         return null;
+    }
+
+    /** @return array<int, string> */
+    private function findForbiddenInstancePersistence(string $code): array
+    {
+        $patterns = [
+            'object->analyses' => '/->analyses\s*\(\s*\)\s*->/',
+            'object->reviews' => '/->reviews\s*\(\s*\)\s*->/',
+            'object->versions' => '/->versions\s*\(\s*\)\s*->/',
+            'new AiGeneratedReport' => '/new\s+AiGeneratedReport\b/',
+            'new DocumentAnalysis' => '/new\s+DocumentAnalysis\b/',
+            'new DocumentRequirement' => '/new\s+DocumentRequirement\b/',
+        ];
+
+        return array_keys(array_filter(
+            $patterns,
+            static fn (string $pattern): bool => preg_match($pattern, $code) === 1,
+        ));
     }
 
     private function stripPhpComments(string $code): string

@@ -2,7 +2,7 @@
 
 namespace App\Services\Ai\Tools;
 
-use App\Models\Tenant\AiGeneratedReport;
+use App\Repositories\Tenant\AiGeneratedReportRepository;
 use App\Services\PlanMatrixService;
 use App\Services\UsageMetricsService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -20,6 +20,7 @@ class CreatePdfsTool implements Tool
     public function __construct(
         private readonly PlanMatrixService $planMatrix,
         private readonly UsageMetricsService $usageService,
+        private readonly AiGeneratedReportRepository $reportRepository,
     ) {}
 
     public function description(): Stringable|string
@@ -52,7 +53,7 @@ class CreatePdfsTool implements Tool
                         $browsershot->disableJavascript();
                     }
 
-                    if (env('BROWSERSHOT_NO_SANDBOX') && method_exists($browsershot, 'noSandbox')) {
+                    if (config('services.browsershot.no_sandbox') && method_exists($browsershot, 'noSandbox')) {
                         $browsershot->noSandbox();
                     }
                 })
@@ -90,7 +91,7 @@ class CreatePdfsTool implements Tool
 
         $terrenoId = (int) ($request['terreno_id'] ?? 0);
 
-        $report = AiGeneratedReport::create([
+        $report = $this->reportRepository->create([
             'terreno_id' => $terrenoId > 0 ? $terrenoId : null,
             'nome' => (string) $request['title'],
             'file_path' => $path,
@@ -98,7 +99,7 @@ class CreatePdfsTool implements Tool
             'created_by' => auth()->id(),
         ]);
 
-        $url = route('ai.reports.download', ['id' => $report->id]);
+        $url = route('ai.reports.download', ['id' => $report->getKey()]);
 
         return "✅ PDF gerado com sucesso!\n\n".
                "📄 Nome do arquivo: {$filename}\n".
@@ -155,8 +156,8 @@ class CreatePdfsTool implements Tool
     private function resolveChromePath(): ?string
     {
         $candidates = array_filter([
-            env('BROWSERSHOT_CHROME_PATH'),
-            env('PUPPETEER_EXECUTABLE_PATH'),
+            config('services.browsershot.chrome_path'),
+            config('services.browsershot.puppeteer_executable_path'),
             '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
             '/usr/bin/google-chrome',
             '/usr/bin/chromium-browser',

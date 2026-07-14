@@ -91,6 +91,8 @@ class PremissasViabilidadeCrudService
 
     /**
      * Exclusão: se referenciada em snapshot, apenas inativa; senão hard delete permitido.
+     *
+     * @return array{action: 'deactivated'|'deleted', premissa: PremissasViabilidade|null}
      */
     public function delete(PremissasViabilidade $premissa): array
     {
@@ -105,9 +107,10 @@ class PremissasViabilidadeCrudService
             }
 
             // Impede apagar a única premissa aplicável do perfil sem substituta.
-            $perfil = $premissa->perfil_financiamento instanceof \BackedEnum
+            $perfilValue = $premissa->perfil_financiamento instanceof \BackedEnum
                 ? $premissa->perfil_financiamento->value
                 : (string) $premissa->getAttribute('perfil_financiamento');
+            $perfil = (string) $perfilValue;
             $ativa = $this->repository->findActiveForPerfilAt($perfil);
             if ($ativa !== null && $ativa->id === $premissa->id) {
                 throw new PremissasViabilidadeException(

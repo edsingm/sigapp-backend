@@ -79,7 +79,11 @@ class AiServicesAndMiddlewareTest extends TestCase
 
     public function test_provider_router_returns_primary_agent(): void
     {
-        config(['ai.agent_provider' => 'openrouter']);
+        config([
+            'ai.agent_provider' => 'openrouter',
+            'ai.fallback_provider' => 'anthropic',
+            'ai.fallback_agent_model' => 'claude-sonnet-4-6',
+        ]);
 
         $router = new AiProviderRouter;
         $result = $router->getAgentWithFallback();
@@ -90,6 +94,7 @@ class AiServicesAndMiddlewareTest extends TestCase
         $this->assertArrayHasKey('providers', $result);
         $this->assertSame($result['model'], $result['providers'][$result['provider']]);
         $this->assertEquals('openrouter', $result['provider']);
+        $this->assertSame('claude-sonnet-4-6', $result['providers']['anthropic']);
     }
 
     public function test_provider_router_returns_fallback_agent(): void

@@ -41,8 +41,8 @@ class EnriquecerTerrenosPortalCommand extends Command
         $outputPath = $this->stringOption('output') ?? "{$baseDir}/terrenos_portal_enriquecido.json";
         $limit = $this->option('limit') !== null ? (int) $this->option('limit') : null;
 
-        $username = (string) (config('services.portal_terrenos.username') ?? env('PORTAL_TERRENOS_USERNAME', ''));
-        $password = (string) (config('services.portal_terrenos.password') ?? env('PORTAL_TERRENOS_PASSWORD', ''));
+        $username = (string) config('services.portal_terrenos.username');
+        $password = (string) config('services.portal_terrenos.password');
 
         if ($password === '') {
             $this->error('Defina PORTAL_TERRENOS_PASSWORD no .env.');

@@ -9,6 +9,7 @@ use App\Models\Tenant\PremissasViabilidade;
 use App\Repositories\Contracts\PremissasViabilidadeRepositoryInterface;
 use App\Services\Tenant\PremissasViabilidadeCrudService;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -30,6 +31,9 @@ class PremissasViabilidadeCrudServiceTest extends TestCase
             ->method('nextVersion')
             ->with(PerfilFinanciamento::CEF->value)
             ->willReturn(5);
+        $repository->expects($this->once())
+            ->method('findOverlapping')
+            ->willReturn(new Collection);
         $repository->expects($this->once())
             ->method('create')
             ->with($this->callback(function (array $payload): bool {
@@ -86,8 +90,11 @@ class PremissasViabilidadeCrudServiceTest extends TestCase
             ->with(PerfilFinanciamento::CEF->value)
             ->willReturn(4);
         $repository->expects($this->once())
-            ->method('closeCurrentVersion')
-            ->with($premissaAtual, '2026-06-29');
+            ->method('closeIntervalBefore')
+            ->with(PerfilFinanciamento::CEF->value, '2026-06-30', null);
+        $repository->expects($this->once())
+            ->method('findOverlapping')
+            ->willReturn(new Collection);
         $repository->expects($this->once())
             ->method('create')
             ->with($this->callback(function (array $payload): bool {

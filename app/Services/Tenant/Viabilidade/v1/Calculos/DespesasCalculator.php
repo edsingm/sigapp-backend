@@ -323,14 +323,6 @@ class DespesasCalculator
         return str_contains($nome, 'lote') || str_contains($nome, 'terreno');
     }
 
-    private function calcularCustoTerreno(float $receitaMes, array $dadosProdutos, array $params): float
-    {
-        $totalCustoTerreno = (float) ($params['compraTerreno'] ?? 0);
-        $receitaTotal = $dadosProdutos['vgvComCorrecao'] ?? $dadosProdutos['vgv'];
-
-        return $receitaTotal > 0 ? ($totalCustoTerreno * $receitaMes) / $receitaTotal : 0;
-    }
-
     /**
      * @param  array<string, mixed>  $receitas
      * @param  array<string, mixed>  $dadosProdutos

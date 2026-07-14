@@ -90,7 +90,7 @@ class ProdutosProcessor
             $dados['areaConstruida'] += $areaPrivativa * $unidades;
 
             $vgvSemPermuta = $valor * $unidadesComercializaveis;
-            $vgvSemTerrenista = $vgvSemPermuta - ($unidadesComercializaveis * $pgtoPorLote);
+            $vgvSemTerrenista = $vgvSemPermuta - ($unidades * $pgtoPorLote);
             $dados['vgvSemUnidPermutas'] += $vgvSemPermuta;
             $dados['vgvSemValorTerrenista'] += max(0.0, $vgvSemTerrenista);
 

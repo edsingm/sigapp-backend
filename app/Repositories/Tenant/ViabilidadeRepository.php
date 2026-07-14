@@ -100,10 +100,11 @@ class ViabilidadeRepository implements ViabilidadeRepositoryInterface
 
     public function lockById(int|string $id): Viabilidade
     {
-        return Viabilidade::query()
-            ->whereKey($id)
-            ->lockForUpdate()
-            ->firstOrFail();
+        $query = Viabilidade::query();
+        $query->whereKey($id);
+        $query->lockForUpdate();
+
+        return $query->firstOrFail();
     }
 
     public function clearCurrentForTerreno(int $terrenoId, ?int $exceptId = null): void

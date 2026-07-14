@@ -24,31 +24,9 @@ class AiTelemetryService
         private readonly AiTelemetryRepositoryInterface $repository,
         private readonly ServicesPlanMatrixService $planMatrix,
     ) {
-        $this->priceMap = [
-            // DeepSeek diferencia cache hit ($0.0028) e cache miss ($0.14) no input.
-            // AI_DEEPSEEK_INPUT_PRICE_PER_M é reaproveitado como preço de cache hit.
-            'deepseek' => [
-                'input_cache_hit' => (float) env('AI_DEEPSEEK_INPUT_PRICE_PER_M', 0.0028),
-                'input_cache_miss' => (float) env('AI_DEEPSEEK_INPUT_CACHE_MISS_PRICE_PER_M', 0.14),
-                'output' => (float) env('AI_DEEPSEEK_OUTPUT_PRICE_PER_M', 0.28),
-            ],
-            'openrouter' => [
-                'input' => (float) env('AI_OPENROUTER_INPUT_PRICE_PER_M', 0.00),
-                'output' => (float) env('AI_OPENROUTER_OUTPUT_PRICE_PER_M', 0.00),
-            ],
-            'gemini' => [
-                'input' => (float) env('AI_GEMINI_INPUT_PRICE_PER_M', 0.00),
-                'output' => (float) env('AI_GEMINI_OUTPUT_PRICE_PER_M', 0.00),
-            ],
-            'anthropic' => [
-                'input' => (float) env('AI_ANTHROPIC_INPUT_PRICE_PER_M', 3.00),
-                'output' => (float) env('AI_ANTHROPIC_OUTPUT_PRICE_PER_M', 15.00),
-            ],
-            'openai' => [
-                'input' => (float) env('AI_OPENAI_INPUT_PRICE_PER_M', 2.50),
-                'output' => (float) env('AI_OPENAI_OUTPUT_PRICE_PER_M', 10.00),
-            ],
-        ];
+        /** @var array<string, array<string, float>> $priceMap */
+        $priceMap = config('ai.prices_per_million_tokens', []);
+        $this->priceMap = $priceMap;
     }
 
     /**
@@ -216,7 +194,7 @@ class AiTelemetryService
      */
     private function resolveBudgetLimit(): float
     {
-        $default = (float) env('AI_TENANT_BUDGET_DEFAULT', 10.00);
+        $default = (float) config('ai.tenant_budget_default', 10.00);
 
         try {
             if (! tenancy()->initialized) {

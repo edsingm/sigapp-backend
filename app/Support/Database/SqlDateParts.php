@@ -14,6 +14,10 @@ final class SqlDateParts
             return "CAST(EXTRACT(YEAR FROM {$expression}) AS INTEGER)";
         }
 
+        if (self::driver() === 'sqlite') {
+            return "CAST(strftime('%Y', {$expression}) AS INTEGER)";
+        }
+
         return "YEAR({$expression})";
     }
 
@@ -21,6 +25,10 @@ final class SqlDateParts
     {
         if (self::driver() === 'pgsql') {
             return "CAST(EXTRACT(MONTH FROM {$expression}) AS INTEGER)";
+        }
+
+        if (self::driver() === 'sqlite') {
+            return "CAST(strftime('%m', {$expression}) AS INTEGER)";
         }
 
         return "MONTH({$expression})";

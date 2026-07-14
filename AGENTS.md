@@ -196,7 +196,8 @@ resources/lang/           → pt-br.json / en-us.json (chaves UPPER_SNAKE_CASE)
 resources/views/          → emails/, exports/, pdf/ (Blade só para e-mail/PDF/export)
 routes/
   api.php                 → rotas centrais + definição dos rate limiters nomeados
-  tenant.php              → rotas do tenant (registradas pelo TenancyServiceProvider)
+  tenant.php              → agregador das rotas tenant (registrado pelo TenancyServiceProvider)
+  tenant/                 → declarações tenant modularizadas por áreas de domínio
   console.php             → schedule + comandos closure
   web.php                 → mínimo (welcome, cashier.payment, redirect /docs)
 scripts/                  → pgsql/, security/, viabilidade/ (operação e auditoria)
@@ -291,9 +292,10 @@ Este projeto tem um **envelope próprio**. Não invente formato novo:
 
 ### 9. Rotas da API
 
-- API **versionada** em `/api/v1/`. Central em `routes/api.php`, tenant em `routes/tenant.php`.
+- API **versionada** em `/api/v1/`. Central em `routes/api.php`; o agregador tenant fica em `routes/tenant.php` e carrega, na ordem declarada, os módulos em `routes/tenant/`.
+- Middlewares comuns, prefixo versionado e proteção de assinatura permanecem no agregador tenant. Arquivos em `routes/tenant/` declaram somente suas rotas de domínio; todo arquivo modular deve ser carregado exatamente uma vez pelo agregador. O `TenancyServiceProvider` não registra essas rotas novamente quando o cache de rotas está ativo.
 - **Rate limiting é obrigatório e nomeado** — os limiters são definidos no topo de `routes/api.php` (`api-public`, `api-auth`, `central-login`, `admin-login`, `transfer-ticket`, `password-reset-*`, `signup-status`, `consent-log`, `viabilidade-approval`, ...). Rota nova entra num grupo com throttle existente ou ganha limiter próprio com resposta via `ApiResponseService::tooManyRequests()`.
-- Rotas centrais ficam dentro do loop `foreach (config('tenancy.identification.central_domains') as $domain) { Route::domain($domain)... }` — siga o padrão.
+- Rotas centrais ficam dentro do loop de `central_domains` em `routes/api.php`. O primeiro domínio preserva os nomes canônicos (`admin.*`); os domínios alternativos recebem o prefixo interno `central-domain-{index}.` para que `route:cache` não encontre nomes duplicados. Siga esse padrão ao criar rotas centrais nomeadas.
 - Rotas tenant novas: declare `tenant.context` + `auth:sanctum` + `auth.tenant` + `throttle:api-auth`, e o gate de módulo/assinatura adequado (`check.feature:...`, `subscription.active`, `tenant.admin`, `permission.gate`).
 - Use Route Model Binding e kebab-case plural nos paths. Webhook Stripe (`POST /webhook/stripe`) fica **sem** throttle/CSRF — não mexa nisso sem entender o motivo.
 - Health checks: `/up` (framework), `GET /api/health` (mínimo/legado usado pelo Docker), `GET /api/v1/health` (público versionado, mínimo), `GET /api/v1/health/details` (admin central autenticado) e `GET /api/health` no tenant (autenticado, inclui dados do tenant).
@@ -404,6 +406,8 @@ Fluxo macro do terreno (enum `WorkflowStatus`, orquestrado por `LandWorkflowServ
 | `PublicControllerArchitectureTest` | Controllers públicos/auth sem validação inline; Blog sem query direta em Post |
 | `ModulesControllerArchitectureTest` | ModulesController sem uso direto de Models |
 | `TenantAdminRequestAuthorizationTest` | FormRequests tenant sem `authorize()` trivial (`return true;`) |
+| `TenantRoutesArchitectureTest` | Módulos tenant carregados uma vez; contrato legado e precedência das rotas preservados |
+| `RouteCacheArchitectureTest` | Nomes completos de rota únicos; nomes canônicos preservados no domínio central principal |
 
 Ao criar controller/service/job novo nos escopos cobertos, ele **precisa** nascer conforme — e, quando o teste usa lista explícita de arquivos, adicione o novo arquivo à lista.
 

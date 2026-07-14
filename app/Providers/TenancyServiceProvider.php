@@ -6,6 +6,7 @@ namespace App\Providers;
 
 use App\Models\Central\Tenant;
 use Illuminate\Contracts\Http\Kernel;
+use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
@@ -236,6 +237,10 @@ class TenancyServiceProvider extends ServiceProvider
     protected function mapRoutes()
     {
         $this->app->booted(function () {
+            if ($this->app instanceof Application && $this->app->routesAreCached()) {
+                return;
+            }
+
             if (file_exists(base_path('routes/tenant.php'))) {
                 Route::namespace(static::$controllerNamespace)
                     ->middleware('tenant')

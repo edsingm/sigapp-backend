@@ -159,8 +159,10 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
         });
 
         // Central Only Routes
-        foreach (config('tenancy.identification.central_domains') as $domain) {
-            Route::domain($domain)->group(function () {
+        foreach (array_values((array) config('tenancy.identification.central_domains')) as $domainIndex => $domain) {
+            $routeNamePrefix = $domainIndex === 0 ? '' : "central-domain-{$domainIndex}.";
+
+            Route::domain((string) $domain)->group(function () use ($routeNamePrefix) {
 
                 // Public route without generic API throttle
                 Route::middleware('central.context')->group(function () {
@@ -221,11 +223,11 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
                     Route::get('/auth/me', [TenantAuthController::class, 'me']);
                 });
 
-                Route::middleware(['central.context', 'auth:sanctum', 'auth.central', 'central.admin', 'throttle:api-auth'])->group(function () {
+                Route::middleware(['central.context', 'auth:sanctum', 'auth.central', 'central.admin', 'throttle:api-auth'])->group(function () use ($routeNamePrefix) {
                     Route::get('/tenant-status', [TenantStatusController::class, 'index']);
 
                     // Admin Routes
-                    Route::prefix('admin')->name('admin.')->group(function () {
+                    Route::prefix('admin')->name($routeNamePrefix.'admin.')->group(function () {
                         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
                         Route::apiResource('posts', PostController::class);
 

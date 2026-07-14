@@ -1,0 +1,58 @@
+<?php
+
+use App\Http\Controllers\Api\V1\LanguageController;
+use App\Http\Controllers\Api\V1\PlanController;
+use App\Http\Controllers\Api\V1\Tenant\Common\ModulesController;
+use App\Http\Controllers\Api\V1\Tenant\CouponController as TenantCouponController;
+use App\Http\Controllers\Api\V1\Tenant\DunningController;
+use App\Http\Controllers\Api\V1\Tenant\NotificationPreferenceController;
+use App\Http\Controllers\Api\V1\Tenant\PlanSwapController;
+use App\Http\Controllers\Api\V1\Tenant\TenantController;
+use App\Http\Controllers\Api\V1\TenantAuthController;
+use Illuminate\Support\Facades\Route;
+
+// Auth
+Route::post('/auth/logout', [TenantAuthController::class, 'logout']);
+Route::post('/auth/logout-all', [TenantAuthController::class, 'logoutAll']);
+Route::post('/auth/refresh', [TenantAuthController::class, 'refresh']);
+Route::get('/auth/me', [TenantAuthController::class, 'me']);
+Route::put('/auth/me', [TenantAuthController::class, 'updateMe']);
+
+// Locale
+Route::put('/locale', [LanguageController::class, 'set']);
+
+// Preferências de notificação do usuário
+Route::get('/me/notification-preferences', [NotificationPreferenceController::class, 'index']);
+Route::put('/me/notification-preferences', [NotificationPreferenceController::class, 'update']);
+Route::put('/me/notification-settings', [NotificationPreferenceController::class, 'updateSettings']);
+
+// Bootstrap: modules, plan and user RBAC for navbar/feature gating
+Route::get('/start', [ModulesController::class, 'index']);
+Route::get('/modules', [ModulesController::class, 'modules']);
+
+Route::get('/tenant/subscription', [TenantController::class, 'subscription'])
+    ->middleware('tenant.admin');
+Route::post('/tenant/billing-portal', [TenantController::class, 'billingPortal'])
+    ->middleware('tenant.admin');
+
+// Catálogo de planos acessível no domínio do tenant (a rota pública
+// /plans é central-only). Usado pela tela de faturamento para montar
+// as opções de upgrade/downgrade. Admin-only.
+Route::get('/tenant/plans', [PlanController::class, 'index'])
+    ->middleware('tenant.admin');
+
+// Billing — troca de plano e atualização de método de pagamento
+// Acessíveis mesmo com assinatura suspensa (tenant pode reativar/atualizar sem bloqueio)
+Route::middleware('tenant.admin')->group(function () {
+    Route::post('/tenant/subscription/swap', [PlanSwapController::class, 'swap'])
+        ->middleware('tenant.admin');
+    Route::post('/tenant/billing/setup-intent', [TenantController::class, 'createSetupIntent'])
+        ->middleware('tenant.admin');
+    Route::post('/tenant/billing/payment-method', [TenantController::class, 'updateDefaultPaymentMethod'])
+        ->middleware('tenant.admin');
+    Route::post('/tenant/billing/coupon/redeem', [TenantCouponController::class, 'redeem'])
+        ->middleware('tenant.admin');
+    Route::get('/tenant/billing/payment-status', [DunningController::class, 'status']);
+    Route::post('/tenant/billing/retry-payment', [DunningController::class, 'retryPayment'])
+        ->middleware('tenant.admin');
+});

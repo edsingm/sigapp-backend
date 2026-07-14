@@ -23,6 +23,7 @@ use App\Listeners\Tenant\NotifyWorkflowTransitioned;
 use App\Listeners\Tenant\RecordContractSignedActivity;
 use App\Listeners\Tenant\RecordWorkflowActivity;
 use App\Listeners\Tenant\RecordWorkflowStatusHistory;
+use App\Listeners\Tenant\SendWorkflowTransitionedEmail;
 use App\Listeners\Tenant\TransitionRelatedProjetos;
 use App\Models\Tenant\Contrato;
 use App\Models\Tenant\Legalizacao;
@@ -71,6 +72,19 @@ class WorkflowEventsTest extends TestCase
 
         $this->assertArrayHasKey(LegalizacaoEtapaOverdue::class, $listen);
         $this->assertContains(NotifyOverdueLegalizacaoEtapa::class, $listen[LegalizacaoEtapaOverdue::class]);
+    }
+
+    public function test_workflow_transition_email_listener_is_registered_once(): void
+    {
+        $listeners = app('events')->getRawListeners()[WorkflowTransitioned::class] ?? [];
+
+        $this->assertSame(
+            1,
+            count(array_filter(
+                $listeners,
+                fn (string $listener): bool => $listener === SendWorkflowTransitionedEmail::class,
+            )),
+        );
     }
 
     public function test_workflow_transitioned_event_carries_all_properties(): void

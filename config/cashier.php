@@ -20,6 +20,17 @@ return [
     'secret' => env('STRIPE_SECRET'),
 
     /*
+    | IDs dos Prices recorrentes por ambiente. Quando ausentes, o checkout
+    | cria um Price emergencial com o valor configurado no plano.
+    */
+    'plan_prices' => [
+        'broker' => env('STRIPE_PRICE_BROKER'),
+        'basico' => env('STRIPE_PRICE_BASICO'),
+        'master' => env('STRIPE_PRICE_MASTER'),
+        'pro' => env('STRIPE_PRICE_PRO'),
+    ],
+
+    /*
     |--------------------------------------------------------------------------
     | Cashier Path
     |--------------------------------------------------------------------------

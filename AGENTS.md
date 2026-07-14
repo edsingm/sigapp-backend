@@ -308,6 +308,7 @@ Este projeto tem um **envelope próprio**. Não invente formato novo:
 - Fluxos do tenant: assinatura/portal (`TenantController@subscription`, `billingPortal`), troca de plano (`PlanSwapController`), dunning/retry de pagamento (`DunningController`), cupons (`CouponController`), histórico (`BillingHistoryController`).
 - Troca de plano: **upgrade** cobra imediatamente via Stripe (`pendingIfPaymentFails()->swapAndInvoice()`) e só concede o plano local se a chamada confirmar; **downgrade** mantém `plan_id` atual e grava `scheduled_plan_id` até a renovação (`invoice.paid`). O snapshot de assinatura expõe `scheduled_plan`.
 - O portal de billing deve usar `STRIPE_PORTAL_CONFIGURATION_ID` quando configurado para impedir troca de plano fora do `PlanSwapController`.
+- Os Prices recorrentes dos planos são configurados por ambiente em `config/cashier.php` via `STRIPE_PRICE_BROKER`, `STRIPE_PRICE_BASICO`, `STRIPE_PRICE_MASTER` e `STRIPE_PRICE_PRO`; o `PlanSeeder` não deve embutir IDs de uma conta Stripe específica. Sem um ID configurado, o checkout cria um Price emergencial com valor em centavos.
 - Enforcement de plano: middlewares `subscription.active`, `enforce.limits`, `check.feature` + `EntitlementService`/`PlanMatrixService`.
 - O catálogo de features do roadmap frontend fica centralizado em
   `Database\Seeders\EntitlementSeeder::roadmapFeatureMatrix()` e segue a

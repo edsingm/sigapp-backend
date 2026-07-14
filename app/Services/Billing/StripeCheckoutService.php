@@ -8,10 +8,16 @@ use App\Traits\LogsAudit;
 use Laravel\Cashier\Cashier;
 use Stripe\Checkout\Session;
 use Stripe\Customer;
+use Stripe\StripeClient;
 
 class StripeCheckoutService
 {
     use LogsAudit;
+
+    protected function stripe(): StripeClient
+    {
+        return Cashier::stripe();
+    }
 
     /**
      * Cria um cliente no Stripe para o tenant especificado e armazena o ID do cliente.
@@ -23,7 +29,7 @@ class StripeCheckoutService
         $tenantId = (int) $tenant->getKey();
         $tenantSlug = (string) $tenant->getAttribute('slug');
 
-        $customer = Cashier::stripe()->customers->create([
+        $customer = $this->stripe()->customers->create([
             'email' => (string) $validated['admin_email'],
             'name' => (string) $validated['organization_name'],
             'metadata' => [
@@ -64,7 +70,7 @@ class StripeCheckoutService
             $subscriptionData['trial_period_days'] = $planTrialDays;
         }
 
-        return Cashier::stripe()->checkout->sessions->create(array_merge([
+        return $this->stripe()->checkout->sessions->create(array_merge([
             'customer' => $customerId,
             'client_reference_id' => $tenantId,
             'mode' => 'subscription',
@@ -96,15 +102,17 @@ class StripeCheckoutService
      */
     public function createPriceOnTheFly(Plan $plan): string
     {
+        $priceInCents = (int) round(((float) $plan->getAttribute('price')) * 100);
+
         $this->audit('tenant.signup_price_created_on_the_fly', 'Plano sem stripe_price_id. Criando price emergencialmente.', [
             'plan_id' => $plan->id,
             'plan_slug' => $plan->slug,
-            'price_in_cents' => $plan->price,
+            'price_in_cents' => $priceInCents,
         ]);
 
         $idempotencyBase = 'plan-'.$plan->id.'-'.$plan->slug;
 
-        $product = Cashier::stripe()->products->create(
+        $product = $this->stripe()->products->create(
             [
                 'name' => (string) $plan->getAttribute('name'),
                 'description' => (string) ($plan->getAttribute('description') ?? ''),
@@ -112,14 +120,14 @@ class StripeCheckoutService
             ['idempotency_key' => 'product-'.$idempotencyBase]
         );
 
-        $price = Cashier::stripe()->prices->create(
+        $price = $this->stripe()->prices->create(
             [
                 'product' => $product->id,
-                'unit_amount' => (int) $plan->getAttribute('price'),
+                'unit_amount' => $priceInCents,
                 'currency' => (string) config('cashier.currency', 'brl'),
                 'recurring' => ['interval' => 'month'],
             ],
-            ['idempotency_key' => 'price-'.$idempotencyBase.'-'.$plan->price]
+            ['idempotency_key' => 'price-'.$idempotencyBase.'-'.$priceInCents]
         );
 
         $plan->update(['stripe_price_id' => $price->id]);

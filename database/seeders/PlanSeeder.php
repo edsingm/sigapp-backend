@@ -12,12 +12,13 @@ class PlanSeeder extends Seeder
      */
     public function run(): void
     {
+        $configuredPriceIds = config('cashier.plan_prices', []);
+
         $plans = [
             [
                 'name' => 'SIG - Broker',
                 'slug' => 'broker',
                 'description' => 'Ideal para corretores gerenciarem seus terrenos',
-                'stripe_price_id' => 'price_1TArCIGcvhFuedVRPXRKrURP',
                 'price' => 97.00,
                 'trial_days' => 7,
                 'is_active' => true,
@@ -28,7 +29,6 @@ class PlanSeeder extends Seeder
                 'name' => 'SIG - Básico',
                 'slug' => 'basico',
                 'description' => 'Ideal para pequenas equipes que estão começando.',
-                'stripe_price_id' => 'price_1SxBAQGcvhFuedVRVBp4uzVP',
                 'price' => 247.00,
                 'trial_days' => 7,
                 'is_active' => true,
@@ -39,7 +39,6 @@ class PlanSeeder extends Seeder
                 'name' => 'SIG - Master',
                 'slug' => 'master',
                 'description' => 'Para equipes em crescimento que precisam de mais recursos.',
-                'stripe_price_id' => 'price_1SxBDDGcvhFuedVR1FBUXkdr',
                 'price' => 597.00,
                 'trial_days' => 7,
                 'is_active' => true,
@@ -50,7 +49,6 @@ class PlanSeeder extends Seeder
                 'name' => 'SIG - Pro',
                 'slug' => 'pro',
                 'description' => 'Para grandes organizações com necessidades específicas.',
-                'stripe_price_id' => 'price_1SxBEGGcvhFuedVRK8IUp3w6',
                 'price' => 947.00,
                 'trial_days' => 7,
                 'is_active' => true,
@@ -60,6 +58,11 @@ class PlanSeeder extends Seeder
         ];
 
         foreach ($plans as $planData) {
+            $configuredPriceId = $configuredPriceIds[$planData['slug']] ?? null;
+            if (is_string($configuredPriceId) && $configuredPriceId !== '') {
+                $planData['stripe_price_id'] = $configuredPriceId;
+            }
+
             Plan::updateOrCreate(
                 ['slug' => $planData['slug']],
                 $planData

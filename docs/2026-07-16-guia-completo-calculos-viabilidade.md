@@ -36,8 +36,8 @@ Ao criar a página, siga estas regras:
 6. Use os nomes amigáveis deste documento nos textos e tooltips; use os caminhos da API somente na implementação.
 7. Solicite os blocos detalhados com `include` quando a tela precisar deles. A resposta padrão é resumida.
 8. Não apresente `aporte_adicional_mensal` nem `devolucao_aporte_percentual` como fórmulas ativas. Esses campos ainda existem no contrato de cadastro, mas o motor oficial `2.4.0` segue automaticamente a política de caixa da planilha: aporte do déficit e devolução de 25% ao mês, limitada ao total aportado.
-9. Exiba uma observação de versão: o conteúdo desta página descreve o motor `2.4.0`.
-10. Na página de um cálculo real, trate alertas e falhas de reconciliação como informação relevante, não como detalhe técnico descartável.
+9. Leia `calculation_engine_version` na resposta e mostre a versão usada em cada cálculo. Se vier `null`, identifique o registro como anterior ao versionamento disponível, sem assumir uma versão.
+10. Leia `warnings` e `reconciliation` diretamente na resposta padrão. Trate alertas e falhas de reconciliação como informação relevante, não como detalhe técnico descartável.
 
 ## 3. Resumo em linguagem simples
 
@@ -100,6 +100,29 @@ O motor possui dois perfis:
 
 - **CEF:** combina recursos próprios do cliente, recurso terreno, medições de obra e dívida PJ.
 - **Próprio:** usa sinal, mensalidades, balões e saldo de entrega conforme a configuração do produto.
+
+### 4.5 Premissas iniciais do seeder
+
+O `PremissasViabilidadeSeeder` cria a premissa inicial **Padrão CEF** com os valores do cenário canônico da planilha Cimcal Osvaldo Cruz v.02.2026. Entre os principais valores estão:
+
+| Premissa | Valor inicial CEF |
+|---|---:|
+| Parceria sobre o VGV | 5% |
+| Compra do terreno | R$ 10.000.000,00 |
+| Contrapartidas | 1% |
+| Canteiro mensal | R$ 85.000,00 |
+| Mão de obra administrativa | R$ 60.000,00 |
+| Despesas comerciais | 4% |
+| Stand de vendas | R$ 200.000,00 |
+| Contratação / medição CEF | R$ 48.000,00 / R$ 4.000,00 |
+| Outras despesas financeiras | 0,3% |
+| Inadimplência / atraso / perda | 0% / 0 mês / 0% |
+| Correção adicional | 0% ao ano |
+| Incorporação / lançamento / obra / entrega / pós-obra | 18 / 6 / 36 / 1 / 60 meses |
+
+Esses valores são **defaults de cadastro**, e não uma migração de dados. O seeder só cria o perfil CEF quando o tenant ainda não possui uma premissa CEF ativa; ele não altera uma premissa ativa existente. O perfil **Próprio** continua independente, pois a planilha de referência não contém um cenário próprio equivalente e validado.
+
+Dados específicos do produto ou terreno — como quantidade de unidades, preço, área privativa, custo por metro quadrado, curva de vendas e avaliação CEF — não pertencem ao seeder de premissas e continuam sendo informados no estudo. O valor residual `bonus_equipe_comercial = -728.286` reproduz especificamente o modelo canônico e deve ser revisto antes de ser adotado como política comercial geral.
 
 ## 5. Produtos, unidades e valores-base
 
@@ -778,6 +801,9 @@ O endpoint de leitura/recálculo retorna um `ViabilidadeCalculationResource`. A 
 | `indicadores` | KPIs e dívida |
 | `produtos_resumo` | Tabela de produtos |
 | `viabilidade` | Premissas e identificação do estudo |
+| `calculation_engine_version` | Versão do motor usada no cálculo |
+| `warnings` | Alertas de curvas, POC e integridade |
+| `reconciliation` | Status, diferenças e verificações matemáticas |
 
 Blocos detalhados são opcionais. Exemplo:
 
@@ -802,16 +828,21 @@ GET /api/v1/viabilidades/{id}?include=dre,dre_caixa,dre_contabil_poc,dre_contabi
 | Caixa do investidor/dívida | `fluxo_mensal_financeiro` |
 | Totais do fluxo | `totais` |
 | Premissas efetivamente utilizadas | `parametros_utilizados` |
+| Versão do motor | `calculation_engine_version` |
+| Alertas do cálculo | `warnings` |
+| Reconciliação matemática | `reconciliation` |
 
 As chaves de detalhes são normalizadas para `snake_case` na resposta pública. As chaves mensais `AAAA-MM` são preservadas.
 
-### 18.1 Limitação atual do recurso público
+### 18.1 Metadados públicos do cálculo
 
-O resultado interno e o snapshot armazenam `calculation_engine_version`, `warnings` e `reconciliation`, mas o `ViabilidadeCalculationResource` atual não expõe esses três campos. Portanto:
+Os três campos são retornados no nível superior de `data` sem necessidade de `include`:
 
-- a página institucional pode informar que este documento descreve a versão `2.4.0`;
-- uma página dinâmica não deve tentar ler esses campos até que o contrato da API seja ampliado;
-- recomenda-se expô-los em evolução posterior para mostrar a versão real de cada cálculo e seus alertas.
+- `calculation_engine_version`: string da versão, como `2.4.0`; retorna `null` em snapshots antigos sem versão registrada;
+- `warnings`: lista de mensagens; retorna `[]` quando não há alertas ou o snapshot antigo não possui o campo;
+- `reconciliation`: objeto com `status`, `differences`, `warnings` e `checks`; retorna `null` quando indisponível em snapshot antigo.
+
+`warnings` reúne, sem duplicidade, alertas das curvas e da reconciliação. Um alerta POC pode existir com `reconciliation.status = "ok"`, pois o status `failed` é reservado a falhas nas invariantes matemáticas ou valores não finitos. A interface deve avaliar o status e também exibir a lista de alertas.
 
 ## 19. Estados especiais e mensagens ao usuário
 
@@ -822,6 +853,8 @@ O resultado interno e o snapshot armazenam `calculation_engine_version`, `warnin
 | Curva interpolada | Informar que o prazo não possui curva oficial tabelada |
 | Estouro POC | Destacar que o custo incorrido superou o orçamento-base do POC |
 | Reconciliação falhou | Não ocultar; orientar revisão de premissas ou do cálculo |
+| Versão do motor `null` | “Versão do motor não registrada para este cálculo antigo.” |
+| Lista `warnings` vazia | Não renderizar painel de alertas vazio |
 | Divisão sem base | Mostrar “Não aplicável”, nunca `Infinity` ou `NaN` |
 | Estoque zerado | Mostrar o mês de zeragem e VSO total de até 100% |
 
@@ -933,8 +966,10 @@ As TIRs elevadas decorrem do vetor de saldos acumulados usado pelo XIRR da plani
 - POC e reconciliação: [`PocCalculator.php`](../app/Services/Tenant/Viabilidade/v1/Calculos/PocCalculator.php)
 - Curvas oficiais: [`CurvaService.php`](../app/Services/Tenant/Viabilidade/v1/CurvaService.php)
 - Resposta pública: [`ViabilidadeCalculationResource.php`](../app/Http/Resources/Tenant/ViabilidadeCalculationResource.php)
+- Premissas iniciais: [`PremissasViabilidadeSeeder.php`](../database/seeders/Tenant/PremissasViabilidadeSeeder.php)
 - Auditoria da planilha: [`2026-07-15-auditoria-planilha-cimcal-osvaldo-cruz.md`](2026-07-15-auditoria-planilha-cimcal-osvaldo-cruz.md)
 - Fixture de referência: [`cimcal_osvaldo_cruz_v02_2026.json`](../tests/Fixtures/Viabilidade/cimcal_osvaldo_cruz_v02_2026.json)
+- Teste das premissas iniciais: [`PremissasViabilidadeSeederTest.php`](../tests/Feature/Tenant/PremissasViabilidadeSeederTest.php)
 
 ## 24. Checklist de aceite da página
 
@@ -948,6 +983,8 @@ As TIRs elevadas decorrem do vetor de saldos acumulados usado pelo XIRR da plani
 - [ ] Mostra o significado de exposição, VSO, dívida PJ e distribuição.
 - [ ] Diferencia VGV bruto, VGV sem permutas e VGV líquido do terrenista.
 - [ ] Possui aviso de dependência das premissas e versão do motor.
+- [ ] Lê `calculation_engine_version`, `warnings` e `reconciliation` da resposta padrão.
+- [ ] Trata os fallbacks de snapshots antigos: versão `null`, alertas `[]` e reconciliação `null`.
 - [ ] É acessível em teclado, possui títulos semânticos e não depende apenas de cor.
 - [ ] Mantém tabelas responsivas e gráficos acompanhados por resumo textual.
 
@@ -960,6 +997,7 @@ Este documento deve ser revisado sempre que houver alteração em:
 - curvas de venda, obra ou medição;
 - política de dívida, aporte, devolução ou distribuição;
 - fórmulas de DRE, POC, TIR, payback, exposição ou VSO;
+- defaults do seeder de premissas;
 - nomes e disponibilidade dos campos da API.
 
-Ao atualizar, valide novamente o cenário Cimcal e mantenha o documento alinhado com o teste de conformidade da planilha.
+Ao atualizar, valide novamente o cenário Cimcal e mantenha o documento alinhado com o teste de conformidade da planilha e com `PremissasViabilidadeSeederTest`.

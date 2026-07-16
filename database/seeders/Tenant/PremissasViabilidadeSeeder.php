@@ -89,8 +89,38 @@ class PremissasViabilidadeSeeder extends Seeder
             'obra_ate_lancamento' => 1.0,
         ];
 
+        // Premissas do cenário CEF da planilha canônica
+        // "20260710 - Viabilidade Cimcal - Osvaldo Cruz.xlsx" (v.02.2026).
+        // O perfil próprio não é sobrescrito porque não existe cenário próprio
+        // equivalente validado nessa pasta de trabalho.
+        $valoresCef = array_merge($valoresBase, [
+            'parceria_vgv' => 5.0,
+            'contrapartidas' => 1.0,
+            'canteiro_mensal' => 85_000.0,
+            'mo_administrativa' => 60_000.0,
+            'despesas_comerciais' => 4.0,
+            'stand_vendas' => 200_000.0,
+            'gastos_mensais_stand' => 0.0001,
+            'comissao_house_percentual' => 3.0,
+            'comissao_imobiliarias_percentual' => 3.5,
+            'percentual_vendas_house' => 50.0,
+            'bonus_equipe_comercial' => -728_286.0,
+            'pagamento_comissao_venda' => 50.0,
+            'parcelamento_comissao_terreno' => 1,
+            'marketing_lancamento' => 25.0,
+            'custo_contratacao_cef' => 48_000.0,
+            'custo_medicao_cef' => 4_000.0,
+            'outras_despesas_financeiras' => 0.3,
+            'compra_terreno' => 10_000_000.0,
+            'porcentagem_lote_proprietario' => 0.0,
+            'inadimplencia' => 0.0,
+            'atraso_meses' => 0,
+            'taxa_perda' => 0.0,
+            'variavel_correcao' => 0.0,
+        ]);
+
         if (! $jaExisteCef) {
-            PremissasViabilidade::create(array_merge($valoresBase, [
+            PremissasViabilidade::create(array_merge($valoresCef, [
                 'nome' => 'Padrão CEF',
                 'perfil_financiamento' => PerfilFinanciamento::CEF->value,
             ]));

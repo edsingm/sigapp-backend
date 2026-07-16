@@ -78,8 +78,16 @@ class ViabilidadeApiTest extends TestCase
                     'resumo',
                     'indicadores',
                     'produtos_resumo',
+                    'calculation_engine_version',
+                    'warnings',
+                    'reconciliation',
                 ],
             ])
+            ->assertJsonPath('data.calculation_engine_version', '2.4.0')
+            ->assertJsonPath('data.warnings', [
+                'Custo de obra incorrido ultrapassou o orçamento POC.',
+            ])
+            ->assertJsonPath('data.reconciliation.status', 'ok')
             ->assertJsonMissingPath('data.dre')
             ->assertJsonMissingPath('data.fluxo_mensal');
 
@@ -158,6 +166,32 @@ class ViabilidadeApiTest extends TestCase
             ->getJson('/api/v1/viabilidades/terreno/'.$terrenoProduto->getAttribute('terreno_id').'/latest')
             ->assertOk()
             ->assertJsonPath('data.id', $duplicateId);
+    }
+
+    public function test_calculation_metadata_has_safe_fallbacks_for_legacy_snapshots(): void
+    {
+        $terrenoProduto = $this->createViabilityFixture();
+        $viabilidade = Viabilidade::create([
+            'terreno_id' => $terrenoProduto->getAttribute('terreno_id'),
+            'version' => 1,
+            'is_current' => true,
+            'status' => 'ativo',
+            'approval_status' => 'aprovada',
+            'resultados_dre' => [
+                'vgv' => 1_000_000,
+                'totais' => ['receita' => 1_000_000],
+                'indicadores' => ['margem_liquida_percentual' => 20],
+            ],
+            'created_by' => $this->admin->id,
+            'updated_by' => $this->admin->id,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->getJson("/api/v1/viabilidades/{$viabilidade->id}")
+            ->assertOk()
+            ->assertJsonPath('data.calculation_engine_version', null)
+            ->assertJsonPath('data.warnings', [])
+            ->assertJsonPath('data.reconciliation', null);
     }
 
     public function test_version_is_not_reused_after_soft_delete_and_deleted_viabilidade_can_be_restored(): void

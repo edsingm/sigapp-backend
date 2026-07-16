@@ -33,6 +33,13 @@ class ViabilidadeCalculationResource extends JsonResource
             'resumo' => $this->buildResumo($dreResultados),
             'indicadores' => $this->buildIndicadores($dreResultados),
             'produtos_resumo' => $this->buildProdutosResumo($dreResultados),
+            'calculation_engine_version' => $dreResultados['calculation_engine_version'] ?? null,
+            'warnings' => is_array($dreResultados['warnings'] ?? null)
+                ? array_values($dreResultados['warnings'])
+                : [],
+            'reconciliation' => is_array($dreResultados['reconciliation'] ?? null)
+                ? $dreResultados['reconciliation']
+                : null,
         ];
 
         if ($this->shouldInclude($include, 'dre')) {

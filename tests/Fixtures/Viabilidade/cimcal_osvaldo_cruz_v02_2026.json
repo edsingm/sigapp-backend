@@ -1,0 +1,145 @@
+{
+  "name": "20260710 - Viabilidade Cimcal - Osvaldo Cruz",
+  "spreadsheet_version": "v.02.2026",
+  "source_path": "docs/viabilidade-modelo/20260710 - Viabilidade Cimcal - Osvaldo Cruz.xlsx",
+  "source_sha256": "b7ad9ff34b69dc6b1ea172ea967ce805e6dc2f28cc5aee19096fd171fb40f4f2",
+  "validated_at": "2026-07-15",
+  "validation_status": "cached_values_from_source_workbook",
+  "notes": [
+    "A pasta de trabalho contém um vínculo externo na fórmula DRE!S6; os valores esperados usam o cache salvo no XLSX.",
+    "Custos da DRE foram normalizados para valores positivos, como retornados pela API.",
+    "O motor reproduz o XIRR da planilha sobre os saldos acumulados operacional e após a dívida PJ.",
+    "O motor 2.4.0 reproduz a sequência mensal de aporte, devolução, caixa mínimo e distribuição das colunas JA:JO da planilha."
+  ],
+  "tolerances": {
+    "dre_pct": 0.1,
+    "fluxo_pct": 0.001,
+    "money_rounding": 2.0,
+    "tir_percentage_points": 0.1
+  },
+  "assumptions": {
+    "launch_date": "2029-06-01",
+    "incorporation_months": 18,
+    "launch_months": 6,
+    "construction_months": 36,
+    "post_construction_months": 60,
+    "sales_curve": [
+      10,
+      9,
+      8.1,
+      7.29,
+      6.561,
+      5.9049,
+      5.31441,
+      3.416406428571428,
+      3.416406428571428,
+      3.416406428571428,
+      3.416406428571428,
+      3.416406428571428,
+      3.416406428571428,
+      3.416406428571428,
+      3.416406428571428,
+      3.416406428571428,
+      3.416406428571428,
+      3.416406428571428,
+      3.416406428571428,
+      3.416406428571428,
+      3.416406428571428
+    ]
+  },
+  "source_cells": {
+    "dre": "DRE!F50:F99 and DRE!H99:H101",
+    "fluxo": "Fluxo e DRE!C21,C31,C42,C44,C46,C48,C51,C52,C57",
+    "indicadores": "Resumo!D42,F42,D50,F50,D61,F61"
+  },
+  "known_divergences": {
+    "profit_distribution": "O motor 2.4.0 replica as colunas JA:JO: aporta o déficit incremental, devolve até 25% ao mês após completar os aportes, reserva um mês de saídas e distribui o excedente acumulado até o saldo final elegível.",
+    "cash_timing": "O calendário operacional, a exposição e o payback reconciliam com a planilha dentro do arredondamento monetário.",
+    "irr": "O sistema replica o XIRR da planilha sobre os saldos acumulados: 600,53% a.a. operacional e 991,81% a.a. financeira."
+  },
+  "expected": {
+    "dre": {
+      "receita_total_vendas": 407500000,
+      "juros_correcoes": 10430752.432979196,
+      "receita_bruta": 417930752.4329792,
+      "pis_cofins": 8692959.650605967,
+      "iss": 0,
+      "outras_deducoes": 2037500,
+      "receita_liquida": 407200292.78237325,
+      "custo_terreno": 38140757.62164896,
+      "comissao_terreno": 0,
+      "incorporacao": 4450000,
+      "infra_casas": 132610380,
+      "infra_lotes": 46690000,
+      "area_comum": 0,
+      "contrapartidas": 4450000,
+      "canteiro": 3060000,
+      "mo_administrativa": 2160000,
+      "seguros": 2225000,
+      "assistencia_tecnica": 1837503.8,
+      "custos_diretos": 235623641.42164898,
+      "lucro_bruto": 171576651.36072427,
+      "despesas_comerciais": 17100000,
+      "marketing": 4275000,
+      "itbi_iptu": 4702500,
+      "registro": 4800000,
+      "medicao_contratacao": 192000,
+      "contratos_cef": 576000,
+      "produtos_cef": 2137500,
+      "despesas_operacionais": 33783000,
+      "ebitda": 137793651.36072427,
+      "outras_despesas_financeiras": 1222500,
+      "juros_pj": 8038273.512328127,
+      "ebit": 128532877.84839614,
+      "irpj_csll": 8024270.4467132,
+      "lucro_liquido": 120508607.40168294,
+      "margem_sobre_rol_pct": 29.594430440669733,
+      "margem_sobre_vgv_sem_permuta_pct": 28.189147930218234,
+      "margem_sobre_vgv_sem_terrenista_pct": 29.57266439305103
+    },
+    "fluxo": {
+      "entradas": 417930752.4329792,
+      "saidas_operacionais": 289383871.5189681,
+      "fco": 128546880.9140111,
+      "saldo_operacional_final": 128546880.9140111,
+      "aporte_total": 8324694.151834488,
+      "devolucao_aporte_total": 8324694.151834488,
+      "saldo_apos_devolucao_aporte_final": 120508606.40168305,
+      "distribuicao_lucros_total": 120508606.40168305,
+      "saldo_financeiro_final": 0,
+      "pj_principal": 18681038,
+      "pj_juros": 8038273.512328122
+    },
+    "indicadores": {
+      "exposicao_operacional": -13019359.346807146,
+      "exposicao_financeira": -8324694.151834488,
+      "payback_operacional_meses": 23,
+      "payback_financeiro_meses": 22,
+      "tir_operacional_aa_pct": 600.5336427688598,
+      "tir_financeira_aa_pct": 991.811437606812
+    }
+  },
+  "regression_baseline": {
+    "fluxo": {
+      "entradas": 417930752.41,
+      "saidas_operacionais": 289383871.23,
+      "fco": 128546881.18,
+      "saldo_operacional_final": 128546881.18,
+      "aporte_total": 8324693.05,
+      "devolucao_aporte_total": 8324693.05,
+      "saldo_apos_devolucao_aporte_final": 120508607.84,
+      "distribuicao_lucros_total": 120508607.84,
+      "saldo_financeiro_final": 0.0,
+      "pj_principal": 18681038.0,
+      "pj_juros": 8038273.51
+    },
+    "indicadores": {
+      "exposicao_operacional": -13019358.25,
+      "exposicao_financeira": -8324693.05,
+      "payback_operacional_meses": 23,
+      "payback_financeiro_meses": 22,
+      "tir_operacional_aa_pct": 600.55,
+      "tir_financeira_aa_pct": 991.81
+    }
+  }
+}

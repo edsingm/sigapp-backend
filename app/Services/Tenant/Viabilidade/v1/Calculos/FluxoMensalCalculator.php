@@ -64,6 +64,7 @@ class FluxoMensalCalculator
 
         $fluxo = [];
         $saldoAcumulado = 0.0;
+        $saldoSemCefAcumulado = 0.0;
         $totalJurosCorrecoes = 0.0;
         $fluxoTir = [];
         $fluxoTirSemCef = [];
@@ -128,6 +129,7 @@ class FluxoMensalCalculator
 
             $receitaRpMes = $receitas['detalhes']['recursos_proprios']['total_recursos_proprios'] ?? 0.0;
             $lucroSemCefMes = $receitaRpMes - $despesas['total'];
+            $saldoSemCefAcumulado += $lucroSemCefMes;
             $vendasMesBrutas = max(0.0, (float) ($ctx->vendasPorMes[$mes] ?? 0.0));
             $vendasMesComCarry = $vendasMesBrutas + $fracaoVendasCarregada;
             $unidadesVendidasMes = max(0.0, floor($vendasMesComCarry + 1e-9));
@@ -145,8 +147,8 @@ class FluxoMensalCalculator
                 'unidades_vendidas' => $unidadesVendidasMes,
             ];
 
-            $fluxoTir[] = ['data' => $data->copy(), 'valor' => $lucroMes];
-            $fluxoTirSemCef[] = ['data' => $data->copy(), 'valor' => $lucroSemCefMes];
+            $fluxoTir[] = ['data' => $data->copy(), 'valor' => $saldoAcumulado];
+            $fluxoTirSemCef[] = ['data' => $data->copy(), 'valor' => $saldoSemCefAcumulado];
 
             $totais['receita'] += $receitas['total'];
             $totais['custo_direto'] += $despesas['categorias']['custo_direto'];
@@ -161,6 +163,9 @@ class FluxoMensalCalculator
         $dadosProdutos['correcaoSobreVgv'] = $totalJurosCorrecoes;
         $dadosProdutos['vgvComCorrecao'] = ($dadosProdutos['vgvSemValorTerrenista'] ?? 0) + $totalJurosCorrecoes;
 
+        $params['dataAntecipacaoPj'] = $ctx->mesDemandaAtingida !== null
+            ? Carbon::parse($ctx->mesDemandaAtingida.'-01')->startOfMonth()
+            : $datas['inicioObra']->copy()->startOfMonth();
         [$fluxoFinanceiro, $indicadoresFinanceiros] = $this->indicadoresCalculator->calcularIndicadoresFinanceiros($fluxo, $datas, $params, $dadosProdutos);
         $indicadoresVso = $this->indicadoresCalculator->calcularIndicadoresVso($fluxo, $dadosProdutos);
         $indicadoresVsoJanelas = $this->indicadoresCalculator->calcularIndicadoresVsoJanelas($fluxo, $dadosProdutos);

@@ -69,6 +69,14 @@ class ViabilidadeRepository implements ViabilidadeRepositoryInterface
         return $viabilidade->refresh();
     }
 
+    public function setCurrentStateBeforeRestore(Viabilidade $viabilidade, bool $isCurrent): Viabilidade
+    {
+        $viabilidade->is_current = $isCurrent;
+        $viabilidade->save();
+
+        return $viabilidade;
+    }
+
     public function terrenoExists(int|string $id): bool
     {
         return Terreno::query()->whereKey($id)->exists();
@@ -81,21 +89,20 @@ class ViabilidadeRepository implements ViabilidadeRepositoryInterface
 
     public function nextVersionForTerreno(int $terrenoId): int
     {
-        return ((int) Viabilidade::query()
+        return ((int) Viabilidade::withTrashed()
             ->where('terreno_id', $terrenoId)
             ->max('version')) + 1;
     }
 
     /**
-     * Adquire lock nas viabilidades do terreno para serializar versionamento/aprovação.
+     * Adquire lock no terreno para serializar versionamento mesmo sem viabilidades ativas.
      */
-    public function lockTerrenoViabilidades(int $terrenoId): void
+    public function lockTerrenoForViabilidadeChanges(int $terrenoId): void
     {
-        Viabilidade::query()
-            ->where('terreno_id', $terrenoId)
-            ->orderBy('id')
+        Terreno::query()
+            ->whereKey($terrenoId)
             ->lockForUpdate()
-            ->get(['id']);
+            ->firstOrFail(['id']);
     }
 
     public function lockById(int|string $id): Viabilidade

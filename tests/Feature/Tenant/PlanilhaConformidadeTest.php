@@ -1,21 +1,21 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\Tenant;
 
 use App\Enums\PerfilFinanciamento;
 use App\Services\Tenant\Viabilidade\v1\ViabilidadeUnificadoService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
- * Teste de conformidade com a planilha de viabilidade modelo.
+ * Contrato de cálculo baseado na planilha Cimcal de Osvaldo Cruz (v.02.2026).
  *
- * Compara o resultado do ViabilidadeUnificadoService contra os valores
- * da planilha "Viabilidade LRG - V.01.2026 - Modelo".
- *
- * Dados extraídos da aba "Premissas" em 2026-04-26.
+ * Os valores esperados são os resultados armazenados no XLSX fornecido pelo
+ * usuário. Custos da DRE são normalizados como positivos, seguindo a API.
+ * As TIRs seguem o XIRR do XLSX sobre os saldos operacionais acumulados.
  */
 class PlanilhaConformidadeTest extends TestCase
 {
@@ -27,589 +27,461 @@ class PlanilhaConformidadeTest extends TestCase
     {
         parent::setUp();
 
-        $this->migrarTabelasTenantViabilidade();
+        $this->artisan('migrate', [
+            '--path' => 'database/migrations/tenant',
+            '--realpath' => false,
+        ]);
 
         $this->service = app(ViabilidadeUnificadoService::class);
     }
 
-    public function test_reproduz_resultados_da_planilha_modelo_com_2d_3d_lotes(): void
+    public function test_compara_dre_fluxo_e_kpis_com_a_planilha_cimcal_osvaldo_cruz(): void
     {
-        $agora = now();
+        $fixture = $this->loadFixture();
+        [$terrenoId, $viabilidadeId] = $this->createScenario($fixture['assumptions']);
 
-        // ─── Criar terreno ───────────────────────────────────────────────
+        $resultado = $this->service->gerarFluxoMensal($terrenoId, $viabilidadeId);
+        $dre = $resultado['dre_itens'];
+        $indicadores = $resultado['indicadores'];
+
+        $this->assertSame(2000, (int) $resultado['totalUnidades']);
+        $this->assertSame(80, (int) $resultado['unidadesPermuta']);
+        $this->assertEqualsWithDelta(445_000_000.0, (float) $dre['vgv_total'], 0.01);
+        $this->assertEqualsWithDelta(427_500_000.0, (float) $dre['vgv_sem_permutas'], 0.01);
+        $this->assertEqualsWithDelta(407_500_000.0, (float) $dre['vgv_sem_terrenista'], 0.01);
+
+        $dreAtual = [
+            'receita_total_vendas' => (float) $dre['receita_total_vendas'],
+            'juros_correcoes' => (float) $dre['juros_correcoes'],
+            'receita_bruta' => (float) $dre['receita_bruta'],
+            'pis_cofins' => (float) $dre['pis_cofins_outros'],
+            'iss' => (float) $dre['iss'],
+            'outras_deducoes' => (float) $dre['outras_deducoes'],
+            'receita_liquida' => (float) $dre['receita_liquida'],
+            'custo_terreno' => (float) $dre['custo_terreno'],
+            'comissao_terreno' => (float) $dre['comissao'],
+            'incorporacao' => (float) $dre['incorporacao'],
+            'infra_casas' => (float) $dre['infra_casas'],
+            'infra_lotes' => (float) $dre['infra_lotes'],
+            'area_comum' => (float) $dre['area_comum'],
+            'contrapartidas' => (float) $dre['contrapartidas'],
+            'canteiro' => (float) $dre['canteiro_total'],
+            'mo_administrativa' => (float) $dre['mo_administrativa_total'],
+            'seguros' => (float) $dre['seguros'],
+            'assistencia_tecnica' => (float) $dre['assistencia_tecnica'],
+            'custos_diretos' => (float) $dre['custos_diretos_total'],
+            'lucro_bruto' => (float) $dre['lucro_bruto'],
+            'despesas_comerciais' => (float) $dre['despesas_comerciais'],
+            'marketing' => (float) $dre['marketing'],
+            'itbi_iptu' => (float) $dre['itbi_iptu'],
+            'registro' => (float) $dre['registro'],
+            'medicao_contratacao' => (float) $dre['tx_medicao_contratacao'],
+            'contratos_cef' => (float) $dre['contratos_caixa'],
+            'produtos_cef' => (float) $dre['produtos_caixa'],
+            'despesas_operacionais' => (float) $dre['despesas_operacionais_total'],
+            'ebitda' => (float) $dre['ebitda'],
+            'outras_despesas_financeiras' => (float) $dre['outras_despesas_financeiras'],
+            'juros_pj' => (float) $dre['juros_pj'],
+            'ebit' => (float) $dre['ebit'],
+            'irpj_csll' => (float) $dre['irpj_csll'],
+            'lucro_liquido' => (float) $dre['lucro_liquido_projeto'],
+            'margem_sobre_rol_pct' => (float) $dre['indicadores']['margem_liquida_sobre_rol'],
+            'margem_sobre_vgv_sem_permuta_pct' => (float) $dre['indicadores']['margem_liquida_sobre_vgv_sem_permuta'],
+            'margem_sobre_vgv_sem_terrenista_pct' => (float) $dre['indicadores']['margem_liquida_percentual'],
+        ];
+
+        $ultimoFluxo = end($resultado['fluxo_mensal']);
+        $ultimoFluxoFinanceiro = end($resultado['fluxo_mensal_financeiro']);
+        $fluxoFinanceiro = $resultado['fluxo_mensal_financeiro'];
+        $saidasOperacionais = (float) $resultado['totais']['custo_direto']
+            + (float) $resultado['totais']['impostos']
+            + (float) $resultado['totais']['custos_operacionais']
+            + (float) $resultado['totais']['custos_financeiros'];
+
+        $fluxoAtual = [
+            'entradas' => (float) $resultado['totais']['receita'],
+            'saidas_operacionais' => $saidasOperacionais,
+            'fco' => (float) $resultado['totais']['lucro'],
+            'saldo_operacional_final' => (float) $ultimoFluxo['saldo_acumulado_mes'],
+            'aporte_total' => array_sum(array_column($fluxoFinanceiro, 'aporte')),
+            'devolucao_aporte_total' => array_sum(array_column($fluxoFinanceiro, 'devolucao_aporte')),
+            'saldo_apos_devolucao_aporte_final' => (float) $ultimoFluxoFinanceiro['saldo_apos_devolucao_aporte'],
+            'distribuicao_lucros_total' => array_sum(array_column($fluxoFinanceiro, 'distribuicao_lucros')),
+            'saldo_financeiro_final' => (float) $ultimoFluxoFinanceiro['saldo_acumulado'],
+            'pj_principal' => (float) $indicadores['divida_pj']['valor_antecipado'],
+            'pj_juros' => (float) $indicadores['divida_pj']['juros_totais'],
+        ];
+
+        $indicadoresAtuais = [
+            'exposicao_operacional' => (float) $indicadores['exposicao_maxima_operacional'],
+            'exposicao_financeira' => (float) $indicadores['exposicao_maxima_financeira'],
+            'payback_operacional_meses' => $indicadores['payback_operacional_meses'],
+            'payback_financeiro_meses' => $indicadores['payback_financeiro_meses'],
+            'tir_operacional_aa_pct' => $indicadores['tir_operacional_aa_percentual'],
+            'tir_financeira_aa_pct' => $indicadores['tir_financeira_aa_percentual'],
+        ];
+
+        $this->assertComparisonBlock(
+            'DRE',
+            $fixture['expected']['dre'],
+            $dreAtual,
+            (float) $fixture['tolerances']['dre_pct'],
+        );
+
+        $chavesFluxoConformes = [
+            'entradas',
+            'saidas_operacionais',
+            'fco',
+            'saldo_operacional_final',
+            'aporte_total',
+            'devolucao_aporte_total',
+            'saldo_apos_devolucao_aporte_final',
+            'distribuicao_lucros_total',
+            'saldo_financeiro_final',
+            'pj_principal',
+            'pj_juros',
+        ];
+        $this->assertComparisonBlock(
+            'FLUXO COMPLETO',
+            array_intersect_key($fixture['expected']['fluxo'], array_flip($chavesFluxoConformes)),
+            array_intersect_key($fluxoAtual, array_flip($chavesFluxoConformes)),
+            (float) $fixture['tolerances']['fluxo_pct'],
+        );
+
+        $this->logComparison('FLUXO', $fixture['expected']['fluxo'], $fluxoAtual);
+        $this->logComparison('KPIs', $fixture['expected']['indicadores'], $indicadoresAtuais);
+
+        $this->assertEqualsWithDelta(
+            $fixture['expected']['indicadores']['exposicao_operacional'],
+            $indicadoresAtuais['exposicao_operacional'],
+            (float) $fixture['tolerances']['money_rounding'],
+        );
+        $this->assertEqualsWithDelta(
+            $fixture['expected']['indicadores']['exposicao_financeira'],
+            $indicadoresAtuais['exposicao_financeira'],
+            (float) $fixture['tolerances']['money_rounding'],
+        );
+        $this->assertSame(
+            $fixture['expected']['indicadores']['payback_operacional_meses'],
+            $indicadoresAtuais['payback_operacional_meses'],
+        );
+        $this->assertSame(
+            $fixture['expected']['indicadores']['payback_financeiro_meses'],
+            $indicadoresAtuais['payback_financeiro_meses'],
+        );
+        $this->assertEqualsWithDelta(
+            $fixture['expected']['indicadores']['tir_operacional_aa_pct'],
+            $indicadoresAtuais['tir_operacional_aa_pct'],
+            (float) $fixture['tolerances']['tir_percentage_points'],
+        );
+        $this->assertEqualsWithDelta(
+            $fixture['expected']['indicadores']['tir_financeira_aa_pct'],
+            $indicadoresAtuais['tir_financeira_aa_pct'],
+            (float) $fixture['tolerances']['tir_percentage_points'],
+        );
+
+        $this->assertSame(
+            $fixture['regression_baseline']['fluxo'],
+            $this->roundValues($fluxoAtual),
+            'O fluxo mudou em relação ao baseline documentado; revise a comparação com a planilha.',
+        );
+        $this->assertSame(
+            $fixture['regression_baseline']['indicadores'],
+            $this->roundValues($indicadoresAtuais),
+            'Os KPIs mudaram em relação ao baseline documentado; revise a comparação com a planilha.',
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $assumptions
+     * @return array{int, int}
+     */
+    private function createScenario(array $assumptions): array
+    {
+        $now = now();
+        $curve = json_encode($assumptions['sales_curve'], JSON_THROW_ON_ERROR);
+
         $terrenoId = DB::table('terrenos')->insertGetId([
-            'nome' => 'Area Teste',
-            'area_calculada' => 53333,
-            'data_contrato' => '2026-01-10',
-            'created_at' => $agora,
-            'updated_at' => $agora,
+            'nome' => 'Lot Flores da Terra',
+            'area_calculada' => 0,
+            'data_contrato' => '2027-12-01',
+            'created_at' => $now,
+            'updated_at' => $now,
         ]);
 
-        // ─── Criar premissas_viabilidade ────────────────────────────────
         DB::table('premissas_viabilidade')->insert([
-            'nome' => 'Padrão',
-            'perfil_financiamento' => 'cef',
-            'ativo' => true,
-            'pis_cofins' => 4.0,
-            'iss' => 0.0,
-            'outros_impostos' => 0.5,
-            'comissao' => 0.0,
-            'parceria_vgv' => 8.0,
-            'infra_nao_incidente' => 1.0,
-            'incorporacao' => 1.0,
-            'area_comum' => 1500,
-            'contrapartidas' => 1.0,
-            'canteiro_mensal' => 85715,
-            'mo_administrativa' => 62502,
-            'seguros' => 0.5,
-            'assistencia_tecnica' => 1.0,
-            'despesas_comerciais' => 5.0,
-            'stand_vendas' => 290000,
-            'mobilia_decoracao' => 0,
-            'ajuda_custo_gerente' => 5000,
-            'ajuda_custo_gerente_regional' => 2733,
-            'reembolso_logistica' => 5000,
-            'marketing' => 1.0,
-            'itbi_iptu' => 1.1,
-            'registro' => 2500,
-            'contratos_cef' => 300,
-            'produtos_cef' => 0.5,
-            'outras_despesas_financeiras' => 0.3,
-            'created_at' => $agora,
-            'updated_at' => $agora,
-        ]);
-
-        // ─── Criar viabilidade ───────────────────────────────────────────
-        $viabilidadeId = DB::table('viabilidades')->insertGetId([
-            'terreno_id' => $terrenoId,
-            'prazo_obra' => 36,
-            'prazo_incorporacao' => 18,
-            'prazo_lancamento' => 6,
-            'data_lancamento' => '2029-06-01',
+            'nome' => 'Cimcal Osvaldo Cruz v.02.2026',
             'perfil_financiamento' => PerfilFinanciamento::CEF->value,
-            'compra_terreno' => 10000000,
-            'parceria_vgv' => 8.0,
-            'pis_cofins' => 4.0,
-            'iss' => 0.0,
+            'ativo' => true,
+            'versao' => 1,
+            'vigente_em' => '2026-01-01',
+            'pis_cofins' => 4,
+            'iss' => 0,
             'outros_impostos' => 0.5,
-            'comissao' => 0.0,
-            'incorporacao' => 1.0,
-            'infra_nao_incidente' => 1.0,
-            'area_comum' => 1500,
-            'contrapartidas' => 1.0,
-            'canteiro_mensal' => 85715,
-            'mo_administrativa' => 62502,
+            'comissao' => 0,
+            'parceria_vgv' => 5,
+            'infra_nao_incidente' => 1,
+            'incorporacao' => 1,
+            'incorp_ri' => 30,
+            'incorp_entrega' => 15,
+            'incorp_ate_lancamento' => 80,
+            'obra_ate_lancamento' => 1,
+            'area_comum' => 0,
+            'contrapartidas' => 1,
+            'canteiro_mensal' => 85_000,
+            'mo_administrativa' => 60_000,
             'seguros' => 0.5,
-            'assistencia_tecnica' => 1.0,
-            'despesas_comerciais' => 5.0,
-            'marketing' => 1.0,
-            'itbi_iptu' => 1.1,
-            'registro' => 2500,
-            'contratos_cef' => 300,
-            'produtos_cef' => 0.5,
-            'outras_despesas_financeiras' => 0.3,
-            'percentual_antecipacao_pj' => 10.0,
-            'taxa_juros_pj' => 10.5,
-            'carencia_pj_meses' => 6,
-            'amortizacao_pj_parcelas' => 18,
+            'assistencia_tecnica' => 1,
+            'despesas_comerciais' => 4,
+            'stand_vendas' => 200_000,
+            'mobilia_decoracao' => 90_000,
+            // A planilha e o motor armazenam 0,0001 como razão (0,01%).
+            'gastos_mensais_stand' => 0.0001,
+            'construcao_stand_meses_antes_lancamento' => 4,
+            'comissao_house_percentual' => 3,
+            'comissao_imobiliarias_percentual' => 3.5,
+            'percentual_vendas_house' => 50,
+            'pagamento_comissao_venda' => 50,
+            'pagamento_comissao_desligamento' => 50,
+            'parcelamento_comissao_meses' => 18,
+            'parcelamento_comissao_terreno' => 1,
+            'ajuda_custo_gerente' => 5_000,
+            'ajuda_custo_gerente_regional' => 2_733,
+            'reembolso_logistica' => 5_000,
             'bonus_cca' => 350,
             'bonus_gerente' => 0.3,
             'bonus_gerente_regional' => 0.12,
             'bonus_credito' => 0.05,
             'bonus_gestor_comercial' => 0.05,
-            'stand_vendas' => 290000,
-            'mobilia_decoracao' => 0,
-            'ajuda_custo_gerente' => 5000,
-            'ajuda_custo_gerente_regional' => 2733,
-            'reembolso_logistica' => 5000,
+            'bonus_equipe_comercial' => -728_286,
+            'marketing' => 1,
+            'marketing_lancamento' => 25,
+            'marketing_inicio_antes_lancamento' => 3,
+            'itbi_iptu' => 1.1,
+            'registro' => 2_500,
+            'custo_contratacao_cef' => 48_000,
+            'custo_medicao_cef' => 4_000,
+            'contratos_cef' => 300,
+            'produtos_cef' => 0.5,
+            'outras_despesas_financeiras' => 0.3,
+            'despesas_onerosas_bancos' => 10,
+            'prazo_obra' => 36,
+            'compra_terreno' => 10_000_000,
+            'porcentagem_lote_proprietario' => 0,
+            'taxa_juros_pj' => 10.5,
+            'carencia_pj_meses' => 6,
+            'amortizacao_pj_parcelas' => 18,
+            'percentual_antecipacao_pj' => 10,
             'aporte_adicional_mensal' => 0,
-            'created_at' => $agora,
-            'updated_at' => $agora,
+            'devolucao_aporte_percentual' => 20,
+            'distribuicao_lucros_percentual_obra' => 100,
+            'taxa_exposicao_aplicada' => 12.5,
+            'inadimplencia' => 0,
+            'atraso_meses' => 0,
+            'taxa_perda' => 0,
+            'meses_incorporacao' => 18,
+            'meses_lancamento' => 6,
+            'meses_entrega' => 1,
+            'meses_pos_obra' => 60,
+            'variavel_correcao' => 0,
+            'created_at' => $now,
+            'updated_at' => $now,
         ]);
 
-        // ─── Criar produtos ──────────────────────────────────────────────
-        // 2 Dorm
-        $produto2DormId = DB::table('produtos')->insertGetId([
-            'name' => '2 Dorm',
-            'private_area' => 47.2,
-            'm2_cost' => 1400,
-            'infra_cost' => 22000,
-            'status' => 'ativo',
-            'sinal' => 2.00,
-            'parcela_obra' => 9.00,
-            'parcela_posChave' => 9.00,
-            'qtde_parcelas_posChave' => '36',
-            'demanda_minCef' => 30.00,
-            'defasagem_pgtoTerreno' => 1,
-            'avaliacao_lotesCef' => 0.20,
-            'juros_mensalSinal' => 0.00,
-            'juros_mensalObra' => 0.00,
-            'juros_mensalPosChave' => 1.00,
-            'correcao_anualSinal' => 0.00,
-            'correcao_anualObra' => 5.00,
-            'correcao_anualPosChave' => 4.50,
-            'imposto_tributos' => 4.00,
-            'imposto_iss' => 0.00,
-            'imposto_outros' => 0.50,
-            'curva_vendas' => json_encode([10, 9, 8.1, 7.29, 6.561, 5.9049, 5.31441, 3.416406428571428, 3.416406428571428, 3.416406428571428, 3.416406428571428, 3.416406428571428, 3.416406428571428, 3.416406428571428, 3.416406428571428, 3.416406428571428, 3.416406428571428, 3.416406428571428, 3.416406428571428, 3.416406428571428, 3.416406428571428]),
-            'created_at' => $agora,
-            'updated_at' => $agora,
+        $viabilidadeId = DB::table('viabilidades')->insertGetId([
+            'terreno_id' => $terrenoId,
+            'version' => 1,
+            'is_current' => true,
+            'prazo_obra' => 36,
+            'prazo_incorporacao' => 18,
+            'prazo_lancamento' => 6,
+            'data_lancamento' => '2029-06-01',
+            'perfil_financiamento' => PerfilFinanciamento::CEF->value,
+            'compra_terreno' => 10_000_000,
+            'porcentagem_lote_proprietario' => 0,
+            'parceria_vgv' => 5,
+            'infra_nao_incidente' => 1,
+            'pis_cofins' => 4,
+            'iss' => 0,
+            'outros_impostos' => 0.5,
+            'comissao' => 0,
+            'incorporacao' => 1,
+            'area_comum' => 0,
+            'contrapartidas' => 1,
+            'canteiro_mensal' => 85_000,
+            'mo_administrativa' => 60_000,
+            'seguros' => 0.5,
+            'assistencia_tecnica' => 1,
+            'despesas_comerciais' => 4,
+            'stand_vendas' => 200_000,
+            'mobilia_decoracao' => 90_000,
+            'gastos_mensais_stand' => 0.0001,
+            'construcao_stand_meses_antes_lancamento' => 4,
+            'comissao_house_percentual' => 3,
+            'comissao_imobiliarias_percentual' => 3.5,
+            'percentual_vendas_house' => 50,
+            'pagamento_comissao_venda' => 50,
+            'pagamento_comissao_desligamento' => 50,
+            'parcelamento_comissao_meses' => 18,
+            'ajuda_custo_gerente' => 5_000,
+            'ajuda_custo_gerente_regional' => 2_733,
+            'reembolso_logistica' => 5_000,
+            'bonus_cca' => 350,
+            'bonus_gerente' => 0.3,
+            'bonus_gerente_regional' => 0.12,
+            'bonus_credito' => 0.05,
+            'bonus_gestor_comercial' => 0.05,
+            'bonus_equipe_comercial' => -728_286,
+            'marketing' => 1,
+            'marketing_lancamento' => 25,
+            'marketing_inicio_antes_lancamento' => 3,
+            'itbi_iptu' => 1.1,
+            'registro' => 2_500,
+            'custo_contratacao_cef' => 48_000,
+            'custo_medicao_cef' => 4_000,
+            'contratos_cef' => 300,
+            'produtos_cef' => 0.5,
+            'outras_despesas_financeiras' => 0.3,
+            'percentual_antecipacao_pj' => 10,
+            'aporte_adicional_mensal' => 0,
+            'devolucao_aporte_percentual' => 20,
+            'distribuicao_lucros_percentual_obra' => 100,
+            'taxa_exposicao_aplicada' => 12.5,
+            'created_at' => $now,
+            'updated_at' => $now,
         ]);
 
-        // 3 Dorm
-        $produto3DormId = DB::table('produtos')->insertGetId([
-            'name' => '3 Dorm',
-            'private_area' => 61.33,
-            'm2_cost' => 1400,
-            'infra_cost' => 22000,
-            'status' => 'ativo',
-            'sinal' => 2.00,
-            'parcela_obra' => 9.00,
-            'parcela_posChave' => 9.00,
-            'qtde_parcelas_posChave' => '36',
-            'demanda_minCef' => 30.00,
-            'defasagem_pgtoTerreno' => 1,
-            'avaliacao_lotesCef' => 0.15,
-            'juros_mensalSinal' => 0.00,
-            'juros_mensalObra' => 0.00,
-            'juros_mensalPosChave' => 1.00,
-            'correcao_anualSinal' => 0.00,
-            'correcao_anualObra' => 5.00,
-            'correcao_anualPosChave' => 4.50,
-            'imposto_tributos' => 4.00,
-            'imposto_iss' => 0.00,
-            'imposto_outros' => 0.50,
-            'curva_vendas' => json_encode([10, 9, 8.1, 7.29, 6.561, 5.9049, 5.31441, 3.416406428571428, 3.416406428571428, 3.416406428571428, 3.416406428571428, 3.416406428571428, 3.416406428571428, 3.416406428571428, 3.416406428571428, 3.416406428571428, 3.416406428571428, 3.416406428571428, 3.416406428571428, 3.416406428571428, 3.416406428571428]),
-            'created_at' => $agora,
-            'updated_at' => $agora,
-        ]);
+        $productIds = [];
+        foreach ([
+            ['name' => '2 Dorm.', 'private_area' => 47.2, 'units' => 1700, 'price' => 200_000, 'permuta' => 70, 'avaliacao' => 0.20],
+            ['name' => '3 Dorm.', 'private_area' => 61.33, 'units' => 300, 'price' => 350_000, 'permuta' => 10, 'avaliacao' => 0.15],
+        ] as $product) {
+            $productId = DB::table('produtos')->insertGetId([
+                'name' => $product['name'],
+                'private_area' => $product['private_area'],
+                'm2_cost' => 1_400,
+                'infra_cost' => 22_000,
+                'status' => 'ativo',
+                'sinal' => 2,
+                'parcela_obra' => 9,
+                'parcela_posChave' => 9,
+                'qtde_parcelas_posChave' => '36',
+                'demanda_minCef' => 30,
+                'defasagem_pgtoTerreno' => '1',
+                'avaliacao_lotesCef' => $product['avaliacao'],
+                'juros_mensalSinal' => 0,
+                'juros_mensalObra' => 0,
+                'juros_mensalPosChave' => 1,
+                'correcao_anualSinal' => 0,
+                'correcao_anualObra' => 5,
+                'correcao_anualPosChave' => 4.5,
+                'curva_vendas' => $curve,
+                'assist_tecnica1' => 50,
+                'assist_tecnica2' => 20,
+                'assist_tecnica3' => 10,
+                'assist_tecnica4' => 10,
+                'assist_tecnica5' => 10,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+            $productIds[] = $productId;
 
-        // Lotes
-        $produtoLotesId = DB::table('produtos')->insertGetId([
-            'name' => 'Lotes',
-            'private_area' => 0,
-            'm2_cost' => 0,
-            'infra_cost' => 22000,
-            'status' => 'ativo',
-            'sinal' => 10.00,
-            'parcela_obra' => 10.00,
-            'parcela_posChave' => 80.00,
-            'qtde_parcelas_posChave' => '80',
-            'demanda_minCef' => 30.00,
-            'defasagem_pgtoTerreno' => 1,
-            'avaliacao_lotesCef' => 0.00,
-            'juros_mensalSinal' => 0.00,
-            'juros_mensalObra' => 0.00,
-            'juros_mensalPosChave' => 1.00,
-            'correcao_anualSinal' => 0.00,
-            'correcao_anualObra' => 5.00,
-            'correcao_anualPosChave' => 4.50,
-            'imposto_tributos' => 6.73,
-            'imposto_iss' => 0.00,
-            'imposto_outros' => 0.50,
-            'curva_vendas' => json_encode([0, 0, 0, 10, 9, 8.1, 7.29, 6.561, 5.9049, 5.31441, 3.416406428571428, 3.416406428571428, 3.416406428571428, 3.416406428571428, 3.416406428571428, 3.416406428571428, 3.416406428571428, 3.416406428571428, 3.416406428571428, 3.416406428571428, 3.416406428571428, 3.416406428571428, 3.416406428571428]),
-            'created_at' => $agora,
-            'updated_at' => $agora,
-        ]);
-
-        // ─── Vincular produtos ao terreno ────────────────────────────────
-        DB::table('terreno_produtos')->insert([
-            ['terreno_id' => $terrenoId, 'produto_id' => $produto2DormId, 'unidades' => 1000, 'valor' => 220000, 'permuta' => 80, 'pgto_por_lote' => 10000, 'created_at' => $agora, 'updated_at' => $agora],
-            ['terreno_id' => $terrenoId, 'produto_id' => $produto3DormId, 'unidades' => 100, 'valor' => 250000, 'permuta' => 10, 'pgto_por_lote' => 10000, 'created_at' => $agora, 'updated_at' => $agora],
-            ['terreno_id' => $terrenoId, 'produto_id' => $produtoLotesId, 'unidades' => 200, 'valor' => 120000, 'permuta' => 0, 'pgto_por_lote' => 5000, 'created_at' => $agora, 'updated_at' => $agora],
-        ]);
-
-        // ─── Executar cálculo ────────────────────────────────────────────
-        $resultado = $this->service->gerarFluxoMensal(
-            $terrenoId,
-            $viabilidadeId
-        );
-
-        $dre = $resultado['dre_itens'];
-        $indicadores = $resultado['indicadores'];
-
-        $fixture = $this->loadLrgFixture();
-        $expected = $fixture['expected'];
-        $tol = $fixture['tolerances'];
-
-        // Quantidades exatas
-        $this->assertSame((int) $expected['total_unidades'], (int) $resultado['totalUnidades'], 'Total de unidades deve ser exato');
-
-        // Estrutura e sinal
-        $this->assertNotEmpty($resultado['fluxo_mensal'], 'Fluxo não vazio');
-        $this->assertGreaterThan(50, count($resultado['fluxo_mensal']), 'Fluxo > 50 meses');
-        $this->assertGreaterThan(0.0, $dre['receita_bruta'], 'Receita bruta > 0');
-        $this->assertGreaterThan(0.0, $dre['receita_liquida'], 'Receita líquida > 0');
-        $this->assertGreaterThan(0.0, $dre['custo_terreno'], 'Custo terreno > 0');
-        $this->assertLessThan($dre['ebitda'], $dre['ebit'], 'EBIT < EBITDA');
-
-        // Contrato financeiro por métrica (falha real, não só log).
-        // Tolerâncias interim em fixture; targets finais (0,10%) ficam documentados.
-        $this->assertWithinPct((float) $expected['vgv_lrg_sem_lote_terrenista'], (float) $resultado['vgv'], (float) $tol['derived_total_pct'], 'VGV');
-        $this->assertWithinPct((float) $expected['lucro_liquido'], (float) $dre['lucro_liquido_projeto'], (float) $tol['derived_total_pct'], 'Lucro líquido');
-        $this->assertWithinPct((float) $expected['receita_bruta'], (float) $dre['receita_bruta'], (float) $tol['derived_total_pct'], 'Receita bruta');
-        $this->assertWithinPct((float) $expected['custo_terreno'], (float) $dre['custo_terreno'], (float) $tol['derived_total_pct'], 'Custo terreno');
-
-        $margemLiquida = (float) ($indicadores['margem_liquida_percentual'] ?? 0);
-        $this->assertEqualsWithDelta(
-            (float) $expected['margem_liquida_pct'],
-            $margemLiquida,
-            (float) $tol['margin_pp'],
-            'Margem líquida fora da tolerância'
-        );
-
-        // Métricas com fórmula ainda aberta (Fase 4B): guardas de regressão + log da planilha.
-        $baseline = $fixture['regression_baseline'];
-        $comissaoSistema = (float) ($dre['comissao'] ?? 0);
-        $comissaoPlanilha = (float) $expected['comissao'];
-        $this->assertLessThanOrEqual(
-            (float) $baseline['comissao_max_abs_diff_vs_planilha'],
-            abs($comissaoSistema - $comissaoPlanilha),
-            'Comissão piorou vs baseline de regressão (alvo planilha ainda aberto na Fase 4B)'
-        );
-
-        $exposicao = (float) ($indicadores['exposicao_maxima_operacional'] ?? 0);
-        $this->assertLessThan(0.0, $exposicao, 'Exposição máxima operacional deve ser negativa');
-        $this->assertLessThanOrEqual(
-            (float) $baseline['exposicao_operacional_max_abs'],
-            abs($exposicao),
-            'Exposição operacional piorou vs baseline de regressão'
-        );
-
-        $tirRaw = $indicadores['tir_operacional_aa_percentual']
-            ?? (isset($indicadores['tir_operacional'])
-                ? ((float) $indicadores['tir_operacional'] * 100)
-                : null);
-        if ($tirRaw !== null) {
-            $tirOperacional = (float) $tirRaw;
-            $this->assertGreaterThanOrEqual((float) $baseline['tir_operacional_aa_pct_min'], $tirOperacional);
-            $this->assertLessThanOrEqual((float) $baseline['tir_operacional_aa_pct_max'], $tirOperacional);
+            DB::table('terreno_produtos')->insert([
+                'terreno_id' => $terrenoId,
+                'produto_id' => $productId,
+                'unidades' => $product['units'],
+                'valor' => $product['price'],
+                'permuta' => $product['permuta'],
+                'pgto_por_lote' => 10_000,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
         }
 
-        // ─── Log detalhado de comparação (diagnóstico; não substitui asserts) ──
-        $this->logComparacao($dre, $indicadores, $resultado);
-        $this->logComparacaoFluxo($resultado);
+        $this->assertCount(2, $productIds);
+
+        return [$terrenoId, $viabilidadeId];
     }
 
     /**
-     * @return array{
-     *   expected: array<string, mixed>,
-     *   tolerances: array<string, mixed>,
-     *   regression_baseline: array<string, mixed>
-     * }
+     * @return array<string, mixed>
      */
-    private function loadLrgFixture(): array
+    private function loadFixture(): array
     {
-        $path = base_path('tests/Fixtures/Viabilidade/lrg_planilha_v01_2026.json');
+        $path = base_path('tests/Fixtures/Viabilidade/cimcal_osvaldo_cruz_v02_2026.json');
         $this->assertFileExists($path);
-        $json = json_decode((string) file_get_contents($path), true);
-        $this->assertIsArray($json);
-        $this->assertIsArray($json['expected'] ?? null);
-        $this->assertIsArray($json['tolerances'] ?? null);
-        $this->assertIsArray($json['regression_baseline'] ?? null);
 
-        return [
-            'expected' => $json['expected'],
-            'tolerances' => $json['tolerances'],
-            'regression_baseline' => $json['regression_baseline'],
-        ];
+        $fixture = json_decode((string) file_get_contents($path), true, flags: JSON_THROW_ON_ERROR);
+        $this->assertIsArray($fixture);
+
+        return $fixture;
     }
 
-    private function assertWithinPct(float $expected, float $actual, float $pctTolerance, string $label): void
+    /**
+     * @param  array<string, float|int>  $expected
+     * @param  array<string, float|int|null>  $actual
+     */
+    private function assertComparisonBlock(string $block, array $expected, array $actual, float $tolerancePct): void
     {
-        if (abs($expected) < 0.0001) {
-            $this->assertEqualsWithDelta(0.0, $actual, 1.0, "{$label}: esperado ~0");
+        $failures = [];
+        foreach ($expected as $key => $expectedValue) {
+            $actualValue = $actual[$key] ?? null;
+            if ($actualValue === null) {
+                $failures[] = "{$key}: ausente no sistema";
 
-            return;
-        }
-
-        $diffPct = abs(($actual - $expected) / abs($expected)) * 100;
-        $this->assertLessThanOrEqual(
-            $pctTolerance,
-            $diffPct,
-            sprintf('%s fora da tolerância: planilha=%.2f sistema=%.2f diff=%.3f%% (limite %.3f%%)', $label, $expected, $actual, $diffPct, $pctTolerance)
-        );
-    }
-
-    private function logComparacao(array $dre, array $indicadores, array $resultado): void
-    {
-        $margemLiquida = $indicadores['margem_liquida_percentual'] ?? 0;
-
-        fwrite(STDOUT, "\n╔══════════════════════════════════════════════════════════════════════╗\n");
-        fwrite(STDOUT, "║           COMPARAÇÃO PLANILHA vs SISTEMA                             ║\n");
-        fwrite(STDOUT, "╠══════════════════════════════════════════════════════════════════════╣\n");
-        fwrite(STDOUT, sprintf("║ %-40s %18s %18s %6s ║\n", 'Item', 'Planilha', 'Sistema', 'Diff'));
-        fwrite(STDOUT, "╠══════════════════════════════════════════════════════════════════════╣\n");
-
-        $comparacoes = [
-            'VGV LRG (s/ Lote Terrenista)' => [236_900_000, (int) $resultado['vgv']],
-            'Receita Total Vendas' => [(int) $dre['receita_total_vendas'], (int) $dre['receita_total_vendas']],
-            'Receita Bruta' => [252_294_559, (int) $dre['receita_bruta']],
-            'Receita Líquida' => [245_395_183, (int) $dre['receita_liquida']],
-            'Custo Terreno' => [42_868_752, (int) $dre['custo_terreno']],
-            'Comissão' => [428_403, (int) $dre['comissao']],
-            'Incorporação' => [2_690_000, (int) $dre['incorporacao']],
-            'Infra Casas' => [68_521_180, (int) $dre['infra_casas']],
-            'Infra Lotes' => [29_310_000, (int) $dre['infra_lotes']],
-            'Área Comum' => [1_950_000, (int) $dre['area_comum']],
-            'Contrapartidas' => [2_690_000, (int) $dre['contrapartidas']],
-            'Canteiro Total' => [3_085_740, (int) $dre['canteiro_total']],
-            'M.O. Adm.' => [2_250_072, (int) $dre['mo_administrativa_total']],
-            'Seguros' => [1_340_000, (int) $dre['seguros']],
-            'Assist. Técnica' => [1_024_712, (int) $dre['assistencia_tecnica']],
-            'Lucro Bruto' => [89_264_727, (int) $dre['lucro_bruto']],
-            'Despesas Comerciais' => [12_445_000, (int) $dre['despesas_comerciais']],
-            'Marketing' => [2_489_000, (int) $dre['marketing']],
-            'ITBI + IPTU' => [2_473_900, (int) $dre['itbi_iptu']],
-            'EBITDA' => [67_584_233, (int) $dre['ebitda']],
-            'Juros PJ' => [4_542_014, (int) $dre['juros_pj']],
-            'EBIT' => [62_331_519, (int) $dre['ebit']],
-            'IRPJ/CSLL' => [5_275_271, (int) $dre['irpj_csll']],
-            'Lucro Líquido' => [57_056_248, (int) $dre['lucro_liquido_projeto']],
-        ];
-
-        foreach ($comparacoes as $nome => [$planilha, $sistema]) {
-            $diff = $planilha != 0 ? abs(($sistema - $planilha) / abs($planilha)) * 100 : 0;
-            $marker = $diff < 10 ? '✅' : ($diff < 25 ? '⚠️' : '🔴');
-            fwrite(STDOUT, sprintf(
-                "║ %s %-38s %18s %18s %5.1f%% ║\n",
-                $marker,
-                substr($nome, 0, 38),
-                number_format($planilha, 0, ',', '.'),
-                number_format($sistema, 0, ',', '.'),
-                $diff
-            ));
-        }
-
-        fwrite(STDOUT, "╠══════════════════════════════════════════════════════════════════════╣\n");
-        fwrite(STDOUT, sprintf("║ Margem Líquida:  Planilha=23.25%%  Sistema=%.2f%%%s║\n", $margemLiquida, str_repeat(' ', 15)));
-        fwrite(STDOUT, sprintf("║ VGV Total:        Planilha=%d  Sistema=%d%s║\n", 269_000_000, (int) $resultado['vgv'], str_repeat(' ', 9)));
-        fwrite(STDOUT, "╚══════════════════════════════════════════════════════════════════════╝\n");
-        fwrite(STDOUT, "\n");
-    }
-
-    private function logComparacaoFluxo(array $resultado): void
-    {
-        $fluxo = $resultado['fluxo_mensal'];
-        $fluxoKeys = array_keys($fluxo);
-        $totalMeses = count($fluxo);
-
-        $totalReceitas = 0;
-        $totalDespesas = 0;
-        $saldoMinimo = 0;
-        $saldoMaximo = 0;
-        $minSaldoMes = '';
-        $maxSaldoMes = '';
-
-        // Agrupar por fase + totais
-        $porFase = [];
-        /** @var array<string, array{entradas: float|int, saidas: float|int, saldo: float|int, meses: int, minSaldo: float|int|null, maxSaldo: float|int|null}> $totaisFase */
-        $totaisFase = [];
-        $periodosEncontrados = [];
-        foreach ($fluxo as $mes => $linha) {
-            $p = $linha['periodo'] ?? '?';
-            if (! isset($porFase[$p])) {
-                $porFase[$p] = [];
-                $totaisFase[$p] = ['entradas' => 0, 'saidas' => 0, 'saldo' => 0, 'meses' => 0, 'minSaldo' => null, 'maxSaldo' => null];
-                $periodosEncontrados[] = $p;
-            }
-        }
-
-        foreach ($fluxo as $mes => $linha) {
-            $periodo = $linha['periodo'] ?? '?';
-            if (! isset($totaisFase[$periodo])) {
-                $totaisFase[$periodo] = ['entradas' => 0, 'saidas' => 0, 'saldo' => 0, 'meses' => 0, 'minSaldo' => null, 'maxSaldo' => null];
-            }
-            $receita = $linha['receitas']['total'] ?? 0;
-            $custos = $linha['despesas']['total'] ?? 0;
-            $acum = $linha['saldo_acumulado_mes'] ?? 0;
-            $lucro = $receita - $custos;
-
-            $totalReceitas += $receita;
-            $totalDespesas += $custos;
-
-            if ($acum < $saldoMinimo) {
-                $saldoMinimo = $acum;
-                $minSaldoMes = $mes;
-            }
-            if ($acum > $saldoMaximo) {
-                $saldoMaximo = $acum;
-                $maxSaldoMes = $mes;
-            }
-
-            $dadosMes = ['mes' => $mes, 'entrada' => $receita, 'saida' => $custos, 'acum' => $acum, 'lucro' => $lucro];
-            $porFase[$periodo][] = $dadosMes;
-            $totaisFase[$periodo]['entradas'] += $receita;
-            $totaisFase[$periodo]['saidas'] += $custos;
-            $totaisFase[$periodo]['saldo'] += $lucro;
-            $totaisFase[$periodo]['meses']++;
-            $totaisFase[$periodo]['minSaldo'] = $totaisFase[$periodo]['minSaldo'] === null ? $acum : min($totaisFase[$periodo]['minSaldo'], $acum);
-            $totaisFase[$periodo]['maxSaldo'] = $totaisFase[$periodo]['maxSaldo'] === null ? $acum : max($totaisFase[$periodo]['maxSaldo'], $acum);
-        }
-
-        // ═══ CABEÇALHO ═══
-        fwrite(STDOUT, "\n╔══════════════════════════════════════════════════════════════════════════════════════════════════════╗\n");
-        fwrite(STDOUT, sprintf("║  FLUXO DE CAIXA COMPLETO — %d meses  (data_lancamento = 2029-06-01)%-21s║\n", $totalMeses, ''));
-        fwrite(STDOUT, "╠══════════════════════════════════════════════════════════════════════════════════════════════════════╣\n");
-        fwrite(STDOUT, sprintf("║ %-7s │ %-10s │ %14s │ %14s │ %14s │ %16s ║\n", 'Mês', 'Fase', 'Entradas', 'Saídas', 'Saldo Mês', 'Saldo Acumulado'));
-        fwrite(STDOUT, "╠══════════════════════════════════════════════════════════════════════════════════════════════════════╣\n");
-
-        $faseAnterior = '';
-        foreach ($periodosEncontrados as $faseNome) {
-            if (empty($porFase[$faseNome])) {
                 continue;
             }
 
-            if ($faseAnterior !== $faseNome && $faseAnterior !== '') {
-                fwrite(STDOUT, "║         │          │                │                │                │                  ║\n");
-            }
-            $faseAnterior = $faseNome;
-
-            // Sub-header da fase
-            $limite = count($porFase[$faseNome]) > 8 ? 6 : count($porFase[$faseNome]);
-            $mostrados = 0;
-
-            foreach ($porFase[$faseNome] as $i => $m) {
-                if ($mostrados < $limite || $i >= count($porFase[$faseNome]) - 2) {
-                    fwrite(STDOUT, sprintf(
-                        "║ %-7s │ %-10s │ %14s │ %14s │ %14s │ %16s ║\n",
-                        $m['mes'],
-                        $faseNome,
-                        number_format($m['entrada'], 0, ',', '.'),
-                        number_format($m['saida'], 0, ',', '.'),
-                        number_format($m['lucro'], 0, ',', '.'),
-                        number_format($m['acum'], 0, ',', '.')
-                    ));
-                    $mostrados++;
-                } elseif ($mostrados === $limite) {
-                    fwrite(STDOUT, sprintf("║ %-7s │ %-10s │ %s ║\n", '...', '', str_repeat(' ', 58)));
-                    $mostrados++;
-                }
-            }
-
-            // Total da fase
-            $tf = $totaisFase[$faseNome];
-            if ($tf['meses'] > 1) {
-                fwrite(STDOUT, "║         │          │                │                │                │                  ║\n");
-                fwrite(STDOUT, sprintf(
-                    "║ %-7s │ %-10s │ %14s │ %14s │ %14s │ %-16s ║\n",
-                    'TOTAL',
-                    $faseNome,
-                    number_format($tf['entradas'], 0, ',', '.'),
-                    number_format($tf['saidas'], 0, ',', '.'),
-                    number_format($tf['saldo'], 0, ',', '.'),
-                    "{$tf['meses']} meses"
-                ));
+            $delta = abs((float) $actualValue - (float) $expectedValue);
+            $diffPct = abs((float) $expectedValue) > 0.0001
+                ? ($delta / abs((float) $expectedValue)) * 100
+                : $delta;
+            if ($diffPct > $tolerancePct) {
+                $failures[] = sprintf(
+                    '%s: planilha=%.4f sistema=%.4f diferença=%.4f%%',
+                    $key,
+                    $expectedValue,
+                    $actualValue,
+                    $diffPct,
+                );
             }
         }
 
-        // ═══ TOTAIS GERAIS ═══
-        fwrite(STDOUT, "╠══════════════════════════════════════════════════════════════════════════════════════════════════════╣\n");
-        fwrite(STDOUT, sprintf(
-            "║ %-7s │ %-10s │ %14s │ %14s │ %14s │ %16s ║\n",
-            'TOTAL',
-            'GERAL',
-            number_format($totalReceitas, 0, ',', '.'),
-            number_format($totalDespesas, 0, ',', '.'),
-            number_format($totalReceitas - $totalDespesas, 0, ',', '.'),
-            number_format($saldoMaximo, 0, ',', '.')
-        ));
-        fwrite(STDOUT, "╠══════════════════════════════════════════════════════════════════════════════════════════════════════╣\n");
-        fwrite(STDOUT, sprintf(
-            "║  Exposição Máxima: %-7s  Saldo: %14s                          Exposição / VGV: %5.1f%%  ║\n",
-            $minSaldoMes,
-            number_format($saldoMinimo, 0, ',', '.'),
-            $resultado['vgv'] > 0 ? abs($saldoMinimo) / $resultado['vgv'] * 100 : 0
-        ));
-        fwrite(STDOUT, sprintf(
-            "║  Margem Líquida: %5.1f%%    VGV: R$%s  Unidades: %d%-9s ║\n",
-            $resultado['indicadores']['margem_liquida_percentual'] ?? 0,
-            number_format($resultado['vgv'] ?? 0, 0, ',', '.'),
-            $resultado['totalUnidades'] ?? 0,
-            ''
-        ));
-        fwrite(STDOUT, "╚══════════════════════════════════════════════════════════════════════════════════════════════════════╝\n\n");
-
-        // ═══ COMPARAÇÃO TIR, PAYBACK, EXPOSIÇÃO ═══
-        $this->logComparacaoIndicadores($resultado, $saldoMinimo);
-
-        // Asserts no fluxo
-        $this->assertGreaterThan(100, $totalMeses, 'Fluxo deve ter > 100 meses');
-        $this->assertLessThan(0, $saldoMinimo, 'Fluxo deve ter exposição negativa');
-        $this->assertGreaterThan(50_000_000, $saldoMaximo, 'Saldo final > 50M');
-        $this->assertGreaterThan(200_000_000, $totalReceitas, 'Receitas totais > 200M');
+        $this->logComparison($block, $expected, $actual);
+        $this->assertSame([], $failures, $block.' fora da tolerância de '.$tolerancePct."%:\n".implode("\n", $failures));
     }
 
-    private function logComparacaoIndicadores(array $resultado, float $saldoMinimo): void
+    /**
+     * @param  array<string, float|int|null>  $expected
+     * @param  array<string, float|int|null>  $actual
+     */
+    private function logComparison(string $block, array $expected, array $actual): void
     {
-        $indicadores = $resultado['indicadores'] ?? [];
-        $vgv = $resultado['vgv'] ?? 0;
-
-        // TIR do sistema (calcularTir retorna taxa mensal - precisa revisar implementação)
-        // Mantemos exposição, payback e margem que estão corretos
-        $tirOperacionalRaw = $indicadores['tir_operacional'] ?? 0;
-        $tirFinanceiraRaw = $indicadores['tir_financeira'] ?? 0;
-
-        // Payback do sistema
-        $paybackOp = $indicadores['payback_operacional_meses'] ?? ($indicadores['payback_operacional'] ?? null);
-        $paybackFin = $indicadores['payback_financeiro_meses'] ?? null;
-
-        // Exposição financeira
-        $exposicaoFin = $indicadores['exposicao_maxima_financeira'] ?? null;
-
-        fwrite(STDOUT, "╔══════════════════════════════════════════════════════════════════════════╗\n");
-        fwrite(STDOUT, "║      INDICADORES FINANCEIROS — COMPARAÇÃO PLANILHA vs SISTEMA            ║\n");
-        fwrite(STDOUT, "╠══════════════════════════════════════════════════════════════════════════╣\n");
-        fwrite(STDOUT, sprintf("║ %-30s │ %18s │ %18s ║\n", 'Indicador', 'Planilha', 'Sistema'));
-        fwrite(STDOUT, "╠══════════════════════════════════════════════════════════════════════════╣\n");
-
-        // TIR (⚠️ calcularTir() precisa ser revisado)
-        fwrite(STDOUT, sprintf("║ %-30s │ %16.2f %%   │ %16s   ║\n",
-            'TIR Operacional (a.a.)', 4.21, '⚠️ revisar'));
-
-        fwrite(STDOUT, sprintf("║ %-30s │ %16.2f %%   │ %16s   ║\n",
-            'TIR Financeira (a.a.)', 8.33, '⚠️ revisar'));
-
-        fwrite(STDOUT, "╠══════════════════════════════════════════════════════════════════════════╣\n");
-
-        // Exposição Máxima
-        fwrite(STDOUT, sprintf("║ %-30s │ %18s │ %18s ║\n",
-            'Exposição Máx. Operacional', '-R$ 7.227.961', '-R$ '.number_format(abs($saldoMinimo), 0, ',', '.')));
-
-        fwrite(STDOUT, sprintf("║ %-30s │ %18s │ %18s ║\n",
-            'Exposição Máx. Financeira', '-R$ 4.776.747', $exposicaoFin !== null ? '-R$ '.number_format(abs($exposicaoFin), 0, ',', '.') : 'N/D'));
-
-        fwrite(STDOUT, sprintf("║ %-30s │ %16.2f %%    │ %16.1f %%    ║\n",
-            '% Exposição / VGV', 2.90, $vgv > 0 ? abs($saldoMinimo) / $vgv * 100 : 0));
-
-        fwrite(STDOUT, "╠══════════════════════════════════════════════════════════════════════════╣\n");
-
-        // Payback
-        fwrite(STDOUT, sprintf("║ %-30s │ %16s      │ %16s      ║\n",
-            'Payback Operacional', 'N/D', $paybackOp !== null ? $paybackOp.' meses' : 'N/D'));
-
-        fwrite(STDOUT, sprintf("║ %-30s │ %16s      │ %16s      ║\n",
-            'Payback Financeiro', 'N/D', $paybackFin !== null ? $paybackFin.' meses' : 'N/D'));
-
-        // Margem líquida
-        $margem = $indicadores['margem_liquida_percentual'] ?? 0;
-        fwrite(STDOUT, "╠══════════════════════════════════════════════════════════════════════════╣\n");
-        fwrite(STDOUT, sprintf("║ %-30s │ %16.2f %%    │ %16.2f %%    ║\n",
-            'Margem Líquida', 23.25, $margem));
-
-        fwrite(STDOUT, "╚══════════════════════════════════════════════════════════════════════════╝\n\n");
+        fwrite(STDOUT, "\n{$block} — PLANILHA x SISTEMA\n");
+        foreach ($expected as $key => $expectedValue) {
+            $actualValue = $actual[$key] ?? null;
+            $diffPct = $actualValue !== null && abs((float) $expectedValue) > 0.0001
+                ? (((float) $actualValue - (float) $expectedValue) / abs((float) $expectedValue)) * 100
+                : null;
+            fwrite(STDOUT, sprintf(
+                "%-42s planilha=%16s sistema=%16s diff=%s\n",
+                $key,
+                is_numeric($expectedValue) ? number_format((float) $expectedValue, 2, ',', '.') : (string) $expectedValue,
+                is_numeric($actualValue) ? number_format((float) $actualValue, 2, ',', '.') : 'N/D',
+                $diffPct !== null ? number_format($diffPct, 3, ',', '.').'%' : 'N/D',
+            ));
+        }
     }
 
-    private function migrarTabelasTenantViabilidade(): void
+    /**
+     * @param  array<string, float|int|null>  $values
+     * @return array<string, float|int|null>
+     */
+    private function roundValues(array $values): array
     {
-        Artisan::call('migrate', ['--path' => 'database/migrations/tenant/0001_01_01_000005_create_terrenos_table.php']);
-        Artisan::call('migrate', ['--path' => 'database/migrations/tenant/2025_12_02_184006_create_produtos_table.php']);
-        Artisan::call('migrate', ['--path' => 'database/migrations/tenant/2025_11_13_161116_create_terreno_produto_table.php']);
-        Artisan::call('migrate', ['--path' => 'database/migrations/tenant/2026_02_07_000000_create_viabilidades_table.php']);
-        Artisan::call('migrate', ['--path' => 'database/migrations/tenant/2026_03_20_000000_add_viabilidade_campos_planilha.php']);
-        Artisan::call('migrate', ['--path' => 'database/migrations/tenant/2026_04_25_000001_add_perfil_financiamento_to_viabilidades_table.php']);
-        Artisan::call('migrate', ['--path' => 'database/migrations/tenant/2026_04_26_212214_add_data_lancamento_to_viabilidades_table.php']);
-        Artisan::call('migrate', ['--path' => 'database/migrations/tenant/2026_04_27_195000_create_premissas_viabilidade_table.php']);
-        Artisan::call('migrate', ['--path' => 'database/migrations/tenant/2026_04_27_200000_add_versionamento_e_snapshot.php']);
+        return array_map(
+            static fn (float|int|null $value): float|int|null => is_float($value) ? round($value, 2) : $value,
+            $values,
+        );
     }
 }

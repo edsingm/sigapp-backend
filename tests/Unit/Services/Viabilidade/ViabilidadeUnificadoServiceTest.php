@@ -707,6 +707,311 @@ class ViabilidadeUnificadoServiceTest extends TestCase
         );
     }
 
+    public function test_compra_direta_do_terreno_e_paga_mensalmente_durante_a_obra(): void
+    {
+        $datas = $this->makeDatas();
+        $params = $this->makeParams(['compraTerreno' => 3_600_000.0]);
+        $receitas = ['total' => 0.0, 'juros_correcao' => 0.0, 'detalhes' => []];
+
+        $despesaLancamento = $this->service->calcularDespesas(
+            $datas['dataLancamento']->format('Y-m'),
+            $receitas,
+            $this->makeDadosProdutos(),
+            $datas,
+            $params,
+        );
+        $despesaPrimeiroMesObra = $this->service->calcularDespesas(
+            $datas['inicioObra']->format('Y-m'),
+            $receitas,
+            $this->makeDadosProdutos(),
+            $datas,
+            $params,
+        );
+
+        $this->assertSame(0.0, $despesaLancamento['detalhes']['Pagamento Terreno - Parceria VGV']);
+        $this->assertEqualsWithDelta(
+            100_000.0,
+            $despesaPrimeiroMesObra['detalhes']['Pagamento Terreno - Parceria VGV'],
+            0.01,
+        );
+    }
+
+    public function test_calcular_despesas_inclui_custos_cef_no_total_operacional(): void
+    {
+        $datas = $this->makeDatas();
+        $mes = $datas['dataLancamento']->format('Y-m');
+        $receitas = ['total' => 100_000.0, 'juros_correcao' => 0.0, 'detalhes' => []];
+        $paramsSemCustosCef = $this->makeParams([
+            'custoItbiIptu' => 0.0,
+            'custoRegistro' => 0.0,
+            'custoContratacaoCef' => 0.0,
+            'custoMedicaoCef' => 0.0,
+            'custoContratosCef' => 0.0,
+            'percentualProdutosCef' => 0.0,
+        ]);
+        $paramsComCustosCef = array_merge($paramsSemCustosCef, [
+            'custoItbiIptu' => 0.011,
+            'custoRegistro' => 2_500.0,
+            'custoContratacaoCef' => 48_000.0,
+            'custoContratosCef' => 300.0,
+            'percentualProdutosCef' => 0.005,
+        ]);
+
+        $ctxSemCustos = new ViabilidadeFluxoContext;
+        $ctxSemCustos->vendasPorMes[$mes] = 1.0;
+        $ctxSemCustos->demandaAtingida = true;
+        $ctxSemCustos->mesDemandaAtingida = $mes;
+
+        $ctxComCustos = new ViabilidadeFluxoContext;
+        $ctxComCustos->vendasPorMes[$mes] = 1.0;
+        $ctxComCustos->demandaAtingida = true;
+        $ctxComCustos->mesDemandaAtingida = $mes;
+
+        $semCustos = $this->service->calcularDespesas(
+            $mes,
+            $receitas,
+            $this->makeDadosProdutos(),
+            $datas,
+            $paramsSemCustosCef,
+            $ctxSemCustos,
+        );
+        $comCustos = $this->service->calcularDespesas(
+            $mes,
+            $receitas,
+            $this->makeDadosProdutos(),
+            $datas,
+            $paramsComCustosCef,
+            $ctxComCustos,
+        );
+
+        $custosCefEsperados = 1_100.0 + 2_500.0 + 48_000.0 + 300.0 + 500.0;
+
+        $this->assertEqualsWithDelta(
+            $custosCefEsperados,
+            $comCustos['total'] - $semCustos['total'],
+            0.02,
+        );
+        $this->assertEqualsWithDelta(
+            $custosCefEsperados,
+            $comCustos['categorias']['custos_operacionais'] - $semCustos['categorias']['custos_operacionais'],
+            0.02,
+        );
+    }
+
+    public function test_gasto_mensal_stand_usa_razao_da_planilha(): void
+    {
+        $datas = $this->makeDatas();
+        $mes = $datas['dataLancamento']->format('Y-m');
+        $params = $this->makeParams([
+            'percentualDespesasComerciais' => 0.0,
+            'standVendas' => 0.0,
+            'mobiliaDecoracao' => 0.0,
+            'gastosMensaisStand' => 0.0001,
+            'comissaoHousePercentual' => 0.0,
+            'comissaoImobiliariasPercentual' => 0.0,
+            'ajudaCustoGerente' => 0.0,
+            'ajudaCustoGerenteRegional' => 0.0,
+            'reembolsoLogistica' => 0.0,
+            'bonusCca' => 0.0,
+            'percentualMarketing' => 0.0,
+        ]);
+
+        $despesas = $this->service->calcularDespesas(
+            $mes,
+            ['total' => 0.0, 'juros_correcao' => 0.0, 'detalhes' => []],
+            $this->makeDadosProdutos(),
+            $datas,
+            $params,
+        );
+
+        $this->assertEqualsWithDelta(1_000.0, $despesas['detalhes']['Operacional - Gastos Mensais Stand'], 0.01);
+    }
+
+    public function test_residual_comercial_pode_ser_negativo_para_reconciliar_percentual_global(): void
+    {
+        $property = new \ReflectionProperty(ViabilidadeUnificadoService::class, 'despesasCalculator');
+        $property->setAccessible(true);
+        $calculator = $property->getValue($this->service);
+        $method = new \ReflectionMethod(DespesasCalculator::class, 'calcularBonusEquipeComercialResidual');
+        $method->setAccessible(true);
+
+        $residual = $method->invoke(
+            $calculator,
+            $this->makeDadosProdutos([
+                'vgv' => 445_000_000.0,
+                'vgvSemUnidPermutas' => 427_500_000.0,
+                'totalUnidadesConstrutora' => 1_920,
+            ]),
+            $this->makeParams([
+                'percentualDespesasComerciais' => 0.04,
+                'standVendas' => 200_000.0,
+                'mobiliaDecoracao' => 90_000.0,
+                'gastosMensaisStand' => 0.0001,
+                'comissaoHousePercentual' => 0.03,
+                'comissaoImobiliariasPercentual' => 0.035,
+                'percentualVendasHouse' => 0.50,
+                'ajudaCustoGerente' => 5_000.0,
+                'ajudaCustoGerenteRegional' => 2_733.0,
+                'reembolsoLogistica' => 5_000.0,
+                'bonusCca' => 350.0,
+                'mesesLancamento' => 6,
+                'mesesObra' => 36,
+            ]),
+            0.0325,
+        );
+
+        $this->assertEqualsWithDelta(-728_286.0, $residual, 0.01);
+    }
+
+    public function test_desembolso_de_obra_reconcilia_contrapartidas_e_percentual_pre_lancamento(): void
+    {
+        $datas = $this->makeDatas();
+        $params = $this->makeParams([
+            'percentualIncorporacao' => 0.0,
+            'percentualContrapartidas' => 0.01,
+            'obraAteLancamento' => 0.01,
+            'canteiroMensal' => 0.0,
+            'moAdministrativa' => 0.0,
+            'percentualSeguros' => 0.0,
+            'percentualAssistenciaTecnica' => 0.0,
+            'percentualDespesasComerciais' => 0.0,
+            'standVendas' => 0.0,
+            'mobiliaDecoracao' => 0.0,
+            'gastosMensaisStand' => 0.0,
+            'comissaoHousePercentual' => 0.0,
+            'comissaoImobiliariasPercentual' => 0.0,
+            'ajudaCustoGerente' => 0.0,
+            'ajudaCustoGerenteRegional' => 0.0,
+            'reembolsoLogistica' => 0.0,
+            'bonusCca' => 0.0,
+            'percentualMarketing' => 0.0,
+            'custoItbiIptu' => 0.0,
+            'custoRegistro' => 0.0,
+            'custoContratacaoCef' => 0.0,
+            'custoMedicaoCef' => 0.0,
+            'custoContratosCef' => 0.0,
+            'percentualProdutosCef' => 0.0,
+        ]);
+        $ctx = new ViabilidadeFluxoContext;
+        $totalDesembolsoObra = 0.0;
+        /** @var list<Carbon> $periodo */
+        $periodo = CarbonPeriod::create($datas['dataLancamento'], '1 month', $datas['fimObra'])->toArray();
+
+        foreach ($periodo as $data) {
+            $despesas = $this->service->calcularDespesas(
+                $data->format('Y-m'),
+                ['total' => 0.0, 'juros_correcao' => 0.0, 'detalhes' => []],
+                $this->makeDadosProdutos(),
+                $datas,
+                $params,
+                $ctx,
+            );
+            $totalDesembolsoObra += (float) ($despesas['detalhes']['Obra (Lançamento)'] ?? 0.0);
+            $totalDesembolsoObra += (float) ($despesas['detalhes']['Obra'] ?? 0.0);
+        }
+
+        $baseEsperada = 3_000_000.0 + 500_000.0 + 100_000.0 + 100_000.0;
+
+        $this->assertEqualsWithDelta($baseEsperada, $totalDesembolsoObra, 1.0);
+    }
+
+    public function test_seguro_e_desembolsado_linearmente_fora_da_curva_de_obra(): void
+    {
+        $datas = $this->makeDatas();
+        $dadosProdutos = $this->makeDadosProdutos();
+        $paramsBase = $this->makeParams([
+            'percentualIncorporacao' => 0.0,
+            'percentualContrapartidas' => 0.0,
+            'obraAteLancamento' => 0.01,
+            'canteiroMensal' => 0.0,
+            'moAdministrativa' => 0.0,
+            'percentualAssistenciaTecnica' => 0.0,
+            'percentualDespesasComerciais' => 0.0,
+            'percentualMarketing' => 0.0,
+        ]);
+        $mes = $datas['dataLancamento']->format('Y-m');
+        $receitas = ['total' => 0.0, 'juros_correcao' => 0.0, 'detalhes' => []];
+
+        $semSeguro = $this->service->calcularDespesas(
+            $mes,
+            $receitas,
+            $dadosProdutos,
+            $datas,
+            array_merge($paramsBase, ['percentualSeguros' => 0.0]),
+            new ViabilidadeFluxoContext,
+        );
+        $comSeguro = $this->service->calcularDespesas(
+            $mes,
+            $receitas,
+            $dadosProdutos,
+            $datas,
+            array_merge($paramsBase, ['percentualSeguros' => 0.12]),
+            new ViabilidadeFluxoContext,
+        );
+
+        $seguroMensalEsperado = (10_000_000.0 * 0.12) / 42;
+
+        $this->assertSame(
+            $semSeguro['detalhes']['Obra (Lançamento)'],
+            $comSeguro['detalhes']['Obra (Lançamento)'],
+        );
+        $this->assertEqualsWithDelta($seguroMensalEsperado, $comSeguro['detalhes']['Seguros'], 0.01);
+        $this->assertEqualsWithDelta($seguroMensalEsperado, $comSeguro['total'] - $semSeguro['total'], 0.01);
+    }
+
+    public function test_assistencia_tecnica_inclui_infraestrutura_nao_incidente_na_base(): void
+    {
+        $datas = $this->makeDatas();
+        $params = $this->makeParams([
+            'percentualAssistenciaTecnica' => 0.01,
+            'assistenciaTecnicaCurva' => [100],
+            'percentualContrapartidas' => 0.01,
+        ]);
+
+        $despesas = $this->service->calcularDespesas(
+            $datas['inicioPos']->format('Y-m'),
+            ['total' => 0.0, 'juros_correcao' => 0.0, 'detalhes' => []],
+            $this->makeDadosProdutos(),
+            $datas,
+            $params,
+        );
+
+        $baseEsperada = 3_000_000.0 + 500_000.0 + 100_000.0 + 100_000.0;
+
+        $this->assertEqualsWithDelta(
+            ($baseEsperada * 0.01) / 12,
+            $despesas['detalhes']['Assistência Técnica'],
+            0.01,
+        );
+    }
+
+    public function test_custos_por_unidade_preservam_fracao_mensal_da_curva(): void
+    {
+        $datas = $this->makeDatas();
+        $mes = $datas['dataLancamento']->format('Y-m');
+        $params = $this->makeParams([
+            'custoItbiIptu' => 0.01,
+            'custoRegistro' => 0.0,
+            'custoContratacaoCef' => 0.0,
+            'custoContratosCef' => 0.0,
+            'percentualProdutosCef' => 0.0,
+        ]);
+        $ctx = new ViabilidadeFluxoContext;
+        $ctx->vendasPorMes[$mes] = 0.6;
+        $ctx->vendasAcumuladas = 1.2;
+
+        $despesas = $this->service->calcularDespesas(
+            $mes,
+            ['total' => 0.0, 'juros_correcao' => 0.0, 'detalhes' => []],
+            $this->makeDadosProdutos(),
+            $datas,
+            $params,
+            $ctx,
+        );
+
+        $this->assertEqualsWithDelta(600.0, $despesas['detalhes']['ITBI/IPTU'], 0.01);
+    }
+
     public function test_calcular_despesas_tributos_proporcionais_a_receita(): void
     {
         $datas = $this->makeDatas();

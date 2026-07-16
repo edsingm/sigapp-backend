@@ -70,10 +70,10 @@ class CurvaService
     /**
      * Curva financeira de medição CEF.
      *
-     * Regra oficial dos 5% finais (Lista de Desenv. / Aux_Obras):
-     * - 95% durante a obra (curva física reescalada);
-     * - 2% dois meses após a entrega (índice mesesObra+2);
-     * - 3% seis meses após a entrega (índice mesesObra+6).
+     * Regra oficial dos 5% finais (Aux_Obras):
+     * - mantém os meses cuja curva física acumulada permanece abaixo de 95%;
+     * - retém todo o percentual restante;
+     * - libera 55% do retido em prazo+2 e 45% em prazo+5.
      *
      * Índices 0-based relativos ao início da obra. O vetor se estende até mesesObra+6.
      *
@@ -82,50 +82,22 @@ class CurvaService
     public function getCurvaFinanceiraMedicaoParaPrazo(int $mesesTotal, float $obraAteLancamento = 0.0): array
     {
         $mesesTotal = max(1, $mesesTotal);
-        $obraAteLancamento = max(0.0, min(1.0, $obraAteLancamento));
+        unset($obraAteLancamento);
 
         $curvaFisica = $this->getCurvaObraParaPrazo($mesesTotal);
-        // 95% do total é liberado ao longo da obra; 5% retidos.
-        $fatorObra = 0.95;
         $curvaFinanceira = array_fill(0, $mesesTotal + 7, 0.0);
+        $acumuladoFisico = 0.0;
 
-        $parcelaObra = [];
         foreach ($curvaFisica as $indice => $percentual) {
-            $parcelaObra[$indice] = $percentual * $fatorObra;
+            $acumuladoFisico += $percentual;
+            $curvaFinanceira[$indice] = $acumuladoFisico < 95.0
+                ? round($percentual, 6)
+                : 0.0;
         }
 
-        // obra_ate_lancamento: antecipa essa fração do desembolso de medição para o 1º mês de obra,
-        // reduzindo proporcionalmente os meses seguintes (efeito real na curva financeira).
-        if ($obraAteLancamento > 0.0 && $parcelaObra !== []) {
-            $totalObra = array_sum($parcelaObra);
-            $antecipado = $totalObra * $obraAteLancamento;
-            $restanteAlvo = $totalObra - $antecipado;
-            $restanteAtual = $totalObra - ($parcelaObra[0] ?? 0.0);
-            $parcelaObra[0] = ($parcelaObra[0] ?? 0.0) + $antecipado;
-            if ($restanteAtual > 0.0) {
-                $fatorRestante = $restanteAlvo / $restanteAtual;
-                foreach ($parcelaObra as $indice => $valor) {
-                    if ($indice === 0) {
-                        continue;
-                    }
-                    $parcelaObra[$indice] = $valor * $fatorRestante;
-                }
-            }
-        }
-
-        foreach ($parcelaObra as $indice => $percentual) {
-            $curvaFinanceira[$indice] = round($percentual, 6);
-        }
-
-        // 5% finais: 2% em entrega+2 e 3% em entrega+6 (índices 1-based = mesesObra+N).
-        $curvaFinanceira[$mesesTotal + 1] = 2.0; // +2 meses após fim da obra (0-based: mesesTotal+1)
-        $curvaFinanceira[$mesesTotal + 5] = 3.0; // +6 meses (0-based: mesesTotal+5)
-
-        $soma = array_sum($curvaFinanceira);
-        if (abs($soma - 100.0) > 0.01 && $soma > 0) {
-            $ajuste = 100.0 - $soma;
-            $curvaFinanceira[$mesesTotal - 1] = ($curvaFinanceira[$mesesTotal - 1] ?? 0.0) + $ajuste;
-        }
+        $percentualRetido = max(0.0, 100.0 - array_sum($curvaFinanceira));
+        $curvaFinanceira[$mesesTotal + 1] = round($percentualRetido * 0.55, 6);
+        $curvaFinanceira[$mesesTotal + 4] = round($percentualRetido * 0.45, 6);
 
         return $curvaFinanceira;
     }

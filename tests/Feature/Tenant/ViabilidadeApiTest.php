@@ -160,6 +160,40 @@ class ViabilidadeApiTest extends TestCase
             ->assertJsonPath('data.id', $duplicateId);
     }
 
+    public function test_version_is_not_reused_after_soft_delete_and_deleted_viabilidade_can_be_restored(): void
+    {
+        $terrenoProduto = $this->createViabilityFixture();
+
+        $firstResponse = $this->actingAs($this->admin)
+            ->postJson('/api/v1/viabilidades', $this->makePayload($terrenoProduto))
+            ->assertCreated()
+            ->assertJsonPath('data.viabilidade.version', 1);
+
+        $firstId = (int) $firstResponse->json('data.viabilidade.id');
+
+        $this->actingAs($this->admin)
+            ->deleteJson("/api/v1/viabilidades/{$firstId}")
+            ->assertOk();
+
+        $secondResponse = $this->actingAs($this->admin)
+            ->postJson('/api/v1/viabilidades', $this->makePayload($terrenoProduto))
+            ->assertCreated()
+            ->assertJsonPath('data.viabilidade.version', 2);
+
+        $secondId = (int) $secondResponse->json('data.viabilidade.id');
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/viabilidades/{$firstId}/restore")
+            ->assertOk()
+            ->assertJsonPath('data.version', 1)
+            ->assertJsonPath('data.is_current', false);
+
+        $this->actingAs($this->admin)
+            ->getJson('/api/v1/viabilidades/terreno/'.$terrenoProduto->getAttribute('terreno_id').'/latest')
+            ->assertOk()
+            ->assertJsonPath('data.id', $secondId);
+    }
+
     public function test_admin_can_submit_approve_and_recalculate_viabilidade(): void
     {
         $terrenoProduto = $this->createViabilityFixture();

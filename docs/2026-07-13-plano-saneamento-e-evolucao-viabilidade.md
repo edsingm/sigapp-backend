@@ -434,7 +434,7 @@ Esta fase deve ser implementada em PRs separados por bloco de fórmula. Cada PR 
 
 1. Importar as curvas oficiais da aba auxiliar da planilha como fixtures/tabelas versionadas.
 2. Definir comportamento para prazos não tabelados: interpolação monotônica ou redistribuição por percentil; não escolher silenciosamente a curva mais próxima.
-3. Garantir soma de 100% após considerar `obra_ate_lancamento`.
+3. Garantir soma de 100% separadamente para a curva física e para a curva financeira de medição.
 4. Definir uma única função para curva física e uma transformação explícita para curva financeira.
 5. Implementar a regra oficial das medições finais, incluindo percentuais e meses exatos.
 6. Validar monotonicidade do acumulado e ausência de meses vazios não previstos.
@@ -503,21 +503,21 @@ Esta fase deve ser implementada em PRs separados por bloco de fórmula. Cada PR 
 
 ### 10.7 TIR, datas e vetor financeiro — P1
 
-**Problema:** o cálculo usa IRR mensal por posição e ignora datas reais, enquanto a planilha utiliza fluxo datado/XIRR; também é necessário definir qual fluxo entra em cada TIR.
+**Problema original:** o cálculo usava IRR mensal por posição, ignorava datas reais e não separava o fluxo do projeto do fluxo de tesouraria/distribuição.
 
 **Arquivo:** `app/Services/Tenant/Viabilidade/v1/Calculos/IndicadoresCalculator.php`.
 
-**Decisões obrigatórias:**
+**Decisões adotadas no motor 2.3.0:**
 
 | Indicador | Vetor proposto |
 |---|---|
-| TIR operacional | fluxo operacional sem financiamento PJ e sem aportes artificiais |
-| TIR financeira | fluxo do acionista, com aportes e retornos de capital/lucro |
-| TIR sem CEF | fluxo do cenário explicitamente recalculado sem funding CEF, não simples remoção parcial |
+| TIR operacional | saldos operacionais acumulados, conforme `Tab_Mestre!ID` |
+| TIR financeira | saldos acumulados após funding e serviço da dívida PJ, conforme `Tab_Mestre!IU` |
+| TIR sem CEF | saldos acumulados do cenário explicitamente recalculado sem funding CEF |
 
-Implementar XIRR quando as datas não forem perfeitamente mensais. Se todas as datas forem mensais e normalizadas para o mesmo dia, documentar a equivalência e anualização: `(1 + tir_mensal)^12 - 1`.
+Usar sempre XIRR com os dias reais entre as datas, inclusive em séries mensais. Fluxos não convencionais usam a única raiz não negativa; múltiplas raízes não negativas resultam em `null` por ambiguidade.
 
-**Aceite:** datas alteram XIRR de modo previsível; vetor sem mudança de sinal retorna `null` com warning; resultado coincide com a planilha dentro da tolerância aprovada.
+**Aceite:** datas alteram XIRR de modo previsível; vetor sem mudança de sinal ou com múltiplas raízes não negativas retorna `null`; distribuição não altera TIR financeira; o caso canônico reproduz 600,53% operacional e 991,81% financeira dentro de 0,10 p.p.
 
 ### 10.8 DRE, caixa e reconciliação — P1
 
@@ -590,7 +590,7 @@ Campos já identificados para decisão:
 - `variavel_correcao`;
 - `despesas_onerosas_bancos`;
 - `distribuicao_lucros_percentual_obra`;
-- `obra_ate_lancamento` na curva financeira de medição.
+- `obra_ate_lancamento` no desembolso físico pré-lançamento.
 
 Para cada campo mantido, criar teste de sensibilidade: alterar apenas o campo deve mudar exatamente a linha/indicador esperado. Se o campo não tiver efeito de negócio validado, a API deve rejeitá-lo ou deixar de expô-lo; não manter controles inertes.
 
@@ -804,8 +804,8 @@ Criar alertas para:
 - [x] **Fase 1:** implementar enum/máquina de estados, bloqueios e nova versão para recálculo de estudo decidido.
 - [x] **Fase 2:** persistir snapshot canônico completo, congelar `data_lancamento` e adicionar hashes/versionamento.
 - [x] **Fase 3:** tornar terreno imutável e validar propriedade, duplicidade, permuta, unidades e tipo dos produtos. *(tipo estruturado de produto ainda sem enum dedicado)*
-- [x] **Fase 4A:** corrigir compra direta/custo do terreno e adicionar reconciliação DRE x caixa. *(compra direta em 4 parcelas semestrais; reconciliação com saldo dívida/curva)*
-- [x] **Fase 4B:** substituir curvas, demanda CEF, POC, impostos, dívida PJ e TIR por regras validadas. *(curvas Aux_Obras 12–36 + redistribuição 48/60; medição 2%+3%; demanda ponderada; POC base única; alocação fiscal na mesma base; cronograma PJ com saldo 0; XIRR/IRR com datas; aceites numéricos finos da planilha ainda dependem de calibração financeira)*
+- [x] **Fase 4A:** corrigir compra direta/custo do terreno e adicionar reconciliação DRE x caixa. *(compra direta mensal durante a obra; reconciliação com saldo dívida/curva)*
+- [x] **Fase 4B:** substituir curvas, demanda CEF, POC, impostos, dívida PJ e TIR por regras validadas. *(curvas Aux_Obras 12–36 + redistribuição 48/60; medição com retenção após 95% e liberações 55%/45%; demanda ponderada; POC base única; alocação fiscal na mesma base; cronograma PJ com saldo 0 e desembolso na demanda; XIRR sobre saldos acumulados operacional/PJ)*
 - [x] **Fase 5:** corrigir vigência de premissas e eliminar campos públicos sem efeito. *(intervalos sem sobreposição; futura não invalida vigente; destroy referenciado vira inativação; meses_entrega/distribuicao_lucros/obra_ate_lancamento/variavel_correcao com efeito; despesas_onerosas permanece saída de juros PJ)*
 - [x] **Fase 6:** adicionar constraints, locks, transações e testes PostgreSQL de concorrência. *(unique/locks/SQLite parciais; teste PG de concorrência real ainda pendente)*
 - [x] **Fases 7–8:** reduzir payloads, corrigir cache/queries/erros e limitar dados enviados à IA. *(DomainException rethrow, forSelect limitado, tool IA com resumo; listagem leve completa ainda pendente)*
@@ -951,7 +951,7 @@ Estas decisões não devem ser inferidas pelo desenvolvedor durante a implementa
 
 1. Qual é o cronograma padrão da compra direta do terreno: mensal, quatro parcelas semestrais ou sempre informado pelo usuário?
 2. Qual é a regra oficial das duas medições finais da CEF: percentuais e meses exatos?
-3. TIR oficial usa IRR mensal anualizada ou XIRR com datas reais? Qual fluxo alimenta cada indicador?
+3. **Resolvida no motor 2.3.0:** XIRR sempre usa dias reais; os vetores são os saldos acumulados operacional e após a dívida PJ, conforme `Tab_Mestre!ID/IU`.
 4. Quais categorias entram na base de custo do POC?
 5. Juros PJ durante obra/carência são pagos ou capitalizados?
 6. `permuta` representa unidades, percentual ou valor em cada tela/endpoint legado?

@@ -272,6 +272,7 @@ class ImpostosService
         int $amortizacaoParcelas,
         Carbon|\DateTimeInterface $inicioObra,
         Carbon|\DateTimeInterface $dataEntrega,
+        Carbon|\DateTimeInterface|null $dataDesembolso = null,
     ): array {
         unset($valorBaseAdicional);
 
@@ -306,29 +307,42 @@ class ImpostosService
         $entrega = $dataEntrega instanceof Carbon
             ? $dataEntrega->copy()->startOfMonth()
             : Carbon::instance(\DateTime::createFromInterface($dataEntrega))->startOfMonth();
+        $desembolso = $dataDesembolso instanceof Carbon
+            ? $dataDesembolso->copy()->startOfMonth()
+            : ($dataDesembolso instanceof \DateTimeInterface
+                ? Carbon::instance(\DateTime::createFromInterface($dataDesembolso))->startOfMonth()
+                : $inicio->copy());
 
         $saldo = $valorAntecipado;
         $jurosTotais = 0.0;
         $principalAmortizado = 0.0;
         $amortizacaoMensal = $amortizacaoParcelas > 0 ? ($valorAntecipado / $amortizacaoParcelas) : 0.0;
-        $inicioAmortizacao = $entrega->copy()->addMonths(max(0, $carenciaMeses) + 1)->startOfMonth();
+        $inicioAmortizacao = $entrega->copy()->addMonths(max(0, $carenciaMeses))->startOfMonth();
         $parcelaAmort = 0;
 
-        // Desembolso no início da obra.
-        $chaveInicio = $inicio->format('Y-m');
-        $porMes[$chaveInicio] = [
+        // A planilha libera o principal quando a demanda mínima é atingida e
+        // cobra juros já nesse mês, ainda que a obra comece depois.
+        $chaveDesembolso = $desembolso->format('Y-m');
+        $jurosDesembolso = $saldo * $taxaMensal;
+        $jurosTotais += $jurosDesembolso;
+        $porMes[$chaveDesembolso] = [
             'desembolso' => round($valorAntecipado, 2),
-            'juros_pagos' => 0.0,
+            'juros_pagos' => round($jurosDesembolso, 2),
             'amortizacao' => 0.0,
             'saldo_inicial' => 0.0,
             'saldo_final' => round($saldo, 2),
         ];
 
-        // Carência: juros pagos mensalmente (não capitalizados).
-        $cursor = $inicio->copy()->addMonth();
+        // Obra e carência: juros pagos mensalmente, sem capitalização.
+        $cursor = $inicio->copy();
         $fimCarencia = $inicioAmortizacao->copy()->subMonth();
         while ($cursor->lessThanOrEqualTo($fimCarencia) && $saldo > 0.0) {
             $chave = $cursor->format('Y-m');
+            if ($chave === $chaveDesembolso) {
+                $cursor->addMonth();
+
+                continue;
+            }
             $juros = $saldo * $taxaMensal;
             $jurosTotais += $juros;
             $porMes[$chave] = [
@@ -341,18 +355,18 @@ class ImpostosService
             $cursor->addMonth();
         }
 
-        // Amortização: juros + principal até zerar.
+        // Amortização SAC: primeiro amortiza, depois calcula juros sobre o
+        // saldo remanescente do próprio mês, como nas colunas IN/IP/IQ.
         while ($parcelaAmort < $amortizacaoParcelas && $saldo > 0.01) {
             $chave = $cursor->format('Y-m');
             $saldoInicial = $saldo;
-            $juros = $saldo * $taxaMensal;
-            $jurosTotais += $juros;
             $amort = min($saldo, $amortizacaoMensal);
-            // Última parcela: balloon do residual.
             if ($parcelaAmort === $amortizacaoParcelas - 1) {
                 $amort = $saldo;
             }
             $saldo = max(0.0, $saldo - $amort);
+            $juros = $saldo * $taxaMensal;
+            $jurosTotais += $juros;
             $principalAmortizado += $amort;
             $parcelaAmort++;
 
@@ -389,6 +403,8 @@ class ImpostosService
                 'saldo_final' => 0.0,
             ];
         }
+
+        ksort($porMes);
 
         return [
             'valor_antecipado' => round($valorAntecipado, 2),

@@ -48,16 +48,18 @@ class CurvaServiceTest extends TestCase
 
     public function test_curva_financeira_medicao_com_5_porcento_finais(): void
     {
-        $curva = $this->service->getCurvaFinanceiraMedicaoParaPrazo(36);
+        $curva = $this->service->getCurvaFinanceiraMedicaoParaPrazo(36, 0.01);
 
         $this->assertEqualsWithDelta(100.0, array_sum($curva), 0.05);
-        $this->assertEqualsWithDelta(2.0, $curva[36 + 1], 0.01);
-        $this->assertEqualsWithDelta(3.0, $curva[36 + 5], 0.01);
+        $this->assertEqualsWithDelta(1.0, $curva[0], 0.001);
+        $this->assertEqualsWithDelta(0.0, $curva[32], 0.001);
+        $this->assertEqualsWithDelta(3.08, $curva[36 + 1], 0.01);
+        $this->assertEqualsWithDelta(2.52, $curva[36 + 4], 0.01);
 
         $duranteObra = 0.0;
         for ($i = 0; $i < 36; $i++) {
             $duranteObra += $curva[$i] ?? 0.0;
         }
-        $this->assertEqualsWithDelta(95.0, $duranteObra, 0.1);
+        $this->assertEqualsWithDelta(94.4, $duranteObra, 0.1);
     }
 }

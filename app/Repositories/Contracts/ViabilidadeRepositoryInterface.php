@@ -23,11 +23,13 @@ interface ViabilidadeRepositoryInterface
 
     public function restore(Viabilidade $viabilidade): Viabilidade;
 
+    public function setCurrentStateBeforeRestore(Viabilidade $viabilidade, bool $isCurrent): Viabilidade;
+
     public function terrenoExists(int|string $id): bool;
 
     public function nextVersionForTerreno(int $terrenoId): int;
 
-    public function lockTerrenoViabilidades(int $terrenoId): void;
+    public function lockTerrenoForViabilidadeChanges(int $terrenoId): void;
 
     public function lockById(int|string $id): Viabilidade;
 

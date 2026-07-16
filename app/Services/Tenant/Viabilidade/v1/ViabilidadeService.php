@@ -162,7 +162,7 @@ class ViabilidadeService
             $actor ??= Auth::user();
             $this->validarDados($dados);
             $terrenoId = (int) $dados['terreno_id'];
-            $this->repository->lockTerrenoViabilidades($terrenoId);
+            $this->repository->lockTerrenoForViabilidadeChanges($terrenoId);
             $terreno = $this->repository->findTerrenoOrFail($terrenoId);
             $nextVersion = $this->repository->nextVersionForTerreno($terrenoId);
 
@@ -371,7 +371,7 @@ class ViabilidadeService
         return DB::transaction(function () use ($viabilidadeId, $actor) {
             $actor ??= Auth::user();
             $viabilidadeOriginal = $this->repository->findOrFail($viabilidadeId);
-            $this->repository->lockTerrenoViabilidades((int) $viabilidadeOriginal->terreno_id);
+            $this->repository->lockTerrenoForViabilidadeChanges((int) $viabilidadeOriginal->terreno_id);
             $nextVersion = $this->repository->nextVersionForTerreno($viabilidadeOriginal->terreno_id);
 
             $dadosNova = $viabilidadeOriginal->toArray();
@@ -662,15 +662,19 @@ class ViabilidadeService
 
     public function ativar(int|string $viabilidadeId, ?User $actor = null): Viabilidade
     {
-        $actor ??= Auth::user();
-        $viabilidade = $this->repository->findOrFail($viabilidadeId);
+        return DB::transaction(function () use ($viabilidadeId, $actor): Viabilidade {
+            $actor ??= Auth::user();
+            $viabilidade = $this->repository->findOrFail($viabilidadeId);
+            $this->repository->lockTerrenoForViabilidadeChanges((int) $viabilidade->terreno_id);
+            $viabilidade = $this->repository->lockById($viabilidadeId);
 
-        return $this->repository->loadDefaultRelations(
-            $this->repository->update($viabilidade, [
-                'status' => 'ativo',
-                'updated_by' => $actor?->id,
-            ])
-        );
+            return $this->repository->loadDefaultRelations(
+                $this->repository->update($viabilidade, [
+                    'status' => 'ativo',
+                    'updated_by' => $actor?->id,
+                ])
+            );
+        });
     }
 
     public function solicitarAprovacao(int|string $viabilidadeId, ?string $approvalNotes, ?User $actor = null): Viabilidade
@@ -678,6 +682,8 @@ class ViabilidadeService
         return DB::transaction(function () use ($viabilidadeId, $approvalNotes, $actor) {
             $actor ??= Auth::user();
             $viabilidade = $this->repository->findOrFail($viabilidadeId);
+            $this->repository->lockTerrenoForViabilidadeChanges((int) $viabilidade->terreno_id);
+            $viabilidade = $this->repository->lockById($viabilidadeId);
             $status = $this->resolveApprovalStatus($viabilidade);
 
             if (! $status->canSubmit()) {
@@ -743,8 +749,9 @@ class ViabilidadeService
     {
         return DB::transaction(function () use ($viabilidadeId, $decision, $approvalNotes, $actor) {
             $actor ??= Auth::user();
+            $viabilidade = $this->repository->findOrFail($viabilidadeId);
+            $this->repository->lockTerrenoForViabilidadeChanges((int) $viabilidade->terreno_id);
             $viabilidade = $this->repository->lockById($viabilidadeId);
-            $this->repository->lockTerrenoViabilidades((int) $viabilidade->terreno_id);
 
             $status = $this->resolveApprovalStatus($viabilidade);
             if (! $status->canDecide()) {
@@ -828,6 +835,8 @@ class ViabilidadeService
     {
         return DB::transaction(function () use ($viabilidadeId, $notes, $actor) {
             $actor ??= Auth::user();
+            $viabilidade = $this->repository->findOrFail($viabilidadeId);
+            $this->repository->lockTerrenoForViabilidadeChanges((int) $viabilidade->terreno_id);
             $viabilidade = $this->repository->lockById($viabilidadeId);
             $status = $this->resolveApprovalStatus($viabilidade);
 
@@ -876,11 +885,36 @@ class ViabilidadeService
 
     public function restore(int|string $viabilidadeId): Viabilidade
     {
-        $viabilidade = $this->repository->findWithTrashedOrFail($viabilidadeId);
+        return DB::transaction(function () use ($viabilidadeId): Viabilidade {
+            $viabilidade = $this->repository->findWithTrashedOrFail($viabilidadeId);
+            $this->repository->lockTerrenoForViabilidadeChanges((int) $viabilidade->terreno_id);
+            $viabilidade = $this->repository->findWithTrashedOrFail($viabilidadeId);
 
-        return $this->repository->loadDefaultRelations(
-            $this->repository->restore($viabilidade)
-        );
+            if (! $viabilidade->trashed()) {
+                return $this->repository->loadDefaultRelations($viabilidade);
+            }
+
+            $status = $this->resolveApprovalStatus($viabilidade);
+            if ($status === ViabilidadeApprovalStatus::Aprovada) {
+                if ($this->repository->approvedByTerreno((int) $viabilidade->terreno_id, (int) $viabilidade->id) !== null) {
+                    throw new ViabilidadeConflictException(
+                        'Já existe uma viabilidade aprovada para este terreno.',
+                        'VIABILIDADE_ALREADY_APPROVED_FOR_TERRENO',
+                    );
+                }
+
+                $this->repository->clearCurrentForTerreno((int) $viabilidade->terreno_id, (int) $viabilidade->id);
+                $isCurrent = true;
+            } else {
+                $isCurrent = $this->repository->latestByTerreno((int) $viabilidade->terreno_id) === null;
+            }
+
+            $viabilidade = $this->repository->setCurrentStateBeforeRestore($viabilidade, $isCurrent);
+
+            return $this->repository->loadDefaultRelations(
+                $this->repository->restore($viabilidade)
+            );
+        });
     }
 
     /**

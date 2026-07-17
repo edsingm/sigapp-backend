@@ -24,11 +24,7 @@ use App\Http\Controllers\Api\V1\TenantStatusController;
 use App\Http\Controllers\Api\V1\WebhookController;
 use App\Http\Middleware\ForceJsonResponse;
 use App\Http\Middleware\SetUserLocale;
-use App\Services\ApiResponseService;
 use App\Services\HealthCheckService;
-use Illuminate\Cache\RateLimiting\Limit;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -40,102 +36,6 @@ use Illuminate\Support\Facades\Route;
 | These are accessible at: /api/v1/...
 |
 */
-
-// Configure rate limiters
-RateLimiter::for('api-public', function (Request $request) {
-    return Limit::perMinute(60)->by($request->ip());
-});
-
-RateLimiter::for('consent-log', function (Request $request) {
-    return Limit::perMinute(5)
-        ->by('consent-log:'.$request->ip())
-        ->response(fn () => ApiResponseService::tooManyRequests('Muitos registros de consentimento em curto período. Tente novamente em 1 minuto.'));
-});
-
-RateLimiter::for('api-auth', function (Request $request) {
-    $user = $request->user();
-    $tenantId = tenancy()->initialized ? (string) tenant('id') : null;
-    $key = $tenantId
-        ? ($user ? "tenant:{$tenantId}:user:{$user->id}" : "tenant:{$tenantId}:ip:{$request->ip()}")
-        : ($user ? "central:user:{$user->id}" : "central:ip:{$request->ip()}");
-
-    return Limit::perMinute(1000)
-        ->by($key)
-        ->response(function () {
-            return response()->json([
-                'success' => false,
-                'error' => [
-                    'code' => 'TOO_MANY_REQUESTS',
-                    'message' => 'Muitas requisições. Tente novamente em 1 minuto.',
-                ],
-            ], 429);
-        });
-});
-
-RateLimiter::for('central-login', function (Request $request) {
-    $email = strtolower(trim((string) $request->input('email', '')));
-
-    return Limit::perMinute(5)
-        ->by('central-login:'.$request->ip().':'.sha1($email))
-        ->response(fn () => ApiResponseService::tooManyRequests('Muitas tentativas de login. Tente novamente em 1 minuto.'));
-});
-
-RateLimiter::for('central-login-select', function (Request $request) {
-    return Limit::perMinute(10)
-        ->by('central-login-select:'.$request->ip())
-        ->response(fn () => ApiResponseService::tooManyRequests());
-});
-
-RateLimiter::for('admin-login', function (Request $request) {
-    $email = strtolower(trim((string) $request->input('email', '')));
-
-    return Limit::perMinute(5)
-        ->by('admin-login:'.$request->ip().':'.sha1($email))
-        ->response(fn () => ApiResponseService::tooManyRequests('Muitas tentativas de login de administrador. Tente novamente em 1 minuto.'));
-});
-
-RateLimiter::for('transfer-ticket', function (Request $request) {
-    $tenantKey = tenancy()->initialized ? (string) tenant('id') : 'no-tenant';
-
-    return Limit::perMinute(15)
-        ->by('transfer-ticket:'.$tenantKey.':'.$request->ip())
-        ->response(fn () => ApiResponseService::tooManyRequests());
-});
-
-RateLimiter::for('password-reset-request', function (Request $request) {
-    $email = strtolower(trim((string) $request->input('email', '')));
-
-    return Limit::perMinute(5)
-        ->by('password-reset-request:'.$request->ip().':'.sha1($email))
-        ->response(fn () => ApiResponseService::tooManyRequests('Muitas solicitações de redefinição. Tente novamente em 1 minuto.'));
-});
-
-RateLimiter::for('password-reset-submit', function (Request $request) {
-    return Limit::perMinute(10)
-        ->by('password-reset-submit:'.$request->ip())
-        ->response(fn () => ApiResponseService::tooManyRequests('Muitas tentativas de redefinição. Tente novamente em 1 minuto.'));
-});
-
-RateLimiter::for('signup-status', function (Request $request) {
-    $sessionParameter = $request->route('sessionId', '');
-    $sessionId = is_scalar($sessionParameter) ? (string) $sessionParameter : '';
-
-    return Limit::perMinute(30)
-        ->by('signup-status:'.$request->ip().':'.sha1($sessionId))
-        ->response(fn () => ApiResponseService::tooManyRequests('Muitas consultas de status. Aguarde 1 minuto.'));
-});
-
-RateLimiter::for('viabilidade-approval', function (Request $request) {
-    $user = $request->user();
-    $tenantId = tenancy()->initialized ? (string) tenant('id') : 'no-tenant';
-    $key = $user
-        ? "viabilidade-approval:{$tenantId}:user:{$user->id}"
-        : "viabilidade-approval:{$tenantId}:ip:{$request->ip()}";
-
-    return Limit::perMinute(10)
-        ->by($key)
-        ->response(fn () => ApiResponseService::tooManyRequests('Muitas ações de aprovação em curto período. Aguarde 1 minuto.'));
-});
 
 // All API routes use JSON
 Route::middleware([ForceJsonResponse::class])->group(function () {

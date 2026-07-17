@@ -72,7 +72,7 @@ Há duas formas de rodar localmente: **Herd/`composer dev`** (nativo, macOS) ou 
 
 - `entrypoint.prod.sh` prepara caches e sobe o supervisord; ele **não executa migrations** durante restart/scale.
 - Primeiro deploy em banco vazio: execute `/usr/local/bin/sigapp-bootstrap` uma única vez (`migrate` + `db:seed`). Releases seguintes executam `/usr/local/bin/sigapp-release` (`migrate` central + `tenants:migrate`) antes de trocar o tráfego.
-- `supervisord.conf` mantém 4 processos: **nginx**, **php-fpm**, **`queue:work --sleep=3 --tries=3 --max-time=3600`** e **`schedule:work`**. Ou seja: **fila e scheduler em produção rodam via supervisord** — não há cron; um scheduled command novo só precisa estar em `routes/console.php`.
+- `supervisord.conf` mantém 4 processos: **nginx**, **php-fpm**, **`queue:work --queue=tenant-provisioning,default --sleep=3 --tries=3 --max-time=3600`** e **`schedule:work`**. Ou seja: **fila e scheduler em produção rodam via supervisord** — não há cron; jobs de provisionamento de tenants usam a fila prioritária `tenant-provisioning`; um scheduled command novo só precisa estar em `routes/console.php`.
 - `nginx.conf`: root em `public/`, `client_max_body_size 50M` (limite de upload), `fastcgi_read_timeout 120s` (teto para requests longos — PDFs/exports pesados devem ir para Jobs).
 
 ### Implicações para quem altera o código

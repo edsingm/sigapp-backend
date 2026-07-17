@@ -31,7 +31,7 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     zip \
     intl
 
-RUN pecl install redis \
+RUN pecl install redis-6.2.0 \
     && docker-php-ext-enable redis
 
 # Chromium para Spatie Browsershot / laravel-pdf (geração de PDF)

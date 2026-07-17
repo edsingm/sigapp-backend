@@ -62,6 +62,14 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
 
+# O worker roda como www-data; o Puppeteer precisa de um HOME gravável para
+# consultar sua configuração sem tentar acessar /root/.config.
+RUN mkdir -p /home/www-data/.config /home/www-data/.cache \
+    && chown -R www-data:www-data /home/www-data
+ENV HOME=/home/www-data
+ENV XDG_CONFIG_HOME=/home/www-data/.config
+ENV XDG_CACHE_HOME=/home/www-data/.cache
+
 ##########################################################################
 # dev — código via bind mount, php artisan serve na porta 8000
 ##########################################################################

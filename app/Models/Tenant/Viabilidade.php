@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Table('viabilidades')]
-#[Fillable(['terreno_id', 'version', 'is_current', 'parceria_vgv', 'compra_terreno', 'infra_nao_incidente', 'porcentagem_lote_proprietario', 'prazo_obra', 'prazo_lancamento', 'prazo_incorporacao', 'data_lancamento', 'pis_cofins', 'iss', 'outros_impostos', 'comissao', 'incorporacao', 'incorporacao_ri', 'incorporacao_entrega', 'incorporacao_ate_lancamento', 'area_comum', 'contrapartidas', 'canteiro_mensal', 'mo_administrativa', 'seguros', 'assistencia_tecnica', 'despesas_comerciais', 'stand_vendas', 'mobilia_decoracao', 'gastos_mensais_stand', 'comissao_house_percentual', 'comissao_imobiliarias_percentual', 'percentual_vendas_house', 'construcao_stand_meses_antes_lancamento', 'ajuda_custo_gerente', 'ajuda_custo_gerente_regional', 'reembolso_logistica', 'bonus_cca', 'bonus_gerente', 'bonus_gerente_regional', 'bonus_credito', 'bonus_gestor_comercial', 'bonus_equipe_comercial', 'pagamento_comissao_venda', 'pagamento_comissao_desligamento', 'parcelamento_comissao_meses', 'marketing', 'marketing_lancamento', 'marketing_inicio_antes_lancamento', 'itbi_iptu', 'registro', 'custo_contratacao_cef', 'custo_medicao_cef', 'contratos_cef', 'produtos_cef', 'outras_despesas_financeiras', 'despesas_onerosas_bancos', 'taxa_juros_pj', 'carencia_pj_meses', 'amortizacao_pj_parcelas', 'percentual_antecipacao_pj', 'aporte_adicional_mensal', 'devolucao_aporte_percentual', 'distribuicao_lucros_percentual_obra', 'taxa_exposicao_aplicada', 'perfil_financiamento', 'resultados_dre', 'premissas_snapshot', 'status', 'approval_status', 'approval_requested_at', 'approval_decided_at', 'approval_decided_by', 'approval_notes', 'submitted_at', 'locked_at', 'created_by', 'updated_by'])]
+#[Fillable(['terreno_id', 'version', 'is_current', 'parceria_vgv', 'compra_terreno', 'infra_nao_incidente', 'porcentagem_lote_proprietario', 'prazo_obra', 'prazo_lancamento', 'prazo_incorporacao', 'data_lancamento', 'pis_cofins', 'iss', 'outros_impostos', 'comissao', 'incorporacao', 'incorporacao_ri', 'incorporacao_entrega', 'incorporacao_ate_lancamento', 'area_comum', 'contrapartidas', 'canteiro_mensal', 'mo_administrativa', 'seguros', 'assistencia_tecnica', 'despesas_comerciais', 'stand_vendas', 'mobilia_decoracao', 'gastos_mensais_stand', 'comissao_house_percentual', 'comissao_imobiliarias_percentual', 'percentual_vendas_house', 'construcao_stand_meses_antes_lancamento', 'ajuda_custo_gerente', 'ajuda_custo_gerente_regional', 'reembolso_logistica', 'bonus_cca', 'bonus_gerente', 'bonus_gerente_regional', 'bonus_credito', 'bonus_gestor_comercial', 'bonus_equipe_comercial', 'pagamento_comissao_venda', 'pagamento_comissao_desligamento', 'parcelamento_comissao_meses', 'marketing', 'marketing_lancamento', 'marketing_inicio_antes_lancamento', 'itbi_iptu', 'registro', 'custo_contratacao_cef', 'custo_medicao_cef', 'contratos_cef', 'produtos_cef', 'outras_despesas_financeiras', 'despesas_onerosas_bancos', 'taxa_juros_pj', 'carencia_pj_meses', 'amortizacao_pj_parcelas', 'percentual_antecipacao_pj', 'usar_antecipacao_pj', 'aporte_adicional_mensal', 'devolucao_aporte_percentual', 'distribuicao_lucros_percentual_obra', 'taxa_exposicao_aplicada', 'perfil_financiamento', 'resultados_dre', 'premissas_snapshot', 'status', 'approval_status', 'approval_requested_at', 'approval_decided_at', 'approval_decided_by', 'approval_notes', 'submitted_at', 'locked_at', 'created_by', 'updated_by'])]
 #[Hidden([])]
 /**
  * @property int $id
@@ -72,6 +72,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property int|null $prazo_incorporacao
  * @property float|int|null $compra_terreno
  * @property float|int|null $percentual_antecipacao_pj
+ * @property bool $usar_antecipacao_pj
  * @property float|int|null $aporte_adicional_mensal
  * @property float|int|null $devolucao_aporte_percentual
  * @property float|int|null $distribuicao_lucros_percentual_obra
@@ -217,6 +218,7 @@ class Viabilidade extends Model
         'carencia_pj_meses' => 'integer',
         'amortizacao_pj_parcelas' => 'integer',
         'percentual_antecipacao_pj' => 'decimal:4',
+        'usar_antecipacao_pj' => 'boolean',
         'aporte_adicional_mensal' => 'decimal:2',
         'devolucao_aporte_percentual' => 'decimal:2',
         'distribuicao_lucros_percentual_obra' => 'decimal:2',

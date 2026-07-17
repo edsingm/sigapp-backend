@@ -90,6 +90,7 @@ class ViabilidadeService
         'carencia_pj_meses' => 'carencia_pj_meses',
         'amortizacao_pj_parcelas' => 'amortizacao_pj_parcelas',
         'percentual_antecipacao_pj' => 'percentual_antecipacao_pj',
+        'usar_antecipacao_pj' => 'usar_antecipacao_pj',
         'aporte_adicional_mensal' => 'aporte_adicional_mensal',
         'devolucao_aporte_percentual' => 'devolucao_aporte_percentual',
         'distribuicao_lucros_percentual_obra' => 'distribuicao_lucros_percentual_obra',

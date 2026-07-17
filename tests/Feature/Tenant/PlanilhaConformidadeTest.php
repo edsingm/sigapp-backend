@@ -343,6 +343,7 @@ class PlanilhaConformidadeTest extends TestCase
             'produtos_cef' => 0.5,
             'outras_despesas_financeiras' => 0.3,
             'percentual_antecipacao_pj' => 10,
+            'usar_antecipacao_pj' => true,
             'aporte_adicional_mensal' => 0,
             'devolucao_aporte_percentual' => 20,
             'distribuicao_lucros_percentual_obra' => 100,

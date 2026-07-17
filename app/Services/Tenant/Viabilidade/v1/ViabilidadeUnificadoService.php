@@ -206,6 +206,23 @@ class ViabilidadeUnificadoService
         $snapshotParams = is_array($snapshot['parametros'] ?? null)
             ? $snapshot['parametros']
             : [];
+        $percentualAntecipacaoPjConfigurado = $this->resolverPercentual(
+            $v,
+            $formValues,
+            $snapshotParams,
+            $defaults,
+            ['percentual_antecipacao_pj'],
+            'percentual_antecipacao_pj',
+            'percentualAntecipacaoPjConfigurado',
+            'percentual_antecipacao_pj',
+        );
+        $usarAntecipacaoPj = $this->resolverBooleano(
+            $v,
+            $formValues,
+            $snapshotParams,
+            'usar_antecipacao_pj',
+            'usarAntecipacaoPj',
+        );
 
         return [
             'percentualImpostos' => ((($v->pis_cofins ?? $defaults['pis_cofins']) + ($v->iss ?? $defaults['iss']) + ($v->outros_impostos ?? $defaults['outros_impostos'])) / 100),
@@ -277,7 +294,11 @@ class ViabilidadeUnificadoService
             'taxaJurosPj' => $this->resolverPercentual($v, $formValues, $snapshotParams, $defaults, ['taxa_juros_pj'], 'taxa_juros_pj', 'taxaJurosPj', 'taxa_juros_pj'),
             'carenciaPjMeses' => $this->resolverInteiro($v, $formValues, $snapshotParams, $defaults, ['carencia_pj_meses'], 'carencia_pj_meses', 'carenciaPjMeses', 'carencia_pj_meses'),
             'amortizacaoPjParcelas' => $this->resolverInteiro($v, $formValues, $snapshotParams, $defaults, ['amortizacao_pj_parcelas'], 'amortizacao_pj_parcelas', 'amortizacaoPjParcelas', 'amortizacao_pj_parcelas'),
-            'percentualAntecipacaoPj' => ($v->percentual_antecipacao_pj ?? $defaults['percentual_antecipacao_pj']) / 100,
+            'usarAntecipacaoPj' => $usarAntecipacaoPj,
+            'percentualAntecipacaoPjConfigurado' => $percentualAntecipacaoPjConfigurado,
+            'percentualAntecipacaoPj' => $usarAntecipacaoPj
+                ? $percentualAntecipacaoPjConfigurado
+                : 0.0,
             'aporteAdicionalMensal' => (float) ($v->aporte_adicional_mensal ?? $defaults['aporte_adicional_mensal']),
             'devolucaoAportePercentual' => ($v->devolucao_aporte_percentual ?? $defaults['devolucao_aporte_percentual']) / 100,
             'distribuicaoLucrosPercentualObra' => ($v->distribuicao_lucros_percentual_obra ?? $defaults['distribuicao_lucros_percentual_obra']) / 100,
@@ -390,5 +411,29 @@ class ViabilidadeUnificadoService
         }
 
         return (int) ($defaults[$defaultKey] ?? 0);
+    }
+
+    /**
+     * @param  array<string, mixed>  $formValues
+     * @param  array<string, mixed>  $snapshotParams
+     */
+    private function resolverBooleano(
+        ?Viabilidade $viabilidade,
+        array $formValues,
+        array $snapshotParams,
+        string $formKey,
+        string $snapshotParamKey,
+    ): bool {
+        $value = $viabilidade?->getAttribute($formKey);
+
+        if ($value === null && array_key_exists($formKey, $formValues)) {
+            $value = $formValues[$formKey];
+        }
+
+        if ($value === null && array_key_exists($snapshotParamKey, $snapshotParams)) {
+            $value = $snapshotParams[$snapshotParamKey];
+        }
+
+        return filter_var($value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE) ?? false;
     }
 }

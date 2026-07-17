@@ -124,8 +124,13 @@ class ViabilidadeRequest extends FormRequest
             'despesas_onerosas_bancos' => 'nullable|numeric|min:0|max:100',
             'taxa_juros_pj' => 'nullable|numeric|min:0|max:100',
             'carencia_pj_meses' => 'nullable|integer|min:0|max:120',
-            'amortizacao_pj_parcelas' => 'nullable|integer|min:0|max:240',
-            'percentual_antecipacao_pj' => 'nullable|numeric|min:0|max:100',
+            'amortizacao_pj_parcelas' => $this->boolean('usar_antecipacao_pj')
+                ? 'required|integer|min:1|max:240'
+                : 'nullable|integer|min:0|max:240',
+            'percentual_antecipacao_pj' => $this->boolean('usar_antecipacao_pj')
+                ? 'required|numeric|gt:0|max:100'
+                : 'nullable|numeric|min:0|max:100',
+            'usar_antecipacao_pj' => 'sometimes|boolean',
             'aporte_adicional_mensal' => 'nullable|numeric|min:0',
             'devolucao_aporte_percentual' => 'nullable|numeric|min:0|max:100',
             'distribuicao_lucros_percentual_obra' => 'nullable|numeric|min:0|max:100',
@@ -265,6 +270,7 @@ class ViabilidadeRequest extends FormRequest
             'carencia_pj_meses' => 'carência PJ em meses',
             'amortizacao_pj_parcelas' => 'amortização PJ em parcelas',
             'percentual_antecipacao_pj' => 'percentual de antecipação PJ',
+            'usar_antecipacao_pj' => 'uso da antecipação PJ',
             'aporte_adicional_mensal' => 'aporte adicional mensal',
             'devolucao_aporte_percentual' => 'devolução de aporte percentual',
             'distribuicao_lucros_percentual_obra' => 'distribuição de lucros percentual obra',
@@ -294,6 +300,7 @@ class ViabilidadeRequest extends FormRequest
             'produtos.*.permuta' => 'A permuta do produto é inválida.',
             '*.numeric' => 'O campo :attribute deve ser um número.',
             '*.min' => 'O campo :attribute deve ser maior ou igual a :min.',
+            '*.gt' => 'O campo :attribute deve ser maior que :value.',
             '*.max' => 'O campo :attribute deve ser menor ou igual a :max.',
         ];
     }

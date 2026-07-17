@@ -34,6 +34,7 @@ class ViabilidadeFactory extends Factory
             'prazo_lancamento' => fake()->numberBetween(6, 18),
             'prazo_incorporacao' => fake()->numberBetween(12, 36),
             'data_lancamento' => fake()->dateTimeBetween('+1 month', '+2 years')->format('Y-m-d'),
+            'usar_antecipacao_pj' => false,
             'status' => 'rascunho',
             'approval_status' => 'pendente',
             'resultados_dre' => null,

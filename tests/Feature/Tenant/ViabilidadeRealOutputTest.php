@@ -74,6 +74,7 @@ class ViabilidadeRealOutputTest extends TestCase
             'compra_terreno' => 10000000.00,
             'taxa_juros_pj' => 10.50,
             'percentual_antecipacao_pj' => 10.00,
+            'usar_antecipacao_pj' => true,
             'carencia_pj_meses' => 6,
             'amortizacao_pj_parcelas' => 18,
             'created_at' => $agora,
@@ -191,6 +192,7 @@ class ViabilidadeRealOutputTest extends TestCase
             'parceria_vgv' => 8.00, // ~R$55M sobre VGV
             'taxa_juros_pj' => 10.50,
             'percentual_antecipacao_pj' => 10.00,
+            'usar_antecipacao_pj' => true,
             'carencia_pj_meses' => 6,
             'amortizacao_pj_parcelas' => 18,
             'data_lancamento' => '2029-06-01',
@@ -333,6 +335,7 @@ class ViabilidadeRealOutputTest extends TestCase
             'prazo_lancamento' => 6, 'prazo_incorporacao' => 18,
             'compra_terreno' => 10000000.00, 'parceria_vgv' => 8.00,
             'taxa_juros_pj' => 10.50, 'percentual_antecipacao_pj' => 10.00,
+            'usar_antecipacao_pj' => true,
             'carencia_pj_meses' => 6, 'amortizacao_pj_parcelas' => 18,
             'data_lancamento' => '2029-06-01',
             'pis_cofins' => 4.00, 'iss' => 0.00, 'outros_impostos' => 0.50,
@@ -479,6 +482,7 @@ class ViabilidadeRealOutputTest extends TestCase
             'infra_nao_incidente' => 1.00,     // DRE R37 = 1% do VGV
             'taxa_juros_pj' => 10.50,
             'percentual_antecipacao_pj' => 10.00,
+            'usar_antecipacao_pj' => true,
             'carencia_pj_meses' => 6,
             'amortizacao_pj_parcelas' => 18,
             'data_lancamento' => '2029-06-01',
@@ -925,6 +929,7 @@ class ViabilidadeRealOutputTest extends TestCase
         Artisan::call('migrate', ['--path' => 'database/migrations/tenant/2026_04_27_200000_add_versionamento_e_snapshot.php']);
         Artisan::call('migrate', ['--path' => 'database/migrations/tenant/2026_04_27_210000_remove_global_fields_from_produtos_table.php']);
         Artisan::call('migrate', ['--path' => 'database/migrations/tenant/2026_04_27_211000_add_missing_fields_to_premissas_viabilidade_table.php']);
+        Artisan::call('migrate', ['--path' => 'database/migrations/tenant/2026_07_17_000000_add_usar_antecipacao_pj_to_viabilidades.php']);
         $this->garantirParametrosComerciaisDetalhadosEmPremissas();
         Artisan::call('migrate', ['--path' => 'database/migrations/tenant/2026_05_06_130000_remove_legacy_fields_from_produtos_and_premissas.php']);
 

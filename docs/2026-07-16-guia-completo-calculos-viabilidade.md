@@ -2,7 +2,7 @@
 
 > Documento funcional e técnico para orientar a página do frontend “Como funciona a viabilidade”.
 >
-> **Motor documentado:** `2.4.0`  
+> **Motor documentado:** `2.5.0`
 > **Referência validada:** planilha Cimcal v.02.2026 — Osvaldo Cruz  
 > **Atualizado em:** 16/07/2026  
 > **Fonte da verdade:** cálculo executado no backend. O frontend deve apresentar os resultados, nunca recalculá-los.
@@ -35,9 +35,10 @@ Ao criar a página, siga estas regras:
 5. Informe que todo resultado depende das premissas cadastradas, das curvas e do calendário do estudo.
 6. Use os nomes amigáveis deste documento nos textos e tooltips; use os caminhos da API somente na implementação.
 7. Solicite os blocos detalhados com `include` quando a tela precisar deles. A resposta padrão é resumida.
-8. Não apresente `aporte_adicional_mensal` nem `devolucao_aporte_percentual` como fórmulas ativas. Esses campos ainda existem no contrato de cadastro, mas o motor oficial `2.4.0` segue automaticamente a política de caixa da planilha: aporte do déficit e devolução de 25% ao mês, limitada ao total aportado.
+8. Não apresente `aporte_adicional_mensal` nem `devolucao_aporte_percentual` como fórmulas ativas. Esses campos ainda existem no contrato de cadastro, mas o motor oficial `2.5.0` segue automaticamente a política de caixa da planilha: aporte do déficit e devolução de 25% ao mês, limitada ao total aportado.
 9. Leia `calculation_engine_version` na resposta e mostre a versão usada em cada cálculo. Se vier `null`, identifique o registro como anterior ao versionamento disponível, sem assumir uma versão.
 10. Leia `warnings` e `reconciliation` diretamente na resposta padrão. Trate alertas e falhas de reconciliação como informação relevante, não como detalhe técnico descartável.
+11. Leia `usar_antecipacao_pj` como a decisão do estudo. Não presuma que um percentual configurado maior que zero significa dívida ativa.
 
 ## 3. Resumo em linguagem simples
 
@@ -123,6 +124,18 @@ O `PremissasViabilidadeSeeder` cria a premissa inicial **Padrão CEF** com os va
 Esses valores são **defaults de cadastro**, e não uma migração de dados. O seeder só cria o perfil CEF quando o tenant ainda não possui uma premissa CEF ativa; ele não altera uma premissa ativa existente. O perfil **Próprio** continua independente, pois a planilha de referência não contém um cenário próprio equivalente e validado.
 
 Dados específicos do produto ou terreno — como quantidade de unidades, preço, área privativa, custo por metro quadrado, curva de vendas e avaliação CEF — não pertencem ao seeder de premissas e continuam sendo informados no estudo. O valor residual `bonus_equipe_comercial = -728.286` reproduz especificamente o modelo canônico e deve ser revisto antes de ser adotado como política comercial geral.
+
+### 4.6 Uso opcional da antecipação PJ
+
+`usar_antecipacao_pj` é uma escolha de cada viabilidade, não uma premissa global. O percentual, a taxa, a carência e a quantidade de parcelas podem permanecer configurados mesmo quando a opção estiver desligada.
+
+```text
+percentual_antecipacao_PJ_efetivo = usar_antecipacao_pj
+                                    ? percentual_antecipacao_PJ_configurado
+                                    : 0
+```
+
+Quando a opção está desligada, o motor não gera principal, desembolso, juros, amortização ou saldo de dívida PJ. A necessidade de caixa passa a ser atendida pela política automática de aportes. Quando ligada, o cronograma único descrito neste guia é aplicado normalmente.
 
 ## 5. Produtos, unidades e valores-base
 
@@ -476,6 +489,8 @@ Principais campos:
 O fluxo operacional ainda não inclui aportes, devoluções e distribuição de lucros. O financiamento CEF dos clientes já aparece nas receitas de recurso terreno e medição; a antecipação PJ corporativa aparece na visão financeira.
 
 ## 11. Dívida PJ
+
+A dívida PJ só é calculada quando `usar_antecipacao_pj = true`. Um percentual configurado maior que zero, isoladamente, não ativa o cálculo.
 
 ### 11.1 Base e principal
 
@@ -838,7 +853,7 @@ As chaves de detalhes são normalizadas para `snake_case` na resposta pública. 
 
 Os três campos são retornados no nível superior de `data` sem necessidade de `include`:
 
-- `calculation_engine_version`: string da versão, como `2.4.0`; retorna `null` em snapshots antigos sem versão registrada;
+- `calculation_engine_version`: string da versão, como `2.5.0`; retorna `null` em snapshots antigos sem versão registrada;
 - `warnings`: lista de mensagens; retorna `[]` quando não há alertas ou o snapshot antigo não possui o campo;
 - `reconciliation`: objeto com `status`, `differences`, `warnings` e `checks`; retorna `null` quando indisponível em snapshot antigo.
 
@@ -871,7 +886,7 @@ O cenário usado para validar o motor possui:
 - 18 meses de incorporação, 6 de lançamento, 36 de obra e 60 de pós-obra;
 - perfil CEF.
 
-Resultados do motor `2.4.0`:
+Resultados do motor `2.5.0`, com `usar_antecipacao_pj = true`:
 
 | Métrica | Sistema |
 |---|---:|

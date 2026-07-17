@@ -83,7 +83,8 @@ class ViabilidadeApiTest extends TestCase
                     'reconciliation',
                 ],
             ])
-            ->assertJsonPath('data.calculation_engine_version', '2.4.0')
+            ->assertJsonPath('data.calculation_engine_version', '2.5.0')
+            ->assertJsonPath('data.viabilidade.usar_antecipacao_pj', true)
             ->assertJsonPath('data.warnings', [
                 'Custo de obra incorrido ultrapassou o orçamento POC.',
             ])
@@ -97,6 +98,7 @@ class ViabilidadeApiTest extends TestCase
             'id' => $viabilidadeId,
             'status' => 'rascunho',
             'approval_status' => 'pendente',
+            'usar_antecipacao_pj' => true,
         ]);
 
         $this->actingAs($this->admin)
@@ -166,6 +168,48 @@ class ViabilidadeApiTest extends TestCase
             ->getJson('/api/v1/viabilidades/terreno/'.$terrenoProduto->getAttribute('terreno_id').'/latest')
             ->assertOk()
             ->assertJsonPath('data.id', $duplicateId);
+    }
+
+    public function test_antecipacao_pj_desativada_preserva_configuracao_e_zera_divida(): void
+    {
+        $terrenoProduto = $this->createViabilityFixture();
+        $payload = [
+            ...$this->makePayload($terrenoProduto),
+            'usar_antecipacao_pj' => false,
+        ];
+
+        $response = $this->actingAs($this->admin)
+            ->postJson('/api/v1/viabilidades?include=dre,fluxo_mensal_financeiro,parametros_utilizados', $payload)
+            ->assertCreated()
+            ->assertJsonPath('data.viabilidade.usar_antecipacao_pj', false)
+            ->assertJsonPath('data.viabilidade.percentual_antecipacao_pj', 10)
+            ->assertJsonPath('data.parametros_utilizados.usar_antecipacao_pj', false)
+            ->assertJsonPath('data.parametros_utilizados.percentual_antecipacao_pj_configurado', 0.1)
+            ->assertJsonPath('data.parametros_utilizados.percentual_antecipacao_pj', 0)
+            ->assertJsonPath('data.indicadores.divida_pj.valor_antecipado', 0)
+            ->assertJsonPath('data.indicadores.divida_pj.juros_totais', 0)
+            ->assertJsonPath('data.dre.juros_pj', 0);
+
+        foreach ($response->json('data.fluxo_mensal_financeiro') as $mes) {
+            $this->assertSame(0.0, (float) $mes['entrada_antecipacao_pj']);
+            $this->assertSame(0.0, (float) $mes['pagamento_pj']);
+            $this->assertSame(0.0, (float) $mes['saldo_divida_pj']);
+        }
+
+        $viabilidadeId = (int) $response->json('data.viabilidade.id');
+        $reativada = $this->actingAs($this->admin)
+            ->putJson(
+                "/api/v1/viabilidades/{$viabilidadeId}?include=parametros_utilizados",
+                $this->makePayload($terrenoProduto),
+            )
+            ->assertOk()
+            ->assertJsonPath('data.viabilidade.usar_antecipacao_pj', true)
+            ->assertJsonPath('data.parametros_utilizados.percentual_antecipacao_pj', 0.1);
+
+        $this->assertGreaterThan(
+            0,
+            (float) $reativada->json('data.indicadores.divida_pj.valor_antecipado'),
+        );
     }
 
     public function test_calculation_metadata_has_safe_fallbacks_for_legacy_snapshots(): void
@@ -893,6 +937,11 @@ class ViabilidadeApiTest extends TestCase
         return [
             'terreno_id' => $terrenoProduto->getAttribute('terreno_id'),
             'prazo_obra' => 18,
+            'usar_antecipacao_pj' => true,
+            'taxa_juros_pj' => 10.5,
+            'carencia_pj_meses' => 6,
+            'amortizacao_pj_parcelas' => 18,
+            'percentual_antecipacao_pj' => 10,
             'produtos' => [
                 [
                     'id' => $terrenoProduto->getKey(),

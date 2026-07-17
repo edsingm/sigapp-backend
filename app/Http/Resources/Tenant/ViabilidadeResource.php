@@ -130,6 +130,7 @@ class ViabilidadeResource extends JsonResource
             'carencia_pj_meses' => $this->resolveIntValue(['carencia_pj_meses'], 'carencia_pj_meses', 'carenciaPjMeses', 'carencia_pj_meses'),
             'amortizacao_pj_parcelas' => $this->resolveIntValue(['amortizacao_pj_parcelas'], 'amortizacao_pj_parcelas', 'amortizacaoPjParcelas', 'amortizacao_pj_parcelas'),
             'percentual_antecipacao_pj' => (float) $this->percentual_antecipacao_pj,
+            'usar_antecipacao_pj' => (bool) $this->getAttribute('usar_antecipacao_pj'),
             'aporte_adicional_mensal' => (float) $this->aporte_adicional_mensal,
             'devolucao_aporte_percentual' => (float) $this->devolucao_aporte_percentual,
             'distribuicao_lucros_percentual_obra' => (float) $this->distribuicao_lucros_percentual_obra,

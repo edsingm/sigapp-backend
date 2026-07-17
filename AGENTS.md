@@ -66,7 +66,7 @@ Há duas formas de rodar localmente: **Herd/`composer dev`** (nativo, macOS) ou 
 ### Compose
 
 - **Dev (`docker-compose.yml`)**: services `back` (`sigapp-backend:1.0-dev`, porta 8000) e `redis` (`redis:7-alpine`). O **PostgreSQL não está no compose** — é um container/host externo chamado `database`, alcançado pela rede externa `database_sigapp` (precisa existir: `docker network create database_sigapp`). As variáveis de ambiente de dev (DB, Redis, CORS, Sanctum, `CENTRAL_DOMAINS=localhost,127.0.0.1,sigapp-backend`, Chromium) já vêm definidas no compose.
-- **Prod (`docker-compose.prod.yml`)**: target `prod`, porta interna `80` via `expose` (sem publicação no host), PostgreSQL/Redis externos gerenciados pelo Coolify, envs obrigatórios via `${VAR:?}` e healthcheck em `GET /api/health`.
+- **Prod (`docker-compose.prod.yml`)**: target `prod`, porta interna `80` via `expose` (sem publicação no host), PostgreSQL/Redis externos gerenciados pelo Coolify, envs obrigatórios via `${VAR:?}` e healthcheck em `GET /api/v1/health`.
 
 ### Produção — quem roda o quê
 
@@ -82,7 +82,7 @@ Há duas formas de rodar localmente: **Herd/`composer dev`** (nativo, macOS) ou 
 - Migrations de produção rodam explicitamente pelo script de release, nunca implicitamente no startup. Todo `down()` continua obrigatório e migrations aplicadas nunca devem ser editadas.
 - `route:cache`/`config:cache` rodam no deploy — não use closures em rotas de `routes/api.php`/`tenant.php` que quebrem o cache de rotas fora dos padrões já existentes, nem `env()` fora de `config/`.
 - O `.dockerignore` exclui `.env*` (exceto `.env.example`) — configuração de prod entra **somente** por variável de ambiente do compose.
-- O healthcheck de prod depende de `GET /api/health` (definido no final de `routes/api.php`) — não remova nem proteja essa rota com auth/throttle agressivo.
+- O healthcheck de prod depende de `GET /api/v1/health` (definido em `routes/api.php`) — não remova nem proteja essa rota com auth/throttle agressivo.
 
 ---
 

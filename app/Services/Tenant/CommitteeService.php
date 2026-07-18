@@ -180,7 +180,8 @@ class CommitteeService
                 'status' => $decision === 'reprovado_comite' ? 'reprovado_comite' : 'aprovado_comite',
                 'final_decision' => $decision,
                 'final_comments' => $data['final_comments'] ?? null,
-                'decided_by' => $user?->id,
+                // Sempre grava o autor da decisão (necessário para o card "Finalizado por").
+                'decided_by' => $user?->id ?? auth()->id(),
                 'decided_at' => now(),
             ]);
 

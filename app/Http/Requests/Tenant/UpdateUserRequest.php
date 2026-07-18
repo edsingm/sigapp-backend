@@ -34,7 +34,7 @@ class UpdateUserRequest extends FormRequest
                 'lowercase',
                 'email',
                 'max:255',
-                Rule::unique('users', 'email')->ignore($this->route('id')),
+                Rule::unique('users', 'email')->ignore($this->route('user')),
             ],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'department_id' => ['sometimes', 'required', 'integer', 'exists:departments,id'],
@@ -45,7 +45,7 @@ class UpdateUserRequest extends FormRequest
                 'nullable',
                 'string',
                 'max:14',
-                Rule::unique('users', 'cpf')->ignore($this->route('id')),
+                Rule::unique('users', 'cpf')->ignore($this->route('user')),
             ],
         ];
     }

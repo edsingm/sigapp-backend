@@ -29,7 +29,10 @@ class CommitteeRepository
                 'terreno.corretorExterno',
                 'terreno.viabilidadeAtual',
                 'viabilidade',
-                'pareceresDepartamento',
+                'pareceresDepartamento.reviewer.department',
+                'pareceresDepartamento.reviewer.roles',
+                'decidedBy.department',
+                'decidedBy.roles',
                 'pendencias',
             ]);
 
@@ -156,7 +159,10 @@ class CommitteeRepository
             'terreno.viabilidadeAtual.secoes',
             'terreno.viabilidadeAtual.aprovacoes.user',
             'viabilidade',
-            'pareceresDepartamento',
+            'pareceresDepartamento.reviewer.department',
+            'pareceresDepartamento.reviewer.roles',
+            'decidedBy.department',
+            'decidedBy.roles',
             'pendencias',
         ]);
     }

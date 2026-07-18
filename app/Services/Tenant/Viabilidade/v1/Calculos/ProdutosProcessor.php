@@ -128,6 +128,8 @@ class ProdutosProcessor
                 'quantidade_unidades' => $unidades,
                 'custo_m2' => $custoM2,
                 'custo_infraestrutura' => $custoInfra,
+                'custo_infra_por_lote' => $custoInfra,
+                'custo_infra' => $custoInfra,
                 'vgv_produto' => $vgvProduto,
                 'avaliacao_lotesCef' => $avaliacaoLotesCef,
                 'defasagem_pgtoTerreno' => $produto->defasagem_pgtoTerreno ?? 0,
@@ -225,16 +227,38 @@ class ProdutosProcessor
     }
 
     /**
+     * Curva anual de assistência técnica (pós-obra), em escala 0–100.
+     *
+     * No cadastro de produto os campos `assist_tecnica1..5` são persistidos
+     * como fração (0.5 = 50%). O motor de fluxo divide por 100 ao aplicar a
+     * curva; portanto precisamos normalizar para pontos percentuais.
+     *
      * @return list<float>
      */
     private function extrairAssistenciaTecnicaProduto(mixed $produto): array
     {
-        return [
-            (float) ($produto->assist_tecnica1 ?? 50),
-            (float) ($produto->assist_tecnica2 ?? 20),
-            (float) ($produto->assist_tecnica3 ?? 10),
-            (float) ($produto->assist_tecnica4 ?? 10),
-            (float) ($produto->assist_tecnica5 ?? 10),
+        $padrao = [50.0, 20.0, 10.0, 10.0, 10.0];
+        $raw = [
+            (float) ($produto->assist_tecnica1 ?? 0),
+            (float) ($produto->assist_tecnica2 ?? 0),
+            (float) ($produto->assist_tecnica3 ?? 0),
+            (float) ($produto->assist_tecnica4 ?? 0),
+            (float) ($produto->assist_tecnica5 ?? 0),
         ];
+
+        if (array_sum($raw) <= 0) {
+            return $padrao;
+        }
+
+        // Fração (0–1): converte para 0–100. Valores já em 0–100 permanecem.
+        $max = max($raw);
+        if ($max <= 1.0) {
+            return array_map(
+                static fn (float $value): float => round($value * 100, 6),
+                $raw
+            );
+        }
+
+        return $raw;
     }
 }

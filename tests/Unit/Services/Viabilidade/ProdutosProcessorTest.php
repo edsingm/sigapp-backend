@@ -80,4 +80,50 @@ class ProdutosProcessorTest extends TestCase
 
         $this->assertSame([45.0, 25.0, 15.0, 10.0, 5.0], $resultado['assistenciaTecnicaCurva']);
     }
+
+    public function test_extrair_assistencia_tecnica_converte_fracao_para_pontos_percentuais(): void
+    {
+        $processor = new ProdutosProcessor(new ImpostosService);
+        $method = new \ReflectionMethod(ProdutosProcessor::class, 'extrairAssistenciaTecnicaProduto');
+        $method->setAccessible(true);
+
+        $produtoFracao = (object) [
+            'assist_tecnica1' => 0.5,
+            'assist_tecnica2' => 0.2,
+            'assist_tecnica3' => 0.1,
+            'assist_tecnica4' => 0.1,
+            'assist_tecnica5' => 0.1,
+        ];
+
+        $this->assertSame(
+            [50.0, 20.0, 10.0, 10.0, 10.0],
+            $method->invoke($processor, $produtoFracao)
+        );
+
+        $produtoHumano = (object) [
+            'assist_tecnica1' => 45.0,
+            'assist_tecnica2' => 25.0,
+            'assist_tecnica3' => 15.0,
+            'assist_tecnica4' => 10.0,
+            'assist_tecnica5' => 5.0,
+        ];
+
+        $this->assertSame(
+            [45.0, 25.0, 15.0, 10.0, 5.0],
+            $method->invoke($processor, $produtoHumano)
+        );
+
+        $produtoZerado = (object) [
+            'assist_tecnica1' => 0,
+            'assist_tecnica2' => 0,
+            'assist_tecnica3' => 0,
+            'assist_tecnica4' => 0,
+            'assist_tecnica5' => 0,
+        ];
+
+        $this->assertSame(
+            [50.0, 20.0, 10.0, 10.0, 10.0],
+            $method->invoke($processor, $produtoZerado)
+        );
+    }
 }

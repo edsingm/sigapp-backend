@@ -188,6 +188,36 @@ class UserManagementWithDepartmentTest extends TestCase
         ]);
     }
 
+    public function test_updates_user_keeping_same_email(): void
+    {
+        $user = User::create([
+            'name' => 'Existing User',
+            'email' => 'existing@test.com',
+            'password' => Hash::make('password'),
+            'department_id' => $this->department->id,
+        ]);
+        $user->assignRole('user');
+
+        $response = $this->actingAs($this->admin)
+            ->putJson("/api/v1/tenant-admin/users/{$user->id}", [
+                'name' => 'Updated User',
+                'email' => $user->email,
+                'role' => 'user',
+                'department_id' => $this->department->id,
+                'status' => 'Active',
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.name', 'Updated User')
+            ->assertJsonPath('data.email', 'existing@test.com');
+
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'name' => 'Updated User',
+            'email' => 'existing@test.com',
+        ]);
+    }
+
     public function test_listing_returns_department_for_user(): void
     {
         $response = $this->actingAs($this->admin)

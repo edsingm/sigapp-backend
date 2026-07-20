@@ -53,4 +53,30 @@ class AclPermissionsRegistrationTest extends TestCase
             );
         }
     }
+
+    #[Test]
+    public function configuration_permissions_follow_the_role_visibility_matrix(): void
+    {
+        $expectedLevels = [
+            RolesEnum::ADMIN->value => 'manager',
+            RolesEnum::DIRECTOR->value => 'viewer',
+            RolesEnum::MANAGER->value => 'viewer',
+            RolesEnum::SUPERVISOR->value => 'viewer',
+            RolesEnum::ANALYST->value => null,
+            RolesEnum::USER->value => null,
+        ];
+
+        foreach ($expectedLevels as $role => $expectedLevel) {
+            $path = database_path('rbacTemplates/'.strtolower($role).'.json');
+
+            /** @var array{permissions: array<string, mixed>} $template */
+            $template = json_decode((string) file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
+
+            $this->assertSame(
+                $expectedLevel,
+                $template['permissions'][ModulesEnum::CONFIGURATIONS->value] ?? null,
+                "Permissão de configurações incorreta para {$role}."
+            );
+        }
+    }
 }

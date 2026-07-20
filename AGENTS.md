@@ -283,6 +283,7 @@ Este projeto tem um **envelope próprio**. Não invente formato novo:
 - Permissões por módulo/submódulo: `App\Enums\Common\ModulesEnum` (`admin`, `configurations`, `prospection`, `brokers`, `data`, `dashboard`, `committee`, `legal`, `negotiation`, `projects`, `reports`, `viability`, `ai`) + `SubmodulesEnum`; nomes resolvidos por `Services\Acl\PermissionNameResolver`.
 - O que o tenant pode usar é a interseção de: **plano/entitlements** (middleware `check.feature`, `enforce.limits`, `subscription.active`) + **RBAC do usuário** (middleware `permission.gate`, FormRequest `authorize()`).
 - Templates de permissão por plano: `database/rbacTemplates/` + `PlanRolePermissionTemplate` + comandos `rbac:apply-templates` e `tenants:sync-acl`.
+- No módulo `configurations`, os templates padrão concedem `manager` ao ADMIN, `viewer` a DIRECTOR/MANAGER/SUPERVISOR e nenhum acesso a ANALYST/USER; Personalização é uma área comum do frontend e Faturamento permanece exclusivo do ADMIN.
 - Autorização acontece **antes** do Service (rota/middleware/FormRequest). **Services nunca tratam autorização.**
 - Helper `user()` (em `app/Support/helpers.php`) retorna `UserContext` — use `user()->getType()` (`UserType::SIGAPP|TENANT`), não checagens manuais de classe.
 

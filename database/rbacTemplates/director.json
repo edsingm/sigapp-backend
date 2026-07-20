@@ -3,7 +3,7 @@
     "role": "DIRECTOR",
     "permissions": {
         "admin": null,
-        "configurations": null,
+        "configurations": "viewer",
         "prospection": {
             "terrains": "manager",
             "maps": "manager"

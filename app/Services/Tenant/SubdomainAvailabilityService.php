@@ -14,6 +14,7 @@ class SubdomainAvailabilityService
     public function __construct(
         private readonly TenantRepositoryInterface $tenantRepository,
         private readonly DomainRepositoryInterface $domainRepository,
+        private readonly SubdomainPolicyService $subdomainPolicy,
     ) {}
 
     /**
@@ -22,6 +23,14 @@ class SubdomainAvailabilityService
     public function check(string $subdomain): array
     {
         $normalizedSubdomain = Str::slug($subdomain);
+
+        if ($this->subdomainPolicy->isReserved($normalizedSubdomain)) {
+            return [
+                'available' => false,
+                'normalized_subdomain' => $normalizedSubdomain,
+                'message_key' => 'SUBDOMAIN_UNAVAILABLE',
+            ];
+        }
 
         $tenant = $this->tenantRepository->findBySlug($normalizedSubdomain);
         $domain = $this->domainRepository->findByDomain($normalizedSubdomain);

@@ -6,6 +6,7 @@ use App\Exceptions\SignupSlugReservedException;
 use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
 use App\Services\Billing\TenantBillingService;
+use App\Services\Tenant\SubdomainPolicyService;
 use App\Traits\LogsAudit;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -18,6 +19,7 @@ class TenantSignupService
 
     public function __construct(
         private readonly TenantBillingService $billingService,
+        private readonly SubdomainPolicyService $subdomainPolicy,
     ) {}
 
     /**
@@ -32,6 +34,11 @@ class TenantSignupService
     {
         $requestedSlug = (string) ($validated['slug'] ?? '');
         $effectiveSlug = Str::slug($requestedSlug);
+
+        if ($this->subdomainPolicy->isReserved($effectiveSlug)) {
+            throw new SignupSlugReservedException('SUBDOMAIN_UNAVAILABLE');
+        }
+
         $contractConfig = $this->getSignupUsageContractConfig();
 
         ['tenant' => $tenant, 'trial_eligible' => $trialEligible] = DB::transaction(function () use ($validated, $plan, $ipAddress, $userAgent, $contractConfig, $requestedSlug, $effectiveSlug) {

@@ -23,8 +23,14 @@ use Stancl\Tenancy\UniqueIdentifierGenerators\ULIDGenerator;
 use Stancl\Tenancy\UniqueIdentifierGenerators\UUIDv7Generator;
 use Stancl\Tenancy\UUIDGenerator;
 
+$applicationDomain = strtolower(trim((string) env('APP_DOMAIN', 'sigapp.com.br')));
+$applicationDomain = $applicationDomain !== '' ? $applicationDomain : 'sigapp.com.br';
+
 $baseCentralDomains = [
-    env('APP_DOMAIN', 'sigapp.com.br'),
+    $applicationDomain,
+    'app.'.$applicationDomain,
+    'admin.'.$applicationDomain,
+    'www.'.$applicationDomain,
     'localhost',
     '127.0.0.1',
 ];
@@ -37,6 +43,33 @@ $extraCentralDomains = array_filter(array_map(
 $centralDomains = array_values(array_unique(array_merge(
     $baseCentralDomains,
     $extraCentralDomains,
+)));
+
+$defaultReservedSubdomains = [
+    'smtp',
+    'mail',
+    'imap',
+    'pop3',
+    'autodiscover',
+    'autoconfig',
+    'cdn',
+    'assets',
+    'status',
+    'support',
+    'docs',
+    'billing',
+    'auth',
+    'static',
+];
+
+$extraReservedSubdomains = array_filter(array_map(
+    static fn (string $subdomain): string => strtolower(trim($subdomain)),
+    explode(',', (string) env('TENANCY_RESERVED_SUBDOMAINS', ''))
+), static fn (string $subdomain): bool => $subdomain !== '');
+
+$reservedSubdomains = array_values(array_unique(array_merge(
+    $defaultReservedSubdomains,
+    $extraReservedSubdomains,
 )));
 
 /**
@@ -104,6 +137,12 @@ return [
          * Only relevant if you're using the domain or subdomain identification middleware.
          */
         'central_domains' => $centralDomains,
+
+        /**
+         * Subdomain labels unavailable for tenant signup. Labels used by
+         * central_domains are also reserved dynamically by SubdomainPolicyService.
+         */
+        'reserved_subdomains' => $reservedSubdomains,
 
         /**
          * The default middleware used for tenant identification.

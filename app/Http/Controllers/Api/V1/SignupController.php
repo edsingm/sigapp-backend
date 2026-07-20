@@ -71,7 +71,7 @@ class SignupController extends Controller
         } catch (ValidationException $e) {
             return ApiResponseService::validationError($e->errors());
         } catch (SignupSlugReservedException $e) {
-            return ApiResponseService::conflict('SUBDOMAIN_RESERVED');
+            return ApiResponseService::conflict($e->messageKey);
         } catch (TenantDatabaseAlreadyExistsException $e) {
             $this->audit('tenant.signup_failed', 'Signup falhou: banco de dados do tenant já existe.', [
                 'error' => $e->getMessage(),

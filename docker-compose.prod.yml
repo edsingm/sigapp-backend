@@ -15,6 +15,7 @@ services:
       APP_URL: ${APP_URL:?APP_URL is required}
       APP_DOMAIN: ${APP_DOMAIN:?APP_DOMAIN is required}
       CENTRAL_DOMAINS: ${CENTRAL_DOMAINS:?CENTRAL_DOMAINS is required}
+      TENANCY_RESERVED_SUBDOMAINS: ${TENANCY_RESERVED_SUBDOMAINS:-smtp,mail,imap,pop3,autodiscover,autoconfig,cdn,assets,status,support,docs,billing,auth,static}
       LOG_CHANNEL: ${LOG_CHANNEL:-stderr}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       DB_CONNECTION: pgsql

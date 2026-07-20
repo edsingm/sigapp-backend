@@ -70,16 +70,19 @@ class InitializeTenancyFlexible
     {
         $host = $request->getHost();
         $centralDomains = config('tenancy.identification.central_domains', []);
+        $hostLower = strtolower($host);
+
+        $normalizedCentralDomains = array_map(
+            static fn (mixed $domain): string => strtolower(trim((string) $domain)),
+            (array) $centralDomains,
+        );
+
+        if (in_array($hostLower, $normalizedCentralDomains, true)) {
+            return null;
+        }
 
         // Verifica se o host é um subdomínio de um domínio central
-        foreach ($centralDomains as $centralDomain) {
-            $centralDomain = strtolower($centralDomain);
-            $hostLower = strtolower($host);
-
-            if ($centralDomain === $hostLower) {
-                // Correspondência exata = domínio central, sem subdomínio
-                continue;
-            }
+        foreach ($normalizedCentralDomains as $centralDomain) {
 
             // Verifica se o host termina com .centralDomain (ex: ed2.localhost ou ed2.sigapp.com.br)
             $suffix = '.'.$centralDomain;

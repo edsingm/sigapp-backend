@@ -48,6 +48,7 @@ class ServicesArchitectureTest extends TestCase
         'app/Services/Tenant/TerrenoAiReportMapRenderer.php',
         'app/Services/Tenant/TerrenoAiNarrativeService.php',
         'app/Services/Tenant/AiReportGenerationService.php',
+        'app/Services/Tenant/SubdomainPolicyService.php',
     ];
 
     /**

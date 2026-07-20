@@ -7,6 +7,7 @@ use App\Http\Middleware\AiRateLimit;
 use App\Http\Middleware\ApiRequestLogger;
 use App\Http\Middleware\CheckFeature;
 use App\Http\Middleware\CheckSubscriptionStatus;
+use App\Http\Middleware\EnforceHostAccess;
 use App\Http\Middleware\EnforcePlanLimits;
 use App\Http\Middleware\EnsureCentralContext;
 use App\Http\Middleware\EnsureCentralUser;
@@ -39,6 +40,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(SecurityHeaders::class);
+        $middleware->append(EnforceHostAccess::class);
 
         // Add global middleware aliases
         $middleware->alias([

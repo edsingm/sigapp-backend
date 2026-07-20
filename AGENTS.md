@@ -102,7 +102,8 @@ Tudo neste backend é dividido em **dois contextos**. Antes de tocar em qualquer
 
 Regras:
 
-- **Identificação do tenant**: subdomínio em produção; header `X-Tenant` apenas em `local`/`testing`/`development` (middleware `App\Http\Middleware\InitializeTenancyFlexible`).
+- **Identificação do tenant**: subdomínio em produção; header `X-Tenant` apenas em `local`/`testing`/`development` (middleware `App\Http\Middleware\InitializeTenancyFlexible`). O middleware global `EnforceHostAccess` libera somente hosts centrais exatos e slugs de tenants cadastrados; navegação segura (`GET`/`HEAD`, fora de `/api`) em subdomínio desconhecido de `APP_DOMAIN` redireciona temporariamente para `FRONTEND_URL`, enquanto APIs e métodos mutáveis retornam `404 TENANT_NOT_FOUND`.
+- Subdomínios centrais (`app`, `admin`, `www`) e nomes de infraestrutura configurados em `TENANCY_RESERVED_SUBDOMAINS` são indisponíveis para signup. Serviços DNS como `smtp` ficam reservados, mas não são tratados como aplicações HTTP. Ao adicionar um host web central, inclua o domínio completo em `CENTRAL_DOMAINS`; ao adicionar um nome DNS que nunca poderá ser tenant, inclua seu label em `TENANCY_RESERVED_SUBDOMAINS`.
 - Os middlewares `central.context` (`EnsureCentralContext`) e `tenant.context` (`EnsureTenantContext`) garantem que a rota roda no contexto certo — **toda rota nova deve declarar um deles**.
 - `auth.central` / `auth.tenant` garantem que o usuário autenticado pertence ao contexto (guard Sanctum é compartilhado).
 - Nunca referencie um model `Central` dentro de código tenant (e vice-versa) sem necessidade explícita — quando precisar (ex.: `Tenant`, `Plan`), acesse via serviço/`tenancy()`.
@@ -289,7 +290,7 @@ Este projeto tem um **envelope próprio**. Não invente formato novo:
 
 #### Aliases de middleware (bootstrap/app.php)
 
-`force.json`, `tenant.logs`, `api.logger`, `central.context`, `tenant.context`, `auth.central`, `auth.tenant`, `enforce.limits`, `subscription.active`, `central.admin`, `tenant.admin`, `user.admin`, `permission.gate`, `check.feature`, `ai.rate_limit`, `ai.budget` — além do grupo `tenant` (`InitializeTenancyFlexible`) e do global `SecurityHeaders`.
+`force.json`, `tenant.logs`, `api.logger`, `central.context`, `tenant.context`, `auth.central`, `auth.tenant`, `enforce.limits`, `subscription.active`, `central.admin`, `tenant.admin`, `user.admin`, `permission.gate`, `check.feature`, `ai.rate_limit`, `ai.budget` — além do grupo `tenant` (`InitializeTenancyFlexible`) e dos globais `SecurityHeaders` e `EnforceHostAccess`.
 
 ### 9. Rotas da API
 

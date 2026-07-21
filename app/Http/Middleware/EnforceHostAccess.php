@@ -30,6 +30,10 @@ class EnforceHostAccess
         $applicationDomain = $this->normalizeHost((string) config('app.domain', 'sigapp.com.br'));
         $tenantSlug = $this->tenantSlug($host, $applicationDomain);
 
+        if ($tenantSlug === null && app()->environment(['local', 'testing', 'development'])) {
+            $tenantSlug = $this->tenantSlug($host, 'localhost');
+        }
+
         if ($tenantSlug !== null && $this->tenantRepository->existsBySlug($tenantSlug)) {
             return $next($request);
         }

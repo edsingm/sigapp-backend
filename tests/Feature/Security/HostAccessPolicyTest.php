@@ -72,6 +72,21 @@ class HostAccessPolicyTest extends TestCase
             ->assertNoContent();
     }
 
+    public function test_registered_localhost_tenant_subdomain_is_allowed_outside_production(): void
+    {
+        $tenant = Tenant::create([
+            'name' => 'Tenant Local',
+            'slug' => 'tenant-local',
+            'status' => Tenant::STATUS_ACTIVE,
+        ]);
+
+        $tenant->domains()->create(['domain' => 'tenant-local']);
+
+        $this
+            ->get('http://tenant-local.localhost/__host-policy-probe')
+            ->assertNoContent();
+    }
+
     /**
      * @return array<string, array{string}>
      */

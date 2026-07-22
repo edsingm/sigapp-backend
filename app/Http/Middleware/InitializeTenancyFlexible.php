@@ -77,12 +77,11 @@ class InitializeTenancyFlexible
             (array) $centralDomains,
         );
 
-        // Clientes mobile/API em localhost usam X-Tenant (não conseguem apontar o Host
-        // para `{slug}.localhost` de forma confiável no iOS Simulator / ATS).
-        // Precisa ser avaliado ANTES do early-return de domínios centrais.
-        if (app()->environment(['local', 'testing', 'development']) && $request->hasHeader('X-Tenant')) {
+        // Clientes mobile/API acessam o backend por um host central e identificam
+        // o tenant por header. Em hosts tenant, o subdomínio continua soberano.
+        if (in_array($hostLower, $normalizedCentralDomains, true) && $request->hasHeader('X-Tenant')) {
             $headerValue = (string) $request->header('X-Tenant', '');
-            // Aceita apenas slugs alfanuméricos com hífen (sem injeção de caracteres especiais)
+
             if (preg_match('/^[a-z0-9\-]{1,63}$/i', $headerValue)) {
                 return strtolower($headerValue);
             }

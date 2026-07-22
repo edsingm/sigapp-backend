@@ -34,6 +34,39 @@ class InitializeTenancyFlexibleTest extends TestCase
         $this->assertSame('tenant-cadastrado', $this->resolveTenantSlug($request));
     }
 
+    public function test_central_api_host_resolves_mobile_tenant_header(): void
+    {
+        config()->set('tenancy.identification.central_domains', [
+            'sigapp.com.br',
+            'api.sigapp.com.br',
+        ]);
+
+        $request = Request::create('https://api.sigapp.com.br/api/v1/auth/exchange-ticket');
+        $request->headers->set('X-Tenant', 'Construtora-Halz4');
+
+        $this->assertSame('construtora-halz4', $this->resolveTenantSlug($request));
+    }
+
+    public function test_tenant_host_takes_precedence_over_mobile_header(): void
+    {
+        config()->set('tenancy.identification.central_domains', ['sigapp.com.br']);
+
+        $request = Request::create('https://tenant-cadastrado.sigapp.com.br/api/v1/auth/start');
+        $request->headers->set('X-Tenant', 'outro-tenant');
+
+        $this->assertSame('tenant-cadastrado', $this->resolveTenantSlug($request));
+    }
+
+    public function test_central_api_host_rejects_invalid_mobile_tenant_header(): void
+    {
+        config()->set('tenancy.identification.central_domains', ['api.sigapp.com.br']);
+
+        $request = Request::create('https://api.sigapp.com.br/api/v1/auth/start');
+        $request->headers->set('X-Tenant', '../outro-tenant');
+
+        $this->assertNull($this->resolveTenantSlug($request));
+    }
+
     private function resolveTenantSlug(Request $request): ?string
     {
         $middleware = app(InitializeTenancyFlexible::class);

@@ -342,9 +342,12 @@ class CentralLoginBrokerService
     private function resolveTenantUrl(Tenant $tenant): ?string
     {
         $domain = $tenant->domains()->orderBy('id')->value('domain');
+        $baseDomain = trim((string) config('app.domain', ''));
 
         if (! is_string($domain) || $domain === '') {
-            $baseDomain = (string) (config('tenancy.identification.central_domains')[0] ?? config('app.domain') ?? '');
+            $baseDomain = $baseDomain !== ''
+                ? $baseDomain
+                : (string) (config('tenancy.identification.central_domains')[0] ?? '');
             if ($baseDomain === '') {
                 return null;
             }
@@ -355,6 +358,14 @@ class CentralLoginBrokerService
 
         if (Str::startsWith($domain, ['http://', 'https://'])) {
             return rtrim($domain, '/');
+        }
+
+        if (! str_contains($domain, '.')) {
+            if ($baseDomain === '') {
+                return null;
+            }
+
+            $domain .= '.'.$baseDomain;
         }
 
         $scheme = $this->preferredScheme();

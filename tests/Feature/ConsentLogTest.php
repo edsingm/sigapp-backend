@@ -13,7 +13,7 @@ class ConsentLogTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_same_consent_id_is_updated_instead_of_creating_duplicates(): void
+    public function test_same_consent_id_creates_an_append_only_history(): void
     {
         $consentId = (string) Str::uuid();
 
@@ -52,19 +52,30 @@ class ConsentLogTest extends TestCase
             ]);
 
         $secondResponse->assertOk();
-        $this->assertDatabaseCount('consent_logs', 1);
+        $this->assertDatabaseCount('consent_logs', 2);
 
-        $consentLog = ConsentLog::query()->firstOrFail();
+        $consentLogs = ConsentLog::query()
+            ->where('consent_id', $consentId)
+            ->orderBy('id')
+            ->get();
 
-        $this->assertSame($consentId, $consentLog->consent_id);
-        $this->assertSame('1.1', $consentLog->version);
+        $this->assertSame('1.0', $consentLogs[0]->version);
+        $this->assertSame([
+            'functional' => true,
+            'analytics' => false,
+            'marketing' => false,
+        ], $consentLogs[0]->categories);
+        $this->assertSame('Browser A', $consentLogs[0]->user_agent);
+
+        $this->assertSame($consentId, $consentLogs[1]->consent_id);
+        $this->assertSame('1.1', $consentLogs[1]->version);
         $this->assertSame([
             'functional' => true,
             'analytics' => true,
             'marketing' => true,
-        ], $consentLog->categories);
-        $this->assertSame('Browser B', $consentLog->user_agent);
-        $this->assertTrue($consentLog->consented_at->equalTo(Carbon::parse($secondTimestamp)));
+        ], $consentLogs[1]->categories);
+        $this->assertSame('Browser B', $consentLogs[1]->user_agent);
+        $this->assertTrue($consentLogs[1]->consented_at->equalTo(Carbon::parse($secondTimestamp)));
     }
 
     public function test_consent_log_route_uses_dedicated_aggressive_throttle(): void

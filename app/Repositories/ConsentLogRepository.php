@@ -8,16 +8,18 @@ use App\Models\ConsentLog;
 
 class ConsentLogRepository
 {
+    public function existsByConsentId(string $consentId): bool
+    {
+        return ConsentLog::query()
+            ->where('consent_id', $consentId)
+            ->exists();
+    }
+
     /**
-     * Cria ou atualiza o registro de consentimento pelo consent_id.
-     *
      * @param  array<string, mixed>  $attributes
      */
-    public function updateOrCreateByConsentId(string $consentId, array $attributes): ConsentLog
+    public function create(array $attributes): ConsentLog
     {
-        return ConsentLog::query()->updateOrCreate(
-            ['consent_id' => $consentId],
-            $attributes,
-        );
+        return ConsentLog::query()->create($attributes);
     }
 }

@@ -22,15 +22,16 @@ class ConsentLogController extends Controller
      */
     public function store(StoreConsentLogRequest $request): Response
     {
-        $consentLog = $this->consentLogService->register(
+        $result = $this->consentLogService->register(
             $request->validated(),
             $request->ip(),
             $request->userAgent(),
         );
 
+        $consentLog = $result['consent_log'];
         $payload = ['consent_id' => $consentLog->getAttribute('consent_id')];
 
-        return $consentLog->wasRecentlyCreated
+        return $result['is_first_for_consent']
             ? ApiResponseService::created($payload)
             : ApiResponseService::success($payload);
     }

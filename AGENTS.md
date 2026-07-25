@@ -273,7 +273,7 @@ Este projeto tem um **envelope próprio**. Não invente formato novo:
 
 #### Fluxos de autenticação (Sanctum, tokens Bearer)
 
-1. **Login central (broker)**: `POST /api/v1/auth/login` (domínio central) → `CentralAuthController` + `CentralLoginBrokerService` resolvem os tenants do e-mail (via `TenantUserDirectory`) → `POST /auth/select-tenant` emite um **transfer ticket** → o frontend chama `POST /api/v1/auth/exchange-ticket` no **subdomínio do tenant** e recebe o token Sanctum do tenant.
+1. **Login central (broker)**: `POST /api/v1/auth/login` (domínio central) → `CentralAuthController` + `CentralLoginBrokerService` resolvem os tenants do e-mail (via `TenantUserDirectory`) → `POST /auth/select-tenant` emite um **transfer ticket** → o frontend chama `POST /api/v1/auth/exchange-ticket` no **subdomínio do tenant** e recebe o token Sanctum do tenant. A sessão temporária do broker é vinculada ao IP que iniciou o login; a seleção feita por outro IP falha com a mesma resposta genérica de sessão inválida.
 2. **Login direto no tenant**: `POST /api/v1/auth/login` no subdomínio (`TenantAuthController`/`TenantLoginService`).
 3. **Login admin da plataforma**: `POST /api/v1/admin/login` (`AdminController`), protegido por `central.admin` (`EnsureUserIsAdmin`).
 4. Reset de senha do tenant funciona tanto pelo domínio central quanto pelo do tenant (`TenantPasswordResetController`; URLs geradas por `App\Support\TenantAppUrl`).
@@ -385,7 +385,7 @@ Fluxo macro do terreno (enum `WorkflowStatus`, orquestrado por `LandWorkflowServ
 
 ### 17. LGPD / Privacidade / Segurança
 
-- Consentimento de cookies: `POST /api/v1/consent-log` (público, rate-limited 5/min) + retenção via `privacy:cleanup-consent-logs` (config `privacy.php`); termos de uso versionados no tenant (`TermoDeUsoVersao`). Config `legal.php`.
+- Consentimento de cookies: `POST /api/v1/consent-log` (público, rate-limited 5/min) grava uma trilha **append-only**; mudanças para o mesmo `consent_id` criam novas linhas e nunca sobrescrevem o histórico. A retenção roda via `privacy:cleanup-consent-logs` (config `privacy.php`); termos de uso versionados no tenant (`TermoDeUsoVersao`). Config `legal.php`.
 - Auditoria: trait `LogsAudit` + `AuditLog` (central, consultável em `/admin/audit-logs`); auditoria RBAC em `scripts/security/audit_tenant_rbac.php` e `docs/security/`.
 - `SecurityHeaders` é global; **rate limiting em toda rota** (ver seção 9); `APP_DEBUG=false` em produção; nunca commite `.env` (o `.env.example` lista todas as variáveis, sem valores — **atualize-o ao criar variável nova**).
 - Nunca confie em dados do cliente para permissões, preços ou tenant-id (o header `X-Tenant` só vale fora de produção).

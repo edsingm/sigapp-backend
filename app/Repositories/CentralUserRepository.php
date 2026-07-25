@@ -30,7 +30,19 @@ class CentralUserRepository implements CentralUserRepositoryInterface
      */
     public function create(array $data): User
     {
-        return User::query()->create($data);
+        $isAdmin = array_key_exists('is_admin', $data) ? (bool) $data['is_admin'] : null;
+        unset($data['is_admin']);
+
+        $user = new User;
+        $user->fill($data);
+
+        if ($isAdmin !== null) {
+            $user->forceFill(['is_admin' => $isAdmin]);
+        }
+
+        $user->save();
+
+        return $user;
     }
 
     /**
@@ -38,7 +50,16 @@ class CentralUserRepository implements CentralUserRepositoryInterface
      */
     public function update(User $user, array $data): User
     {
-        $user->update($data);
+        $isAdmin = array_key_exists('is_admin', $data) ? (bool) $data['is_admin'] : null;
+        unset($data['is_admin']);
+
+        $user->fill($data);
+
+        if ($isAdmin !== null) {
+            $user->forceFill(['is_admin' => $isAdmin]);
+        }
+
+        $user->save();
 
         return $user->refresh();
     }

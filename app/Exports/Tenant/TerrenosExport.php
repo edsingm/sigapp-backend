@@ -108,19 +108,32 @@ class TerrenosExport implements FromCollection, ShouldAutoSize, WithHeadings, Wi
 
     public function map($terreno): array
     {
+        $regional = preg_replace('/^Regional\s+/i', '', $terreno->regional?->nome ?? '') ?? '';
+
         return [
             $terreno->id,
-            $terreno->nome,
-            $terreno->cidade?->name ?? $terreno->cidade_code ?? '',
-            $terreno->estado ?? '',
+            $this->sanitizeSpreadsheetText($terreno->nome),
+            $this->sanitizeSpreadsheetText($terreno->cidade?->name ?? $terreno->cidade_code ?? ''),
+            $this->sanitizeSpreadsheetText($terreno->estado ?? ''),
             $terreno->area_calculada ?? '',
             $terreno->total_unidades ?? '',
             $terreno->valor ?? '',
-            $terreno->responsavel?->name ?? '',
-            LandWorkflowService::statuses()[$terreno->workflow_status_code]['label'] ?? '',
+            $this->sanitizeSpreadsheetText($terreno->responsavel?->name ?? ''),
+            $this->sanitizeSpreadsheetText(
+                LandWorkflowService::statuses()[$terreno->workflow_status_code]['label'] ?? ''
+            ),
             $terreno->created_at ? $terreno->created_at->format('d/m/Y') : '',
-            preg_replace('/^Regional\s+/i', '', $terreno->regional?->nome ?? ''),
+            $this->sanitizeSpreadsheetText($regional),
         ];
+    }
+
+    private function sanitizeSpreadsheetText(string $value): string
+    {
+        if (preg_match('/^[=+\-@\t\r]/', $value) === 1) {
+            return "'".$value;
+        }
+
+        return $value;
     }
 
     public function styles(Worksheet $sheet): array

@@ -29,14 +29,13 @@ class BootstrapCentralAdminCommand extends Command
             return self::FAILURE;
         }
 
-        User::query()->updateOrCreate(
-            ['email' => $email],
-            [
-                'name' => $name,
-                'password' => $password,
-                'is_admin' => true,
-            ]
-        );
+        $admin = User::query()->firstOrNew(['email' => $email]);
+        $admin->fill([
+            'name' => $name,
+            'password' => $password,
+        ]);
+        $admin->forceFill(['is_admin' => true]);
+        $admin->save();
 
         $this->info('Administrador central local configurado com sucesso.');
 

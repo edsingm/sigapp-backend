@@ -174,11 +174,10 @@ class BlogApiTest extends TestCase
 
     private function makeAuthor(): User
     {
-        return User::create([
+        return User::factory()->admin()->createOne([
             'name' => 'Autor Teste',
             'email' => 'autor'.uniqid().'@test.com',
             'password' => Hash::make('password'),
-            'is_admin' => true,
         ]);
     }
 }

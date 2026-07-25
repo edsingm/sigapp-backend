@@ -1,9 +1,12 @@
 <?php
 
 $appDomain = trim((string) env('APP_DOMAIN', 'sigapp.com.br'));
-$allowedOriginPatterns = [
-    '/https?:\/\/(.+)?\.localhost(:\d+)?$/',
-];
+$isLocalEnvironment = in_array((string) env('APP_ENV', 'production'), ['local', 'testing'], true);
+$allowedOriginPatterns = [];
+
+if ($isLocalEnvironment) {
+    $allowedOriginPatterns[] = '/https?:\/\/(.+)?\.localhost(:\d+)?$/';
+}
 
 if ($appDomain !== '' && ! in_array($appDomain, ['localhost', '127.0.0.1'], true)) {
     $scheme = env('APP_ENV') === 'production' ? 'https' : 'https?';
@@ -28,7 +31,13 @@ return [
 
     'allowed_origins' => array_values(array_filter(array_map(
         static fn (string $origin): string => trim($origin),
-        explode(',', env('CORS_ALLOWED_ORIGINS', 'http://localhost:8080,http://localhost:3000'))
+        explode(
+            ',',
+            (string) env(
+                'CORS_ALLOWED_ORIGINS',
+                $isLocalEnvironment ? 'http://localhost:8080,http://localhost:3000' : ''
+            )
+        )
     ))),
 
     'allowed_origins_patterns' => $allowedOriginPatterns,

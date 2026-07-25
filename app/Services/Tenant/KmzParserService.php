@@ -8,6 +8,10 @@ use ZipArchive;
 
 class KmzParserService
 {
+    private const int MAX_ARCHIVE_ENTRIES = 100;
+
+    private const int MAX_UNCOMPRESSED_KML_BYTES = 20 * 1024 * 1024;
+
     /**
      * Parseia um arquivo .kml ou .kmz e retorna as coordenadas do polígono.
      *
@@ -49,23 +53,53 @@ class KmzParserService
             throw new RuntimeException("Não foi possível abrir o arquivo KMZ (código de erro: {$result}).");
         }
 
-        $kmlContent = null;
+        if ($zip->numFiles > self::MAX_ARCHIVE_ENTRIES) {
+            $zip->close();
 
-        for ($i = 0; $i < $zip->numFiles; $i++) {
-            $name = $zip->getNameIndex($i);
-            if ($name !== false && strtolower(pathinfo($name, PATHINFO_EXTENSION)) === 'kml') {
-                $kmlContent = $zip->getFromIndex($i);
-                break;
+            throw new RuntimeException('O arquivo KMZ contém itens demais para ser processado com segurança.');
+        }
+
+        try {
+            for ($i = 0; $i < $zip->numFiles; $i++) {
+                $name = $zip->getNameIndex($i);
+                if ($name === false || strtolower(pathinfo($name, PATHINFO_EXTENSION)) !== 'kml') {
+                    continue;
+                }
+
+                $metadata = $zip->statIndex($i);
+                if (
+                    is_array($metadata)
+                    && $metadata['size'] > self::MAX_UNCOMPRESSED_KML_BYTES
+                ) {
+                    throw new RuntimeException('O conteúdo KML descompactado excede o limite de 20 MB.');
+                }
+
+                $stream = $zip->getStream($name);
+                if ($stream === false) {
+                    throw new RuntimeException('Não foi possível ler o arquivo KML dentro do KMZ.');
+                }
+
+                try {
+                    $kmlContent = stream_get_contents($stream, self::MAX_UNCOMPRESSED_KML_BYTES + 1);
+                } finally {
+                    fclose($stream);
+                }
+
+                if ($kmlContent === false) {
+                    throw new RuntimeException('Não foi possível ler o arquivo KML dentro do KMZ.');
+                }
+
+                if (strlen($kmlContent) > self::MAX_UNCOMPRESSED_KML_BYTES) {
+                    throw new RuntimeException('O conteúdo KML descompactado excede o limite de 20 MB.');
+                }
+
+                return $kmlContent;
             }
+        } finally {
+            $zip->close();
         }
 
-        $zip->close();
-
-        if ($kmlContent === false || $kmlContent === null) {
-            throw new RuntimeException('Nenhum arquivo .kml encontrado dentro do arquivo KMZ.');
-        }
-
-        return $kmlContent;
+        throw new RuntimeException('Nenhum arquivo .kml encontrado dentro do arquivo KMZ.');
     }
 
     /**

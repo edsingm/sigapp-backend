@@ -12,11 +12,20 @@ class AuthControllerTest extends TestCase
 
     private function createUser(array $attrs = []): User
     {
-        return User::create(array_merge([
+        $isAdmin = (bool) ($attrs['is_admin'] ?? false);
+        unset($attrs['is_admin']);
+
+        $user = User::create(array_merge([
             'name' => 'Test User',
             'email' => 'test@example.com',
             'password' => bcrypt('password123'),
         ], $attrs));
+
+        if ($isAdmin) {
+            $user->forceFill(['is_admin' => true])->save();
+        }
+
+        return $user;
     }
 
     private function createAdminUser(): User

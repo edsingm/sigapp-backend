@@ -225,6 +225,43 @@ class KmzParserServiceTest extends TestCase
         @unlink($tmpPath);
     }
 
+    public function test_kmz_com_itens_demais_lanca_exception(): void
+    {
+        $tmpPath = tempnam(sys_get_temp_dir(), 'kmz_entries_').'.kmz';
+        $zip = new ZipArchive;
+        $zip->open($tmpPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+
+        foreach (range(1, 101) as $index) {
+            $zip->addFromString("item-{$index}.txt", 'conteudo');
+        }
+
+        $zip->addFromString('doc.kml', $this->kmlComPolygon());
+        $zip->close();
+
+        $file = new UploadedFile($tmpPath, 'muitos-itens.kmz', 'application/zip', null, true);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessageMatches('/itens demais/i');
+
+        $this->service->parse($file);
+    }
+
+    public function test_kmz_com_kml_descompactado_acima_do_limite_lanca_exception(): void
+    {
+        $tmpPath = tempnam(sys_get_temp_dir(), 'kmz_large_').'.kmz';
+        $zip = new ZipArchive;
+        $zip->open($tmpPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+        $zip->addFromString('doc.kml', '<kml>'.str_repeat(' ', (20 * 1024 * 1024) + 1).'</kml>');
+        $zip->close();
+
+        $file = new UploadedFile($tmpPath, 'grande.kmz', 'application/zip', null, true);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessageMatches('/excede o limite de 20 MB/i');
+
+        $this->service->parse($file);
+    }
+
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------

@@ -18,11 +18,10 @@ class AdminPlansApiTest extends TestCase
 
     private function actingAsAdmin(): void
     {
-        $user = User::create([
+        $user = User::factory()->admin()->createOne([
             'name' => 'Admin',
             'email' => 'admin@sigapp.test',
             'password' => 'password',
-            'is_admin' => true,
         ]);
 
         Sanctum::actingAs($user, ['admin']);
@@ -50,7 +49,6 @@ class AdminPlansApiTest extends TestCase
             'name' => 'Guest',
             'email' => 'guest@sigapp.test',
             'password' => 'password',
-            'is_admin' => false,
         ]);
         Sanctum::actingAs($user, ['admin']);
 

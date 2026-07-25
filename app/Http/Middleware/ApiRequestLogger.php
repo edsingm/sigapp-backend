@@ -22,7 +22,8 @@ class ApiRequestLogger
 
         $logData = [
             'method' => $request->method(),
-            'url' => $request->fullUrl(),
+            'url' => $request->getPathInfo(),
+            'query_keys' => array_slice(array_keys($request->query->all()), 0, 20),
             'ip' => $request->ip(),
             'user_agent' => $request->userAgent(),
             'status' => $response->getStatusCode(),

@@ -72,7 +72,7 @@ Há duas formas de rodar localmente: **Herd/`composer dev`** (nativo, macOS) ou 
 
 - `entrypoint.prod.sh` prepara caches e sobe o supervisord; ele **não executa migrations** durante restart/scale.
 - Primeiro deploy em banco vazio: execute `/usr/local/bin/sigapp-bootstrap` uma única vez (`migrate` + `db:seed`). Releases seguintes executam `/usr/local/bin/sigapp-release` (`migrate` central + `tenants:migrate`) antes de trocar o tráfego.
-- `supervisord.conf` mantém 4 processos: **nginx**, **php-fpm**, **`queue:work --queue=tenant-provisioning,default --sleep=3 --tries=3 --max-time=3600`** e **`schedule:work`**. Ou seja: **fila e scheduler em produção rodam via supervisord** — não há cron; jobs de provisionamento de tenants usam a fila prioritária `tenant-provisioning`; um scheduled command novo só precisa estar em `routes/console.php`.
+- `supervisord.conf` mantém **nginx**, **php-fpm**, **`schedule:work`** e cinco grupos isolados de workers Redis: `tenant-provisioning`, `ai`, `exports`, `notifications` e `default`. A concorrência de cada grupo é configurada por `QUEUE_*_PROCESSES`; `retry_after=660` permanece acima do maior timeout de Job (600s). Não há cron; um scheduled command novo só precisa estar em `routes/console.php`.
 - `nginx.conf`: root em `public/`, `client_max_body_size 50M` (limite de upload), `fastcgi_read_timeout 120s` (teto para requests longos — PDFs/exports pesados devem ir para Jobs).
 
 ### Implicações para quem altera o código
@@ -359,6 +359,7 @@ Fluxo macro do terreno (enum `WorkflowStatus`, orquestrado por `LandWorkflowServ
 ### 13. Jobs, Queues, Events e Scheduler
 
 - Operações demoradas são assíncronas via Jobs (`app/Jobs/`). Queue: `sync` em teste, **Redis em produção**.
+- Jobs de provisionamento, IA e exportação declaram sua fila com `#[Queue(...)]`; notificações implementam `ShouldQueue` e usam a fila `notifications`. Jobs sem classe dedicada permanecem em `default`.
 - **Todo Job deve implementar `failed(Throwable $e)`** — verificado por `LayerBoundariesTest::test_all_jobs_define_failed_handler`. Defina também `$tries`/`$timeout`/`$backoff`.
 - Eventos de domínio em `app/Events/Tenant/` com listeners em `app/Listeners/Tenant/` registrados explicitamente no `EventServiceProvider` — a descoberta automática global está desativada em `bootstrap/app.php` para não duplicar listeners; side-effects nunca inline no Service quando houver evento adequado.
 - Agendamentos ficam em **`routes/console.php`** (broker cleanup 5min, consent-logs diário, tenants pendentes por hora, verificação de storage 07:00, etapas atrasadas 08:00, digests diário/semanal, scores IA 06:00, stats de tenants por hora). Comando novo recorrente → agende ali.

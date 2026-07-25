@@ -6,10 +6,13 @@ namespace App\Notifications\Workflow;
 
 use App\Notifications\Workflow\Concerns\RespectsEmailPreference;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Queue\Attributes\Queue;
 
-class WorkflowTransitionedNotification extends Notification
+#[Queue('notifications')]
+class WorkflowTransitionedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
     use RespectsEmailPreference;

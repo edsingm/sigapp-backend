@@ -3,15 +3,18 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Queue\Attributes\Queue;
 use Laravel\Cashier\Payment;
 
 /**
  * Notificação enviada pelo Cashier quando um pagamento requer autenticação adicional (SCA/3DS).
  * Configurada via CASHIER_PAYMENT_NOTIFICATION no .env.
  */
-class PaymentRequiresActionNotification extends Notification
+#[Queue('notifications')]
+class PaymentRequiresActionNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 

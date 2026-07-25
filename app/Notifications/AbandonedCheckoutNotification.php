@@ -3,10 +3,13 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Queue\Attributes\Queue;
 
-class AbandonedCheckoutNotification extends Notification
+#[Queue('notifications')]
+class AbandonedCheckoutNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 

@@ -28,20 +28,21 @@ class GlobalSearchRepository
             }
 
             $rows = match ($type) {
-                'terreno' => Terreno::query()->where(function ($query) use ($term): void {
-                    $query->where('nome', 'like', "%{$term}%")->orWhere('codigo', 'like', "%{$term}%");
-                })->limit($remaining)->get(['id', 'nome', 'codigo']),
-                'viabilidade' => Viabilidade::query()->with('terreno')->whereHas('terreno', fn ($query) => $query->where('nome', 'like', "%{$term}%"))->limit($remaining)->get(),
-                'comite' => ComiteRevisao::query()->with('terreno')->whereHas('terreno', fn ($query) => $query->where('nome', 'like', "%{$term}%"))->limit($remaining)->get(),
-                'negociacao' => Negociacao::query()->with('terreno')->whereHas('terreno', fn ($query) => $query->where('nome', 'like', "%{$term}%"))->limit($remaining)->get(),
+                'terreno' => Terreno::query()
+                    ->whereLike('nome', "%{$term}%")
+                    ->limit($remaining)
+                    ->get(['id', 'nome']),
+                'viabilidade' => Viabilidade::query()->with('terreno')->whereHas('terreno', fn ($query) => $query->whereLike('nome', "%{$term}%"))->limit($remaining)->get(),
+                'comite' => ComiteRevisao::query()->with('terreno')->whereHas('terreno', fn ($query) => $query->whereLike('nome', "%{$term}%"))->limit($remaining)->get(),
+                'negociacao' => Negociacao::query()->with('terreno')->whereHas('terreno', fn ($query) => $query->whereLike('nome', "%{$term}%"))->limit($remaining)->get(),
                 'legalizacao' => Legalizacao::query()->with('terreno')->where(function ($query) use ($term): void {
-                    $query->where('nome', 'like', "%{$term}%")->orWhereHas('terreno', fn ($terrain) => $terrain->where('nome', 'like', "%{$term}%"));
+                    $query->whereLike('nome', "%{$term}%")->orWhereHas('terreno', fn ($terrain) => $terrain->whereLike('nome', "%{$term}%"));
                 })->limit($remaining)->get(),
                 'projeto' => Projeto::query()->with('terreno')->where(function ($query) use ($term): void {
-                    $query->where('nome', 'like', "%{$term}%")->orWhereHas('terreno', fn ($terrain) => $terrain->where('nome', 'like', "%{$term}%"));
+                    $query->whereLike('nome', "%{$term}%")->orWhereHas('terreno', fn ($terrain) => $terrain->whereLike('nome', "%{$term}%"));
                 })->limit($remaining)->get(),
                 'pessoa' => User::query()->where(function ($query) use ($term): void {
-                    $query->where('name', 'like', "%{$term}%")->orWhere('email', 'like', "%{$term}%");
+                    $query->whereLike('name', "%{$term}%")->orWhereLike('email', "%{$term}%");
                 })->limit($remaining)->get(['id', 'name', 'email']),
                 default => collect(),
             };

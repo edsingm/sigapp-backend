@@ -152,7 +152,7 @@ class CommitteeRepository
             'terreno.contatos',
             'terreno.terrenoProdutos.produto',
             'terreno.documentos',
-            'terreno.informacoes.user',
+            'terreno.informacoes.createdBy',
             'terreno.viabilidades.createdBy',
             'terreno.viabilidadeAtual.createdBy',
             'terreno.viabilidadeAtual.approvalDecidedBy',

@@ -50,6 +50,9 @@ class ComiteRevisao extends Model
         return $this->hasOne(ComiteAiDossier::class, 'comite_revisao_id');
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function decidedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'decided_by');

@@ -16,7 +16,7 @@ class LegalizacaoRepository
      * @var list<string>
      */
     private const LIST_RELATIONS = [
-        'terreno',
+        'terreno.cidade',
         'responsavel',
         'etapas',
         'createdBy',
@@ -27,7 +27,7 @@ class LegalizacaoRepository
      * @var list<string>
      */
     private const DETAIL_RELATIONS = [
-        'terreno',
+        'terreno.cidade',
         'responsavel',
         'etapas.responsavel',
         'etapas.dependenciasDestino',

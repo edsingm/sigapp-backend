@@ -122,7 +122,21 @@ class ProjetoRepository implements ProjetoRepositoryInterface
     {
         $query = Terreno::query()
             ->select('terrenos.*')
-            ->with(['cidade', 'responsavel', 'proprietarios', 'informacoes'])
+            ->with([
+                'cidade',
+                'responsavel.roles.permissions',
+                'responsavel.permissions',
+                'responsavel.department',
+                'viabilidadeAtual',
+                'comiteAtual',
+                'contratoAtual',
+                'legalizacao',
+                'informacoes.createdBy',
+            ])
+            ->withExists([
+                'proprietarios',
+                'terrenoProdutos',
+            ])
             ->where('workflow_status_code', WorkflowStatus::CONTRATO_ASSINADO->value)
             ->whereDoesntHave('projetoAtivo');
 
@@ -137,6 +151,7 @@ class ProjetoRepository implements ProjetoRepositoryInterface
 
         return $query
             ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->paginate($filters['per_page'] ?? 10);
     }
 
@@ -197,12 +212,15 @@ class ProjetoRepository implements ProjetoRepositoryInterface
                 'terreno.responsavel',
                 'terreno.proprietarios',
                 'terreno.contatos',
-                'terreno.informacoes',
+                'terreno.informacoes.createdBy',
                 'terreno.viabilidadeAtual.createdBy',
                 'terreno.viabilidadeAtual.approvalDecidedBy',
                 'terreno.viabilidadeAtual.secoes',
                 'terreno.viabilidadeAtual.aprovacoes.user',
-                'terreno.comiteAtual.pareceresDepartamento',
+                'terreno.comiteAtual.pareceresDepartamento.reviewer.department',
+                'terreno.comiteAtual.pareceresDepartamento.reviewer.roles',
+                'terreno.comiteAtual.decidedBy.department',
+                'terreno.comiteAtual.decidedBy.roles',
                 'terreno.comiteAtual.pendencias',
                 'terreno.negociacaoAtual.eventos',
                 'terreno.contratoAtual.negociacao',

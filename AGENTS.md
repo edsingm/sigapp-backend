@@ -405,6 +405,7 @@ Fluxo macro do terreno (enum `WorkflowStatus`, orquestrado por `LandWorkflowServ
 - Padrão Arrange-Act-Assert, nomes descritivos (`test_rejeita_transicao_de_workflow_invalida`), `RefreshDatabase` quando toca o banco, `actingAs()` para rotas autenticadas.
 - Mock de externos sempre: `Http::fake()`, `Mail::fake()`, `Notification::fake()`, `Queue::fake()`, `Event::fake()` — **nunca** bata em Stripe/Resend/providers de IA em teste.
 - Testes tenant usam o fluxo de inicialização de tenancy dos testes existentes (siga `tests/Feature/Tenant/*` como referência) — não invente bootstrap próprio.
+- Fluxos de listagem/detail que serializam Resources complexos devem ter regressão de queries quando houver risco de N+1: compare cardinalidades diferentes ou zere o query log antes da serialização; o total não pode crescer por item.
 
 #### Testes de arquitetura (rodam no CI — não os enfraqueça)
 
@@ -502,4 +503,4 @@ O domínio é **em português** (Terreno, Viabilidade, Legalizacao, Negociacao, 
 
 ---
 
-**Última atualização:** Julho 2026 — saneamento de viabilidade (enum de aprovação, snapshot canônico v2, imutabilidade, constraints, resumo para IA), storage local/S3 e alertas de uso, `scheduled_plan` em billing, relatórios PDF de IA, cenários de viabilidade, planejamento de projetos, reuniões de comitê, deal room, insights de legalização, workspace, IA contextual, relatórios configuráveis, captura mobile, onboarding, versões/análise documental e regra de manutenção contínua deste documento.
+**Última atualização:** Julho 2026 — saneamento de viabilidade (enum de aprovação, snapshot canônico v2, imutabilidade, constraints, resumo para IA), storage local/S3 e alertas de uso, `scheduled_plan` em billing, relatórios PDF de IA, cenários de viabilidade, planejamento de projetos, reuniões de comitê, deal room, insights de legalização, workspace, IA contextual, relatórios configuráveis, captura mobile, onboarding, versões/análise documental, regressões de query para Resources complexos e regra de manutenção contínua deste documento.

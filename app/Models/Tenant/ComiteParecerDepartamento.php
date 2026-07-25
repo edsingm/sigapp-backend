@@ -24,6 +24,9 @@ class ComiteParecerDepartamento extends Model
         return $this->belongsTo(ComiteRevisao::class, 'comite_revisao_id');
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewer_user_id');

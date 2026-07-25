@@ -28,9 +28,12 @@ class AiTelemetryRepository implements AiTelemetryRepositoryInterface
 
     public function getCurrentMonthCost(): float
     {
+        $monthStart = now()->startOfMonth();
+        $nextMonthStart = $monthStart->copy()->addMonth();
+
         return (float) AiRequestLog::query()
-            ->whereMonth('created_at', now()->month)
-            ->whereYear('created_at', now()->year)
+            ->where('created_at', '>=', $monthStart)
+            ->where('created_at', '<', $nextMonthStart)
             ->sum('estimated_cost_usd');
     }
 

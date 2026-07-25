@@ -25,7 +25,8 @@ class TerrenoExportRepository implements TerrenoExportRepositoryInterface
 
         $this->applyFilters($query, $filters);
 
-        $query->orderBy('created_at', 'desc');
+        $query->orderByDesc('created_at')
+            ->orderByDesc('id');
 
         return $query->get();
     }

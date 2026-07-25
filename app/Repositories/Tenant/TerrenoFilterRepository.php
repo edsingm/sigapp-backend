@@ -20,9 +20,19 @@ class TerrenoFilterRepository implements TerrenoFilterRepositoryInterface
     {
         $query = Terreno::query()
             ->with([
-                'responsavel',
+                'responsavel.roles.permissions',
+                'responsavel.permissions',
+                'responsavel.department',
                 'regional',
                 'cidade',
+                'viabilidadeAtual',
+                'comiteAtual',
+                'contratoAtual',
+                'legalizacao',
+            ])
+            ->withExists([
+                'proprietarios',
+                'terrenoProdutos',
             ])
             ->withSum('terrenoProdutos as total_unidades', 'unidades')
             ->addSelect([
@@ -90,6 +100,9 @@ class TerrenoFilterRepository implements TerrenoFilterRepositoryInterface
             $sortDir = 'desc';
         }
         $query->orderBy($sortBy, $sortDir);
+        if ($sortBy !== 'id') {
+            $query->orderBy('id', $sortDir);
+        }
 
         $perPage = (int) ($filters['per_page'] ?? 20);
         $page = max((int) ($filters['page'] ?? 1), 1);

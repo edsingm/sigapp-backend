@@ -125,7 +125,7 @@ class TerrenoService
             'user_id' => $actor->id,
         ]);
 
-        return $info->load('user');
+        return $info->load('createdBy');
     }
 
     /**

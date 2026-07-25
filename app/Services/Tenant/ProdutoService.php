@@ -130,7 +130,8 @@ class ProdutoService
             ],
             'entries' => $produto->historicos()
                 ->with('changedBy')
-                ->latest()
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
                 ->get()
                 ->map(fn (ProdutoHistorico $entry): array => [
                     'id' => $entry->id,

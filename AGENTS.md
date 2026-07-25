@@ -32,7 +32,7 @@ Este arquivo contém as regras obrigatórias que todas as IAs (Cursor, Claude, C
 | **PDF** | `spatie/laravel-pdf` + `spatie/browsershot` (Chromium — `BROWSERSHOT_CHROME_PATH`) |
 | **Excel** | `maatwebsite/excel ^3.1` (`app/Exports/`) |
 | **Docs da API** | `dedoc/scramble` — UI em `/docs/api` (alias `/docs`) |
-| **Testes** | PHPUnit 13 (suites `Architecture`, `Unit`, `Feature`) — **não** usa Pest |
+| **Testes** | PHPUnit 13 (suites `Architecture`, `Unit`, `Feature`) — **não** usa Pest; CI rápido em SQLite e suíte completa adicional em PostgreSQL 18 + Redis 7 |
 | **Formatação** | Laravel Pint, preset `laravel` (`pint.json`) |
 | **Análise estática** | PHPStan **nível 8** + bleedingEdge + baseline (`phpstan.baseline.neon`) |
 | **Dev local** | Laravel Herd (macOS) ou `composer dev` / Docker (`.docker/` + `docker-compose.yml` — ver seção Docker) |
@@ -398,7 +398,8 @@ Fluxo macro do terreno (enum `WorkflowStatus`, orquestrado por `LandWorkflowServ
 ## 🧪 Testes (obrigatório)
 
 - **PHPUnit 13 puro** (classes estendendo `Tests\TestCase`) — **não** Pest. Suites: `Architecture`, `Unit`, `Feature` (`phpunit.xml`).
-- Ambiente de teste: SQLite `:memory:` (central e tenancy), queue `sync`, cache `array`, `BCRYPT_ROUNDS=4`.
+- Ambiente de teste local/padrão: SQLite `:memory:` (central e tenancy), queue `sync`, cache `array`, `BCRYPT_ROUNDS=4`.
+- O CI também executa a suíte completa com PostgreSQL 18 e Redis 7 reais. Testes exclusivos dessa infraestrutura ficam em `tests/Feature/Infrastructure/` e devem se marcar como skipped quando o driver não for `pgsql`/`redis`; nunca substitua essa cobertura por mocks.
 - Toda funcionalidade nova exige testes **antes de ser considerada concluída**: Feature cobrindo happy path + pelo menos um cenário de erro (401/403/422), e Unit para services/calculators com lógica.
 - Estrutura espelha o código: `tests/Feature/Tenant/`, `tests/Feature/Billing/`, `tests/Unit/Services/Viabilidade/`, etc.
 - Padrão Arrange-Act-Assert, nomes descritivos (`test_rejeita_transicao_de_workflow_invalida`), `RefreshDatabase` quando toca o banco, `actingAs()` para rotas autenticadas.

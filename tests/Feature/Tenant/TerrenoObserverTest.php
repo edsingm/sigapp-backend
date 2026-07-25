@@ -14,6 +14,8 @@ use App\Jobs\CalculateUsableAreaJob;
 use App\Models\Central\Tenant as CentralTenant;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\User;
+use Illuminate\Bus\UniqueLock;
+use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Hash;
@@ -63,6 +65,9 @@ class TerrenoObserverTest extends TestCase
 
     protected function tearDown(): void
     {
+        (new UniqueLock(app(CacheRepository::class)))->release(
+            new CalculateUsableAreaJob(1, self::TENANT_ID)
+        );
         app(Tenancy::class)->tenant = null;
 
         parent::tearDown();

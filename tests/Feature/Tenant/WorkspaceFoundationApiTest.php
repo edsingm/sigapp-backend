@@ -58,7 +58,7 @@ class WorkspaceFoundationApiTest extends TestCase
 
     public function test_admin_can_search_save_a_view_and_update_preferences(): void
     {
-        $this->actingAs($this->admin)->getJson('/api/v1/search?query=Alpha&types[]=terreno&limit=8')
+        $this->actingAs($this->admin)->getJson('/api/v1/search?query=alpha&types[]=terreno&limit=8')
             ->assertOk()
             ->assertJsonPath('data.0.title', 'Alpha Norte')
             ->assertJsonPath('data.0.entity.type', 'terreno');

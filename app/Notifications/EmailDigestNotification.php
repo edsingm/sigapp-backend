@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Queue\Attributes\Queue;
 
-class EmailDigestNotification extends Notification
+#[Queue('notifications')]
+class EmailDigestNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 

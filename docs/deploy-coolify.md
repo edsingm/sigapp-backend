@@ -116,11 +116,19 @@ para otimizar busca vetorial; isso não bloqueia o primeiro deploy.
 REDIS_HOST=redis-UUID
 REDIS_PORT=6379
 REDIS_PASSWORD=SENHA_DO_REDIS
+QUEUE_CONNECTION=redis
+REDIS_QUEUE_RETRY_AFTER=660
+REDIS_QUEUE_BLOCK_FOR=5
 ```
 
-O Compose de produção usa `QUEUE_CONNECTION=database` por padrão. Redis é
-usado para cache; persistência passa a ser obrigatória se a fila for alterada
-para Redis.
+O Compose de produção usa Redis para cache e filas. Ative persistência
+durável (AOF e/ou snapshots com retenção adequada) antes de liberar o ambiente:
+reiniciar ou recriar o Redis não pode descartar jobs pendentes.
+
+O `retry_after` de 660 segundos precisa permanecer acima do maior timeout de
+Job, atualmente 600 segundos. A produção mantém workers separados para
+`tenant-provisioning`, `ai`, `exports`, `notifications` e `default`; ajuste a
+concorrência com `QUEUE_<NOME>_PROCESSES`, sempre usando inteiros a partir de 1.
 
 ## 6. Criar o backend
 
@@ -224,8 +232,8 @@ php artisan migrate:status
 supervisorctl status
 ```
 
-Nginx, PHP-FPM, worker e scheduler devem aparecer como `RUNNING`. Em seguida,
-teste externamente:
+Nginx, PHP-FPM, os cinco grupos de workers e o scheduler devem aparecer como
+`RUNNING`. Em seguida, teste externamente:
 
 ```bash
 curl -fsS https://api.sigapp.com.br/api/health
@@ -415,8 +423,10 @@ Crie dois tenants de teste, por exemplo `empresa-a` e `empresa-b`. Em cada um:
 
 ### Processos e integrações
 
-No backend, execute `supervisorctl status` e confirme worker e scheduler como
-`RUNNING`. Depois valide:
+No backend, execute `supervisorctl status` e confirme os grupos
+`queue-tenant-provisioning`, `queue-ai`, `queue-exports`,
+`queue-notifications`, `queue-default` e o scheduler como `RUNNING`. Depois
+valide:
 
 - consumo de jobs;
 - envio de e-mail;
@@ -475,6 +485,34 @@ one-off validado para a versão instalada do Coolify.
 Migrations de produção devem ser retrocompatíveis. Para mudanças destrutivas,
 use uma estratégia expand/contract, backup validado e janela de manutenção.
 
+### Reinício controlado e drenagem das filas
+
+Para recarregar código/configuração sem abandonar o Job em execução:
+
+```bash
+cd /var/www
+php artisan queue:restart
+supervisorctl status
+```
+
+`queue:restart` sinaliza os workers pelo cache; cada processo conclui o Job
+atual e o Supervisor o inicia novamente. O `stopwaitsecs=660` também dá ao
+container tempo suficiente para concluir o Job máximo de 600 segundos durante
+um stop gracioso.
+
+Antes de uma manutenção de Redis ou de uma mudança na topologia de workers:
+
+1. interrompa novas escritas HTTP e o scheduler;
+2. acompanhe as cinco filas até não haver jobs `pending` ou `reserved`;
+3. confirme que não existem jobs falhos inesperados;
+4. faça o stop gracioso do backend;
+5. execute a manutenção preservando os dados persistidos do Redis;
+6. suba o backend e confirme todos os grupos com `supervisorctl status`;
+7. reative scheduler e tráfego somente após um Job de smoke test ser consumido.
+
+Não use `SIGKILL` nem remova as chaves `queues:*` para drenar: jobs reservados
+dependem de `retry_after` para voltar à fila após uma falha abrupta.
+
 ## 14. Critérios de liberação
 
 O ambiente só pode ser liberado quando:
@@ -483,7 +521,7 @@ O ambiente só pode ser liberado quando:
 - [ ] HTTPS estiver válido nos domínios exatos e wildcard;
 - [ ] dois tenants tiverem sido criados e validados como isolados;
 - [ ] login, transfer ticket e callback estiverem funcionando;
-- [ ] worker e scheduler estiverem em execução;
+- [ ] os cinco grupos de workers e o scheduler estiverem em execução;
 - [ ] S3, Resend, Maps, PDF e Stripe tiverem sido testados;
 - [ ] os recursos tiverem sobrevivido a restart sem perda de dados;
 - [ ] um backup PostgreSQL tiver sido criado e restaurado com sucesso;

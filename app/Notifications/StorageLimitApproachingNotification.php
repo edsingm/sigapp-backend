@@ -3,10 +3,13 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Queue\Attributes\Queue;
 
-class StorageLimitApproachingNotification extends Notification
+#[Queue('notifications')]
+class StorageLimitApproachingNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 

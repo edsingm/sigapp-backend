@@ -12,6 +12,7 @@ use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\Attributes\Backoff;
+use Illuminate\Queue\Attributes\Queue;
 use Illuminate\Queue\Attributes\Timeout;
 use Illuminate\Queue\Attributes\Tries;
 use Illuminate\Queue\InteractsWithQueue;
@@ -24,6 +25,7 @@ use Illuminate\Support\Str;
 #[Tries(3)]
 #[Backoff(60)]
 #[Timeout(600)]
+#[Queue('tenant-provisioning')]
 class CreateFullTenantJob implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, LogsAudit, Queueable, SerializesModels;

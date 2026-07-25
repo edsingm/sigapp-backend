@@ -55,11 +55,10 @@ class AdminTenantPlanApiTest extends TestCase
 
     private function actingAsAdmin(): void
     {
-        $user = User::create([
+        $user = User::factory()->admin()->createOne([
             'name' => 'Admin',
             'email' => 'admin@sigapp.test',
             'password' => 'password',
-            'is_admin' => true,
         ]);
 
         Sanctum::actingAs($user, ['admin']);

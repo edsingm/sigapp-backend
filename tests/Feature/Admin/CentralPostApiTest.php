@@ -89,12 +89,15 @@ class CentralPostApiTest extends TestCase
      */
     private function makeUser(array $attributes = []): User
     {
-        return User::create([
+        $user = User::create([
             'name' => $attributes['name'] ?? 'Admin Central',
             'email' => $attributes['email'] ?? ('user-'.uniqid().'@example.com'),
             'password' => $attributes['password'] ?? Hash::make('password123'),
-            'is_admin' => $attributes['is_admin'] ?? true,
         ]);
+
+        $user->forceFill(['is_admin' => $attributes['is_admin'] ?? true])->save();
+
+        return $user;
     }
 
     private function adminJson(string $method, string $uri, array $payload = [])

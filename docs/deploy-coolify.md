@@ -173,6 +173,8 @@ REDIS_PASSWORD=SENHA_DO_REDIS
 
 FRONTEND_URL=https://app.sigapp.com.br
 LANDING_URL=https://sigapp.com.br
+SESSION_SECURE_COOKIE=true
+TRUSTED_PROXIES=IP_OU_CIDR_DA_REDE_DO_TRAEFIK
 ```
 
 Identifique o hostname interno exato do serviço `back`, normalmente
@@ -181,6 +183,11 @@ Identifique o hostname interno exato do serviço `back`, normalmente
 ```dotenv
 CENTRAL_DOMAINS=sigapp.com.br,api.sigapp.com.br,app.sigapp.com.br,back-UUID
 ```
+
+Em `TRUSTED_PROXIES`, informe somente o IP ou CIDR efetivo da rede pela qual
+o Traefik alcança o backend. Não use `*`: aceitar proxies arbitrários permite
+forjar headers `X-Forwarded-*`. Sem esse valor, o backend ignora esses headers
+por padrão.
 
 Também são obrigatórios valores reais para:
 

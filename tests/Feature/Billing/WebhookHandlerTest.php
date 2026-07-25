@@ -2,10 +2,12 @@
 
 namespace Tests\Feature\Billing;
 
+use App\Enums\WebhookEventStatus;
 use App\Models\Central\Coupon;
 use App\Models\Central\Dispute;
 use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
+use App\Models\Central\WebhookEvent;
 use App\Notifications\DisputeCreatedNotification;
 use App\Notifications\PaymentActionRequiredNotification;
 use App\Notifications\PaymentRetryNotification;
@@ -782,6 +784,11 @@ class WebhookHandlerTest extends TestCase
         $this->postWebhook('customer.discount.created', $dataObject, ['id' => $eventId])->assertOk();
 
         $this->assertSame(1, $coupon->fresh()->times_redeemed);
+        $webhookEvent = WebhookEvent::query()->where('event_id', $eventId)->firstOrFail();
+        $this->assertSame(WebhookEventStatus::PROCESSED, $webhookEvent->status);
+        $this->assertSame(1, $webhookEvent->attempts);
+        $this->assertNull($webhookEvent->processing_started_at);
+        $this->assertNull($webhookEvent->last_error);
     }
 
     protected function tearDown(): void

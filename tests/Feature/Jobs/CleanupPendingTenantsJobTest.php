@@ -7,8 +7,11 @@ use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
 use App\Services\Billing\TenantBillingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 use RuntimeException;
+use Stancl\Tenancy\Events\DeletingTenant;
 use Tests\TestCase;
 
 class CleanupPendingTenantsJobTest extends TestCase
@@ -34,7 +37,7 @@ class CleanupPendingTenantsJobTest extends TestCase
 
     private function makePendingTenant(array $attrs = []): Tenant
     {
-        return Tenant::create(array_merge([
+        $data = array_merge([
             'name' => 'Empresa Pending',
             'slug' => 'empresa-pending-'.uniqid(),
             'status' => Tenant::STATUS_PENDING,
@@ -44,7 +47,11 @@ class CleanupPendingTenantsJobTest extends TestCase
             'admin_password' => bcrypt('password123'),
             'database_created' => false,
             'created_at' => now()->subDays(2), // Expirado (>24h)
-        ], $attrs));
+        ], $attrs);
+        $tenant = Tenant::create($data);
+        $tenant->forceFill(['created_at' => $data['created_at']])->saveQuietly();
+
+        return $tenant;
     }
 
     public function test_nao_remove_tenant_pending_recente(): void
@@ -97,6 +104,30 @@ class CleanupPendingTenantsJobTest extends TestCase
         $job->handle($billingService);
 
         $this->assertDatabaseHas('tenants', ['id' => $tenantId]);
+    }
+
+    public function test_limita_o_volume_processado_por_execucao(): void
+    {
+        Event::fake([DeletingTenant::class]);
+        Notification::fake();
+
+        for ($index = 0; $index < 101; $index++) {
+            $this->makePendingTenant();
+        }
+
+        $billingService = new class extends TenantBillingService
+        {
+            public function getSignupCheckoutSessionId(Tenant $tenant): ?string
+            {
+                return null;
+            }
+        };
+
+        $this->assertSame(101, Tenant::query()->expiredPending()->count());
+
+        (new CleanupPendingTenantsJob)->handle($billingService);
+
+        $this->assertSame(1, Tenant::query()->expiredPending()->count());
     }
 
     public function test_failed_loga_erro_sem_lancar_excecao(): void

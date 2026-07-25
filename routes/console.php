@@ -21,12 +21,48 @@ Artisan::command('mail:test {email}', function (string $email) {
     $this->info('Notificação enviada com sucesso para a fila/transporte.');
 })->purpose('Testa o envio de e-mails via Resend');
 
-Schedule::command('auth:cleanup-central-login-broker')->everyFiveMinutes();
-Schedule::command('privacy:cleanup-consent-logs')->daily();
-Schedule::command('tenants:cleanup-pending')->hourly();
-Schedule::command('tenant:notify-overdue-legalizacao-etapas')->dailyAt('08:00');
-Schedule::command('tenant:check-storage-usage')->dailyAt('07:00');
-Schedule::command('notifications:send-email-digests daily')->dailyAt('08:30');
-Schedule::command('notifications:send-email-digests weekly')->weeklyOn(1, '08:30');
-Schedule::command('ai:recalculate-scores')->dailyAt('06:00');
-Schedule::job(new RefreshTenantStatsJob)->hourly();
+Schedule::command('auth:cleanup-central-login-broker')
+    ->everyFiveMinutes()
+    ->name('auth-cleanup-central-login-broker')
+    ->onOneServer()
+    ->withoutOverlapping(10);
+Schedule::command('privacy:cleanup-consent-logs')
+    ->daily()
+    ->name('privacy-cleanup-consent-logs')
+    ->onOneServer()
+    ->withoutOverlapping(120);
+Schedule::command('tenants:cleanup-pending')
+    ->hourly()
+    ->name('tenants-cleanup-pending')
+    ->onOneServer()
+    ->withoutOverlapping(60);
+Schedule::command('tenant:notify-overdue-legalizacao-etapas')
+    ->dailyAt('08:00')
+    ->name('tenant-notify-overdue-legalizacao-etapas')
+    ->onOneServer()
+    ->withoutOverlapping(60);
+Schedule::command('tenant:check-storage-usage')
+    ->dailyAt('07:00')
+    ->name('tenant-check-storage-usage')
+    ->onOneServer()
+    ->withoutOverlapping(120);
+Schedule::command('notifications:send-email-digests daily')
+    ->dailyAt('08:30')
+    ->name('notifications-send-email-digests-daily')
+    ->onOneServer()
+    ->withoutOverlapping(120);
+Schedule::command('notifications:send-email-digests weekly')
+    ->weeklyOn(1, '08:30')
+    ->name('notifications-send-email-digests-weekly')
+    ->onOneServer()
+    ->withoutOverlapping(120);
+Schedule::command('ai:recalculate-scores')
+    ->dailyAt('06:00')
+    ->name('ai-recalculate-scores')
+    ->onOneServer()
+    ->withoutOverlapping(360);
+Schedule::job(new RefreshTenantStatsJob)
+    ->hourly()
+    ->name('refresh-tenant-stats')
+    ->onOneServer()
+    ->withoutOverlapping(60);

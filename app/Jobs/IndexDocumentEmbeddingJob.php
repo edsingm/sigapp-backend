@@ -1,11 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Jobs;
 
 use App\Models\Tenant\Documento;
 use App\Services\Ai\Tools\AiEmbeddingService;
 use App\Services\Tenant\DocumentoService;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\Attributes\Backoff;
@@ -14,6 +17,7 @@ use Illuminate\Queue\Attributes\Timeout;
 use Illuminate\Queue\Attributes\Tries;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Throwable;
@@ -22,7 +26,7 @@ use Throwable;
 #[Backoff(30)]
 #[Timeout(120)]
 #[Queue('ai')]
-class IndexDocumentEmbeddingJob implements ShouldQueue
+class IndexDocumentEmbeddingJob implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -30,16 +34,30 @@ class IndexDocumentEmbeddingJob implements ShouldQueue
         protected int $documentId
     ) {}
 
+    public int $uniqueFor = 660;
+
+    public function uniqueId(): string
+    {
+        return sprintf('%s:%d', tenant()?->getTenantKey() ?? 'central', $this->documentId);
+    }
+
     public function handle(AiEmbeddingService $embeddingService, DocumentoService $documentoService): void
     {
-        $documento = Documento::find($this->documentId);
-        if (! $documento) {
-            Log::warning("Documento {$this->documentId} não encontrado para indexação.");
+        $lock = Cache::lock('job:index-document-embedding:'.$this->uniqueId(), 180);
+        if (! $lock->get()) {
+            Log::info("Documento {$this->documentId} já está sendo indexado.");
 
             return;
         }
 
         try {
+            $documento = Documento::find($this->documentId);
+            if (! $documento) {
+                Log::warning("Documento {$this->documentId} não encontrado para indexação.");
+
+                return;
+            }
+
             $content = $this->extractText($documento, $documentoService);
             if (trim($content) === '') {
                 Log::info("Documento {$this->documentId} sem texto extraível, pulando indexação.");
@@ -54,6 +72,8 @@ class IndexDocumentEmbeddingJob implements ShouldQueue
             Log::error("Falha ao indexar documento {$this->documentId}: {$e->getMessage()}");
 
             throw $e;
+        } finally {
+            $lock->release();
         }
     }
 

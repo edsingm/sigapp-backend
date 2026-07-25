@@ -11,6 +11,7 @@ use App\Repositories\Tenant\TerrenoRepository;
 use App\Services\Ai\Tools\CreatePdfsTool;
 use App\Services\Tenant\TerrenoAiReportService;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\Attributes\Backoff;
@@ -28,11 +29,18 @@ use Throwable;
 #[Timeout(240)]
 #[Backoff([30, 120, 300])]
 #[Queue('ai')]
-class GenerateTerrenoAiReportJob implements ShouldQueue
+class GenerateTerrenoAiReportJob implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public function __construct(public readonly int $generationId) {}
+
+    public int $uniqueFor = 660;
+
+    public function uniqueId(): string
+    {
+        return sprintf('%s:%d', tenant()?->getTenantKey() ?? 'central', $this->generationId);
+    }
 
     public function handle(
         AiReportGenerationRepository $generationRepository,
@@ -40,66 +48,55 @@ class GenerateTerrenoAiReportJob implements ShouldQueue
         TerrenoAiReportService $reportService,
         CreatePdfsTool $pdfTool,
     ): void {
-        $generation = $generationRepository->findById($this->generationId);
-
-        if (! $generation instanceof AiReportGeneration
-            || $generation->status === AiReportGenerationStatus::COMPLETED) {
+        $generation = $generationRepository->claimQueued($this->generationId);
+        if (! $generation instanceof AiReportGeneration) {
             return;
         }
 
-        $generationRepository->update($generation, [
-            'status' => AiReportGenerationStatus::PROCESSING,
-            'progress' => 10,
-            'started_at' => now(),
-            'error_message' => null,
-        ]);
+        try {
+            $terreno = $terrenoRepository->findById($generation->terreno_id);
+            if (! $terreno) {
+                throw new RuntimeException('Terreno não encontrado para a geração do relatório.');
+            }
 
-        $terreno = $terrenoRepository->findById($generation->terreno_id);
-        if (! $terreno) {
-            throw new RuntimeException('Terreno não encontrado para a geração do relatório.');
+            $terreno = $terrenoRepository->loadDetailRelations($terreno);
+            $report = $reportService->build($terreno);
+
+            $generationRepository->update($generation, ['progress' => 70]);
+
+            $pdfResult = $pdfTool->handle(new AiToolRequest([
+                'filename' => $report['filename'],
+                'title' => $report['title'],
+                'html_content' => $report['html_content'],
+                'terreno_id' => $terreno->id,
+            ]));
+
+            if (! is_string($pdfResult) || ! str_contains($pdfResult, 'PDF gerado com sucesso')) {
+                throw new RuntimeException(is_string($pdfResult) ? $pdfResult : 'Falha ao gerar relatório em PDF.');
+            }
+
+            $generatedReport = $pdfTool->lastGeneratedReport();
+            if ($generatedReport === null
+                || (int) $generatedReport->getAttribute('terreno_id') !== (int) $terreno->id) {
+                throw new RuntimeException('PDF gerado, mas o registro não pertence ao terreno solicitado.');
+            }
+
+            $generationRepository->update($generation, [
+                'status' => AiReportGenerationStatus::COMPLETED,
+                'progress' => 100,
+                'report_id' => $generatedReport->getKey(),
+                'completed_at' => now(),
+            ]);
+        } catch (Throwable $exception) {
+            $generationRepository->releaseForRetry($this->generationId);
+
+            throw $exception;
         }
-
-        $terreno = $terrenoRepository->loadDetailRelations($terreno);
-        $report = $reportService->build($terreno);
-
-        $generationRepository->update($generation, ['progress' => 70]);
-
-        $pdfResult = $pdfTool->handle(new AiToolRequest([
-            'filename' => $report['filename'],
-            'title' => $report['title'],
-            'html_content' => $report['html_content'],
-            'terreno_id' => $terreno->id,
-        ]));
-
-        if (! is_string($pdfResult) || ! str_contains($pdfResult, 'PDF gerado com sucesso')) {
-            throw new RuntimeException(is_string($pdfResult) ? $pdfResult : 'Falha ao gerar relatório em PDF.');
-        }
-
-        $generatedReport = $pdfTool->lastGeneratedReport();
-        if ($generatedReport === null
-            || (int) $generatedReport->getAttribute('terreno_id') !== (int) $terreno->id) {
-            throw new RuntimeException('PDF gerado, mas o registro não pertence ao terreno solicitado.');
-        }
-
-        $generationRepository->update($generation, [
-            'status' => AiReportGenerationStatus::COMPLETED,
-            'progress' => 100,
-            'report_id' => $generatedReport->getKey(),
-            'completed_at' => now(),
-        ]);
     }
 
     public function failed(Throwable $exception): void
     {
-        $repository = app(AiReportGenerationRepository::class);
-        $generation = $repository->findById($this->generationId);
-        if ($generation instanceof AiReportGeneration) {
-            $repository->update($generation, [
-                'status' => AiReportGenerationStatus::FAILED,
-                'progress' => 0,
-                'error_message' => 'Não foi possível gerar o relatório. Tente novamente.',
-            ]);
-        }
+        app(AiReportGenerationRepository::class)->markFailed($this->generationId);
 
         Log::error('GenerateTerrenoAiReportJob falhou definitivamente.', [
             'generation_id' => $this->generationId,

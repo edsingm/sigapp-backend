@@ -12,5 +12,9 @@ interface WebhookEventRepositoryInterface
 
     public function update(WebhookEvent $event, string $type, array $payload): WebhookEvent;
 
-    public function markAsProcessed(WebhookEvent $event): void;
+    public function claimForProcessing(WebhookEvent $event): ?int;
+
+    public function markAsProcessed(WebhookEvent $event, int $attempt): void;
+
+    public function markAsFailed(WebhookEvent $event, int $attempt, string $error): void;
 }

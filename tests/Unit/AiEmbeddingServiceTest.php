@@ -1,7 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Unit;
 
+use App\Models\Tenant\Documento;
+use App\Repositories\Tenant\AiEmbeddingRepository;
 use App\Services\Ai\Agents\SIG_IA;
 use App\Services\Ai\Tools\AiEmbeddingService;
 use App\Services\Ai\Tools\DocumentosTool;
@@ -9,6 +13,8 @@ use App\Services\Ai\Tools\RedactingToolDecorator;
 use App\Services\Ai\Tools\SearchDocumentsTool;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Providers\Tools\ProviderTool;
+use PHPUnit\Framework\MockObject\MockObject;
+use RuntimeException;
 use Tests\TestCase;
 
 class AiEmbeddingServiceTest extends TestCase
@@ -71,6 +77,46 @@ class AiEmbeddingServiceTest extends TestCase
         $service = app(AiEmbeddingService::class);
 
         $this->assertEquals(0.0, $service->cosineSimilarity([], []));
+    }
+
+    public function test_failed_embedding_generation_does_not_replace_the_active_index(): void
+    {
+        $documento = (new Documento)->forceFill([
+            'id' => 42,
+            'terreno_id' => 7,
+            'nome' => 'Matrícula',
+            'tipo' => 'matricula',
+            'categoria' => 'juridico',
+        ]);
+
+        /** @var AiEmbeddingRepository&MockObject $repository */
+        $repository = $this->createMock(AiEmbeddingRepository::class);
+        $repository->expects($this->once())->method('findDocumento')->with(42)->willReturn($documento);
+        $repository->expects($this->never())->method('replaceDocumentIndex');
+
+        $attempts = 0;
+        /** @var AiEmbeddingService&MockObject $service */
+        $service = $this->getMockBuilder(AiEmbeddingService::class)
+            ->setConstructorArgs([$repository])
+            ->onlyMethods(['generateEmbedding'])
+            ->getMock();
+        $service->expects($this->exactly(2))
+            ->method('generateEmbedding')
+            ->willReturnCallback(static function () use (&$attempts): array {
+                $attempts++;
+                if ($attempts === 2) {
+                    throw new RuntimeException('Provider indisponível.');
+                }
+
+                return [0.1, 0.2];
+            });
+
+        $this->expectException(RuntimeException::class);
+
+        $service->indexDocument(
+            42,
+            str_repeat('Primeiro parágrafo. ', 80)."\n\n".str_repeat('Segundo parágrafo. ', 80),
+        );
     }
 
     public function test_sig_ia_registers_rag_tools(): void

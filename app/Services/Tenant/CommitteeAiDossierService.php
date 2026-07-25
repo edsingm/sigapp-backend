@@ -53,19 +53,21 @@ class CommitteeAiDossierService
         ]);
     }
 
-    public function generate(ComiteRevisao $review, ?int $userId = null): ComiteAiDossier
+    public function generate(ComiteRevisao $review, ?int $userId = null): ?ComiteAiDossier
     {
         $review = $this->loadReview($review);
         $inputHash = $this->inputHash($review);
-        $dossier = $this->dossiers->upsertForReview($review, [
-            'status' => 'generating',
+        $route = $this->providerRouter->getAgentWithFallback();
+        $dossier = $this->dossiers->claimForGeneration($review, [
             'prompt_version' => self::PROMPT_VERSION,
             'input_hash' => $inputHash,
             'generated_by' => $userId,
             'error_message' => null,
         ]);
+        if (! $dossier instanceof ComiteAiDossier) {
+            return null;
+        }
 
-        $route = $this->providerRouter->getAgentWithFallback();
         $startedAt = microtime(true);
 
         try {

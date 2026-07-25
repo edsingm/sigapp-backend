@@ -5,13 +5,17 @@ declare(strict_types=1);
 namespace Tests\Unit;
 
 use App\Jobs\AnalyzeDocumentJob;
+use App\Jobs\CleanupPendingTenantsJob;
 use App\Jobs\CreateFullTenantJob;
 use App\Jobs\GenerateCommitteeAiDossierJob;
 use App\Jobs\GenerateReportRunJob;
 use App\Jobs\GenerateTerrenoAiReportJob;
 use App\Jobs\IndexDocumentEmbeddingJob;
 use App\Jobs\RecalculateAiScoresJob;
+use App\Jobs\RefreshTenantStatsJob;
 use App\Notifications\TenantWelcomeNotification;
+use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\SendQueuedNotifications;
@@ -65,6 +69,55 @@ class QueueTopologyTest extends TestCase
 
             $this->assertNotNull($attribute, "{$jobClass} precisa declarar sua fila.");
             $this->assertSame($expectedQueue, $attribute->newInstance()->queue);
+        }
+    }
+
+    public function test_concurrency_sensitive_jobs_are_unique_longer_than_their_timeout(): void
+    {
+        foreach ([
+            CleanupPendingTenantsJob::class,
+            GenerateCommitteeAiDossierJob::class,
+            GenerateReportRunJob::class,
+            GenerateTerrenoAiReportJob::class,
+            IndexDocumentEmbeddingJob::class,
+            RecalculateAiScoresJob::class,
+            RefreshTenantStatsJob::class,
+        ] as $jobClass) {
+            $reflection = new ReflectionClass($jobClass);
+            $defaults = $reflection->getDefaultProperties();
+            $timeoutAttribute = $reflection->getAttributes(Timeout::class)[0] ?? null;
+            $timeout = $timeoutAttribute?->newInstance()->timeout ?? $defaults['timeout'] ?? null;
+            $uniqueFor = $defaults['uniqueFor'] ?? null;
+
+            $this->assertTrue($reflection->implementsInterface(ShouldBeUnique::class));
+            $this->assertIsInt($timeout);
+            $this->assertIsInt($uniqueFor);
+            $this->assertGreaterThan($timeout, $uniqueFor);
+        }
+    }
+
+    public function test_every_scheduled_task_has_distributed_and_overlap_locks(): void
+    {
+        $expectedExpirations = [
+            'auth-cleanup-central-login-broker' => 10,
+            'privacy-cleanup-consent-logs' => 120,
+            'tenants-cleanup-pending' => 60,
+            'tenant-notify-overdue-legalizacao-etapas' => 60,
+            'tenant-check-storage-usage' => 120,
+            'notifications-send-email-digests-daily' => 120,
+            'notifications-send-email-digests-weekly' => 120,
+            'ai-recalculate-scores' => 360,
+            'refresh-tenant-stats' => 60,
+        ];
+        $events = collect(app(Schedule::class)->events())->keyBy('description');
+
+        foreach ($expectedExpirations as $name => $expiration) {
+            $event = $events->get($name);
+
+            $this->assertNotNull($event, "Schedule {$name} não encontrado.");
+            $this->assertTrue($event->onOneServer, "Schedule {$name} precisa de onOneServer().");
+            $this->assertTrue($event->withoutOverlapping, "Schedule {$name} precisa de withoutOverlapping().");
+            $this->assertSame($expiration, $event->expiresAt);
         }
     }
 

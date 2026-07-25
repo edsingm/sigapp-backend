@@ -105,22 +105,6 @@ class AiEmbeddingService
     }
 
     /**
-     * Armazena embeddings para um chunk.
-     *
-     * @param  array<int, float|int>  $embedding
-     */
-    public function storeEmbeddings(int $chunkId, array $embedding, ?string $provider = null, ?string $model = null): void
-    {
-        $this->repository->createEmbedding([
-            'chunk_id' => $chunkId,
-            'embedding' => $embedding,
-            'provider' => $provider ?? (string) config('ai.embedding_provider'),
-            'model' => $model ?? (string) config('ai.embedding_model'),
-            'dimensions' => count($embedding),
-        ]);
-    }
-
-    /**
      * Indexa um documento completo: chunking + embeddings.
      *
      * @param  array<string, mixed>  $metadata
@@ -132,33 +116,30 @@ class AiEmbeddingService
             throw new \InvalidArgumentException("Documento {$documentId} não encontrado.");
         }
 
-        // Remove chunks antigos
-        $this->repository->deleteChunksByDocument($documentId);
-
         $chunks = $this->chunkText($content);
-        $createdCount = 0;
+        $baseMetadata = [
+            'tipo' => $documento->tipo,
+            'categoria' => $documento->categoria,
+            'nome' => $documento->nome,
+            ...$metadata,
+        ];
+        $preparedChunks = [];
 
         foreach ($chunks as $index => $chunkContent) {
-            $chunk = $this->repository->createChunk([
-                'document_id' => $documentId,
-                'terreno_id' => $documento->terreno_id ?? null,
+            $preparedChunks[] = [
                 'chunk_index' => $index,
                 'content' => $chunkContent,
-                'metadata' => array_merge([
-                    'tipo' => $documento->tipo,
-                    'categoria' => $documento->categoria,
-                    'nome' => $documento->nome,
-                ], $metadata),
-            ]);
-
-            // Gera e salva embedding
-            $embedding = $this->generateEmbedding($chunkContent);
-            $this->storeEmbeddings($chunk->id, $embedding);
-
-            $createdCount++;
+                'metadata' => $baseMetadata,
+                'embedding' => $this->generateEmbedding($chunkContent),
+            ];
         }
 
-        return $createdCount;
+        return $this->repository->replaceDocumentIndex(
+            $documento,
+            $preparedChunks,
+            (string) config('ai.embedding_provider'),
+            (string) config('ai.embedding_model'),
+        );
     }
 
     /**

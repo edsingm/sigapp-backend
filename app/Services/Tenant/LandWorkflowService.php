@@ -8,6 +8,8 @@ use App\Models\Tenant\Contrato;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\User;
 use App\Repositories\Contracts\LandWorkflowRepositoryInterface;
+use Closure;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -119,9 +121,12 @@ class LandWorkflowService
                 'viabilidadeAtual.approvalDecidedBy',
                 'viabilidadeAtual.secoes',
                 'viabilidadeAtual.aprovacoes.user',
-                'informacoes.user',
+                'informacoes.createdBy',
                 'comiteAtual.viabilidade',
-                'comiteAtual.pareceresDepartamento',
+                'comiteAtual.pareceresDepartamento.reviewer.department',
+                'comiteAtual.pareceresDepartamento.reviewer.roles',
+                'comiteAtual.decidedBy.department',
+                'comiteAtual.decidedBy.roles',
                 'comiteAtual.pendencias',
                 'negociacaoAtual.eventos',
                 'contratoAtual.partes',
@@ -204,7 +209,12 @@ class LandWorkflowService
             [
                 'code' => 'owners',
                 'label' => 'Proprietário cadastrado',
-                'completed' => $terreno->proprietarios()->exists(),
+                'completed' => $this->relationExists(
+                    $terreno,
+                    'proprietarios',
+                    'proprietarios_exists',
+                    fn (): bool => $terreno->proprietarios()->exists(),
+                ),
             ],
             [
                 'code' => 'broker',
@@ -214,7 +224,12 @@ class LandWorkflowService
             [
                 'code' => 'products',
                 'label' => 'Produto cadastrado',
-                'completed' => $terreno->terrenoProdutos()->exists(),
+                'completed' => $this->relationExists(
+                    $terreno,
+                    'terrenoProdutos',
+                    'terreno_produtos_exists',
+                    fn (): bool => $terreno->terrenoProdutos()->exists(),
+                ),
             ],
             [
                 'code' => 'viability',
@@ -237,6 +252,25 @@ class LandWorkflowService
                 'completed' => $legalizacao?->status === 'concluido',
             ],
         ];
+    }
+
+    private function relationExists(
+        Terreno $terreno,
+        string $relation,
+        string $existsAttribute,
+        Closure $fallback,
+    ): bool {
+        if (array_key_exists($existsAttribute, $terreno->getAttributes())) {
+            return (bool) $terreno->getAttribute($existsAttribute);
+        }
+
+        if ($terreno->relationLoaded($relation)) {
+            $models = $terreno->getRelation($relation);
+
+            return $models instanceof Collection && $models->isNotEmpty();
+        }
+
+        return (bool) $fallback();
     }
 
     /**

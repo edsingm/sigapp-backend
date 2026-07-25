@@ -23,6 +23,9 @@ class AuditLogRepository
             $query->where('user_id', $userId);
         }
 
-        return $query->latest()->paginate($perPage);
+        return $query
+            ->latest()
+            ->latest('id')
+            ->paginate($perPage);
     }
 }

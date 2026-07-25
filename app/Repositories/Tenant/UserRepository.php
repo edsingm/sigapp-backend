@@ -43,7 +43,11 @@ class UserRepository
      */
     public function queryWithRelations(): Builder
     {
-        return User::query()->with(['roles', 'department']);
+        return User::query()->with([
+            'roles.permissions',
+            'permissions',
+            'department',
+        ]);
     }
 
     public function create(array $data): User

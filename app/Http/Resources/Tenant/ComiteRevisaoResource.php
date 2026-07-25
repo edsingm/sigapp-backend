@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Tenant;
 
+use App\Models\Tenant\ComiteRevisao;
 use App\Models\Tenant\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -10,6 +11,11 @@ class ComiteRevisaoResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $review = $this->resource;
+        $decidedBy = $review instanceof ComiteRevisao && $review->relationLoaded('decidedBy')
+            ? $review->getRelation('decidedBy')
+            : null;
+
         return [
             'id' => $this->id,
             'terreno_id' => $this->terreno_id,
@@ -20,34 +26,14 @@ class ComiteRevisaoResource extends JsonResource
             'required_departments' => $this->required_departments ?? [],
             'decided_by' => $this->decided_by,
             'decided_at' => $this->decided_at?->toIso8601String(),
-            'decided_by_user' => $this->formatActorUser($this->resolveActorUser(
-                $this->decided_by,
-                'decidedBy',
-            )),
+            'decided_by_user' => $this->formatActorUser(
+                $decidedBy instanceof User ? $decidedBy : null,
+            ),
             'terreno' => new TerrenoResource($this->whenLoaded('terreno')),
             'viabilidade' => new ViabilidadeResource($this->whenLoaded('viabilidade')),
             'pareceres_departamento' => ComiteParecerDepartamentoResource::collection($this->whenLoaded('pareceresDepartamento')),
             'pendencias' => ComitePendenciaResource::collection($this->whenLoaded('pendencias')),
         ];
-    }
-
-    private function resolveActorUser(mixed $userId, string $relation): ?User
-    {
-        if ($this->relationLoaded($relation)) {
-            $loaded = $this->{$relation};
-            if ($loaded instanceof User) {
-                return $loaded;
-            }
-        }
-
-        $id = is_numeric($userId) ? (int) $userId : null;
-        if ($id === null || $id <= 0) {
-            return null;
-        }
-
-        return User::query()
-            ->with(['department', 'roles'])
-            ->find($id);
     }
 
     /**
@@ -59,15 +45,8 @@ class ComiteRevisaoResource extends JsonResource
             return null;
         }
 
-        if (! $user->relationLoaded('roles')) {
-            $user->load('roles');
-        }
-        if (! $user->relationLoaded('department')) {
-            $user->load('department');
-        }
-
-        $roleName = $user->roles->first()?->name;
-        $departmentName = $user->department?->name;
+        $roleName = $user->relationLoaded('roles') ? $user->roles->first()?->name : null;
+        $departmentName = $user->relationLoaded('department') ? $user->department?->name : null;
 
         return [
             'id' => $user->id,

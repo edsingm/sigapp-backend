@@ -32,7 +32,17 @@ class TerrenoRepository implements TerrenoRepositoryInterface
      */
     public function paginate(array $filters = []): LengthAwarePaginator
     {
-        $query = Terreno::query();
+        $query = Terreno::query()
+            ->with([
+                'viabilidadeAtual',
+                'comiteAtual',
+                'contratoAtual',
+                'legalizacao',
+            ])
+            ->withExists([
+                'proprietarios',
+                'terrenoProdutos',
+            ]);
 
         $search = $filters['search'] ?? null;
         if (is_string($search) && $search !== '') {
@@ -120,9 +130,12 @@ class TerrenoRepository implements TerrenoRepositoryInterface
             'viabilidadeAtual.approvalDecidedBy',
             'viabilidadeAtual.secoes',
             'viabilidadeAtual.aprovacoes.user',
-            'informacoes.user',
+            'informacoes.createdBy',
             'comiteAtual.viabilidade',
-            'comiteAtual.pareceresDepartamento',
+            'comiteAtual.pareceresDepartamento.reviewer.department',
+            'comiteAtual.pareceresDepartamento.reviewer.roles',
+            'comiteAtual.decidedBy.department',
+            'comiteAtual.decidedBy.roles',
             'comiteAtual.pendencias',
             'negociacaoAtual.eventos',
             'contratoAtual.partes',

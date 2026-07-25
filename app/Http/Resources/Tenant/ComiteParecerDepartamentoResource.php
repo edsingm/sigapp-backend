@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Tenant;
 
+use App\Models\Tenant\ComiteParecerDepartamento;
 use App\Models\Tenant\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -10,6 +11,12 @@ class ComiteParecerDepartamentoResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $departmentReview = $this->resource;
+        $reviewer = $departmentReview instanceof ComiteParecerDepartamento
+            && $departmentReview->relationLoaded('reviewer')
+                ? $departmentReview->getRelation('reviewer')
+                : null;
+
         return [
             'id' => $this->id,
             'department_code' => $this->department_code,
@@ -18,30 +25,10 @@ class ComiteParecerDepartamentoResource extends JsonResource
             'comments' => $this->comments,
             'checklist_completed' => $this->checklist_completed,
             'reviewed_at' => $this->reviewed_at?->toIso8601String(),
-            'reviewer' => $this->formatActorUser($this->resolveActorUser(
-                $this->reviewer_user_id,
-                'reviewer',
-            )),
+            'reviewer' => $this->formatActorUser(
+                $reviewer instanceof User ? $reviewer : null,
+            ),
         ];
-    }
-
-    private function resolveActorUser(mixed $userId, string $relation): ?User
-    {
-        if ($this->relationLoaded($relation)) {
-            $loaded = $this->{$relation};
-            if ($loaded instanceof User) {
-                return $loaded;
-            }
-        }
-
-        $id = is_numeric($userId) ? (int) $userId : null;
-        if ($id === null || $id <= 0) {
-            return null;
-        }
-
-        return User::query()
-            ->with(['department', 'roles'])
-            ->find($id);
     }
 
     /**
@@ -53,15 +40,8 @@ class ComiteParecerDepartamentoResource extends JsonResource
             return null;
         }
 
-        if (! $user->relationLoaded('roles')) {
-            $user->load('roles');
-        }
-        if (! $user->relationLoaded('department')) {
-            $user->load('department');
-        }
-
-        $roleName = $user->roles->first()?->name;
-        $departmentName = $user->department?->name;
+        $roleName = $user->relationLoaded('roles') ? $user->roles->first()?->name : null;
+        $departmentName = $user->relationLoaded('department') ? $user->department?->name : null;
 
         return [
             'id' => $user->id,

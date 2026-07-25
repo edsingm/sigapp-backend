@@ -107,4 +107,39 @@ class CentralLoginBrokerServiceTest extends TestCase
         $this->assertNotNull($session->fresh()?->completed_at);
         $this->assertDatabaseCount((new LoginTransferTicket)->getTable(), 1);
     }
+
+    public function test_select_tenant_issues_only_one_ticket_for_the_same_session(): void
+    {
+        $tenant = Tenant::create([
+            'name' => 'Construtora Halz4',
+            'slug' => 'construtora-halz4',
+            'status' => Tenant::STATUS_ACTIVE,
+            'admin_name' => 'Admin',
+            'admin_email' => 'admin@example.com',
+            'admin_password' => 'Password123',
+        ]);
+        $session = CentralLoginBrokerSession::create([
+            'id' => (string) Str::uuid(),
+            'email' => 'broker@example.com',
+            'ip_address' => '192.0.2.10',
+            'tenant_options' => [[
+                'tenant_id' => (string) $tenant->id,
+                'tenant_name' => $tenant->name,
+                'tenant_slug' => $tenant->slug,
+                'tenant_url' => 'https://construtora-halz4.sigapp.com.br',
+                'tenant_user_id' => (string) Str::uuid(),
+                'email' => 'broker@example.com',
+            ]],
+            'expires_at' => now()->addMinutes(5),
+        ]);
+        $context = new RequestContext(ipAddress: '192.0.2.10');
+        $service = app(CentralLoginBrokerService::class);
+
+        $first = $service->selectTenant($session->id, (string) $tenant->id, null, $context);
+        $second = $service->selectTenant($session->id, (string) $tenant->id, null, $context);
+
+        $this->assertSame('redirect', $first['next_action'] ?? null);
+        $this->assertNull($second);
+        $this->assertDatabaseCount((new LoginTransferTicket)->getTable(), 1);
+    }
 }

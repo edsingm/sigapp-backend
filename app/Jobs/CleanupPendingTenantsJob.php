@@ -1,20 +1,24 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Jobs;
 
 use App\Models\Central\Tenant;
 use App\Notifications\AbandonedCheckoutNotification;
 use App\Services\Billing\TenantBillingService;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Throwable;
 
-class CleanupPendingTenantsJob implements ShouldQueue
+class CleanupPendingTenantsJob implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -25,119 +29,141 @@ class CleanupPendingTenantsJob implements ShouldQueue
     /** @var array<int, int> */
     public array $backoff = [60, 300, 900];
 
+    public int $uniqueFor = 900;
+
+    private const MAX_TENANTS_PER_RUN = 100;
+
+    public function uniqueId(): string
+    {
+        return 'cleanup-pending-tenants';
+    }
+
     /**
      * Executa o job.
      */
     public function handle(TenantBillingService $billingService): void
     {
-        Log::info('CleanupPendingTenantsJob iniciado');
+        $lock = Cache::lock('job:cleanup-pending-tenants', 360);
+        if (! $lock->get()) {
+            return;
+        }
 
-        $expiredTenants = Tenant::expiredPending()->get();
+        try {
+            Log::info('CleanupPendingTenantsJob iniciado');
 
-        $count = 0;
+            $expiredTenants = Tenant::expiredPending()
+                ->with('plan')
+                ->orderBy('id')
+                ->limit(self::MAX_TENANTS_PER_RUN)
+                ->get();
 
-        foreach ($expiredTenants as $tenant) {
-            try {
-                $checkoutSessionId = $billingService->getSignupCheckoutSessionId($tenant);
+            $count = 0;
 
-                if ($tenant->stripe_subscription_id) {
-                    Log::warning('Cleanup ignorado: tenant pending possui assinatura Stripe associada.', [
-                        'tenant_id' => $tenant->id,
-                        'stripe_subscription_id' => $tenant->stripe_subscription_id,
-                    ]);
+            foreach ($expiredTenants as $tenant) {
+                try {
+                    $checkoutSessionId = $billingService->getSignupCheckoutSessionId($tenant);
 
-                    continue;
-                }
+                    if ($tenant->stripe_subscription_id) {
+                        Log::warning('Cleanup ignorado: tenant pending possui assinatura Stripe associada.', [
+                            'tenant_id' => $tenant->id,
+                            'stripe_subscription_id' => $tenant->stripe_subscription_id,
+                        ]);
 
-                if ($checkoutSessionId) {
-                    try {
-                        $session = $billingService->retrieveCheckoutSession($checkoutSessionId);
-                        $sessionStatus = (string) ($session->status ?? '');
+                        continue;
+                    }
 
-                        if ($sessionStatus === 'open') {
-                            $billingService->expireCheckoutSession($checkoutSessionId);
-                        }
+                    if ($checkoutSessionId) {
+                        try {
+                            $session = $billingService->retrieveCheckoutSession($checkoutSessionId);
+                            $sessionStatus = (string) ($session->status ?? '');
 
-                        if ($sessionStatus === 'complete' || ! empty($session->subscription)) {
-                            Log::warning('Cleanup ignorado: checkout já concluído ou com assinatura associada.', [
+                            if ($sessionStatus === 'open') {
+                                $billingService->expireCheckoutSession($checkoutSessionId);
+                            }
+
+                            if ($sessionStatus === 'complete' || ! empty($session->subscription)) {
+                                Log::warning('Cleanup ignorado: checkout já concluído ou com assinatura associada.', [
+                                    'tenant_id' => $tenant->id,
+                                    'session_id' => $checkoutSessionId,
+                                    'session_status' => $sessionStatus,
+                                    'subscription_id' => $session->subscription ?? null,
+                                ]);
+
+                                continue;
+                            }
+                        } catch (\Exception $e) {
+                            Log::warning('Cleanup não conseguiu consultar/expirar checkout Stripe.', [
                                 'tenant_id' => $tenant->id,
                                 'session_id' => $checkoutSessionId,
-                                'session_status' => $sessionStatus,
-                                'subscription_id' => $session->subscription ?? null,
+                                'error' => $e->getMessage(),
                             ]);
 
                             continue;
                         }
-                    } catch (\Exception $e) {
-                        Log::warning('Cleanup não conseguiu consultar/expirar checkout Stripe.', [
-                            'tenant_id' => $tenant->id,
-                            'session_id' => $checkoutSessionId,
-                            'error' => $e->getMessage(),
-                        ]);
-
-                        continue;
                     }
-                }
 
-                if ($tenant->stripe_id) {
-                    try {
-                        $billingService->deleteCustomer($tenant->stripe_id);
-                    } catch (\Exception $e) {
-                        Log::warning('Cleanup abortado: falha ao remover customer Stripe.', [
-                            'tenant_id' => $tenant->id,
-                            'customer_id' => $tenant->stripe_id,
-                            'error' => $e->getMessage(),
-                        ]);
+                    if ($tenant->stripe_id) {
+                        try {
+                            $billingService->deleteCustomer($tenant->stripe_id);
+                        } catch (\Exception $e) {
+                            Log::warning('Cleanup abortado: falha ao remover customer Stripe.', [
+                                'tenant_id' => $tenant->id,
+                                'customer_id' => $tenant->stripe_id,
+                                'error' => $e->getMessage(),
+                            ]);
 
-                        continue;
+                            continue;
+                        }
                     }
-                }
 
-                Log::info('Removendo tenant pending expirado', [
-                    'tenant_id' => $tenant->id,
-                    'slug' => $tenant->slug,
-                    'created_at' => $tenant->created_at,
-                ]);
+                    Log::info('Removendo tenant pending expirado', [
+                        'tenant_id' => $tenant->id,
+                        'slug' => $tenant->slug,
+                        'created_at' => $tenant->created_at,
+                    ]);
 
-                // Captura dados necessários ANTES da deleção
-                $adminEmail = $tenant->admin_email;
-                $tenantName = $tenant->name;
-                $planSlug = $tenant->plan?->slug ?? '';
+                    // Captura dados necessários ANTES da deleção
+                    $adminEmail = $tenant->admin_email;
+                    $tenantName = $tenant->name;
+                    $planSlug = $tenant->plan?->slug ?? '';
 
-                // Deleta os domínios primeiro, depois o tenant
-                $tenant->domains()->delete();
-                $tenant->delete();
+                    // Deleta os domínios primeiro, depois o tenant
+                    $tenant->domains()->delete();
+                    $tenant->delete();
 
-                $count++;
+                    $count++;
 
-                // Envia email de reengajamento após a deleção.
-                // Usa Notification::route() porque o model já foi deletado.
-                if ($adminEmail) {
-                    try {
-                        $signupUrl = rtrim((string) config('app.landing_url', config('app.url')), '/')
-                            .'/cadastro'
-                            .($planSlug ? '?plan='.$planSlug : '');
+                    // Envia email de reengajamento após a deleção.
+                    // Usa Notification::route() porque o model já foi deletado.
+                    if ($adminEmail) {
+                        try {
+                            $signupUrl = rtrim((string) config('app.landing_url', config('app.url')), '/')
+                                .'/cadastro'
+                                .($planSlug ? '?plan='.$planSlug : '');
 
-                        Notification::route('mail', $adminEmail)
-                            ->notify(new AbandonedCheckoutNotification($tenantName, $planSlug, $signupUrl));
-                    } catch (\Exception $e) {
-                        Log::warning('Falha ao enviar email de reengajamento para tenant removido.', [
-                            'admin_email' => $adminEmail,
-                            'tenant_name' => $tenantName,
-                            'error' => $e->getMessage(),
-                        ]);
+                            Notification::route('mail', $adminEmail)
+                                ->notify(new AbandonedCheckoutNotification($tenantName, $planSlug, $signupUrl));
+                        } catch (\Exception $e) {
+                            Log::warning('Falha ao enviar email de reengajamento para tenant removido.', [
+                                'admin_email' => $adminEmail,
+                                'tenant_name' => $tenantName,
+                                'error' => $e->getMessage(),
+                            ]);
+                        }
                     }
-                }
 
-            } catch (\Exception $e) {
-                Log::error('Erro ao remover tenant pending', [
-                    'tenant_id' => $tenant->id,
-                    'error' => $e->getMessage(),
-                ]);
+                } catch (\Exception $e) {
+                    Log::error('Erro ao remover tenant pending', [
+                        'tenant_id' => $tenant->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
             }
-        }
 
-        Log::info('CleanupPendingTenantsJob concluído', ['removed_count' => $count]);
+            Log::info('CleanupPendingTenantsJob concluído', ['removed_count' => $count]);
+        } finally {
+            $lock->release();
+        }
     }
 
     /**

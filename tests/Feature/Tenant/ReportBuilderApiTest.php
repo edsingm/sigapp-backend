@@ -13,6 +13,7 @@ use App\Http\Middleware\InitializeTenancyFlexible;
 use App\Jobs\GenerateReportRunJob;
 use App\Models\Tenant\ReportRun;
 use App\Models\Tenant\User;
+use App\Repositories\Tenant\ReportRunRepository;
 use App\Services\Tenant\ReportGenerationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -112,5 +113,43 @@ class ReportBuilderApiTest extends TestCase
 
         $this->assertDatabaseHas('report_runs', ['id' => $runId, 'status' => 'completed']);
         Storage::disk('s3')->assertExists('reports/runs/'.$runId.'.csv');
+    }
+
+    public function test_report_job_claims_the_same_run_only_once(): void
+    {
+        $template = $this->actingAs($this->admin)->postJson('/api/v1/reports/templates', [
+            'name' => 'Status',
+            'definition' => [
+                'datasets' => ['terrenos'],
+                'dimensions' => ['workflow_status_code'],
+                'metrics' => ['count'],
+            ],
+        ])->json('data.id');
+
+        Queue::fake();
+        $runId = (int) $this->actingAs($this->admin)->postJson('/api/v1/reports/runs', [
+            'template_id' => $template,
+            'idempotency_key' => (string) Str::uuid(),
+        ])->json('data.id');
+        $service = $this->createMock(ReportGenerationService::class);
+        $service->expects($this->once())
+            ->method('generate')
+            ->willReturnCallback(static function (ReportRun $run): void {
+                $run->update([
+                    'status' => 'completed',
+                    'progress' => 100,
+                    'completed_at' => now(),
+                ]);
+            });
+        $job = new GenerateReportRunJob($runId);
+
+        $job->handle(app(ReportRunRepository::class), $service);
+        $job->handle(app(ReportRunRepository::class), $service);
+
+        $this->assertDatabaseHas('report_runs', [
+            'id' => $runId,
+            'status' => 'completed',
+            'progress' => 100,
+        ]);
     }
 }

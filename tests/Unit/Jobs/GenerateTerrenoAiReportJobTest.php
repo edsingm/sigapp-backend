@@ -32,8 +32,8 @@ final class GenerateTerrenoAiReportJobTest extends TestCase
 
         /** @var AiReportGenerationRepository&MockObject $generationRepository */
         $generationRepository = $this->createMock(AiReportGenerationRepository::class);
-        $generationRepository->expects($this->once())->method('findById')->with(7001)->willReturn($generation);
-        $generationRepository->expects($this->exactly(3))
+        $generationRepository->expects($this->once())->method('claimQueued')->with(7001)->willReturn($generation);
+        $generationRepository->expects($this->exactly(2))
             ->method('update')
             ->with(
                 $generation,
@@ -46,6 +46,7 @@ final class GenerateTerrenoAiReportJobTest extends TestCase
 
                 return $model;
             });
+        $generationRepository->expects($this->never())->method('releaseForRetry');
 
         /** @var TerrenoRepository&MockObject $terrenoRepository */
         $terrenoRepository = $this->createMock(TerrenoRepository::class);
@@ -78,5 +79,32 @@ final class GenerateTerrenoAiReportJobTest extends TestCase
         $this->assertSame(AiReportGenerationStatus::COMPLETED, $generation->status);
         $this->assertSame(100, $generation->progress);
         $this->assertSame(9001, $generation->report_id);
+    }
+
+    public function test_handle_skips_work_when_generation_was_not_claimed(): void
+    {
+        /** @var AiReportGenerationRepository&MockObject $generationRepository */
+        $generationRepository = $this->createMock(AiReportGenerationRepository::class);
+        $generationRepository->expects($this->once())->method('claimQueued')->with(7001)->willReturn(null);
+        $generationRepository->expects($this->never())->method('update');
+
+        /** @var TerrenoRepository&MockObject $terrenoRepository */
+        $terrenoRepository = $this->createMock(TerrenoRepository::class);
+        $terrenoRepository->expects($this->never())->method('findById');
+
+        /** @var TerrenoAiReportService&MockObject $reportService */
+        $reportService = $this->createMock(TerrenoAiReportService::class);
+        $reportService->expects($this->never())->method('build');
+
+        /** @var CreatePdfsTool&MockObject $pdfTool */
+        $pdfTool = $this->createMock(CreatePdfsTool::class);
+        $pdfTool->expects($this->never())->method('handle');
+
+        (new GenerateTerrenoAiReportJob(7001))->handle(
+            $generationRepository,
+            $terrenoRepository,
+            $reportService,
+            $pdfTool,
+        );
     }
 }

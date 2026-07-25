@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Log;
 use Laravel\Cashier\Http\Controllers\WebhookController as CashierController;
 use Laravel\Cashier\Http\Middleware\VerifyWebhookSignature;
 use Symfony\Component\HttpFoundation\Response;
+use Throwable;
 
 class WebhookController extends CashierController
 {
@@ -81,15 +82,41 @@ class WebhookController extends CashierController
                 $payload,
             );
 
-            $response = parent::handleWebhook($request);
+            $attempt = $this->webhookEventService->claimForProcessing($event);
+            if ($attempt === null) {
+                Log::warning('Webhook do Stripe já está sendo processado', [
+                    'event_id' => $eventId,
+                    'type' => $event->type,
+                ]);
 
-            if ($response instanceof Response
-                && $response->isSuccessful()
-                && $response->headers->get('X-Webhook-Processed', '1') !== '0') {
-                $this->webhookEventService->markAsProcessed($event);
+                return response()->json([
+                    'message' => 'Stripe webhook is already being processed.',
+                ], 409);
             }
 
-            return $response;
+            try {
+                $response = parent::handleWebhook($request);
+
+                if ($response->isSuccessful()
+                    && $response->headers->get('X-Webhook-Processed', '1') !== '0') {
+                    $this->webhookEventService->markAsProcessed($event, $attempt);
+                } else {
+                    $this->webhookEventService->markAsFailed(
+                        $event,
+                        $attempt,
+                        sprintf(
+                            'Handler did not confirm processing (HTTP %d).',
+                            $response->getStatusCode(),
+                        ),
+                    );
+                }
+
+                return $response;
+            } catch (Throwable $exception) {
+                $this->webhookEventService->markAsFailed($event, $attempt, $exception->getMessage());
+
+                throw $exception;
+            }
         });
     }
 

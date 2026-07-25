@@ -130,6 +130,13 @@ Job, atualmente 600 segundos. A produção mantém workers separados para
 `tenant-provisioning`, `ai`, `exports`, `notifications` e `default`; ajuste a
 concorrência com `QUEUE_<NOME>_PROCESSES`, sempre usando inteiros a partir de 1.
 
+O Redis de cache também é o coordenador dos locks do scheduler e dos Jobs
+únicos. Todas as réplicas podem manter `schedule:work` ativo: os eventos
+nomeados de `routes/console.php` usam `onOneServer()` e
+`withoutOverlapping()`. Por isso, todas as réplicas precisam apontar para o
+mesmo Redis/prefixo de aplicação; não use cache local ou Redis isolado por
+réplica em produção.
+
 ## 6. Criar o backend
 
 1. Selecione `New Resource`.
@@ -499,6 +506,12 @@ supervisorctl status
 atual e o Supervisor o inicia novamente. O `stopwaitsecs=660` também dá ao
 container tempo suficiente para concluir o Job máximo de 600 segundos durante
 um stop gracioso.
+
+Relatórios, dossiês de IA, embeddings e webhooks Stripe possuem defesa
+persistente contra reentrega. Não limpe manualmente estados `running`,
+`processing` ou tentativas de webhook durante uma drenagem: os workers retomam
+claims obsoletos após o prazo definido e o índice anterior de embeddings
+permanece ativo até a substituição transacional terminar.
 
 Antes de uma manutenção de Redis ou de uma mudança na topologia de workers:
 

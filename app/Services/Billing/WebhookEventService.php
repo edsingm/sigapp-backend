@@ -23,8 +23,18 @@ class WebhookEventService
         return $this->repository->update($event, $type, $payload);
     }
 
-    public function markAsProcessed(WebhookEvent $event): void
+    public function claimForProcessing(WebhookEvent $event): ?int
     {
-        $this->repository->markAsProcessed($event);
+        return $this->repository->claimForProcessing($event);
+    }
+
+    public function markAsProcessed(WebhookEvent $event, int $attempt): void
+    {
+        $this->repository->markAsProcessed($event, $attempt);
+    }
+
+    public function markAsFailed(WebhookEvent $event, int $attempt, string $error): void
+    {
+        $this->repository->markAsFailed($event, $attempt, $error);
     }
 }

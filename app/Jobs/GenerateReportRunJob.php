@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
-use App\Models\Tenant\ReportRun;
+use App\Repositories\Tenant\ReportRunRepository;
 use App\Services\Tenant\ReportGenerationService;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\Attributes\Backoff;
@@ -22,29 +23,38 @@ use Throwable;
 #[Timeout(120)]
 #[Backoff([10, 60])]
 #[Queue('exports')]
-class GenerateReportRunJob implements ShouldQueue
+class GenerateReportRunJob implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public function __construct(private readonly int $runId) {}
 
-    public function handle(ReportGenerationService $service): void
+    public int $uniqueFor = 660;
+
+    public function uniqueId(): string
     {
-        $run = ReportRun::query()->find($this->runId);
-        if (! $run || $run->status === 'completed') {
+        return sprintf('%s:%d', tenant()?->getTenantKey() ?? 'central', $this->runId);
+    }
+
+    public function handle(ReportRunRepository $repository, ReportGenerationService $service): void
+    {
+        $run = $repository->claimPending($this->runId);
+        if ($run === null) {
             return;
         }
 
-        $service->generate($run);
+        try {
+            $service->generate($run);
+        } catch (Throwable $exception) {
+            $repository->releaseForRetry($this->runId);
+
+            throw $exception;
+        }
     }
 
     public function failed(Throwable $exception): void
     {
-        ReportRun::query()->whereKey($this->runId)->update([
-            'status' => 'failed',
-            'progress' => 0,
-            'error_message' => 'Não foi possível gerar o relatório. Tente novamente.',
-        ]);
+        app(ReportRunRepository::class)->markFailed($this->runId);
         Log::error('GenerateReportRunJob falhou definitivamente.', [
             'run_id' => $this->runId,
             'exception' => $exception::class,

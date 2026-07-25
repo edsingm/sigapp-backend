@@ -8,6 +8,7 @@ use App\Models\Central\LoginTransferTicket;
 use App\Models\Central\Tenant;
 use App\Models\Central\TenantUserDirectory;
 use App\Models\Tenant\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -92,13 +93,23 @@ class CentralLoginBrokerService
             return null;
         }
 
-        $session->update(['completed_at' => now()]);
-
         if ($deviceName !== null && $deviceName !== '') {
             $selected['device_name'] = $deviceName;
         }
 
-        return $this->buildRedirectResponse($selected, $selected['device_name'] ?? null, $context);
+        return DB::connection($session->getConnectionName())->transaction(function () use ($session, $selected, $context): ?array {
+            $claimed = CentralLoginBrokerSession::query()
+                ->whereKey($session->id)
+                ->whereNull('completed_at')
+                ->where('expires_at', '>', now())
+                ->update(['completed_at' => now()]);
+
+            if ($claimed !== 1) {
+                return null;
+            }
+
+            return $this->buildRedirectResponse($selected, $selected['device_name'] ?? null, $context);
+        });
     }
 
     /**

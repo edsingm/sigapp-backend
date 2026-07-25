@@ -21,7 +21,6 @@ class ReportGenerationService
 
     public function generate(ReportRun $run): void
     {
-        $run->update(['status' => 'running', 'progress' => 10]);
         $dataset = (string) ($run->definition_snapshot['datasets'][0] ?? 'terrenos');
         $dimension = (string) ($run->definition_snapshot['dimensions'][0] ?? 'status');
         $column = self::DIMENSION_COLUMNS[$dataset][$dimension] ?? self::DIMENSION_COLUMNS[$dataset]['status'];

@@ -7,6 +7,7 @@ namespace App\Jobs;
 use App\Models\Tenant\ComiteRevisao;
 use App\Services\Tenant\CommitteeAiDossierService;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\Attributes\Queue;
@@ -16,7 +17,7 @@ use Illuminate\Support\Facades\Log;
 use Throwable;
 
 #[Queue('ai')]
-class GenerateCommitteeAiDossierJob implements ShouldQueue
+class GenerateCommitteeAiDossierJob implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -27,10 +28,17 @@ class GenerateCommitteeAiDossierJob implements ShouldQueue
     /** @var array<int, int> */
     public array $backoff = [60, 180, 300];
 
+    public int $uniqueFor = 660;
+
     public function __construct(
         public readonly int $reviewId,
         public readonly ?int $userId = null,
     ) {}
+
+    public function uniqueId(): string
+    {
+        return sprintf('%s:%d', tenant()?->getTenantKey() ?? 'central', $this->reviewId);
+    }
 
     public function handle(CommitteeAiDossierService $service): void
     {

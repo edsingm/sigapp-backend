@@ -542,7 +542,7 @@ Objetos (timestamps ISO8601):
 
 #### Respostas — consent-log (público)
 
-- **POST `consent-log`** — **201** `{ "success": true, "data": { "consent_id": "..." }, "message": "..." }` quando registra novo consentimento; **200** com mesmo corpo quando já existente (idempotente). **422** validação.
+- **POST `consent-log`** — **201** `{ "success": true, "data": { "consent_id": "..." }, "message": "..." }` no primeiro registro do `consent_id`; **200** com o mesmo corpo nos registros seguintes. Cada chamada válida cria uma nova linha append-only para preservar o histórico. **422** validação.
 
 ### contratos
 

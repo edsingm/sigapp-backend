@@ -81,6 +81,10 @@ class CentralLoginBrokerService
             return null;
         }
 
+        if (! $this->brokerSessionMatchesRequestIp($session, $context)) {
+            return null;
+        }
+
         $options = is_array($session->tenant_options) ? $session->tenant_options : [];
         $selected = collect($options)->firstWhere('tenant_id', $tenantId);
 
@@ -384,5 +388,17 @@ class CentralLoginBrokerService
         }
 
         return app()->environment('local') ? 'http' : 'https';
+    }
+
+    private function brokerSessionMatchesRequestIp(CentralLoginBrokerSession $session, RequestContext $context): bool
+    {
+        $sessionIpAddress = $session->getAttribute('ip_address');
+        $requestIpAddress = $context->ipAddress;
+
+        return is_string($sessionIpAddress)
+            && $sessionIpAddress !== ''
+            && is_string($requestIpAddress)
+            && $requestIpAddress !== ''
+            && hash_equals($sessionIpAddress, $requestIpAddress);
     }
 }

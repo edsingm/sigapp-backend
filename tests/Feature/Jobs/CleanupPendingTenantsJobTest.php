@@ -5,6 +5,7 @@ namespace Tests\Feature\Jobs;
 use App\Jobs\CleanupPendingTenantsJob;
 use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
+use App\Repositories\Contracts\TenantRepositoryInterface;
 use App\Services\Billing\TenantBillingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
@@ -20,10 +21,13 @@ class CleanupPendingTenantsJobTest extends TestCase
 
     private Plan $plan;
 
+    private TenantRepositoryInterface $tenants;
+
     protected function setUp(): void
     {
         parent::setUp();
 
+        $this->tenants = app(TenantRepositoryInterface::class);
         $this->plan = Plan::create([
             'name' => 'Plano Teste',
             'slug' => 'teste',
@@ -64,7 +68,7 @@ class CleanupPendingTenantsJobTest extends TestCase
         $billingService = new class extends TenantBillingService {};
 
         $job = new CleanupPendingTenantsJob;
-        $job->handle($billingService);
+        $job->handle($billingService, $this->tenants);
 
         $this->assertDatabaseHas('tenants', ['id' => $tenantId]);
     }
@@ -80,7 +84,7 @@ class CleanupPendingTenantsJobTest extends TestCase
         $billingService = new class extends TenantBillingService {};
 
         $job = new CleanupPendingTenantsJob;
-        $job->handle($billingService);
+        $job->handle($billingService, $this->tenants);
 
         $this->assertDatabaseHas('tenants', ['id' => $tenantId]);
     }
@@ -101,7 +105,7 @@ class CleanupPendingTenantsJobTest extends TestCase
         };
 
         $job = new CleanupPendingTenantsJob;
-        $job->handle($billingService);
+        $job->handle($billingService, $this->tenants);
 
         $this->assertDatabaseHas('tenants', ['id' => $tenantId]);
     }
@@ -123,11 +127,17 @@ class CleanupPendingTenantsJobTest extends TestCase
             }
         };
 
-        $this->assertSame(101, Tenant::query()->expiredPending()->count());
+        $expiredTenants = $this->tenants->expiredPending(200);
+        $this->assertCount(101, $expiredTenants);
+        $this->assertTrue(
+            $expiredTenants->every(
+                static fn (Tenant $tenant): bool => $tenant->relationLoaded('plan'),
+            ),
+        );
 
-        (new CleanupPendingTenantsJob)->handle($billingService);
+        (new CleanupPendingTenantsJob)->handle($billingService, $this->tenants);
 
-        $this->assertSame(1, Tenant::query()->expiredPending()->count());
+        $this->assertCount(1, $this->tenants->expiredPending(200));
     }
 
     public function test_failed_loga_erro_sem_lancar_excecao(): void

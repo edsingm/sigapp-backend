@@ -42,6 +42,19 @@ class TenantRepository implements TenantRepositoryInterface
         return $tenant->load('plan');
     }
 
+    /** @return Collection<int, Tenant> */
+    public function expiredPending(int $limit): Collection
+    {
+        $query = Tenant::query();
+        $query->where('status', Tenant::STATUS_PENDING);
+        $query->where('created_at', '<', now()->subDay());
+        $query->with('plan');
+        $query->orderBy('id');
+        $query->limit($limit);
+
+        return $query->get();
+    }
+
     /**
      * @return array<string, int|float|null>
      */

@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\Tenant\SavedViewController;
 use App\Http\Controllers\Api\V1\Tenant\ShortlistController;
 use App\Http\Controllers\Api\V1\Tenant\TaskController;
 use App\Http\Controllers\Api\V1\Tenant\TenantController;
+use App\Http\Controllers\Api\V1\Tenant\TenantExportController;
 use App\Http\Controllers\Api\V1\Tenant\UserController;
 use App\Http\Controllers\Api\V1\Tenant\UserOnboardingController;
 use App\Http\Controllers\Api\V1\Tenant\UserPreferencesController;
@@ -30,6 +31,18 @@ Route::prefix('tenant/billing')->group(function () {
 
 // Users (select inputs for tenant forms)
 Route::get('/users/for-select', [UserController::class, 'usersForSelect']);
+
+Route::prefix('exports')->group(function () {
+    Route::post('/', [TenantExportController::class, 'store'])
+        ->middleware('throttle:exports')
+        ->name('tenant.exports.store');
+    Route::get('/{export}', [TenantExportController::class, 'show'])
+        ->whereNumber('export')
+        ->name('tenant.exports.show');
+    Route::get('/{export}/download', [TenantExportController::class, 'download'])
+        ->whereNumber('export')
+        ->name('tenant.exports.download');
+});
 
 Route::get('/me/preferences', [UserPreferencesController::class, 'show']);
 Route::patch('/me/preferences', [UserPreferencesController::class, 'update']);

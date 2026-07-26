@@ -255,5 +255,17 @@ class AppServiceProvider extends ServiceProvider
                 ->by($key)
                 ->response(fn () => ApiResponseService::tooManyRequests('Muitas ações de aprovação em curto período. Aguarde 1 minuto.'));
         });
+
+        RateLimiter::for('exports', function (Request $request) {
+            $user = $request->user();
+            $tenantId = tenancy()->initialized ? (string) tenant('id') : 'no-tenant';
+            $key = $user
+                ? "exports:{$tenantId}:user:{$user->id}"
+                : "exports:{$tenantId}:ip:{$request->ip()}";
+
+            return Limit::perMinute(10)
+                ->by($key)
+                ->response(fn () => ApiResponseService::tooManyRequests('Muitas exportações solicitadas em curto período. Aguarde 1 minuto.'));
+        });
     }
 }

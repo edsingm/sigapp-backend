@@ -4,9 +4,9 @@ namespace App\Exports\Tenant;
 
 use App\Models\Tenant\Terreno;
 use App\Services\Tenant\LandWorkflowService;
-use Illuminate\Support\Collection;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
-use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
@@ -14,7 +14,7 @@ use Maatwebsite\Excel\Concerns\WithStyles;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class TerrenosExport implements FromCollection, ShouldAutoSize, WithHeadings, WithMapping, WithStyles
+class TerrenosExport implements FromQuery, ShouldAutoSize, WithHeadings, WithMapping, WithStyles
 {
     protected array $filters;
 
@@ -23,7 +23,8 @@ class TerrenosExport implements FromCollection, ShouldAutoSize, WithHeadings, Wi
         $this->filters = $filters;
     }
 
-    public function collection(): Collection
+    /** @return Builder<Terreno> */
+    public function query(): Builder
     {
         $query = Terreno::query()
             ->with([
@@ -86,7 +87,7 @@ class TerrenosExport implements FromCollection, ShouldAutoSize, WithHeadings, Wi
 
         $query->orderBy('created_at', 'desc');
 
-        return $query->get();
+        return $query;
     }
 
     public function headings(): array

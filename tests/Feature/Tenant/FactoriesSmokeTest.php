@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Tenant;
 
+use App\Enums\TenantExportStatus;
 use App\Models\Tenant\ComiteRevisao;
 use App\Models\Tenant\Contrato;
 use App\Models\Tenant\Legalizacao;
@@ -13,6 +14,7 @@ use App\Models\Tenant\PremissasViabilidade;
 use App\Models\Tenant\Produto;
 use App\Models\Tenant\Proprietario;
 use App\Models\Tenant\Task;
+use App\Models\Tenant\TenantExportGeneration;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\User as TenantUser;
 use App\Models\Tenant\Viabilidade;
@@ -123,6 +125,15 @@ class FactoriesSmokeTest extends TestCase
         $this->assertNotNull($task->id);
         $this->assertNotEmpty($task->title);
         $this->assertDatabaseHas('tasks', ['id' => $task->id]);
+    }
+
+    public function test_tenant_export_generation_factory_creates_valid_generation(): void
+    {
+        $generation = TenantExportGeneration::factory()->createOne();
+
+        $this->assertTrue($generation->exists);
+        $this->assertSame(TenantExportStatus::QUEUED, $generation->status);
+        $this->assertDatabaseHas('tenant_export_generations', ['id' => $generation->id]);
     }
 
     public function test_premissas_viabilidade_factory_creates_valid_premissa(): void

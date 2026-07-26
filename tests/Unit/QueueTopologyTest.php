@@ -9,6 +9,7 @@ use App\Jobs\CleanupPendingTenantsJob;
 use App\Jobs\CreateFullTenantJob;
 use App\Jobs\GenerateCommitteeAiDossierJob;
 use App\Jobs\GenerateReportRunJob;
+use App\Jobs\GenerateTenantExportJob;
 use App\Jobs\GenerateTerrenoAiReportJob;
 use App\Jobs\IndexDocumentEmbeddingJob;
 use App\Jobs\RecalculateAiScoresJob;
@@ -59,6 +60,7 @@ class QueueTopologyTest extends TestCase
             CreateFullTenantJob::class => 'tenant-provisioning',
             GenerateCommitteeAiDossierJob::class => 'ai',
             GenerateReportRunJob::class => 'exports',
+            GenerateTenantExportJob::class => 'exports',
             GenerateTerrenoAiReportJob::class => 'ai',
             IndexDocumentEmbeddingJob::class => 'ai',
             RecalculateAiScoresJob::class => 'ai',
@@ -78,6 +80,7 @@ class QueueTopologyTest extends TestCase
             CleanupPendingTenantsJob::class,
             GenerateCommitteeAiDossierJob::class,
             GenerateReportRunJob::class,
+            GenerateTenantExportJob::class,
             GenerateTerrenoAiReportJob::class,
             IndexDocumentEmbeddingJob::class,
             RecalculateAiScoresJob::class,

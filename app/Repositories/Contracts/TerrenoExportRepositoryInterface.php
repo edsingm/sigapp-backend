@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Collection;
 
 interface TerrenoExportRepositoryInterface
 {
+    public function exists(int $id): bool;
+
     /**
      * @return Collection<int, Terreno>
      */

@@ -12,6 +12,11 @@ use Illuminate\Support\Str;
 
 class TerrenoExportRepository implements TerrenoExportRepositoryInterface
 {
+    public function exists(int $id): bool
+    {
+        return Terreno::query()->whereKey($id)->exists();
+    }
+
     public function queryForExport(array $filters): Collection
     {
         $query = Terreno::query()

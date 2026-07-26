@@ -363,36 +363,14 @@ return [
     ],
 
     /**
-     * Cache tenancy config. Used by the CacheTenancyBootstrapper, the CacheTagsBootstrapper, and the custom CacheManager.
+     * Cache tenancy config used by Stancl v3.10's CacheTenancyBootstrapper.
      *
-     * This works for all Cache facade calls, cache() helper
-     * calls and direct calls to injected cache stores.
-     *
-     * CacheTenancyBootstrapper:
-     *   A prefix is applied *GLOBALLY*, using the `cache.prefix` config. This separates
-     *   one tenant's cache from another's. The list of stores is used for refreshing
-     *   them so that they re-load the prefix from the `cache.prefix` configuration.
-     *
-     * CacheTagsBootstrapper:
-     *   Each key in cache will have a tag applied on it. This tag is used to
-     *   scope the cache both when writing to it and when reading from it.
-     *
-     * You can clear cache selectively by specifying the tag.
+     * The custom cache manager adds tag_base + tenant key to Cache facade/helper
+     * operations. Module invalidation must go through TenantCacheService because
+     * flushing through that manager would also reset the tenant base tag.
      */
     'cache' => [
-        'prefix' => 'tenant_%tenant%_', // This format, with the %tenant% replaced by the tenant key, and prepended by the original store prefix, will form a cache prefix that will be used for every cache key.
-        'stores' => [
-            env('CACHE_STORE'),
-        ],
-
-        /*
-         * Should sessions be tenant-aware (only used when your session driver is cache-based).
-         *
-         * Note: This will implicitly add your configured session store to the list of prefixed stores above.
-         */
-        'scope_sessions' => in_array(env('SESSION_DRIVER'), ['redis', 'memcached', 'dynamodb', 'apc'], true),
-
-        'tag_base' => 'tenant', // This tag_base, followed by the tenant_id, will form a tag that will be applied on each cache call.
+        'tag_base' => 'tenant',
     ],
 
     /**

@@ -44,24 +44,24 @@ class User extends Authenticatable
     protected static function booted()
     {
         static::saved(function (User $model) {
-            $model->clearTenantCache('users');
-            $model->clearTenantCache('terrenos');
-            $model->clearTenantCache('legalizacoes');
-
             if (tenancy()->initialized) {
                 app(TenantUserDirectoryService::class)->syncUser($model);
             }
         });
 
         static::deleted(function (User $model) {
-            $model->clearTenantCache('users');
-            $model->clearTenantCache('terrenos');
-            $model->clearTenantCache('legalizacoes');
-
             if (tenancy()->initialized) {
                 app(TenantUserDirectoryService::class)->deleteUser($model);
             }
         });
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function tenantCacheModules(): array
+    {
+        return ['users', 'terrenos', 'legalizacoes'];
     }
 
     /**

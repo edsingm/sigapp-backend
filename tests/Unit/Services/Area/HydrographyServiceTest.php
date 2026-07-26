@@ -4,7 +4,7 @@ namespace Tests\Unit\Services\Area;
 
 use App\Services\Tenant\Area\HydrographyService;
 use App\Services\Tenant\Area\PolygonCalculator;
-use Illuminate\Support\Facades\Cache;
+use App\Services\Tenant\TenantCacheService;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -16,7 +16,9 @@ class HydrographyServiceTest extends TestCase
     {
         parent::setUp();
 
-        $this->service = new HydrographyService(new PolygonCalculator);
+        $cache = app(TenantCacheService::class);
+        $cache->flushModules('hydrography');
+        $this->service = new HydrographyService(new PolygonCalculator, $cache);
     }
 
     public function test_calculate_app_area_returns_array_with_zero_for_empty_polygon(): void
@@ -42,8 +44,6 @@ class HydrographyServiceTest extends TestCase
             ['lat' => -23.5010, 'lng' => -46.6010],
             ['lat' => -23.5010, 'lng' => -46.6000],
         ];
-
-        Cache::tags(['hydrography'])->flush();
 
         $result = $this->service->calculateAppArea($polygon);
 
@@ -93,8 +93,6 @@ class HydrographyServiceTest extends TestCase
             ['lat' => -23.5005, 'lng' => -46.6010],
         ];
 
-        Cache::tags(['hydrography'])->flush();
-
         $result = $this->service->calculateAppArea($polygon);
 
         $this->assertGreaterThan(0.0, $result['area']);
@@ -115,8 +113,6 @@ class HydrographyServiceTest extends TestCase
             ['lat' => -23.51, 'lng' => -46.61],
         ];
 
-        Cache::tags(['hydrography'])->flush();
-
         // Primeira chamada
         $this->service->getWaterBodiesForPolygon($polygon);
 
@@ -128,10 +124,12 @@ class HydrographyServiceTest extends TestCase
         Http::assertSentCount(1);
     }
 
-    public function test_get_water_bodies_handles_overpass_failure(): void
+    public function test_get_water_bodies_does_not_cache_overpass_failure(): void
     {
         Http::fake([
-            'overpass-api.de/*' => Http::response('Service Unavailable', 503),
+            'overpass-api.de/*' => Http::sequence()
+                ->push('Service Unavailable', 503)
+                ->push(['elements' => []], 200),
         ]);
 
         $polygon = [
@@ -139,10 +137,14 @@ class HydrographyServiceTest extends TestCase
             ['lat' => -23.51, 'lng' => -46.61],
         ];
 
-        Cache::tags(['hydrography'])->flush();
+        try {
+            $this->service->getWaterBodiesForPolygon($polygon);
+            $this->fail('A falha do Overpass deveria interromper a consulta.');
+        } catch (\RuntimeException) {
+            // A falha transitória não pode ser convertida em um resultado vazio cacheável.
+        }
 
-        $result = $this->service->getWaterBodiesForPolygon($polygon);
-
-        $this->assertEmpty($result);
+        $this->assertSame([], $this->service->getWaterBodiesForPolygon($polygon));
+        Http::assertSentCount(2);
     }
 }

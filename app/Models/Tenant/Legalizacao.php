@@ -32,6 +32,14 @@ class Legalizacao extends Model
         'custo_total_previsto' => 'decimal:2',
     ];
 
+    /**
+     * @return list<string>
+     */
+    protected function tenantCacheModules(): array
+    {
+        return ['legalizacoes'];
+    }
+
     public function terreno(): BelongsTo
     {
         return $this->belongsTo(Terreno::class);

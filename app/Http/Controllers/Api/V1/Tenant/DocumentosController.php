@@ -11,9 +11,9 @@ use App\Models\Tenant\Documento;
 use App\Repositories\Tenant\DocumentoRepository;
 use App\Services\ApiResponseService;
 use App\Services\Tenant\DocumentoService;
+use App\Services\Tenant\TenantCacheService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -23,6 +23,7 @@ class DocumentosController extends Controller
     public function __construct(
         private readonly DocumentoRepository $documentoRepository,
         private readonly DocumentoService $documentoService,
+        private readonly TenantCacheService $cache,
     ) {}
 
     /**
@@ -30,15 +31,17 @@ class DocumentosController extends Controller
      */
     public function index(ListDocumentosRequest $request): JsonResponse
     {
-        $tenantId = tenant('id') ?? 'central';
         $filters = $request->validated();
-        $cacheKey = "tenant:{$tenantId}:documentos:index:".md5(json_encode($filters));
+        $cacheKey = $this->cache->key('documentos', 'index', $filters);
 
-        return Cache::tags(["tenant:{$tenantId}:documentos"])->remember($cacheKey, now()->addMinutes(30), function () use ($filters) {
-            $documentos = $this->documentoRepository->paginate($filters);
+        $documentos = $this->cache->remember(
+            'documentos',
+            $cacheKey,
+            now()->addMinutes(30),
+            fn () => $this->documentoRepository->paginate($filters),
+        );
 
-            return DocumentoResource::collection($documentos)->response();
-        });
+        return DocumentoResource::collection($documentos)->response();
     }
 
     /**

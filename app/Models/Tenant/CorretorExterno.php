@@ -2,6 +2,7 @@
 
 namespace App\Models\Tenant;
 
+use App\Traits\HasDashboardCache;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Attributes\Table;
@@ -13,7 +14,7 @@ use Illuminate\Database\Eloquent\Model;
 #[Hidden([])]
 class CorretorExterno extends Model
 {
-    use HasFactory;
+    use HasDashboardCache, HasFactory;
 
     /**
      * Os atributos que devem ser convertidos.
@@ -23,6 +24,14 @@ class CorretorExterno extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+
+    /**
+     * @return list<string>
+     */
+    protected function tenantCacheModules(): array
+    {
+        return ['corretores_externos', 'terrenos'];
+    }
 
     /**
      * Obtém as regras de validação para o modelo.

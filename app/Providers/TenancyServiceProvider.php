@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Listeners\Tenant\ReinitializePermissionCache;
 use App\Models\Central\Tenant;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Foundation\Application;
@@ -116,11 +117,13 @@ class TenancyServiceProvider extends ServiceProvider
             Events\InitializingTenancy::class => [],
             Events\TenancyInitialized::class => [
                 Listeners\BootstrapTenancy::class,
+                ReinitializePermissionCache::class,
             ],
 
             Events\EndingTenancy::class => [],
             Events\TenancyEnded::class => [
                 Listeners\RevertToCentralContext::class,
+                ReinitializePermissionCache::class,
             ],
 
             Events\BootstrappingTenancy::class => [],

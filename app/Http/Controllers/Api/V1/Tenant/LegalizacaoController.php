@@ -16,25 +16,30 @@ use App\Http\Resources\Tenant\LegalizacaoEtapaResource;
 use App\Http\Resources\Tenant\LegalizacaoResource;
 use App\Services\ApiResponseService;
 use App\Services\Tenant\LegalizacaoService;
+use App\Services\Tenant\TenantCacheService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Cache;
 
 class LegalizacaoController extends Controller
 {
-    public function __construct(protected LegalizacaoService $service) {}
+    public function __construct(
+        protected LegalizacaoService $service,
+        private readonly TenantCacheService $cache,
+    ) {}
 
     /**
      * Listar legalizações
      */
     public function index(ListLegalizacoesRequest $request): JsonResponse
     {
-        $tenantId = tenant('id') ?? 'central';
         $filters = $request->validated();
-        $cacheKey = "tenant:{$tenantId}:legalizacoes:index:".md5(json_encode($filters));
+        $cacheKey = $this->cache->key('legalizacoes', 'index', $filters);
 
-        $result = Cache::tags(["tenant:{$tenantId}:legalizacoes"])->remember($cacheKey, now()->addMinutes(30), function () use ($filters) {
-            return $this->service->listar($filters);
-        });
+        $result = $this->cache->remember(
+            'legalizacoes',
+            $cacheKey,
+            now()->addMinutes(30),
+            fn () => $this->service->listar($filters),
+        );
 
         return ApiResponseService::paginated($result);
     }
@@ -45,9 +50,6 @@ class LegalizacaoController extends Controller
     public function store(StoreLegalizacaoRequest $request): JsonResponse
     {
         $legalizacao = $this->service->criar($request->validated(), $request->user());
-
-        $tenantId = tenant('id') ?? 'central';
-        Cache::tags(["tenant:{$tenantId}:legalizacoes"])->flush();
 
         return ApiResponseService::created(
             new LegalizacaoResource($legalizacao),
@@ -60,12 +62,14 @@ class LegalizacaoController extends Controller
      */
     public function show(ShowLegalizacaoRequest $request, string $id): JsonResponse
     {
-        $tenantId = tenant('id') ?? 'central';
-        $cacheKey = "tenant:{$tenantId}:legalizacoes:show:{$id}";
+        $cacheKey = $this->cache->key('legalizacoes', 'show', ['id' => $id]);
 
-        $result = Cache::tags(["tenant:{$tenantId}:legalizacoes"])->remember($cacheKey, now()->addMinutes(30), function () use ($id) {
-            return $this->service->buscar((int) $id);
-        });
+        $result = $this->cache->remember(
+            'legalizacoes',
+            $cacheKey,
+            now()->addMinutes(30),
+            fn () => $this->service->buscar((int) $id),
+        );
 
         return ApiResponseService::success([
             'legalizacao' => new LegalizacaoResource($result['legalizacao']),
@@ -82,9 +86,6 @@ class LegalizacaoController extends Controller
         $legalizacao = $this->service->findOrFail($id);
         $legalizacao = $this->service->atualizar($legalizacao, $request->validated(), $request->user());
 
-        $tenantId = tenant('id') ?? 'central';
-        Cache::tags(["tenant:{$tenantId}:legalizacoes"])->flush();
-
         return ApiResponseService::success(
             new LegalizacaoResource($legalizacao),
             'Legalização atualizada com sucesso'
@@ -99,9 +100,6 @@ class LegalizacaoController extends Controller
         $legalizacao = $this->service->findOrFail($id);
         $this->service->excluir($legalizacao);
 
-        $tenantId = tenant('id') ?? 'central';
-        Cache::tags(["tenant:{$tenantId}:legalizacoes"])->flush();
-
         return ApiResponseService::noContent();
     }
 
@@ -113,12 +111,7 @@ class LegalizacaoController extends Controller
         $legalizacao = $this->service->findOrFail($id);
         $result = $this->service->syncGantt($legalizacao, $request->validated());
 
-        $tenantId = tenant('id') ?? 'central';
-        Cache::tags([
-            "tenant:{$tenantId}:legalizacoes",
-            "tenant:{$tenantId}:legalizacao_etapas",
-            "tenant:{$tenantId}:legalizacao_dependencias",
-        ])->flush();
+        $this->cache->flushModules('legalizacoes', 'legalizacao_etapas', 'legalizacao_dependencias');
 
         return ApiResponseService::success([
             'legalizacao' => new LegalizacaoResource($result['legalizacao']),
@@ -132,13 +125,15 @@ class LegalizacaoController extends Controller
      */
     public function eligibleTerrenos(EligibleLegalizacaoTerrenosRequest $request): JsonResponse
     {
-        $tenantId = tenant('id') ?? 'central';
         $filters = $request->validated();
-        $cacheKey = "tenant:{$tenantId}:legalizacoes:eligible-terrenos:".md5(json_encode($filters));
+        $cacheKey = $this->cache->key('legalizacoes', 'eligible-terrenos', $filters);
 
-        $result = Cache::tags(["tenant:{$tenantId}:legalizacoes"])->remember($cacheKey, now()->addMinutes(30), function () use ($filters) {
-            return $this->service->listarTerrenosElegiveis($filters);
-        });
+        $result = $this->cache->remember(
+            'legalizacoes',
+            $cacheKey,
+            now()->addMinutes(30),
+            fn () => $this->service->listarTerrenosElegiveis($filters),
+        );
 
         return ApiResponseService::paginated($result);
     }
@@ -149,9 +144,6 @@ class LegalizacaoController extends Controller
     public function recalcularProgresso(RecalculateLegalizacaoProgressRequest $request, string $id): JsonResponse
     {
         $legalizacao = $this->service->recalcularProgresso($this->service->findOrFail($id));
-
-        $tenantId = tenant('id') ?? 'central';
-        Cache::tags(["tenant:{$tenantId}:legalizacoes"])->flush();
 
         return ApiResponseService::success(
             new LegalizacaoResource($legalizacao),

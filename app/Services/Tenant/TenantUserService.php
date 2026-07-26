@@ -21,6 +21,7 @@ class TenantUserService
     public function __construct(
         private readonly UserRepository $userRepository,
         private readonly TenantPasswordResetService $passwordResetService,
+        private readonly TenantCacheService $cache,
     ) {}
 
     private const ADMIN_ROLE_NAMES = [
@@ -134,6 +135,7 @@ class TenantUserService
 
         $role = $data['role'] ?? RolesEnum::USER->value;
         $user->syncRoles([$role]);
+        $this->flushUserCaches();
 
         $user = $user->load(['roles', 'permissions', 'department']);
 
@@ -191,6 +193,7 @@ class TenantUserService
             }
 
             $user->syncRoles([$nextRole]);
+            $this->flushUserCaches();
         }
 
         return null;
@@ -238,6 +241,8 @@ class TenantUserService
         if (! empty($flatPermissions)) {
             $user->givePermissionTo($flatPermissions);
         }
+
+        $this->flushUserCaches();
     }
 
     /**
@@ -246,5 +251,10 @@ class TenantUserService
     public function adminEligibleCount(): int
     {
         return $this->userRepository->adminEligibleCount(self::ADMIN_ROLE_NAMES);
+    }
+
+    private function flushUserCaches(): void
+    {
+        $this->cache->flushModules('dashboard', 'users', 'terrenos', 'legalizacoes');
     }
 }

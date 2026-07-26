@@ -23,19 +23,12 @@ class Projeto extends Model
         'pronto_para_registro_em' => 'datetime',
     ];
 
-    protected static function booted(): void
+    /**
+     * @return list<string>
+     */
+    protected function tenantCacheModules(): array
     {
-        static::saved(function (Projeto $projeto) {
-            $projeto->clearTenantCache('projetos');
-        });
-
-        static::deleted(function (Projeto $projeto) {
-            $projeto->clearTenantCache('projetos');
-        });
-
-        static::restored(function (Projeto $projeto) {
-            $projeto->clearTenantCache('projetos');
-        });
+        return ['projetos'];
     }
 
     public function terreno(): BelongsTo

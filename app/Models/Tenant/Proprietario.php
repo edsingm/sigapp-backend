@@ -37,6 +37,14 @@ class Proprietario extends Model
     ];
 
     /**
+     * @return list<string>
+     */
+    protected function tenantCacheModules(): array
+    {
+        return ['proprietarios', 'terrenos'];
+    }
+
+    /**
      * Relacionamento com o Terreno
      */
     public function terreno(): BelongsTo

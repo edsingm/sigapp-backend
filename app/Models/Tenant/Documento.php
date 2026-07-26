@@ -2,6 +2,7 @@
 
 namespace App\Models\Tenant;
 
+use App\Traits\HasDashboardCache;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -20,12 +21,20 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Documento extends Model
 {
-    use HasFactory;
+    use HasDashboardCache, HasFactory;
 
     protected $casts = [
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+
+    /**
+     * @return list<string>
+     */
+    protected function tenantCacheModules(): array
+    {
+        return ['documentos', 'terrenos'];
+    }
 
     public function terreno(): BelongsTo
     {

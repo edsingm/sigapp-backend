@@ -43,25 +43,12 @@ class Terreno extends Model
 {
     use HasDashboardCache, HasFactory, SoftDeletes;
 
-    protected static function booted(): void
+    /**
+     * @return list<string>
+     */
+    protected function tenantCacheModules(): array
     {
-        static::saved(function (Terreno $terreno) {
-            $terreno->clearTenantCache('terrenos');
-            $terreno->clearTenantCache('legalizacoes');
-            $terreno->clearTenantCache('projetos');
-        });
-
-        static::deleted(function (Terreno $terreno) {
-            $terreno->clearTenantCache('terrenos');
-            $terreno->clearTenantCache('legalizacoes');
-            $terreno->clearTenantCache('projetos');
-        });
-
-        static::restored(function (Terreno $terreno) {
-            $terreno->clearTenantCache('terrenos');
-            $terreno->clearTenantCache('legalizacoes');
-            $terreno->clearTenantCache('projetos');
-        });
+        return ['terrenos', 'legalizacoes', 'projetos'];
     }
 
     protected $casts = [

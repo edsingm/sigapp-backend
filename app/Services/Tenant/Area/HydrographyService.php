@@ -2,9 +2,10 @@
 
 namespace App\Services\Tenant\Area;
 
-use Illuminate\Support\Facades\Cache;
+use App\Services\Tenant\TenantCacheService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
 
 /**
  * Consulta dados de hidrografia (rios, nascentes, lagos) para cálculo de APP.
@@ -33,6 +34,7 @@ class HydrographyService
 
     public function __construct(
         private readonly PolygonCalculator $polygonCalc,
+        private readonly TenantCacheService $cache,
     ) {}
 
     /**
@@ -43,6 +45,10 @@ class HydrographyService
      */
     public function calculateAppArea(array $polygon): array
     {
+        if (count($polygon) < 3) {
+            return ['area' => 0.0, 'polygons' => []];
+        }
+
         $waterBodies = $this->getWaterBodiesForPolygon($polygon);
 
         if (empty($waterBodies)) {
@@ -121,20 +127,22 @@ class HydrographyService
         $bbox = $this->polygonCalc->boundingBox($polygon);
         $expanded = $this->expandBbox($bbox, 200.0);
 
-        // Cache por bbox arredondado (2 casas decimais ≈ 1km)
-        // Prefixo v2 para invalidar caches prévios que podem ter dados vazios (406)
-        $cacheKey = sprintf(
-            'hydrography:v2:%.2f:%.2f:%.2f:%.2f',
-            $expanded['south'],
-            $expanded['north'],
-            $expanded['west'],
-            $expanded['east'],
-        );
+        // Cache por bbox arredondado (2 casas decimais ≈ 1km).
+        // v3 não persiste falhas externas como ausência de hidrografia.
+        $cacheKey = $this->cache->key('hydrography', 'bbox:v3', [
+            'south' => round($expanded['south'], 2),
+            'north' => round($expanded['north'], 2),
+            'west' => round($expanded['west'], 2),
+            'east' => round($expanded['east'], 2),
+        ]);
 
-        return Cache::tags(['hydrography'])->remember(
+        return $this->cache->remember(
+            'hydrography',
             $cacheKey,
             now()->addDays(self::CACHE_TTL_DAYS),
             fn () => $this->fetchFromOverpass($expanded),
+            lockSeconds: 90,
+            lockWaitSeconds: 65,
         );
     }
 
@@ -180,7 +188,7 @@ class HydrographyService
                     'body' => mb_substr($response->body(), 0, 500),
                 ]);
 
-                return [];
+                throw new RuntimeException('Overpass API indisponível.');
             }
 
             $data = $response->json();
@@ -193,7 +201,7 @@ class HydrographyService
                 'error' => $e->getMessage(),
             ]);
 
-            return [];
+            throw new RuntimeException('Não foi possível consultar os dados de hidrografia.', 0, $e);
         }
     }
 

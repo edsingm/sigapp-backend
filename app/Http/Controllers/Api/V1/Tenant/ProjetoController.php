@@ -14,10 +14,10 @@ use App\Models\Tenant\Projeto;
 use App\Models\Tenant\Terreno;
 use App\Services\ApiResponseService;
 use App\Services\Tenant\ProjetoService;
+use App\Services\Tenant\TenantCacheService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 
@@ -25,6 +25,7 @@ class ProjetoController extends Controller
 {
     public function __construct(
         protected ProjetoService $service,
+        private readonly TenantCacheService $cache,
     ) {}
 
     /**
@@ -35,14 +36,15 @@ class ProjetoController extends Controller
         Gate::authorize('viewAny', Projeto::class);
 
         try {
-            $tenantId = tenant('id') ?? 'central';
             $filters = $request->only(['search', 'status', 'per_page', 'page']);
-            $cacheKey = "tenant:{$tenantId}:projetos:index:".md5(json_encode($filters));
+            $cacheKey = $this->cache->key('projetos', 'index', $filters);
 
-            $result = Cache::tags(["tenant:{$tenantId}:projetos"])
-                ->remember($cacheKey, now()->addMinutes(15), function () use ($filters) {
-                    return $this->service->listar($filters);
-                });
+            $result = $this->cache->remember(
+                'projetos',
+                $cacheKey,
+                now()->addMinutes(15),
+                fn () => $this->service->listar($filters),
+            );
 
             $result->through(fn (Projeto $projeto) => [
                 ...((new ProjetoResource($projeto))->resolve()),
@@ -227,13 +229,6 @@ class ProjetoController extends Controller
      */
     protected function flushProjetoCaches(): void
     {
-        $tenantId = tenant('id') ?? 'central';
-
-        Cache::tags([
-            "tenant:{$tenantId}:projetos",
-            "tenant:{$tenantId}:terrenos",
-            "tenant:{$tenantId}:viabilidades",
-            "tenant:{$tenantId}:legalizacoes",
-        ])->flush();
+        $this->cache->flushModules('projetos', 'terrenos', 'viabilidades', 'legalizacoes');
     }
 }

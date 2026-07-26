@@ -109,7 +109,7 @@ Regras:
 - `auth.central` / `auth.tenant` garantem que o usuário autenticado pertence ao contexto (guard Sanctum é compartilhado).
 - Nunca referencie um model `Central` dentro de código tenant (e vice-versa) sem necessidade explícita — quando precisar (ex.: `Tenant`, `Plan`), acesse via serviço/`tenancy()`.
 - O manager de banco é o customizado `App\Tenancy\TenantDatabaseManagers\PostgreSQLSchemaPublicManager` (schemas, não bancos separados). O identificador vem de `Tenant::makeTenantDatabaseIdentifier($slug)` (ver `TenancyServiceProvider::register()`).
-- Cache, Redis e storage local são prefixados/sufixados por tenant (ver `config/tenancy.php`). Documentos e relatórios PDF de IA usam `Storage::disk('s3')`; ao mexer nesses fluxos, preserve isolamento por tenant e mantenha métricas/limites do plano.
+- O cache é isolado pela tag-base automática `tenant{id}` do `CacheTenancyBootstrapper` do Stancl v3.10; chaves/tags de módulos e locks de preenchimento passam por `TenantCacheService`. A invalidação seletiva usa o store bruto somente dentro desse serviço, pois `Cache::tags(...)->flush()` no contexto tenant também resetaria a tag-base e derrubaria todo o cache do tenant. O cache RBAC do Spatie usa chave própria por tenant e o `PermissionRegistrar` é recriado nas transições de tenancy. Redis e storage local continuam contextualizados por tenant (ver `config/tenancy.php`). Documentos e relatórios de IA usam `Storage::disk('s3')`; ao mexer nesses fluxos, preserve isolamento por tenant e mantenha métricas/limites do plano.
 - Ciclo de vida do tenant: signup público (`SignupController` → `TenantSignupService` → `CreateFullTenantJob`), limpeza de pendentes (`tenants:cleanup-pending`), ativação/suspensão via admin central (`TenantStatus`).
 - Scripts auxiliares de operação em `scripts/pgsql/` (criação de schemas, descoberta de tenants, reset de sequences, validação de contagens).
 
@@ -363,7 +363,7 @@ Fluxo macro do terreno (enum `WorkflowStatus`, orquestrado por `LandWorkflowServ
 - Jobs sensíveis a concorrência implementam `ShouldBeUnique` com chave tenant-aware e mantêm um claim condicional persistente no PostgreSQL quando existe registro de execução. O lock Redis evita duplicatas comuns; o claim no banco é a defesa final contra reentrega, expiração do lock ou workers concorrentes.
 - **Todo Job deve implementar `failed(Throwable $e)`** — verificado por `LayerBoundariesTest::test_all_jobs_define_failed_handler`. Defina também `$tries`/`$timeout`/`$backoff`.
 - Eventos de domínio em `app/Events/Tenant/` com listeners em `app/Listeners/Tenant/` registrados explicitamente no `EventServiceProvider` — a descoberta automática global está desativada em `bootstrap/app.php` para não duplicar listeners; side-effects nunca inline no Service quando houver evento adequado.
-- Agendamentos ficam em **`routes/console.php`** (broker cleanup 5min, consent-logs diário, tenants pendentes por hora, verificação de storage 07:00, etapas atrasadas 08:00, digests diário/semanal, scores IA 06:00, stats de tenants por hora). Comando novo recorrente → agende ali com `name()` exclusivo, `onOneServer()` e `withoutOverlapping()` com expiração maior que a duração esperada.
+- Agendamentos ficam em **`routes/console.php`** (broker cleanup 5min, consent-logs diário, tenants pendentes por hora, poda diária de referências expiradas de tags Redis às 03:30, verificação de storage 07:00, etapas atrasadas 08:00, digests diário/semanal, scores IA 06:00, stats de tenants por hora). Comando novo recorrente → agende ali com `name()` exclusivo, `onOneServer()` e `withoutOverlapping()` com expiração maior que a duração esperada.
 - Comandos Artisan em `app/Console/Commands/` com `$signature`/`$description`; comandos destrutivos (ex.: `WipeAllTenants`) exigem confirmação explícita.
 
 ### 14. Notificações e E-mail
@@ -398,7 +398,7 @@ Fluxo macro do terreno (enum `WorkflowStatus`, orquestrado por `LandWorkflowServ
 ## 🧪 Testes (obrigatório)
 
 - **PHPUnit 13 puro** (classes estendendo `Tests\TestCase`) — **não** Pest. Suites: `Architecture`, `Unit`, `Feature` (`phpunit.xml`).
-- Ambiente de teste local/padrão: SQLite `:memory:` (central e tenancy), queue `sync`, cache `array`, `BCRYPT_ROUNDS=4`.
+- Ambiente de teste local/padrão: SQLite `:memory:` (central e tenancy), queue `sync`, cache `array` (Laravel 13 suporta tags nesse store, portanto invalidação seletiva também deve ser exercitada localmente), `BCRYPT_ROUNDS=4`.
 - O CI também executa a suíte completa com PostgreSQL 18 e Redis 7 reais. Testes exclusivos dessa infraestrutura ficam em `tests/Feature/Infrastructure/` e devem se marcar como skipped quando o driver não for `pgsql`/`redis`; nunca substitua essa cobertura por mocks.
 - Toda funcionalidade nova exige testes **antes de ser considerada concluída**: Feature cobrindo happy path + pelo menos um cenário de erro (401/403/422), e Unit para services/calculators com lógica.
 - Estrutura espelha o código: `tests/Feature/Tenant/`, `tests/Feature/Billing/`, `tests/Unit/Services/Viabilidade/`, etc.

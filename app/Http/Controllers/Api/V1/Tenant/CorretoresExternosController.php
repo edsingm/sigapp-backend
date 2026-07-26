@@ -10,13 +10,14 @@ use App\Http\Requests\Tenant\UpdateCorretorExternoRequest;
 use App\Http\Resources\Tenant\CorretorExternoResource;
 use App\Repositories\Tenant\CorretorExternoRepository;
 use App\Services\ApiResponseService;
+use App\Services\Tenant\TenantCacheService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Cache;
 
 class CorretoresExternosController extends Controller
 {
     public function __construct(
-        protected CorretorExternoRepository $repository
+        protected CorretorExternoRepository $repository,
+        private readonly TenantCacheService $cache,
     ) {}
 
     /**
@@ -24,14 +25,19 @@ class CorretoresExternosController extends Controller
      */
     public function index(): JsonResponse
     {
-        $tenantId = tenant('id') ?? 'central';
-        $perPage = request()->integer('per_page', 10);
-        $filters = request()->only(['search']);
-        $cacheKey = "tenant:{$tenantId}:corretores_externos:index:".md5(json_encode($filters).":{$perPage}");
+        $perPage = min(max(request()->integer('per_page', 10), 1), 100);
+        $filters = request()->only(['search', 'page']);
+        $cacheKey = $this->cache->key('corretores_externos', 'index', [
+            ...$filters,
+            'per_page' => $perPage,
+        ]);
 
-        $paginator = Cache::tags(["tenant:{$tenantId}:corretores_externos"])
-            ->remember($cacheKey, now()->addMinutes(30), fn () => $this->repository->paginate($perPage, $filters)
-            );
+        $paginator = $this->cache->remember(
+            'corretores_externos',
+            $cacheKey,
+            now()->addMinutes(30),
+            fn () => $this->repository->paginate($perPage, $filters),
+        );
 
         return $this->respondWithPagination($paginator, CorretorExternoResource::class);
     }
@@ -91,12 +97,14 @@ class CorretoresExternosController extends Controller
      */
     public function corretoresForSelect(): JsonResponse
     {
-        $tenantId = tenant('id') ?? 'central';
-        $cacheKey = "tenant:{$tenantId}:corretores_externos:select";
+        $cacheKey = $this->cache->key('corretores_externos', 'select');
 
-        $corretores = Cache::tags(["tenant:{$tenantId}:corretores_externos"])
-            ->remember($cacheKey, now()->addHours(1), fn () => $this->repository->listForSelect()
-            );
+        $corretores = $this->cache->remember(
+            'corretores_externos',
+            $cacheKey,
+            now()->addHours(1),
+            fn () => $this->repository->listForSelect(),
+        );
 
         return response()->json(['data' => $corretores]);
     }

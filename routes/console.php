@@ -66,3 +66,8 @@ Schedule::job(new RefreshTenantStatsJob)
     ->name('refresh-tenant-stats')
     ->onOneServer()
     ->withoutOverlapping(60);
+Schedule::command('cache:prune-stale-tags redis')
+    ->dailyAt('03:30')
+    ->name('cache-prune-stale-redis-tags')
+    ->onOneServer()
+    ->withoutOverlapping(120);

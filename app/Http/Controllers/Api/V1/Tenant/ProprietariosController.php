@@ -11,9 +11,9 @@ use App\Models\Tenant\Terreno;
 use App\Services\ApiResponseService;
 use App\Services\Tenant\LandWorkflowService;
 use App\Services\Tenant\ProprietarioService;
+use App\Services\Tenant\TenantCacheService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 
 class ProprietariosController extends Controller
@@ -21,6 +21,7 @@ class ProprietariosController extends Controller
     public function __construct(
         protected ProprietarioService $proprietarioService,
         protected LandWorkflowService $workflowService,
+        private readonly TenantCacheService $cache,
     ) {}
 
     /**
@@ -30,19 +31,20 @@ class ProprietariosController extends Controller
     {
         Gate::authorize('viewAny', Proprietario::class);
 
-        $tenantId = tenant('id') ?? 'central';
         $filters = $request->only(['per_page', 'page', 'terreno_id']);
+        $cacheKey = $this->cache->key('proprietarios', 'index', $filters);
+        $tenantId = (int) (tenant('id') ?? 0);
+        $perPage = min(max((int) ($request->input('per_page') ?? 10), 1), 100);
+        $terrenoId = $request->input('terreno_id') ? (int) $request->input('terreno_id') : null;
 
-        $cacheKey = "tenant:{$tenantId}:proprietarios:index:".md5(json_encode($filters));
+        $paginator = $this->cache->remember(
+            'proprietarios',
+            $cacheKey,
+            now()->addMinutes(30),
+            fn () => $this->proprietarioService->list($tenantId, $perPage, $terrenoId),
+        );
 
-        return Cache::tags(["tenant:{$tenantId}:proprietarios"])->remember($cacheKey, now()->addMinutes(30), function () use ($request, $tenantId) {
-            $perPage = (int) ($request->input('per_page') ?? 10);
-            $terrenoId = $request->input('terreno_id') ? (int) $request->input('terreno_id') : null;
-
-            $paginator = $this->proprietarioService->list($tenantId, $perPage, $terrenoId);
-
-            return $this->respondWithPagination($paginator, ProprietarioResource::class);
-        });
+        return $this->respondWithPagination($paginator, ProprietarioResource::class);
     }
 
     /**

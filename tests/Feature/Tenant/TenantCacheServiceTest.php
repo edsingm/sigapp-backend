@@ -32,14 +32,14 @@ final class TenantCacheServiceTest extends TestCase
         $cache = app(TenantCacheService::class);
         $key = $cache->key('dashboard', 'management', ['limit' => 8]);
         $calls = 0;
-        $resolver = function () use (&$calls): int {
-            return ++$calls;
+        $resolver = function () use (&$calls): array {
+            return ['value' => ++$calls];
         };
 
-        $this->assertSame(1, $cache->remember('dashboard', $key, 300, $resolver));
-        $this->assertSame(1, $cache->remember('dashboard', $key, 300, $resolver));
-        $this->assertSame(2, $cache->remember('dashboard', $key, 300, $resolver, forceRefresh: true));
-        $this->assertSame(2, $cache->remember('dashboard', $key, 300, $resolver));
+        $this->assertSame(['value' => 1], $cache->remember('dashboard', $key, 300, $resolver));
+        $this->assertSame(['value' => 1], $cache->remember('dashboard', $key, 300, $resolver));
+        $this->assertSame(['value' => 2], $cache->remember('dashboard', $key, 300, $resolver, forceRefresh: true));
+        $this->assertSame(['value' => 2], $cache->remember('dashboard', $key, 300, $resolver));
         $this->assertSame(2, $calls);
     }
 

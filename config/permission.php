@@ -193,6 +193,8 @@ return [
          * The cache key used to store all permissions.
          */
 
+        'central_key' => 'spatie.permission.cache',
+
         'key' => 'spatie.permission.cache',
 
         /*

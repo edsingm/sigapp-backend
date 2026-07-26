@@ -6,11 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Tenant\Terreno;
 use App\Services\ApiResponseService;
 use App\Services\Dashboard\DashboardQueryService;
-use App\Traits\HasDashboardCache;
+use App\Services\Tenant\TenantCacheService;
 use Carbon\Carbon;
+use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 
@@ -22,8 +22,6 @@ use Illuminate\Support\Facades\Log;
  */
 class DashboardController extends Controller
 {
-    use HasDashboardCache;
-
     private const OVERVIEW_CACHE_VERSION = 'v2';
 
     private const OVERVIEW_CACHE_TTL_DEFAULT = 120;
@@ -32,7 +30,10 @@ class DashboardController extends Controller
 
     private const OVERVIEW_CACHE_TTL_MAX = 600;
 
-    public function __construct(private readonly DashboardQueryService $dashboard) {}
+    public function __construct(
+        private readonly DashboardQueryService $dashboard,
+        private readonly TenantCacheService $cache,
+    ) {}
 
     private function authorizeDashboardAccess(): void
     {
@@ -46,36 +47,26 @@ class DashboardController extends Controller
 
     /**
      * Armazena em cache um callback do dashboard com chave baseada no nome do método + filtros.
+     *
+     * @template TValue
+     *
+     * @param  Closure(): TValue  $callback
+     * @return TValue
      */
-    private function cacheDashboardMethod(string $methodName, Request $request, callable $callback): mixed
+    private function cacheDashboardMethod(string $methodName, Request $request, Closure $callback): mixed
     {
-        $tenantId = tenant('id') ?? 'central';
-        $filters = $request->except(['force_refresh']);
-
-        $cacheKey = implode(':', [
-            'dashboard',
-            $methodName,
-            'v1',
-            app()->environment(),
-            $tenantId,
-            md5(json_encode($filters)),
+        $cacheKey = $this->cache->key('dashboard', "{$methodName}:v1", [
+            'environment' => app()->environment(),
+            'filters' => $this->cacheFilters($methodName, $request),
         ]);
 
-        $cacheTag = $this->getDashboardCacheTag();
-        $cacheDriver = config('cache.default');
-        $supportsTags = in_array($cacheDriver, ['redis', 'memcached']);
-        $cacheStore = $supportsTags ? Cache::tags([$cacheTag]) : Cache::getFacadeRoot();
-        $forceRefresh = $this->shouldForceRefresh($request);
-
-        if ($forceRefresh) {
-            $cacheStore->forget($cacheKey);
-            $data = $callback();
-            $cacheStore->put($cacheKey, $data, now()->addHours(1));
-
-            return $data;
-        }
-
-        return $cacheStore->remember($cacheKey, now()->addHours(1), $callback);
+        return $this->cache->remember(
+            'dashboard',
+            $cacheKey,
+            now()->addHours(1),
+            $callback,
+            $this->shouldForceRefresh($request),
+        );
     }
 
     /**
@@ -312,35 +303,28 @@ class DashboardController extends Controller
             $cacheTtlRaw = (int) $request->input('cache_ttl', config('cache.dashboard_overview_ttl', self::OVERVIEW_CACHE_TTL_DEFAULT));
             $cacheTtl = max(self::OVERVIEW_CACHE_TTL_MIN, min(self::OVERVIEW_CACHE_TTL_MAX, $cacheTtlRaw));
 
-            $tenantId = tenant('id') ?? 'central';
             $includeForCache = $include;
             sort($includeForCache, SORT_STRING);
-            $cacheKey = implode(':', [
-                'dashboard', 'overview', self::OVERVIEW_CACHE_VERSION,
-                app()->environment(), $tenantId,
-                md5(json_encode([
+            $cacheKey = $this->cache->key('dashboard', 'overview:'.self::OVERVIEW_CACHE_VERSION, [
+                'environment' => app()->environment(),
+                'filters' => [
                     'include' => $includeForCache, 'ano' => $ano, 'mes' => $mes,
                     'meses' => $meses, 'top_limit' => $topLimit,
                     'area_limit' => $areaLimit, 'responsavel_id' => $responsavelId,
-                ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)),
+                ],
             ]);
-
-            $cacheTag = $this->getDashboardCacheTag();
-            $supportsTags = in_array(config('cache.default'), ['redis', 'memcached']);
-            $cacheStore = $supportsTags ? Cache::tags([$cacheTag]) : Cache::getFacadeRoot();
-            $forceRefresh = $this->shouldForceRefresh($request);
 
             $resolver = fn (): array => $this->dashboard->buildOverview(
                 $include, $ano, $mes, $meses, $topLimit, $areaLimit, $responsavelId
             );
 
-            if ($forceRefresh) {
-                $cacheStore->forget($cacheKey);
-                $data = $resolver();
-                $cacheStore->put($cacheKey, $data, $cacheTtl);
-            } else {
-                $data = $cacheStore->remember($cacheKey, $cacheTtl, $resolver);
-            }
+            $data = $this->cache->remember(
+                'dashboard',
+                $cacheKey,
+                $cacheTtl,
+                $resolver,
+                $this->shouldForceRefresh($request),
+            );
 
             return response()->json([
                 'success' => true,
@@ -381,6 +365,39 @@ class DashboardController extends Controller
             ->unique()
             ->values()
             ->all();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function cacheFilters(string $methodName, Request $request): array
+    {
+        return match ($methodName) {
+            'managementOverview' => [
+                'stale_days' => $request->integer('stale_days', 30),
+                'critical_days' => $request->integer('critical_days', 15),
+                'limit' => $request->integer('limit', 8),
+            ],
+            'statusChart' => $request->only(['ano', 'data_inicio']),
+            'cadastrosMensais' => [
+                ...$request->only(['ano', 'data_inicio', 'data_fim']),
+                'meses' => $request->integer('meses', 12),
+            ],
+            'topCidades', 'terrenosPorResponsavel' => [
+                ...$request->only(['ano', 'mes']),
+                'filtro' => $request->input('filtro', 'geral'),
+                'limit' => $request->input('limit'),
+            ],
+            'cadastrosMensaisPorResponsavel' => [
+                ...$request->only(['ano', 'data_inicio', 'data_fim', 'responsavel_id']),
+                'meses' => $request->integer('meses', 12),
+            ],
+            'areaOpcaoDetalhe' => [
+                'ano' => $request->input('ano'),
+                'limit' => $request->input('limit'),
+            ],
+            default => [],
+        };
     }
 
     /**

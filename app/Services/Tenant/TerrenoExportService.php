@@ -7,12 +7,12 @@ namespace App\Services\Tenant;
 use App\Models\Tenant\Terreno;
 use App\Repositories\Contracts\TerrenoExportRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Facades\Cache;
 
 class TerrenoExportService
 {
     public function __construct(
         private readonly TerrenoExportRepositoryInterface $repository,
+        private readonly TenantCacheService $cache,
     ) {}
 
     /**
@@ -21,14 +21,17 @@ class TerrenoExportService
      */
     public function getTerrenosForExport(array $filters, string $tenantId): Collection
     {
-        $encodedFilters = json_encode($filters);
-        $cacheKeyPayload = is_string($encodedFilters) ? $encodedFilters : serialize($filters);
-        $cacheKey = "tenant:{$tenantId}:terrenos:export:pdf:".md5($cacheKeyPayload);
+        $cacheKey = $this->cache->key('terrenos', 'export:pdf', [
+            'filters' => $filters,
+            'requested_tenant_id' => $tenantId,
+        ]);
 
-        return Cache::tags(["tenant:{$tenantId}:terrenos"])
-            ->remember($cacheKey, now()->addMinutes(10), function () use ($filters) {
-                return $this->repository->queryForExport($filters);
-            });
+        return $this->cache->remember(
+            'terrenos',
+            $cacheKey,
+            now()->addMinutes(10),
+            fn () => $this->repository->queryForExport($filters),
+        );
     }
 
     public function getTerrenoForSingleExport(int $id): ?Terreno

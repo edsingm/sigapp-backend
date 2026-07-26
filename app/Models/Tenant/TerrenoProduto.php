@@ -17,6 +17,14 @@ class TerrenoProduto extends Model
     use HasDashboardCache, HasFactory, SoftDeletes;
 
     /**
+     * @return list<string>
+     */
+    protected function tenantCacheModules(): array
+    {
+        return ['terrenos'];
+    }
+
+    /**
      * Obtém o terreno proprietário do produto do terreno.
      */
     public function terreno(): BelongsTo

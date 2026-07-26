@@ -19,16 +19,12 @@ class LegalizacaoDependencia extends Model
         'tipo' => 'string',
     ];
 
-    protected static function booted(): void
+    /**
+     * @return list<string>
+     */
+    protected function tenantCacheModules(): array
     {
-        static::saved(function (LegalizacaoDependencia $dependencia) {
-            $dependencia->clearTenantCache('legalizacao_dependencias');
-        });
-
-        static::deleted(function (LegalizacaoDependencia $dependencia) {
-            $dependencia->clearTenantCache('legalizacao_dependencias');
-        });
-
+        return ['legalizacoes', 'legalizacao_dependencias'];
     }
 
     public function legalizacao(): BelongsTo

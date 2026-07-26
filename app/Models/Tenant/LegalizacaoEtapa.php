@@ -36,19 +36,24 @@ class LegalizacaoEtapa extends Model
     protected static function booted(): void
     {
         static::saved(function (LegalizacaoEtapa $etapa) {
-            $etapa->clearTenantCache('legalizacao_etapas');
             $etapa->legalizacao->calculateProgress();
         });
 
         static::deleted(function (LegalizacaoEtapa $etapa) {
-            $etapa->clearTenantCache('legalizacao_etapas');
             $etapa->legalizacao->calculateProgress();
         });
 
         static::restored(function (LegalizacaoEtapa $etapa) {
-            $etapa->clearTenantCache('legalizacao_etapas');
             $etapa->legalizacao->calculateProgress();
         });
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function tenantCacheModules(): array
+    {
+        return ['legalizacoes', 'legalizacao_etapas'];
     }
 
     public function legalizacao(): BelongsTo

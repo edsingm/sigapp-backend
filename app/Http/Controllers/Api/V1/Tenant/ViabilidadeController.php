@@ -21,11 +21,11 @@ use App\Http\Resources\Tenant\ViabilidadeResource;
 use App\Http\Resources\Tenant\ViabilidadeSelectResource;
 use App\Models\Tenant\Viabilidade;
 use App\Services\ApiResponseService;
+use App\Services\Tenant\TenantCacheService;
 use App\Services\Tenant\Viabilidade\v1\ViabilidadeService;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Spatie\LaravelPdf\Facades\Pdf;
 use Symfony\Component\HttpFoundation\Response;
@@ -34,6 +34,7 @@ class ViabilidadeController extends Controller
 {
     public function __construct(
         private readonly ViabilidadeService $viabilidadeService,
+        private readonly TenantCacheService $cache,
     ) {}
 
     /**
@@ -106,13 +107,15 @@ class ViabilidadeController extends Controller
         try {
             $this->authorize('viewAny', Viabilidade::class);
 
-            $tenantId = tenant('id') ?? 'central';
             $filtros = $request->only(['search', 'terreno_id', 'per_page', 'page']);
-            $cacheKey = "tenant:{$tenantId}:viabilidades:index:".md5(json_encode($filtros));
+            $cacheKey = $this->cache->key('viabilidades', 'index', $filtros);
 
-            $viabilidades = Cache::tags(["tenant:{$tenantId}:viabilidades"])->remember($cacheKey, now()->addMinutes(30), function () use ($filtros) {
-                return $this->viabilidadeService->listarTodasViabilidades($filtros);
-            });
+            $viabilidades = $this->cache->remember(
+                'viabilidades',
+                $cacheKey,
+                now()->addMinutes(30),
+                fn () => $this->viabilidadeService->listarTodasViabilidades($filtros),
+            );
 
             return ApiResponseService::paginated(
                 $viabilidades->through(fn (Viabilidade $viabilidade): array => ViabilidadeResource::make($viabilidade)->resolve())

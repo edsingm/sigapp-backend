@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace Tests\Feature\Infrastructure;
 
 use App\Models\Central\Tenant;
+use App\Services\Tenant\TenantCacheService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 final class PostgresRedisIntegrationTest extends TestCase
@@ -57,6 +59,24 @@ final class PostgresRedisIntegrationTest extends TestCase
                 ]);
                 Cache::put('infrastructure:shared-key', "tenant-{$index}", 60);
 
+                $tenantCache = app(TenantCacheService::class);
+                $moduleKey = $tenantCache->key('infrastructure-module', 'shared');
+                $unrelatedKey = $tenantCache->key('infrastructure-unrelated', 'shared');
+                $tenantCache->remember('infrastructure-module', $moduleKey, 60, fn (): string => "module-{$index}");
+                $tenantCache->remember('infrastructure-unrelated', $unrelatedKey, 60, fn (): string => "unrelated-{$index}");
+
+                if ($index === 0) {
+                    $tenantCache->flushModules('infrastructure-module');
+                    $this->assertSame(
+                        'module-0-refreshed',
+                        $tenantCache->remember('infrastructure-module', $moduleKey, 60, fn (): string => 'module-0-refreshed'),
+                    );
+                    $this->assertSame(
+                        'unrelated-0',
+                        $tenantCache->remember('infrastructure-unrelated', $unrelatedKey, 60, fn (): string => 'unexpected'),
+                    );
+                }
+
                 $this->assertSame(
                     $tenant->database()->getName(),
                     DB::connection('tenant')->selectOne('select current_schema() as schema')->schema,
@@ -74,7 +94,20 @@ final class PostgresRedisIntegrationTest extends TestCase
                 );
                 $this->assertSame("tenant-{$index}", Cache::get('infrastructure:shared-key'));
 
+                $tenantCache = app(TenantCacheService::class);
+                $moduleKey = $tenantCache->key('infrastructure-module', 'shared');
+                $unrelatedKey = $tenantCache->key('infrastructure-unrelated', 'shared');
+                $this->assertSame(
+                    $index === 0 ? 'module-0-refreshed' : 'module-1',
+                    $tenantCache->remember('infrastructure-module', $moduleKey, 60, fn (): string => 'unexpected'),
+                );
+                $this->assertSame(
+                    "unrelated-{$index}",
+                    $tenantCache->remember('infrastructure-unrelated', $unrelatedKey, 60, fn (): string => 'unexpected'),
+                );
+
                 Cache::forget('infrastructure:shared-key');
+                $tenantCache->flushModules('infrastructure-module', 'infrastructure-unrelated');
                 tenancy()->end();
             }
         } finally {
@@ -123,6 +156,69 @@ final class PostgresRedisIntegrationTest extends TestCase
 
         $this->assertTrue($secondLock->get());
         $secondLock->release();
+    }
+
+    public function test_permission_cache_is_reinitialized_between_tenants_in_the_same_worker(): void
+    {
+        $suffix = strtolower(Str::random(8));
+        $tenants = [
+            $this->makeTenant("ci-permission-alpha-{$suffix}"),
+            $this->makeTenant("ci-permission-beta-{$suffix}"),
+        ];
+
+        try {
+            foreach ($tenants as $index => $tenant) {
+                $manager = $tenant->database()->manager();
+                $manager->createDatabase($tenant);
+                tenancy()->initialize($tenant);
+
+                Artisan::call('migrate', [
+                    '--database' => 'tenant',
+                    '--path' => database_path('migrations/tenant'),
+                    '--realpath' => true,
+                    '--force' => true,
+                ]);
+
+                DB::connection('tenant')->table('permissions')->insert([
+                    'name' => $index === 0 ? 'alpha-only' : 'beta-only',
+                    'guard_name' => 'web',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                tenancy()->end();
+            }
+
+            foreach ($tenants as $index => $tenant) {
+                tenancy()->initialize($tenant);
+
+                $this->assertSame(
+                    'spatie.permission.cache.tenant.'.$tenant->getTenantKey(),
+                    config('permission.cache.key'),
+                );
+                $this->assertSame(
+                    [$index === 0 ? 'alpha-only' : 'beta-only'],
+                    app(PermissionRegistrar::class)->getPermissions()->pluck('name')->all(),
+                );
+
+                app(PermissionRegistrar::class)->forgetCachedPermissions();
+                tenancy()->end();
+
+                $this->assertSame(
+                    config('permission.cache.central_key'),
+                    config('permission.cache.key'),
+                );
+            }
+        } finally {
+            tenancy()->end();
+
+            foreach ($tenants as $tenant) {
+                $manager = $tenant->database()->manager();
+                if ($manager->databaseExists((string) $tenant->database()->getName())) {
+                    $manager->deleteDatabase($tenant);
+                }
+            }
+        }
     }
 
     private function makeTenant(string $slug): Tenant

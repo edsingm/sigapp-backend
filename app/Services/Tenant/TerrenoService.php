@@ -9,7 +9,6 @@ use App\Repositories\Tenant\TerrenoRepository;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Cache;
 
 class TerrenoService
 {
@@ -18,6 +17,7 @@ class TerrenoService
         private readonly LandWorkflowService $workflowService,
         private readonly KmzParserService $kmzParser,
         private readonly TerrenoFilterService $filterService,
+        private readonly TenantCacheService $cache,
     ) {}
 
     /**
@@ -25,26 +25,22 @@ class TerrenoService
      */
     public function listPaginated(array $filters, bool $forceRefresh = false): LengthAwarePaginator
     {
-        $tenantId = tenant('id') ?? 'central';
         $filters = [
             'search' => $filters['search'] ?? null,
             'per_page' => (int) ($filters['per_page'] ?? 15),
             'page' => (int) ($filters['page'] ?? 1),
         ];
 
-        $cacheKey = "tenant:{$tenantId}:terrenos:index:".md5(json_encode($filters));
-        $cacheStore = Cache::tags(["tenant:{$tenantId}:terrenos"]);
+        $cacheKey = $this->cache->key('terrenos', 'index', $filters);
         $resolver = fn (): LengthAwarePaginator => $this->repository->paginate($filters);
 
-        if ($forceRefresh) {
-            $cacheStore->forget($cacheKey);
-            $paginator = $resolver();
-            $cacheStore->put($cacheKey, $paginator, now()->addMinutes(30));
-
-            return $paginator;
-        }
-
-        return $cacheStore->remember($cacheKey, now()->addMinutes(30), $resolver);
+        return $this->cache->remember(
+            'terrenos',
+            $cacheKey,
+            now()->addMinutes(30),
+            $resolver,
+            $forceRefresh,
+        );
     }
 
     /**
@@ -52,20 +48,16 @@ class TerrenoService
      */
     public function filter(array $filters, bool $forceRefresh = false): LengthAwarePaginator
     {
-        $tenantId = tenant('id') ?? 'central';
-        $cacheKey = "tenant:{$tenantId}:terrenos:filter:".md5(json_encode($filters));
-        $cacheStore = Cache::tags(["tenant:{$tenantId}:terrenos"]);
+        $cacheKey = $this->cache->key('terrenos', 'filter', $filters);
         $resolver = fn (): LengthAwarePaginator => $this->filterService->filter($filters);
 
-        if ($forceRefresh) {
-            $cacheStore->forget($cacheKey);
-            $paginator = $resolver();
-            $cacheStore->put($cacheKey, $paginator, now()->addMinutes(30));
-
-            return $paginator;
-        }
-
-        return $cacheStore->remember($cacheKey, now()->addMinutes(30), $resolver);
+        return $this->cache->remember(
+            'terrenos',
+            $cacheKey,
+            now()->addMinutes(30),
+            $resolver,
+            $forceRefresh,
+        );
     }
 
     public function create(array $data, User $actor): Terreno

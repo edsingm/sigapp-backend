@@ -92,22 +92,12 @@ class Viabilidade extends Model
 {
     use HasDashboardCache, HasFactory, SoftDeletes;
 
-    protected static function booted()
+    /**
+     * @return list<string>
+     */
+    protected function tenantCacheModules(): array
     {
-        static::saved(function ($model) {
-            $model->clearTenantCache('viabilidades');
-            $model->clearTenantCache('projetos');
-        });
-
-        static::deleted(function ($model) {
-            $model->clearTenantCache('viabilidades');
-            $model->clearTenantCache('projetos');
-        });
-
-        static::restored(function ($model) {
-            $model->clearTenantCache('viabilidades');
-            $model->clearTenantCache('projetos');
-        });
+        return ['viabilidades', 'projetos'];
     }
 
     /**

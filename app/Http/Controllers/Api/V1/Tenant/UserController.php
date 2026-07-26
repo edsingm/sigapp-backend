@@ -8,15 +8,16 @@ use App\Http\Requests\Tenant\StoreTenantUserRequest;
 use App\Http\Requests\Tenant\UpdateTenantUserRequest;
 use App\Http\Resources\UserResource;
 use App\Services\ApiResponseService;
+use App\Services\Tenant\TenantCacheService;
 use App\Services\Tenant\TenantUserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 
 class UserController extends Controller
 {
     public function __construct(
         private readonly TenantUserService $userService,
+        private readonly TenantCacheService $cache,
     ) {}
 
     /**
@@ -26,19 +27,21 @@ class UserController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $tenantId = tenant('id') ?? 'central';
         $filters = $request->only(['search', 'role', 'sort', 'order', 'per_page', 'page']);
-        $cacheKey = "tenant:{$tenantId}:users:index:".md5(json_encode($filters));
+        $cacheKey = $this->cache->key('users', 'index', $filters);
 
-        $users = Cache::tags(["tenant:{$tenantId}:users"])->remember($cacheKey, now()->addMinutes(30), function () use ($request) {
-            return $this->userService->list(
+        $users = $this->cache->remember(
+            'users',
+            $cacheKey,
+            now()->addMinutes(30),
+            fn () => $this->userService->list(
                 search: $request->get('search'),
                 role: $request->get('role'),
                 sort: $request->get('sort', 'name'),
                 order: $request->get('order', 'asc'),
                 perPage: (int) $request->get('per_page', 15),
-            );
-        });
+            ),
+        );
 
         return ApiResponseService::paginated($users);
     }

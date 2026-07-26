@@ -108,6 +108,7 @@ class QueueTopologyTest extends TestCase
             'notifications-send-email-digests-weekly' => 120,
             'ai-recalculate-scores' => 360,
             'refresh-tenant-stats' => 60,
+            'cache-prune-stale-redis-tags' => 120,
         ];
         $events = collect(app(Schedule::class)->events())->keyBy('description');
 

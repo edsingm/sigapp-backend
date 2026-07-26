@@ -4,8 +4,10 @@ namespace App\Services\Billing;
 
 use App\Models\Central\Tenant;
 use Carbon\Carbon;
+use Illuminate\Cache\Repository as CacheRepository;
 use Illuminate\Support\Facades\Cache;
 use Laravel\Cashier\Cashier;
+use LogicException;
 use Stripe\StripeClient;
 
 class BillingHistoryService
@@ -64,7 +66,7 @@ class BillingHistoryService
             $perPage,
         );
 
-        return Cache::tags(['billing_history', 'billing_history_'.$tenant->id])
+        return Cache::tags([$this->cacheTag($tenant)])
             ->remember($cacheKey, now()->addMinutes(5), function () use ($stripeId, $perPage, $page, $status, $dateFrom, $dateTo): array {
                 /** @var array{customer: string, limit: int, expand: list<string>, status?: non-empty-string, created?: array{gte?: int, lte?: int}, starting_after?: string} $params */
                 $params = [
@@ -160,7 +162,7 @@ class BillingHistoryService
 
         $cacheKey = sprintf('billing_invoice:%s:%s', $stripeId, $invoiceId);
 
-        return Cache::tags(['billing_history', 'billing_history_'.$tenant->id])
+        return Cache::tags([$this->cacheTag($tenant)])
             ->remember($cacheKey, now()->addMinutes(5), function () use ($stripeId, $invoiceId): ?array {
                 try {
                     $invoice = $this->stripe()->invoices->retrieve($invoiceId, [
@@ -223,7 +225,13 @@ class BillingHistoryService
      */
     public function invalidateCache(Tenant $tenant): void
     {
-        Cache::tags(['billing_history', 'billing_history_'.$tenant->id])->flush();
+        $repository = Cache::store();
+
+        if (! $repository instanceof CacheRepository) {
+            throw new LogicException('The configured cache repository does not support tagged invalidation.');
+        }
+
+        $repository->tags([$this->cacheTag($tenant)])->flush();
     }
 
     private function stripeId(Tenant $tenant): ?string
@@ -231,5 +239,10 @@ class BillingHistoryService
         $stripeId = $tenant->getAttribute('stripe_id');
 
         return is_string($stripeId) && $stripeId !== '' ? $stripeId : null;
+    }
+
+    private function cacheTag(Tenant $tenant): string
+    {
+        return 'billing_history:tenant:'.$tenant->getKey();
     }
 }

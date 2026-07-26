@@ -10,11 +10,11 @@ return new class extends Migration
 {
     public function up(): void
     {
-        PgVector::createEmbeddingIndex(Schema::getConnection());
+        PgVector::install(Schema::getConnection());
     }
 
     public function down(): void
     {
-        PgVector::dropEmbeddingIndex(Schema::getConnection());
+        PgVector::uninstall(Schema::getConnection());
     }
 };

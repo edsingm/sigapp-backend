@@ -46,6 +46,15 @@ final class PgVector
         $connection->statement('CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA public');
     }
 
+    public static function uninstall(ConnectionInterface $connection): void
+    {
+        if (! self::isPostgreSql($connection)) {
+            return;
+        }
+
+        $connection->statement('DROP EXTENSION IF EXISTS vector');
+    }
+
     public static function createEmbeddingIndex(ConnectionInterface $connection): void
     {
         if (! self::isPostgreSql($connection)) {

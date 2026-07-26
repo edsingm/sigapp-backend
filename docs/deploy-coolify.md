@@ -111,8 +111,8 @@ FROM pg_available_extensions
 WHERE name = 'vector';
 ```
 
-A migration tenant executa `CREATE EXTENSION IF NOT EXISTS vector` e cria um
-índice HNSW de cosseno em cada schema. O usuário de release precisa ter
+A migration central executa `CREATE EXTENSION IF NOT EXISTS vector`; depois,
+a migration tenant cria um índice HNSW de cosseno em cada schema. O usuário de release precisa ter
 permissão para instalar a extensão na primeira execução. A ausência do pacote
 ou dessa permissão interrompe a migration intencionalmente, pois a busca
 vetorial em PostgreSQL depende do `pgvector`; o fallback em memória existe

@@ -18,9 +18,6 @@ use Stancl\Tenancy\Database\Concerns\HasDatabase;
 use Stancl\Tenancy\Database\Concerns\HasDomains;
 use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
 
-#[Table('tenants')]
-#[Fillable(['name', 'slug', 'status', 'stripe_id', 'stripe_subscription_id', 'plan_id', 'scheduled_plan_id', 'storage_alert_threshold', 'trial_ends_at', 'encryption_key', 'database_created', 'setup_completed_at', 'trial_extended', 'admin_name', 'admin_email', 'admin_password', 'data'])]
-#[Hidden(['admin_password', 'encryption_key'])]
 /**
  * @property string $id
  * @property string $name
@@ -42,6 +39,9 @@ use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
  * @property Carbon $created_at
  * @property Carbon $updated_at
  */
+#[Table('tenants')]
+#[Fillable(['name', 'slug', 'status', 'stripe_id', 'stripe_subscription_id', 'plan_id', 'scheduled_plan_id', 'storage_alert_threshold', 'trial_ends_at', 'encryption_key', 'database_created', 'setup_completed_at', 'trial_extended', 'admin_name', 'admin_email', 'admin_password', 'data'])]
+#[Hidden(['admin_password', 'encryption_key'])]
 class Tenant extends BaseTenant implements TenantWithDatabase
 {
     use HasDatabase, HasDomains, HasFactory, \Laravel\Cashier\Billable, Notifiable;

@@ -25,6 +25,9 @@ interface TenantRepositoryInterface
 
     public function loadWithPlan(Tenant $tenant): Tenant;
 
+    /** @return Collection<int, Tenant> */
+    public function expiredPending(int $limit): Collection;
+
     public function updatePlan(Tenant $tenant, int $planId): Tenant;
 
     /**

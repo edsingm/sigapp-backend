@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
-use App\Models\Central\Tenant;
 use App\Notifications\AbandonedCheckoutNotification;
+use App\Repositories\Contracts\TenantRepositoryInterface;
 use App\Services\Billing\TenantBillingService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
@@ -41,8 +41,10 @@ class CleanupPendingTenantsJob implements ShouldBeUnique, ShouldQueue
     /**
      * Executa o job.
      */
-    public function handle(TenantBillingService $billingService): void
-    {
+    public function handle(
+        TenantBillingService $billingService,
+        TenantRepositoryInterface $tenants,
+    ): void {
         $lock = Cache::lock('job:cleanup-pending-tenants', 360);
         if (! $lock->get()) {
             return;
@@ -51,11 +53,7 @@ class CleanupPendingTenantsJob implements ShouldBeUnique, ShouldQueue
         try {
             Log::info('CleanupPendingTenantsJob iniciado');
 
-            $expiredTenants = Tenant::expiredPending()
-                ->with('plan')
-                ->orderBy('id')
-                ->limit(self::MAX_TENANTS_PER_RUN)
-                ->get();
+            $expiredTenants = $tenants->expiredPending(self::MAX_TENANTS_PER_RUN);
 
             $count = 0;
 

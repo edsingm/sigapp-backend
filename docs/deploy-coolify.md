@@ -76,8 +76,10 @@ Referência: [rede no Docker Compose do Coolify](https://coolify.io/docs/knowled
 
 ## 4. Criar o PostgreSQL
 
-1. No ambiente `production`, selecione `New Resource > PostgreSQL`.
-2. Use PostgreSQL 18 e o nome `sigapp-postgres`.
+1. No ambiente `production`, selecione `New Resource > PostgreSQL` ou crie
+   um recurso compatível com a imagem oficial
+   `pgvector/pgvector:0.8.2-pg18`.
+2. Use PostgreSQL 18 com `pgvector` disponível e o nome `sigapp-postgres`.
 3. Configure banco e usuário:
 
    ```text
@@ -101,9 +103,20 @@ DB_USERNAME=sigapp
 DB_PASSWORD=SENHA_DO_POSTGRES
 ```
 
-O backend possui fallback de embeddings sem `pgvector`. Caso o provider de
-PostgreSQL disponibilize a extensão, ela poderá ser habilitada posteriormente
-para otimizar busca vetorial; isso não bloqueia o primeiro deploy.
+Antes do bootstrap, confirme que o pacote da extensão está disponível:
+
+```sql
+SELECT name, default_version, installed_version
+FROM pg_available_extensions
+WHERE name = 'vector';
+```
+
+A migration tenant executa `CREATE EXTENSION IF NOT EXISTS vector` e cria um
+índice HNSW de cosseno em cada schema. O usuário de release precisa ter
+permissão para instalar a extensão na primeira execução. A ausência do pacote
+ou dessa permissão interrompe a migration intencionalmente, pois a busca
+vetorial em PostgreSQL depende do `pgvector`; o fallback em memória existe
+somente para drivers de desenvolvimento/teste, como SQLite.
 
 ## 5. Criar o Redis
 
@@ -412,6 +425,32 @@ curl -I https://teste.sigapp.com.br/login
 Não prossiga com respostas `502`, `504`, certificado inválido ou healthcheck
 falhando.
 
+Com um token Sanctum de administrador central, consulte o relatório detalhado:
+
+```bash
+curl -fsS \
+  -H "Authorization: Bearer TOKEN_ADMIN" \
+  https://api.sigapp.com.br/api/v1/health/details
+```
+
+O check `pgvector` deve informar `ok` e a versão instalada. Confirme também os
+índices de todos os schemas tenant:
+
+```sql
+SELECT schemaname, indexname
+FROM pg_indexes
+WHERE indexname = 'ai_document_embeddings_embedding_hnsw_idx'
+ORDER BY schemaname;
+```
+
+As buscas RAG escrevem o evento estruturado
+`AI embedding similarity search completed`, com `strategy`,
+`candidate_count`, `result_count` e `duration_ms`. O log nunca deve conter o
+texto pesquisado, o vetor ou o conteúdo do documento. Monitore separadamente
+p95/p99 de `duration_ms`, crescimento do índice e backlog das filas `ai` e
+`default`; aumento simultâneo de latência e backlog indica saturação do banco
+ou dos workers.
+
 ### Autenticação
 
 - faça login e logout no admin central;
@@ -491,6 +530,9 @@ one-off validado para a versão instalada do Coolify.
 
 Migrations de produção devem ser retrocompatíveis. Para mudanças destrutivas,
 use uma estratégia expand/contract, backup validado e janela de manutenção.
+Ao introduzir o índice HNSW em uma base já populada, planeje a release em uma
+janela de menor escrita: a criação inicial do índice percorre os embeddings de
+cada schema tenant.
 
 ### Reinício controlado e drenagem das filas
 
@@ -535,6 +577,7 @@ O ambiente só pode ser liberado quando:
 - [ ] dois tenants tiverem sido criados e validados como isolados;
 - [ ] login, transfer ticket e callback estiverem funcionando;
 - [ ] os cinco grupos de workers e o scheduler estiverem em execução;
+- [ ] o check detalhado de `pgvector` e os índices HNSW dos tenants estiverem saudáveis;
 - [ ] S3, Resend, Maps, PDF e Stripe tiverem sido testados;
 - [ ] os recursos tiverem sobrevivido a restart sem perda de dados;
 - [ ] um backup PostgreSQL tiver sido criado e restaurado com sucesso;

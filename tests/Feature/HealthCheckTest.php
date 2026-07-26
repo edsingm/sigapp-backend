@@ -51,6 +51,7 @@ class HealthCheckTest extends TestCase
         $this->assertArrayHasKey('timestamp', $report);
         $this->assertArrayHasKey('checks', $report);
         $this->assertSame('ok', $report['checks']['database']['status']);
+        $this->assertSame('ok', $report['checks']['pgvector']['status']);
         $this->assertSame('ok', $report['checks']['cache']['status']);
         $this->assertSame('ok', $report['checks']['storage']['status']);
         $this->assertSame('ok', $report['checks']['queue']['status']);
@@ -160,6 +161,7 @@ class HealthCheckTest extends TestCase
                 'timestamp',
                 'checks' => [
                     'database',
+                    'pgvector',
                     'cache',
                     'storage',
                     'queue',

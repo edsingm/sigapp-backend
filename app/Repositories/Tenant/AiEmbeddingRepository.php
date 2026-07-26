@@ -7,6 +7,7 @@ namespace App\Repositories\Tenant;
 use App\Models\Tenant\AiDocumentChunk;
 use App\Models\Tenant\AiDocumentEmbedding;
 use App\Models\Tenant\Documento;
+use App\Support\Database\PgVector;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -78,5 +79,42 @@ class AiEmbeddingRepository
             ->orderByDesc('created_at')
             ->limit($limit)
             ->get();
+    }
+
+    /**
+     * Usa o índice HNSW no PostgreSQL. Retorna null em drivers sem pgvector,
+     * permitindo o fallback em memória usado pelos testes SQLite.
+     *
+     * @param  array<int, float|int>  $vector
+     * @return Collection<int, AiDocumentEmbedding>|null
+     */
+    public function searchSimilarByVector(
+        array $vector,
+        string $model,
+        ?int $terrenoId,
+        int $limit,
+    ): ?Collection {
+        $connection = (new AiDocumentEmbedding)->getConnection();
+
+        if (! PgVector::isPostgreSql($connection)) {
+            return null;
+        }
+
+        $literal = PgVector::literal($vector);
+        $query = AiDocumentEmbedding::query()
+            ->with(['chunk.documento', 'chunk.terreno'])
+            ->where('model', $model)
+            ->where('dimensions', PgVector::DIMENSIONS);
+        $query->getQuery()->select('ai_document_embeddings.*');
+        $query->getQuery()->selectRaw(PgVector::SIMILARITY_EXPRESSION.' AS similarity', [$literal]);
+
+        if ($terrenoId !== null) {
+            $query->whereHas('chunk', fn ($chunkQuery) => $chunkQuery->where('terreno_id', $terrenoId));
+        }
+
+        $query->getQuery()->orderByRaw(PgVector::DISTANCE_EXPRESSION.' ASC', [$literal]);
+        $query->getQuery()->limit($limit);
+
+        return $query->get();
     }
 }

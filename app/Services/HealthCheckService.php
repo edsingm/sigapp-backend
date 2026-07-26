@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Services\Tenant\DocumentoService;
+use App\Support\Database\PgVector;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -45,6 +46,7 @@ class HealthCheckService
     {
         $checks = [
             'database' => $this->checkDatabase(),
+            'pgvector' => $this->checkPgVector(),
             'cache' => $this->checkCache(),
             'storage' => $this->checkStorage(),
             'queue' => $this->checkQueue(),
@@ -59,6 +61,33 @@ class HealthCheckService
             'timestamp' => now()->toIso8601String(),
             'checks' => $checks,
         ];
+    }
+
+    /**
+     * A extensão é global no banco PostgreSQL e não crítica para o health
+     * público; sua ausência degrada o relatório operacional detalhado.
+     *
+     * @return array{status: 'ok'|'down', message: string, latency_ms: float, critical: bool}
+     */
+    private function checkPgVector(): array
+    {
+        return $this->timed(function (): array {
+            $connection = DB::connection();
+
+            if (! PgVector::isPostgreSql($connection)) {
+                return [
+                    'status' => 'ok',
+                    'message' => 'Não aplicável ao driver '.$connection->getDriverName(),
+                ];
+            }
+
+            $version = PgVector::installedVersion($connection);
+            if ($version === null) {
+                throw new \RuntimeException('Extensão vector não instalada');
+            }
+
+            return ['status' => 'ok', 'message' => 'Extensão vector '.$version];
+        });
     }
 
     /**

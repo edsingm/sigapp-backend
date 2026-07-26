@@ -361,6 +361,7 @@ Fluxo macro do terreno (enum `WorkflowStatus`, orquestrado por `LandWorkflowServ
 - Operações demoradas são assíncronas via Jobs (`app/Jobs/`). Queue: `sync` em teste, **Redis em produção**.
 - Jobs de provisionamento, IA e exportação declaram sua fila com `#[Queue(...)]`; notificações implementam `ShouldQueue` e usam a fila `notifications`. Jobs sem classe dedicada permanecem em `default`.
 - Jobs sensíveis a concorrência implementam `ShouldBeUnique` com chave tenant-aware e mantêm um claim condicional persistente no PostgreSQL quando existe registro de execução. O lock Redis evita duplicatas comuns; o claim no banco é a defesa final contra reentrega, expiração do lock ou workers concorrentes.
+- Exportações pesadas de terrenos/viabilidades usam o pipeline genérico `TenantExportGenerationService` → `GenerateTenantExportJob` na fila `exports`: `POST /api/v1/exports` cria uma solicitação idempotente e retorna `202`; `GET /api/v1/exports/{export}` consulta o status; o download autenticado fica em `/download`. O registro e o artefato são isolados por tenant/solicitante, salvos no disk privado `s3` e expiram logicamente após 24 horas. Os endpoints síncronos legados permanecem apenas durante a migração do frontend e não devem receber novos tipos de exportação.
 - **Todo Job deve implementar `failed(Throwable $e)`** — verificado por `LayerBoundariesTest::test_all_jobs_define_failed_handler`. Defina também `$tries`/`$timeout`/`$backoff`.
 - Eventos de domínio em `app/Events/Tenant/` com listeners em `app/Listeners/Tenant/` registrados explicitamente no `EventServiceProvider` — a descoberta automática global está desativada em `bootstrap/app.php` para não duplicar listeners; side-effects nunca inline no Service quando houver evento adequado.
 - Agendamentos ficam em **`routes/console.php`** (broker cleanup 5min, consent-logs diário, tenants pendentes por hora, poda diária de referências expiradas de tags Redis às 03:30, verificação de storage 07:00, etapas atrasadas 08:00, digests diário/semanal, scores IA 06:00, stats de tenants por hora). Comando novo recorrente → agende ali com `name()` exclusivo, `onOneServer()` e `withoutOverlapping()` com expiração maior que a duração esperada.
@@ -376,7 +377,8 @@ Fluxo macro do terreno (enum `WorkflowStatus`, orquestrado por `LandWorkflowServ
 ### 15. Uploads, PDF e Excel
 
 - PDF via `spatie/laravel-pdf` (Browsershot/Chromium — env `BROWSERSHOT_CHROME_PATH`/`PUPPETEER_EXECUTABLE_PATH`); templates em `resources/views/pdf/`.
-- Excel via `maatwebsite/excel` — classes em `app/Exports/` (ex.: `TerrenosExport` + `TerrenoExportRepository`).
+- Excel via `maatwebsite/excel` — classes em `app/Exports/` (ex.: `TerrenosExport` + `TerrenoExportRepository`). Exports volumosos devem implementar `FromQuery` para leitura em chunks; não materialize a coleção completa antes da escrita.
+- Arquivos gerados pelo pipeline assíncrono de exportação são privados no disk `s3`; nunca exponha `storage_path`/`storage_disk` na API. A expiração lógica remove a disponibilidade e bloqueia o download, e a remoção física deve ser garantida pela política de lifecycle do bucket.
 - Upload de arquivo: valide tipo MIME, tamanho e extensão no FormRequest (ex.: `UploadKmzRequest`, `StoreDocumentoRequest`). Storage é sufixado por tenant quando local (config tenancy); documentos e relatórios de IA usam o disk `s3`. Respeite `enforce.limits:storage_gb` nas rotas que aumentam uso de armazenamento.
 
 ### 16. i18n

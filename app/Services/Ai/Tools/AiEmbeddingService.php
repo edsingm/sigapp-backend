@@ -1,8 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Ai\Tools;
 
 use App\Repositories\Tenant\AiEmbeddingRepository;
+use App\Support\Database\PgVector;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Laravel\Ai\Embeddings;
@@ -11,8 +14,6 @@ use RuntimeException;
 class AiEmbeddingService
 {
     protected const DEFAULT_MAX_CHUNK_CHARS = 1500;
-
-    protected const DEFAULT_DIMENSIONS = 1536;
 
     public function __construct(
         private readonly AiEmbeddingRepository $repository,
@@ -27,7 +28,7 @@ class AiEmbeddingService
     {
         try {
             $response = Embeddings::for([$text])
-                ->dimensions(self::DEFAULT_DIMENSIONS)
+                ->dimensions(PgVector::DIMENSIONS)
                 ->timeout(30)
                 ->generate(
                     (string) config('ai.embedding_provider'),
@@ -38,6 +39,9 @@ class AiEmbeddingService
             if ($embedding === []) {
                 throw new RuntimeException('O provider não retornou embedding para o texto informado.');
             }
+
+            /** @var array<int, float|int> $embedding */
+            PgVector::assertValid($embedding);
 
             return $embedding;
         } catch (\Throwable $e) {
@@ -126,11 +130,14 @@ class AiEmbeddingService
         $preparedChunks = [];
 
         foreach ($chunks as $index => $chunkContent) {
+            $embedding = $this->generateEmbedding($chunkContent);
+            PgVector::assertValid($embedding);
+
             $preparedChunks[] = [
                 'chunk_index' => $index,
                 'content' => $chunkContent,
                 'metadata' => $baseMetadata,
-                'embedding' => $this->generateEmbedding($chunkContent),
+                'embedding' => $embedding,
             ];
         }
 
@@ -144,17 +151,29 @@ class AiEmbeddingService
 
     /**
      * Busca chunks similares a uma query por similaridade de cosseno.
-     * Sem pgvector: carrega vetores e calcula na aplicação.
+     * PostgreSQL usa pgvector/HNSW; outros drivers calculam na aplicação.
      *
      * @return Collection<int, array<string, mixed>>
      */
     public function searchSimilar(string $query, ?int $terrenoId = null, int $limit = 10): Collection
     {
+        $startedAt = hrtime(true);
+        $limit = max(1, min($limit, 100));
         $queryEmbedding = $this->generateEmbedding($query);
+        PgVector::assertValid($queryEmbedding);
+        $model = (string) config('ai.embedding_model');
 
-        // Para search sem pgvector, limitamos para não carregar tudo
-        $allEmbeddings = $this->repository->searchEmbeddings(
-            (string) config('ai.embedding_model'),
+        $nativeEmbeddings = $this->repository->searchSimilarByVector(
+            $queryEmbedding,
+            $model,
+            $terrenoId,
+            $limit,
+        );
+        $usesPgVector = $nativeEmbeddings !== null;
+
+        // O fallback é mantido para SQLite e demais drivers sem pgvector.
+        $allEmbeddings = $nativeEmbeddings ?? $this->repository->searchEmbeddings(
+            $model,
             $terrenoId,
             200,
         );
@@ -163,16 +182,15 @@ class AiEmbeddingService
         $scored = [];
 
         foreach ($allEmbeddings as $embedding) {
-            $storedVector = $embedding->getAttribute('embedding');
-            if (! is_array($storedVector) || empty($storedVector)) {
-                continue;
-            }
+            $similarity = $usesPgVector
+                ? (float) $embedding->getAttribute('similarity')
+                : $this->storedSimilarity($queryEmbedding, $embedding->getAttribute('embedding'));
 
-            $similarity = $this->cosineSimilarity($queryEmbedding, $storedVector);
             if ($similarity < (float) config('ai.embedding_min_similarity')) {
                 continue;
             }
-            $chunk = $embedding->chunk()->first();
+
+            $chunk = $embedding->chunk;
 
             $this->insertScoredResult($scored, [
                 'chunk_id' => $embedding->getAttribute('chunk_id'),
@@ -193,7 +211,32 @@ class AiEmbeddingService
             ]);
         }
 
-        return collect(array_slice($scored, 0, $limit))->values();
+        $results = collect(array_slice($scored, 0, $limit))->values();
+
+        Log::info('AI embedding similarity search completed', [
+            'tenant_id' => tenancy()->initialized ? tenant('id') : null,
+            'strategy' => $usesPgVector ? 'pgvector_hnsw' : 'php_fallback',
+            'model' => $model,
+            'terreno_id' => $terrenoId,
+            'candidate_count' => $allEmbeddings->count(),
+            'result_count' => $results->count(),
+            'duration_ms' => round((hrtime(true) - $startedAt) / 1_000_000, 2),
+        ]);
+
+        return $results;
+    }
+
+    /**
+     * @param  array<int, float|int>  $queryEmbedding
+     */
+    private function storedSimilarity(array $queryEmbedding, mixed $storedVector): float
+    {
+        if (! is_array($storedVector) || $storedVector === []) {
+            return 0.0;
+        }
+
+        /** @var array<int, float|int> $storedVector */
+        return $this->cosineSimilarity($queryEmbedding, $storedVector);
     }
 
     /**

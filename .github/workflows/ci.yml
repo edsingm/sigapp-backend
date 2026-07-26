@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:18-alpine
+        image: pgvector/pgvector:0.8.2-pg18
         env:
           POSTGRES_DB: sigapp_test
           POSTGRES_USER: postgres

@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Services\Admin;
 
 use App\Models\Central\PlatformAnnouncement;
+use App\Models\Central\PlatformAnnouncementDismissal;
 use App\Models\Central\Tenant;
 use App\Notifications\PlatformAnnouncementNotification;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 use Throwable;
@@ -90,12 +92,12 @@ class PlatformAnnouncementService
             PlatformAnnouncement::CHANNEL_EMAIL,
             PlatformAnnouncement::CHANNEL_BOTH,
         ], true)) {
-            // Banner-only: apenas marca como sent (consumo in-app futuro)
+            // Banner-only: marca como sent para consumo in-app no tenant.
             $announcement->update([
                 'status' => PlatformAnnouncement::STATUS_SENT,
                 'sent_at' => now(),
                 'recipients_count' => 0,
-                'meta' => ['note' => 'Canal banner: sem envio de e-mail no MVP'],
+                'meta' => ['note' => 'Canal banner: disponível no app do tenant'],
             ]);
 
             return $announcement->refresh();
@@ -167,6 +169,70 @@ class PlatformAnnouncementService
             ->whereNotNull('admin_email')
             ->where('admin_email', '!=', '')
             ->get();
+    }
+
+    /**
+     * Anúncios ativos com banner para um tenant (canal banner|both, status sent).
+     *
+     * @return Collection<int, PlatformAnnouncement>
+     */
+    public function activeBannersForTenant(Tenant $tenant, int $userId): Collection
+    {
+        $dismissedIds = PlatformAnnouncementDismissal::query()
+            ->where('tenant_id', (string) $tenant->getKey())
+            ->where('user_id', $userId)
+            ->pluck('announcement_id')
+            ->all();
+
+        $query = PlatformAnnouncement::query()
+            ->where('status', PlatformAnnouncement::STATUS_SENT)
+            ->whereIn('channel', [
+                PlatformAnnouncement::CHANNEL_BANNER,
+                PlatformAnnouncement::CHANNEL_BOTH,
+            ])
+            ->where(function (Builder $q) use ($tenant): void {
+                $q->where('segment', PlatformAnnouncement::SEGMENT_ALL)
+                    ->orWhere(function (Builder $q2) use ($tenant): void {
+                        $q2->where('segment', PlatformAnnouncement::SEGMENT_PLAN)
+                            ->where('segment_value', (string) $tenant->getAttribute('plan_id'));
+                    })
+                    ->orWhere(function (Builder $q2) use ($tenant): void {
+                        $q2->where('segment', PlatformAnnouncement::SEGMENT_STATUS)
+                            ->where('segment_value', (string) $tenant->getAttribute('status'));
+                    });
+            })
+            ->orderByDesc('sent_at')
+            ->orderByDesc('id')
+            ->limit(10);
+
+        if ($dismissedIds !== []) {
+            $query->whereNotIn('id', $dismissedIds);
+        }
+
+        return $query->get();
+    }
+
+    public function dismissForUser(
+        PlatformAnnouncement $announcement,
+        Tenant $tenant,
+        int $userId
+    ): void {
+        if (! in_array($announcement->channel, [
+            PlatformAnnouncement::CHANNEL_BANNER,
+            PlatformAnnouncement::CHANNEL_BOTH,
+        ], true)) {
+            throw new InvalidArgumentException('Este anúncio não possui banner.');
+        }
+
+        if ($announcement->status !== PlatformAnnouncement::STATUS_SENT) {
+            throw new InvalidArgumentException('Anúncio não está ativo.');
+        }
+
+        PlatformAnnouncementDismissal::query()->firstOrCreate([
+            'announcement_id' => $announcement->id,
+            'tenant_id' => (string) $tenant->getKey(),
+            'user_id' => $userId,
+        ]);
     }
 
     /**

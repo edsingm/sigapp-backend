@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\Tenant\CouponController as TenantCouponControlle
 use App\Http\Controllers\Api\V1\Tenant\DunningController;
 use App\Http\Controllers\Api\V1\Tenant\NotificationPreferenceController;
 use App\Http\Controllers\Api\V1\Tenant\PlanSwapController;
+use App\Http\Controllers\Api\V1\Tenant\PlatformAnnouncementController;
 use App\Http\Controllers\Api\V1\Tenant\TenantController;
 use App\Http\Controllers\Api\V1\TenantAuthController;
 use Illuminate\Support\Facades\Route;
@@ -29,6 +30,11 @@ Route::put('/me/notification-settings', [NotificationPreferenceController::class
 // Bootstrap: modules, plan and user RBAC for navbar/feature gating
 Route::get('/start', [ModulesController::class, 'index']);
 Route::get('/modules', [ModulesController::class, 'modules']);
+
+// Anúncios da plataforma (banner no app do tenant)
+Route::get('/platform-announcements/active', [PlatformAnnouncementController::class, 'active']);
+Route::post('/platform-announcements/{announcement}/dismiss', [PlatformAnnouncementController::class, 'dismiss'])
+    ->whereNumber('announcement');
 
 Route::get('/tenant/subscription', [TenantController::class, 'subscription'])
     ->middleware('tenant.admin');

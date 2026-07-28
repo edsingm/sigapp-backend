@@ -8,6 +8,7 @@ use App\Models\AuditLog;
 use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
 use App\Repositories\Contracts\DashboardRepositoryInterface;
+use App\Services\Auth\AdminLoginAttemptLogger;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
@@ -15,6 +16,7 @@ class DashboardService
 {
     public function __construct(
         private readonly DashboardRepositoryInterface $repository,
+        private readonly AdminLoginAttemptLogger $loginAttemptLogger,
     ) {}
 
     /**
@@ -32,6 +34,27 @@ class DashboardService
             'trial_tenants' => $this->repository->countTrialTenants(),
             'trial_expired_tenants' => $this->repository->countTrialExpiredTenants(),
             'mrr' => $this->repository->calculateMrr(),
+            'failed_admin_logins_24h' => $this->loginAttemptLogger->countFailedSince(now()->subDay()),
+        ];
+    }
+
+    /**
+     * Sinais leves de segurança/abuso (sem varrer DBs de tenants).
+     *
+     * @return array{
+     *     failed_admin_logins_24h: int,
+     *     trial_expired_tenants: int,
+     *     suspended_tenants: int,
+     *     pending_tenants: int
+     * }
+     */
+    public function abuseSignals(): array
+    {
+        return [
+            'failed_admin_logins_24h' => $this->loginAttemptLogger->countFailedSince(now()->subDay()),
+            'trial_expired_tenants' => $this->repository->countTrialExpiredTenants(),
+            'suspended_tenants' => $this->repository->countSuspendedTenants(),
+            'pending_tenants' => $this->repository->countPendingTenants(),
         ];
     }
 

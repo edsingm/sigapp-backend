@@ -1,11 +1,13 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Admin\AclController;
+use App\Http\Controllers\Api\V1\Admin\AdminLoginAttemptController;
 use App\Http\Controllers\Api\V1\Admin\AuditController;
 use App\Http\Controllers\Api\V1\Admin\CouponController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController;
 use App\Http\Controllers\Api\V1\Admin\EntitlementController;
 use App\Http\Controllers\Api\V1\Admin\PlanAdminController;
+use App\Http\Controllers\Api\V1\Admin\PlatformAnnouncementController;
 use App\Http\Controllers\Api\V1\Admin\PostController;
 use App\Http\Controllers\Api\V1\Admin\TenantController;
 use App\Http\Controllers\Api\V1\Admin\TenantPlanController;
@@ -153,6 +155,18 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
 
                         // Audit Logs
                         Route::get('/audit-logs', [AuditController::class, 'index']);
+                        Route::get('/audit-logs/actions', [AuditController::class, 'actions']);
+
+                        // Login attempts (admin central)
+                        Route::get('/login-attempts', [AdminLoginAttemptController::class, 'index']);
+
+                        // Platform announcements
+                        Route::get('/announcements', [PlatformAnnouncementController::class, 'index']);
+                        Route::post('/announcements', [PlatformAnnouncementController::class, 'store']);
+                        Route::get('/announcements/{announcement}', [PlatformAnnouncementController::class, 'show']);
+                        Route::put('/announcements/{announcement}', [PlatformAnnouncementController::class, 'update']);
+                        Route::delete('/announcements/{announcement}', [PlatformAnnouncementController::class, 'destroy']);
+                        Route::post('/announcements/{announcement}/send', [PlatformAnnouncementController::class, 'send']);
 
                         // ACL Catalog / Plan Role Matrix (read-only, foundation for UI de gestão)
                         Route::get('/acl/catalog', [AclController::class, 'catalog']);

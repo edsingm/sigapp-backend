@@ -24,6 +24,7 @@ class DashboardStatsResource extends JsonResource
             'trial_tenants' => $this['trial_tenants'],
             'trial_expired_tenants' => $this['trial_expired_tenants'],
             'mrr' => $this['mrr'],
+            'failed_admin_logins_24h' => $this['failed_admin_logins_24h'] ?? 0,
         ];
     }
 }

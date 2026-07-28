@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Services\ApiResponseService;
 use App\Services\Auth\AdminAuthService;
+use App\Services\Auth\AdminLoginAttemptLogger;
 use App\Services\DashboardService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
@@ -17,6 +18,7 @@ class AdminController extends Controller
     public function __construct(
         private readonly AdminAuthService $adminAuthService,
         private readonly DashboardService $dashboardService,
+        private readonly AdminLoginAttemptLogger $loginAttemptLogger,
     ) {}
 
     /**
@@ -27,8 +29,19 @@ class AdminController extends Controller
     public function login(LoginRequest $request): JsonResponse
     {
         $requestId = $request->header('X-Request-ID');
+        $email = (string) ($request->validated()['email'] ?? '');
 
         $result = $this->adminAuthService->attempt($request->validated());
+
+        $this->loginAttemptLogger->record([
+            'email' => $email,
+            'successful' => $result !== null,
+            'user_id' => $result !== null ? (int) $result['user']->getKey() : null,
+            'failure_reason' => $result === null ? 'invalid_credentials' : null,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'request_id' => is_string($requestId) ? $requestId : null,
+        ]);
 
         if ($result === null) {
             Log::warning('Login de administrador rejeitado', [

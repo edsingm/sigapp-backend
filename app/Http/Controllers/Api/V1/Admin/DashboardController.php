@@ -64,6 +64,7 @@ class DashboardController extends Controller
             'success' => true,
             'data' => [
                 'stats' => $stats->toArray($request),
+                'abuse_signals' => $this->dashboardService->abuseSignals(),
                 'tenants_by_plan' => $tenantsByPlan,
                 'trend' => $trend,
                 'recent_tenants' => $recentTenantsPayload,

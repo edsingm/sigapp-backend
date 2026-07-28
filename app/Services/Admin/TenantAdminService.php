@@ -14,9 +14,12 @@ class TenantAdminService
         private readonly TenantBillingService $billingService
     ) {}
 
-    public function paginate(?string $search, ?string $status, int $perPage = 15): LengthAwarePaginator
+    /**
+     * @param  array{plan_id?: int|null, on_trial?: bool|null, setup?: string|null}  $filters
+     */
+    public function paginate(?string $search, ?string $status, int $perPage = 15, array $filters = []): LengthAwarePaginator
     {
-        return $this->tenantRepository->paginateForAdmin($search, $status, $perPage);
+        return $this->tenantRepository->paginateForAdmin($search, $status, $perPage, $filters);
     }
 
     /**

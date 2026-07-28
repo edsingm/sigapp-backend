@@ -33,7 +33,27 @@ class ListTenantsRequest extends FormRequest
                     Tenant::STATUS_CANCELLED,
                 ]),
             ],
+            'plan_id' => ['sometimes', 'nullable', 'integer', 'min:1'],
+            'on_trial' => ['sometimes', 'nullable', 'boolean'],
+            'setup' => [
+                'sometimes',
+                'nullable',
+                'string',
+                Rule::in(['all', 'complete', 'incomplete']),
+            ],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('on_trial') && $this->input('on_trial') !== null && $this->input('on_trial') !== '') {
+            $raw = $this->input('on_trial');
+            if (is_string($raw)) {
+                $this->merge([
+                    'on_trial' => filter_var($raw, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE),
+                ]);
+            }
+        }
     }
 }

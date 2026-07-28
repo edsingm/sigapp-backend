@@ -17,7 +17,10 @@ use Stancl\Tenancy\Database\Models\Domain;
 
 class TenantRepository implements TenantRepositoryInterface
 {
-    public function paginateForAdmin(?string $search, ?string $status, int $perPage = 15): LengthAwarePaginator
+    /**
+     * @param  array{plan_id?: int|null, on_trial?: bool|null, setup?: string|null}  $filters
+     */
+    public function paginateForAdmin(?string $search, ?string $status, int $perPage = 15, array $filters = []): LengthAwarePaginator
     {
         $query = Tenant::query()->with('plan');
 
@@ -32,6 +35,29 @@ class TenantRepository implements TenantRepositoryInterface
 
         if ($status !== null && $status !== '' && $status !== 'all') {
             $query->where('status', $status);
+        }
+
+        $planId = $filters['plan_id'] ?? null;
+        if (is_int($planId) && $planId > 0) {
+            $query->where('plan_id', $planId);
+        }
+
+        if (array_key_exists('on_trial', $filters) && is_bool($filters['on_trial'])) {
+            if ($filters['on_trial']) {
+                $query->whereNotNull('trial_ends_at')->where('trial_ends_at', '>', now());
+            } else {
+                $query->where(function ($q): void {
+                    $q->whereNull('trial_ends_at')
+                        ->orWhere('trial_ends_at', '<=', now());
+                });
+            }
+        }
+
+        $setup = $filters['setup'] ?? null;
+        if ($setup === 'complete') {
+            $query->whereNotNull('setup_completed_at');
+        } elseif ($setup === 'incomplete') {
+            $query->whereNull('setup_completed_at');
         }
 
         return $query->latest()->paginate($perPage);

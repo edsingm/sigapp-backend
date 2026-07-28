@@ -21,7 +21,10 @@ interface TenantRepositoryInterface
 
     public function existsByDomain(string $domain): bool;
 
-    public function paginateForAdmin(?string $search, ?string $status, int $perPage = 15): LengthAwarePaginator;
+    /**
+     * @param  array{plan_id?: int|null, on_trial?: bool|null, setup?: string|null}  $filters
+     */
+    public function paginateForAdmin(?string $search, ?string $status, int $perPage = 15, array $filters = []): LengthAwarePaginator;
 
     public function loadWithPlan(Tenant $tenant): Tenant;
 

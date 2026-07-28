@@ -23,11 +23,19 @@ class TenantController extends Controller
      */
     public function index(ListTenantsRequest $request): JsonResponse
     {
+        $validated = $request->validated();
+        $filters = [
+            'plan_id' => isset($validated['plan_id']) ? (int) $validated['plan_id'] : null,
+            'on_trial' => array_key_exists('on_trial', $validated) ? $validated['on_trial'] : null,
+            'setup' => $validated['setup'] ?? null,
+        ];
+
         $tenants = $this->tenantService
             ->paginate(
-                $request->validated('search'),
-                $request->validated('status'),
-                (int) $request->validated('per_page', 15)
+                $validated['search'] ?? null,
+                $validated['status'] ?? null,
+                (int) ($validated['per_page'] ?? 15),
+                $filters
             )
             ->through(fn (Tenant $tenant): array => AdminTenantSummaryResource::make($tenant)->resolve());
 

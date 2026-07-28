@@ -29,6 +29,7 @@ class PlatformAnnouncementService
      * @param  array{
      *     title: string,
      *     body: string,
+     *     type?: string,
      *     channel: string,
      *     segment: string,
      *     segment_value?: string|null,
@@ -40,6 +41,7 @@ class PlatformAnnouncementService
         return PlatformAnnouncement::query()->create([
             'title' => $data['title'],
             'body' => $data['body'],
+            'type' => $data['type'] ?? PlatformAnnouncement::TYPE_INFO,
             'channel' => $data['channel'],
             'segment' => $data['segment'],
             'segment_value' => $data['segment_value'] ?? null,
@@ -53,6 +55,7 @@ class PlatformAnnouncementService
      * @param  array{
      *     title?: string,
      *     body?: string,
+     *     type?: string,
      *     channel?: string,
      *     segment?: string,
      *     segment_value?: string|null
@@ -120,6 +123,7 @@ class PlatformAnnouncementService
                     $announcement->title,
                     $announcement->body,
                     (string) $tenant->getAttribute('name'),
+                    (string) ($announcement->type ?: PlatformAnnouncement::TYPE_INFO),
                 ));
                 $sent++;
             } catch (Throwable $e) {
@@ -203,13 +207,21 @@ class PlatformAnnouncementService
             })
             ->orderByDesc('sent_at')
             ->orderByDesc('id')
-            ->limit(10);
+            ->limit(20);
 
         if ($dismissedIds !== []) {
             $query->whereNotIn('id', $dismissedIds);
         }
 
-        return $query->get();
+        // Prioridade visual: segurança > manutenção > update > info > promo
+        return $query->get()->sortBy(function (PlatformAnnouncement $a) {
+            return [
+                PlatformAnnouncement::typePriority((string) $a->type),
+                // sent_at mais recente primeiro (invertido no sortBy com timestamp negativo)
+                -($a->sent_at?->getTimestamp() ?? 0),
+                -$a->id,
+            ];
+        })->values()->take(5);
     }
 
     public function dismissForUser(

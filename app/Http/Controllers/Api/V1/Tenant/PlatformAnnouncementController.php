@@ -42,6 +42,7 @@ class PlatformAnnouncementController extends Controller
                 'id' => $a->id,
                 'title' => $a->title,
                 'body' => $a->body,
+                'type' => $a->type ?: PlatformAnnouncement::TYPE_INFO,
                 'channel' => $a->channel,
                 'sent_at' => $a->sent_at?->toIso8601String(),
             ])

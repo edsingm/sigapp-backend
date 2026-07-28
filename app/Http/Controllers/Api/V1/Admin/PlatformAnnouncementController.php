@@ -107,6 +107,7 @@ class PlatformAnnouncementController extends Controller
             'id' => $a->id,
             'title' => $a->title,
             'body' => $a->body,
+            'type' => $a->type ?: PlatformAnnouncement::TYPE_INFO,
             'channel' => $a->channel,
             'segment' => $a->segment,
             'segment_value' => $a->segment_value,

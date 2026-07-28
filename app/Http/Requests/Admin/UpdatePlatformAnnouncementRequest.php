@@ -21,6 +21,11 @@ class UpdatePlatformAnnouncementRequest extends FormRequest
         return [
             'title' => ['sometimes', 'string', 'max:200'],
             'body' => ['sometimes', 'string', 'max:10000'],
+            'type' => [
+                'sometimes',
+                'string',
+                Rule::in(PlatformAnnouncement::types()),
+            ],
             'channel' => [
                 'sometimes',
                 'string',

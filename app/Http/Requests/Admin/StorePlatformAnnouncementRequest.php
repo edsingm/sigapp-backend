@@ -21,6 +21,11 @@ class StorePlatformAnnouncementRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'max:200'],
             'body' => ['required', 'string', 'max:10000'],
+            'type' => [
+                'required',
+                'string',
+                Rule::in(PlatformAnnouncement::types()),
+            ],
             'channel' => [
                 'required',
                 'string',

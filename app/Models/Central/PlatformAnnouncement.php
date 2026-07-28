@@ -15,6 +15,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * @property int $id
  * @property string $title
  * @property string $body
+ * @property string $type
  * @property string $channel
  * @property string $segment
  * @property string|null $segment_value
@@ -30,6 +31,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
 #[Fillable([
     'title',
     'body',
+    'type',
     'channel',
     'segment',
     'segment_value',
@@ -62,6 +64,50 @@ class PlatformAnnouncement extends Model
     public const STATUS_SENT = 'sent';
 
     public const STATUS_FAILED = 'failed';
+
+    /** Informativo genérico (padrão). */
+    public const TYPE_INFO = 'info';
+
+    /** Avisos de segurança / risco / credenciais. */
+    public const TYPE_SECURITY = 'security';
+
+    /** Promoções, descontos, campanhas comerciais. */
+    public const TYPE_PROMO = 'promo';
+
+    /** Manutenção, downtime, incidentes. */
+    public const TYPE_MAINTENANCE = 'maintenance';
+
+    /** Novidades de produto / changelog. */
+    public const TYPE_UPDATE = 'update';
+
+    /**
+     * @return list<string>
+     */
+    public static function types(): array
+    {
+        return [
+            self::TYPE_INFO,
+            self::TYPE_SECURITY,
+            self::TYPE_PROMO,
+            self::TYPE_MAINTENANCE,
+            self::TYPE_UPDATE,
+        ];
+    }
+
+    /**
+     * Prioridade de exibição no banner (menor = mais urgente).
+     */
+    public static function typePriority(string $type): int
+    {
+        return match ($type) {
+            self::TYPE_SECURITY => 0,
+            self::TYPE_MAINTENANCE => 1,
+            self::TYPE_UPDATE => 2,
+            self::TYPE_INFO => 3,
+            self::TYPE_PROMO => 4,
+            default => 5,
+        };
+    }
 
     /**
      * @return array<string, string>

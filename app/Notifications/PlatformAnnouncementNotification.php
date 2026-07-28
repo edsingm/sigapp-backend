@@ -19,6 +19,7 @@ class PlatformAnnouncementNotification extends Notification implements ShouldQue
         private readonly string $title,
         private readonly string $body,
         private readonly string $tenantName,
+        private readonly string $type = 'info',
     ) {}
 
     /**
@@ -31,12 +32,19 @@ class PlatformAnnouncementNotification extends Notification implements ShouldQue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $message = (new MailMessage)
-            ->subject('[SIGAPP] '.$this->title)
+        $typeLabel = match ($this->type) {
+            'security' => 'Segurança',
+            'promo' => 'Promoção',
+            'maintenance' => 'Manutenção',
+            'update' => 'Atualização',
+            default => 'Informativo',
+        };
+
+        return (new MailMessage)
+            ->subject("[SIGAPP · {$typeLabel}] {$this->title}")
             ->greeting('Olá'.($this->tenantName !== '' ? ", {$this->tenantName}" : '').'!')
+            ->line("**{$typeLabel}**")
             ->line($this->body)
             ->line('Esta é uma comunicação da plataforma SIGAPP.');
-
-        return $message;
     }
 }

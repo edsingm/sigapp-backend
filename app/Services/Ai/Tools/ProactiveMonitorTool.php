@@ -2,7 +2,10 @@
 
 namespace App\Services\Ai\Tools;
 
+use App\Models\Tenant\ComiteRevisao;
+use App\Models\Tenant\Legalizacao;
 use App\Models\Tenant\Terreno;
+use App\Models\Tenant\Viabilidade;
 use App\Services\Tenant\LandWorkflowService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
@@ -22,7 +25,8 @@ class ProactiveMonitorTool implements Tool
 
     public function handle(Request $request): Stringable|string
     {
-        if ($deny = app(AiToolAuth::class)->ensureViewAny(
+        $auth = app(AiToolAuth::class);
+        if ($deny = $auth->ensureViewAny(
             Terreno::class,
             'Acesso negado: você não tem permissão para monitorar o portfólio.'
         )) {
@@ -31,6 +35,54 @@ class ProactiveMonitorTool implements Tool
 
         $focusArea = trim((string) ($request['focus_area'] ?? ''));
         $limit = AiToolResponse::clampLimit($request['limit'] ?? 50, default: 50, max: 50);
+
+        if ($focusArea === '' || $focusArea === 'inconsistencies') {
+            if ($deny = $auth->ensureFeature(
+                'viabilities.enabled',
+                'Acesso negado: seu plano não inclui viabilidades.'
+            )) {
+                return $deny;
+            }
+            if ($deny = $auth->ensureViewAny(
+                Viabilidade::class,
+                'Acesso negado: você não tem permissão para acessar viabilidades.'
+            )) {
+                return $deny;
+            }
+            if ($deny = $auth->ensureFeature(
+                'committee',
+                'Acesso negado: seu plano não inclui comitê.'
+            )) {
+                return $deny;
+            }
+            if ($deny = $auth->ensureViewAny(
+                ComiteRevisao::class,
+                'Acesso negado: você não tem permissão para acessar comitês.'
+            )) {
+                return $deny;
+            }
+        }
+
+        if ($focusArea === '' || $focusArea === 'overdue') {
+            if ($deny = $auth->ensureFeature(
+                'collaboration.tasks',
+                'Acesso negado: seu plano não inclui tarefas colaborativas.'
+            )) {
+                return $deny;
+            }
+            if ($deny = $auth->ensureFeature(
+                'legalizations',
+                'Acesso negado: seu plano não inclui legalizações.'
+            )) {
+                return $deny;
+            }
+            if ($deny = $auth->ensureViewAny(
+                Legalizacao::class,
+                'Acesso negado: você não tem permissão para acessar legalizações.'
+            )) {
+                return $deny;
+            }
+        }
 
         $alerts = [];
 

@@ -3,6 +3,7 @@
 namespace App\Services\Ai\Tools;
 
 use App\Models\Tenant\Terreno;
+use App\Models\Tenant\Viabilidade;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -21,9 +22,23 @@ class AnalyticsTool implements Tool
 
     public function handle(Request $request): Stringable|string
     {
-        if ($deny = app(AiToolAuth::class)->ensureViewAny(
+        $auth = app(AiToolAuth::class);
+        if ($deny = $auth->ensureViewAny(
             Terreno::class,
             'Acesso negado: você não tem permissão para acessar análises.'
+        )) {
+            return $deny;
+        }
+
+        if ($deny = $auth->ensureFeature(
+            'viabilities.enabled',
+            'Acesso negado: seu plano não inclui viabilidades.'
+        )) {
+            return $deny;
+        }
+        if ($deny = $auth->ensureViewAny(
+            Viabilidade::class,
+            'Acesso negado: você não tem permissão para acessar viabilidades.'
         )) {
             return $deny;
         }

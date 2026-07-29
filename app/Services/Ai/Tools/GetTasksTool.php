@@ -18,7 +18,15 @@ class GetTasksTool implements Tool
 
     public function handle(Request $request): Stringable|string
     {
-        if ($deny = app(AiToolAuth::class)->ensureViewAny(
+        $auth = app(AiToolAuth::class);
+        if ($deny = $auth->ensureFeature(
+            'collaboration.tasks',
+            'Acesso negado: seu plano não inclui tarefas colaborativas.'
+        )) {
+            return $deny;
+        }
+
+        if ($deny = $auth->ensureViewAny(
             Terreno::class,
             'Acesso negado: você não tem permissão para acessar tarefas.'
         )) {
@@ -32,7 +40,7 @@ class GetTasksTool implements Tool
         $terrenoId = (int) ($request['terreno_id'] ?? 0);
 
         if ($terrenoId > 0) {
-            $terrenoOrDeny = app(AiToolAuth::class)->ensureTerrenoView($terrenoId);
+            $terrenoOrDeny = $auth->ensureTerrenoView($terrenoId);
             if (is_string($terrenoOrDeny)) {
                 return $terrenoOrDeny;
             }

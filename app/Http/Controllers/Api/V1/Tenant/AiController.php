@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Api\V1\Tenant;
 
+use App\Exceptions\AiBudgetExceededException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\ChatAiRequest;
+use App\Http\Requests\Tenant\ViewAiRequest;
 use App\Repositories\AiConversationRepository;
 use App\Services\Ai\AiStreamResponseGuard;
 use App\Services\Ai\Tools\AiDataRedactor;
@@ -18,6 +20,7 @@ use Illuminate\Support\Str;
 use Laravel\Ai\Contracts\ConversationStore;
 use Laravel\Ai\Exceptions\RateLimitedException;
 use Symfony\Component\HttpFoundation\Response;
+use Throwable;
 
 class AiController extends Controller
 {
@@ -28,7 +31,7 @@ class AiController extends Controller
     /**
      * Lista as conversas do usuário autenticado (50 mais recentes).
      */
-    public function conversations(): JsonResponse
+    public function conversations(ViewAiRequest $request): JsonResponse
     {
         $userId = (int) Auth::id();
         $rows = $this->conversationRepository->getRecentConversations($userId);
@@ -39,7 +42,7 @@ class AiController extends Controller
     /**
      * Retorna as mensagens (user + assistant) de uma conversa.
      */
-    public function conversationMessages(string $id): JsonResponse
+    public function conversationMessages(ViewAiRequest $request, string $id): JsonResponse
     {
         if (! $this->conversationRepository->conversationExists($id, Auth::id())) {
             return ApiResponseService::notFound('Conversa não encontrada.');
@@ -53,8 +56,10 @@ class AiController extends Controller
     /**
      * Retorna o status atual de uso e orçamento de IA do tenant.
      */
-    public function budgetStatus(AiTelemetryService $telemetryService): JsonResponse
-    {
+    public function budgetStatus(
+        ViewAiRequest $request,
+        AiTelemetryService $telemetryService
+    ): JsonResponse {
         return ApiResponseService::success($telemetryService->getBudgetStatus());
     }
 
@@ -99,7 +104,7 @@ class AiController extends Controller
                 $store = resolve(ConversationStore::class);
                 $conversationId = $store->storeConversation($userId, Str::limit($message, 60));
             }
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('AI conversation setup failed: '.$e->getMessage());
 
             return ApiResponseService::error(
@@ -113,6 +118,23 @@ class AiController extends Controller
         // Resolve agente (primário por enquanto)
         $agentRoute = $providerRouter->getAgentWithFallback();
         $agent = $agentRoute['agent'];
+
+        try {
+            $reservation = $telemetryService->reserveBudget([
+                'user_id' => $userId,
+                'conversation_id' => $conversationId,
+                'provider' => $agentRoute['provider'],
+                'model' => $agentRoute['model'],
+                'ip_address' => request()->ip(),
+            ], (float) config('ai.agent_budget_reservation_usd', 0.25));
+        } catch (AiBudgetExceededException) {
+            return ApiResponseService::error(
+                'AI_BUDGET_EXCEEDED',
+                'O orçamento mensal de IA foi excedido. Faça upgrade do plano ou aguarde o próximo ciclo.',
+                null,
+                402,
+            );
+        }
 
         $startTime = microtime(true);
 
@@ -129,39 +151,47 @@ class AiController extends Controller
                 $startTime,
                 $telemetryService,
                 $providerRouter,
-                $redactor
+                $redactor,
+                $reservation,
             ) {
-                $duration = (int) ((microtime(true) - $startTime) * 1000);
-                $provider = $streamedResponse->meta->provider ?? $agentRoute['provider'];
-                $model = $streamedResponse->meta->model ?? $agentRoute['model'];
-                $usage = $streamedResponse->usage ?? null;
-                $promptTokens = $usage->promptTokens ?? 0;
-                $completionTokens = $usage->completionTokens ?? 0;
-                $cacheReadInputTokens = $usage->cacheReadInputTokens ?? 0;
-                $totalTokens = $promptTokens + $completionTokens;
-                $estimatedCost = $telemetryService->estimateCost($provider, $model, $promptTokens, $completionTokens, $cacheReadInputTokens);
-                $toolCalls = AiToolCallTelemetry::fromStreamEvents(
-                    $streamedResponse->events,
-                    $redactor
-                );
+                try {
+                    $duration = (int) ((microtime(true) - $startTime) * 1000);
+                    $provider = $streamedResponse->meta->provider ?? $agentRoute['provider'];
+                    $model = $streamedResponse->meta->model ?? $agentRoute['model'];
+                    $usage = $streamedResponse->usage ?? null;
+                    $promptTokens = $usage->promptTokens ?? 0;
+                    $completionTokens = $usage->completionTokens ?? 0;
+                    $cacheReadInputTokens = $usage->cacheReadInputTokens ?? 0;
+                    $totalTokens = $promptTokens + $completionTokens;
+                    $estimatedCost = $telemetryService->estimateCost($provider, $model, $promptTokens, $completionTokens, $cacheReadInputTokens);
+                    $toolCalls = AiToolCallTelemetry::fromStreamEvents(
+                        $streamedResponse->events,
+                        $redactor
+                    );
 
-                $providerRouter->recordAttempt($provider, $model, true);
+                    $providerRouter->recordAttempt($provider, $model, true);
 
-                $telemetryService->logRequest([
-                    'user_id' => $userId,
-                    'conversation_id' => $conversationId,
-                    'provider' => $provider,
-                    'model' => $model,
-                    'prompt_tokens' => $promptTokens,
-                    'completion_tokens' => $completionTokens,
-                    'total_tokens' => $totalTokens,
-                    'estimated_cost_usd' => $estimatedCost,
-                    'duration_ms' => $duration,
-                    'tool_calls_count' => count($toolCalls),
-                    'tool_calls' => $toolCalls,
-                    'status' => 'success',
-                    'ip_address' => request()->ip(),
-                ]);
+                    $telemetryService->trySettleReservation($reservation, [
+                        'user_id' => $userId,
+                        'conversation_id' => $conversationId,
+                        'provider' => $provider,
+                        'model' => $model,
+                        'prompt_tokens' => $promptTokens,
+                        'completion_tokens' => $completionTokens,
+                        'total_tokens' => $totalTokens,
+                        'estimated_cost_usd' => $estimatedCost,
+                        'duration_ms' => $duration,
+                        'tool_calls_count' => count($toolCalls),
+                        'tool_calls' => $toolCalls,
+                        'status' => 'success',
+                        'ip_address' => request()->ip(),
+                    ]);
+                } catch (Throwable $exception) {
+                    Log::warning('AI stream completion telemetry failed', [
+                        'conversation_id' => $conversationId,
+                        'error' => $exception->getMessage(),
+                    ]);
+                }
             });
 
             $response = response()->stream(function () use (
@@ -171,7 +201,8 @@ class AiController extends Controller
                 $agentRoute,
                 $startTime,
                 $telemetryService,
-                $providerRouter
+                $providerRouter,
+                $reservation,
             ) {
                 try {
                     $hasTextContent = false;
@@ -239,7 +270,7 @@ class AiController extends Controller
                 } catch (RateLimitedException) {
                     $duration = (int) ((microtime(true) - $startTime) * 1000);
                     $providerRouter->recordAttempt($agentRoute['provider'], $agentRoute['model'], false, 'Rate limit exceeded');
-                    $telemetryService->logRequest([
+                    $telemetryService->tryFailReservation($reservation, [
                         'user_id' => $userId,
                         'conversation_id' => $conversationId,
                         'provider' => $agentRoute['provider'],
@@ -251,10 +282,10 @@ class AiController extends Controller
                     ]);
                     echo 'data: '.json_encode(['type' => 'error', 'message' => 'O assistente atingiu o limite de requisições do provedor de IA. Aguarde alguns segundos e tente novamente.'], JSON_UNESCAPED_UNICODE)."\n\n";
                     echo "data: [DONE]\n\n";
-                } catch (\Throwable $e) {
+                } catch (Throwable $e) {
                     $duration = (int) ((microtime(true) - $startTime) * 1000);
                     $providerRouter->recordAttempt($agentRoute['provider'], $agentRoute['model'], false, $e->getMessage());
-                    $telemetryService->logRequest([
+                    $telemetryService->tryFailReservation($reservation, [
                         'user_id' => $userId,
                         'conversation_id' => $conversationId,
                         'provider' => $agentRoute['provider'],
@@ -293,7 +324,7 @@ class AiController extends Controller
                 'Rate limit exceeded',
             );
 
-            $telemetryService->logRequest([
+            $telemetryService->tryFailReservation($reservation, [
                 'user_id' => $userId,
                 'conversation_id' => $conversationId,
                 'provider' => $agentRoute['provider'],
@@ -309,6 +340,29 @@ class AiController extends Controller
                 'O assistente atingiu o limite de requisições do provedor de IA. Aguarde alguns segundos e tente novamente.',
                 null,
                 429,
+            );
+        } catch (Throwable $exception) {
+            $telemetryService->tryFailReservation($reservation, [
+                'user_id' => $userId,
+                'conversation_id' => $conversationId,
+                'provider' => $agentRoute['provider'],
+                'model' => $agentRoute['model'],
+                'status' => 'error',
+                'duration_ms' => (int) ((microtime(true) - $startTime) * 1000),
+                'error_message' => $exception->getMessage(),
+                'ip_address' => request()->ip(),
+            ]);
+
+            Log::error('AI stream setup error: '.$exception->getMessage(), [
+                'user_id' => $userId,
+                'conversation_id' => $conversationId,
+            ]);
+
+            return ApiResponseService::error(
+                'AI_STREAM_SETUP_FAILED',
+                'Erro ao iniciar a resposta da IA. Tente novamente.',
+                null,
+                500,
             );
         }
     }

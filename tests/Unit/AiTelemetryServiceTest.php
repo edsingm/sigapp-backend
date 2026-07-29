@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit;
 
+use App\Exceptions\AiBudgetExceededException;
 use App\Models\Central\Tenant;
 use App\Models\Tenant\AiRequestLog;
 use App\Repositories\Contracts\AiTelemetryRepositoryInterface;
@@ -11,6 +12,8 @@ use App\Services\Ai\Tools\AiTelemetryService;
 use App\Services\PlanMatrixService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Mockery;
 use Mockery\MockInterface;
 use Tests\TestCase;
@@ -409,6 +412,109 @@ class AiTelemetryServiceTest extends TestCase
         $this->assertSame(0.0, $status['remaining_usd']);
         $this->assertSame(100, $status['usage_percent']);
         $this->assertTrue($status['exceeded']);
+    }
+
+    public function test_reserve_budget_persists_commitment_inside_tenant_lock(): void
+    {
+        Cache::setDefaultDriver('array');
+        $tenant = (new Tenant)->forceFill(['id' => 'tenant-budget']);
+        tenancy()->tenant = $tenant;
+        tenancy()->initialized = true;
+
+        $reservation = new AiRequestLog;
+        $this->planMatrix->shouldReceive('resolveForTenant')
+            ->once()
+            ->with($tenant)
+            ->andReturn(['features' => [], 'limits' => ['ai_budget' => 1]]);
+        $this->repo->shouldReceive('expireStaleReservations')->once()->andReturn(0);
+        $this->repo->shouldReceive('getCurrentMonthCost')->once()->andReturn(0.80);
+        $this->repo->shouldReceive('create')
+            ->once()
+            ->with(Mockery::on(
+                static fn (array $data): bool => ($data['status'] ?? null) === 'reserved'
+                    && ($data['estimated_cost_usd'] ?? null) === 0.10,
+            ))
+            ->andReturn($reservation);
+
+        try {
+            $result = $this->makeService()->reserveBudget(['provider' => 'openai'], 0.10);
+        } finally {
+            tenancy()->tenant = null;
+            tenancy()->initialized = false;
+        }
+
+        $this->assertSame($reservation, $result);
+    }
+
+    public function test_reserve_budget_rejects_request_when_commitment_would_exceed_limit(): void
+    {
+        Cache::setDefaultDriver('array');
+        $tenant = (new Tenant)->forceFill(['id' => 'tenant-budget-denied']);
+        tenancy()->tenant = $tenant;
+        tenancy()->initialized = true;
+
+        $this->planMatrix->shouldReceive('resolveForTenant')
+            ->once()
+            ->with($tenant)
+            ->andReturn(['features' => [], 'limits' => ['ai_budget' => 1]]);
+        $this->repo->shouldReceive('expireStaleReservations')->once()->andReturn(0);
+        $this->repo->shouldReceive('getCurrentMonthCost')->once()->andReturn(0.90);
+        $this->repo->shouldReceive('create')->never();
+
+        try {
+            $this->expectException(AiBudgetExceededException::class);
+            $this->makeService()->reserveBudget(['provider' => 'openai'], 0.20);
+        } finally {
+            tenancy()->tenant = null;
+            tenancy()->initialized = false;
+        }
+    }
+
+    public function test_try_log_request_swallows_repository_failure(): void
+    {
+        $this->repo->shouldReceive('create')
+            ->once()
+            ->andThrow(new \RuntimeException('telemetry unavailable'));
+        Log::shouldReceive('warning')
+            ->once()
+            ->with('AI telemetry persistence failed', Mockery::on(
+                static fn (array $context): bool => ($context['operation'] ?? null) === 'log',
+            ));
+
+        $this->assertNull($this->makeService()->tryLogRequest([
+            'provider' => 'openai',
+            'status' => 'success',
+        ]));
+    }
+
+    public function test_try_settle_reservation_swallows_persistence_failure(): void
+    {
+        Cache::setDefaultDriver('array');
+        $tenant = (new Tenant)->forceFill(['id' => 'tenant-settlement']);
+        tenancy()->tenant = $tenant;
+        tenancy()->initialized = true;
+        $reservation = new AiRequestLog;
+
+        $this->repo->shouldReceive('update')
+            ->once()
+            ->andThrow(new \RuntimeException('telemetry unavailable'));
+        Log::shouldReceive('warning')
+            ->once()
+            ->with('AI telemetry persistence failed', Mockery::on(
+                static fn (array $context): bool => ($context['operation'] ?? null) === 'settle',
+            ));
+
+        try {
+            $result = $this->makeService()->trySettleReservation($reservation, [
+                'provider' => 'openai',
+                'status' => 'success',
+            ]);
+        } finally {
+            tenancy()->tenant = null;
+            tenancy()->initialized = false;
+        }
+
+        $this->assertNull($result);
     }
 
     // ── getUsageStats: agregação ─────────────────────────────────────────────

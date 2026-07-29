@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services\Ai\Tools;
 
+use App\Exceptions\AiBudgetExceededException;
+use App\Models\Tenant\AiRequestLog;
 use App\Repositories\Tenant\AiEmbeddingRepository;
 use App\Support\Database\PgVector;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Laravel\Ai\Embeddings;
 use RuntimeException;
@@ -17,6 +20,7 @@ class AiEmbeddingService
 
     public function __construct(
         private readonly AiEmbeddingRepository $repository,
+        private readonly AiTelemetryService $telemetry,
     ) {}
 
     /**
@@ -26,13 +30,26 @@ class AiEmbeddingService
      */
     public function generateEmbedding(string $text): array
     {
+        $provider = (string) config('ai.embedding_provider');
+        $model = (string) config('ai.embedding_model');
+        $startedAt = microtime(true);
+        $reservation = null;
+
         try {
+            $reservation = $this->telemetry->reserveBudget([
+                'user_id' => Auth::id(),
+                'provider' => $provider,
+                'model' => $model,
+                'tool_calls_count' => 1,
+                'tool_calls' => [['tool' => 'embedding.generate']],
+            ], (float) config('ai.embedding_budget_reservation_usd', 0.001));
+
             $response = Embeddings::for([$text])
                 ->dimensions(PgVector::DIMENSIONS)
                 ->timeout(30)
                 ->generate(
-                    (string) config('ai.embedding_provider'),
-                    (string) config('ai.embedding_model'),
+                    $provider,
+                    $model,
                 );
 
             $embedding = $response->embeddings[0] ?? [];
@@ -43,8 +60,40 @@ class AiEmbeddingService
             /** @var array<int, float|int> $embedding */
             PgVector::assertValid($embedding);
 
+            $this->telemetry->trySettleReservation($reservation, [
+                'user_id' => Auth::id(),
+                'provider' => $response->meta->provider,
+                'model' => $response->meta->model,
+                'prompt_tokens' => $response->tokens,
+                'completion_tokens' => 0,
+                'total_tokens' => $response->tokens,
+                'estimated_cost_usd' => $this->telemetry->estimateEmbeddingCost(
+                    $response->meta->provider,
+                    $response->tokens,
+                ),
+                'duration_ms' => (int) ((microtime(true) - $startedAt) * 1000),
+                'tool_calls_count' => 1,
+                'tool_calls' => [['tool' => 'embedding.generate']],
+                'status' => 'success',
+            ]);
+
             return $embedding;
+        } catch (AiBudgetExceededException $exception) {
+            throw $exception;
         } catch (\Throwable $e) {
+            if ($reservation instanceof AiRequestLog) {
+                $this->telemetry->tryFailReservation($reservation, [
+                    'user_id' => Auth::id(),
+                    'provider' => $provider,
+                    'model' => $model,
+                    'duration_ms' => (int) ((microtime(true) - $startedAt) * 1000),
+                    'tool_calls_count' => 1,
+                    'tool_calls' => [['tool' => 'embedding.generate']],
+                    'status' => 'error',
+                    'error_message' => $e->getMessage(),
+                ]);
+            }
+
             Log::warning("AI Embedding generation failed: {$e->getMessage()}");
 
             throw new RuntimeException('Não foi possível gerar o embedding do documento.', 0, $e);

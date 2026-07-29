@@ -26,6 +26,9 @@ return [
     'fallback_provider' => env('AI_FALLBACK_PROVIDER', ''),
     'fallback_agent_model' => env('AI_FALLBACK_AGENT_MODEL', ''),
     'tenant_budget_default' => (float) env('AI_TENANT_BUDGET_DEFAULT', 10.00),
+    'agent_budget_reservation_usd' => (float) env('AI_AGENT_BUDGET_RESERVATION_USD', 0.25),
+    'embedding_budget_reservation_usd' => (float) env('AI_EMBEDDING_BUDGET_RESERVATION_USD', 0.001),
+    'budget_reservation_ttl_minutes' => (int) env('AI_BUDGET_RESERVATION_TTL_MINUTES', 15),
     'rate_limit_per_minute' => (int) env('AI_RATE_LIMIT_PER_MINUTE', 30),
     'pdf_rate_limit_per_hour' => (int) env('AI_PDF_RATE_LIMIT_PER_HOUR', 10),
     'pdf_max_html_chars' => (int) env('AI_PDF_MAX_HTML_CHARS', 150000),
@@ -53,6 +56,16 @@ return [
             'input' => (float) env('AI_OPENAI_INPUT_PRICE_PER_M', 2.50),
             'output' => (float) env('AI_OPENAI_OUTPUT_PRICE_PER_M', 10.00),
         ],
+    ],
+
+    'embedding_prices_per_million_tokens' => [
+        'openai' => (float) env('AI_OPENAI_EMBEDDING_PRICE_PER_M', 0.02),
+        'azure' => (float) env('AI_AZURE_EMBEDDING_PRICE_PER_M', 0.02),
+        'gemini' => (float) env('AI_GEMINI_EMBEDDING_PRICE_PER_M', 0),
+        'mistral' => (float) env('AI_MISTRAL_EMBEDDING_PRICE_PER_M', 0),
+        'cohere' => (float) env('AI_COHERE_EMBEDDING_PRICE_PER_M', 0),
+        'jina' => (float) env('AI_JINA_EMBEDDING_PRICE_PER_M', 0),
+        'voyageai' => (float) env('AI_VOYAGEAI_EMBEDDING_PRICE_PER_M', 0),
     ],
 
     /*

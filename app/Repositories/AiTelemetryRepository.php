@@ -7,6 +7,7 @@ namespace App\Repositories;
 use App\Models\Tenant\AiRequestLog;
 use App\Repositories\Contracts\AiTelemetryRepositoryInterface;
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 class AiTelemetryRepository implements AiTelemetryRepositoryInterface
@@ -14,6 +15,27 @@ class AiTelemetryRepository implements AiTelemetryRepositoryInterface
     public function create(array $data): AiRequestLog
     {
         return AiRequestLog::create($data);
+    }
+
+    public function update(AiRequestLog $log, array $data): AiRequestLog
+    {
+        $log->fill($data);
+        $log->save();
+
+        return $log->refresh();
+    }
+
+    public function expireStaleReservations(CarbonInterface $before): int
+    {
+        return AiRequestLog::query()
+            ->where('status', 'reserved')
+            ->where('created_at', '<', $before)
+            ->update([
+                'status' => 'error',
+                'estimated_cost_usd' => 0,
+                'error_message' => 'Reserva de orçamento expirada antes da liquidação.',
+                'updated_at' => now(),
+            ]);
     }
 
     public function getCostByUser(int $userId, Carbon $from, ?Carbon $to = null): float

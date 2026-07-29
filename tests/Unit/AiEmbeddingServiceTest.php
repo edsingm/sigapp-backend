@@ -6,10 +6,12 @@ namespace Tests\Unit;
 
 use App\Models\Tenant\AiDocumentChunk;
 use App\Models\Tenant\AiDocumentEmbedding;
+use App\Models\Tenant\AiRequestLog;
 use App\Models\Tenant\Documento;
 use App\Repositories\Tenant\AiEmbeddingRepository;
 use App\Services\Ai\Agents\SIG_IA;
 use App\Services\Ai\Tools\AiEmbeddingService;
+use App\Services\Ai\Tools\AiTelemetryService;
 use App\Services\Ai\Tools\DocumentosTool;
 use App\Services\Ai\Tools\RedactingToolDecorator;
 use App\Services\Ai\Tools\SearchDocumentsTool;
@@ -17,7 +19,12 @@ use App\Support\Database\PgVector;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Facades\Config;
 use Laravel\Ai\Contracts\Tool;
+use Laravel\Ai\Embeddings;
 use Laravel\Ai\Providers\Tools\ProviderTool;
+use Laravel\Ai\Responses\Data\Meta;
+use Laravel\Ai\Responses\EmbeddingsResponse;
+use Mockery;
+use Mockery\MockInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use RuntimeException;
 use Tests\TestCase;
@@ -102,7 +109,7 @@ class AiEmbeddingServiceTest extends TestCase
         $attempts = 0;
         /** @var AiEmbeddingService&MockObject $service */
         $service = $this->getMockBuilder(AiEmbeddingService::class)
-            ->setConstructorArgs([$repository])
+            ->setConstructorArgs([$repository, app(AiTelemetryService::class)])
             ->onlyMethods(['generateEmbedding'])
             ->getMock();
         $service->expects($this->exactly(2))
@@ -166,7 +173,7 @@ class AiEmbeddingServiceTest extends TestCase
 
         /** @var AiEmbeddingService&MockObject $service */
         $service = $this->getMockBuilder(AiEmbeddingService::class)
-            ->setConstructorArgs([$repository])
+            ->setConstructorArgs([$repository, app(AiTelemetryService::class)])
             ->onlyMethods(['generateEmbedding'])
             ->getMock();
         $service->expects($this->once())
@@ -183,6 +190,51 @@ class AiEmbeddingServiceTest extends TestCase
         $this->assertSame('Conteúdo indexado', $result['content']);
         $this->assertSame(0.9321, $result['score']);
         $this->assertSame('Matrícula', $result['document']['nome']);
+    }
+
+    public function test_generate_embedding_settles_reserved_budget_with_provider_tokens(): void
+    {
+        Config::set('ai.embedding_provider', 'openai');
+        Config::set('ai.embedding_model', 'text-embedding-test');
+        Config::set('ai.embedding_budget_reservation_usd', 0.001);
+
+        $vector = array_fill(0, PgVector::DIMENSIONS, 0.0);
+        $vector[0] = 1.0;
+        Embeddings::fake([
+            new EmbeddingsResponse(
+                [$vector],
+                125,
+                new Meta('openai', 'text-embedding-test'),
+            ),
+        ]);
+
+        $reservation = new AiRequestLog;
+        /** @var AiTelemetryService&MockInterface $telemetry */
+        $telemetry = Mockery::mock(AiTelemetryService::class);
+        $telemetry->shouldReceive('reserveBudget')
+            ->once()
+            ->with(Mockery::type('array'), 0.001)
+            ->andReturn($reservation);
+        $telemetry->shouldReceive('estimateEmbeddingCost')
+            ->once()
+            ->with('openai', 125)
+            ->andReturn(0.000003);
+        $telemetry->shouldReceive('trySettleReservation')
+            ->once()
+            ->with($reservation, Mockery::on(
+                static fn (array $data): bool => ($data['prompt_tokens'] ?? null) === 125
+                    && ($data['total_tokens'] ?? null) === 125
+                    && ($data['estimated_cost_usd'] ?? null) === 0.000003
+                    && ($data['status'] ?? null) === 'success',
+            ))
+            ->andReturn($reservation);
+
+        $service = new AiEmbeddingService(
+            $this->createMock(AiEmbeddingRepository::class),
+            $telemetry,
+        );
+
+        $this->assertSame($vector, $service->generateEmbedding('consulta contabilizada'));
     }
 
     public function test_sig_ia_registers_rag_tools(): void

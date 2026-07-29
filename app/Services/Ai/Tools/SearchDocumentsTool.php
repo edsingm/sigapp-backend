@@ -2,7 +2,7 @@
 
 namespace App\Services\Ai\Tools;
 
-use App\Models\Tenant\Terreno;
+use App\Models\Tenant\Documento;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -21,8 +21,16 @@ class SearchDocumentsTool implements Tool
 
     public function handle(Request $request): Stringable|string
     {
-        if ($deny = app(AiToolAuth::class)->ensureViewAny(
-            Terreno::class,
+        $auth = app(AiToolAuth::class);
+        if ($deny = $auth->ensureFeature(
+            'documents.intelligence',
+            'Acesso negado: seu plano não inclui busca inteligente em documentos.'
+        )) {
+            return $deny;
+        }
+
+        if ($deny = $auth->ensureViewAny(
+            Documento::class,
             'Acesso negado: você não tem permissão para buscar documentos.'
         )) {
             return $deny;
@@ -37,7 +45,7 @@ class SearchDocumentsTool implements Tool
         $limit = AiToolResponse::clampLimit($request['limit'] ?? 5, default: 5, max: 20);
 
         if ($terrenoId > 0) {
-            $terrenoOrDeny = app(AiToolAuth::class)->ensureTerrenoView($terrenoId);
+            $terrenoOrDeny = $auth->ensureTerrenoView($terrenoId);
             if (is_string($terrenoOrDeny)) {
                 return $terrenoOrDeny;
             }
@@ -52,13 +60,13 @@ class SearchDocumentsTool implements Tool
 
             if ($terrenoId <= 0 && $results->isNotEmpty()) {
                 $allowedTerrenoIds = [];
-                $results = $results->filter(function (array $row) use (&$allowedTerrenoIds): bool {
+                $results = $results->filter(function (array $row) use (&$allowedTerrenoIds, $auth): bool {
                     $tid = (int) (data_get($row, 'terreno.id') ?? 0);
                     if ($tid <= 0) {
                         return false;
                     }
                     if (! array_key_exists($tid, $allowedTerrenoIds)) {
-                        $or = app(AiToolAuth::class)->ensureTerrenoView($tid);
+                        $or = $auth->ensureTerrenoView($tid);
                         $allowedTerrenoIds[$tid] = ! is_string($or);
                     }
 

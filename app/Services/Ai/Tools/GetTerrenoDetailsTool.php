@@ -2,7 +2,13 @@
 
 namespace App\Services\Ai\Tools;
 
+use App\Models\Tenant\Contrato;
+use App\Models\Tenant\Documento;
+use App\Models\Tenant\Negociacao;
+use App\Models\Tenant\Projeto;
+use App\Models\Tenant\Proprietario;
 use App\Models\Tenant\Terreno;
+use App\Models\Tenant\Viabilidade;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -23,24 +29,6 @@ class GetTerrenoDetailsTool implements Tool
             $mode = 'summary';
         }
 
-        $isFull = $mode === 'full';
-        $includeViabilidades = filter_var(
-            $request['include_viabilidades'] ?? false,
-            FILTER_VALIDATE_BOOL
-        );
-        $includeNegociacao = filter_var(
-            $request['include_negociacao'] ?? $isFull,
-            FILTER_VALIDATE_BOOL
-        );
-        $includeContrato = filter_var(
-            $request['include_contrato'] ?? $isFull,
-            FILTER_VALIDATE_BOOL
-        );
-        $includeProjetos = filter_var(
-            $request['include_projetos'] ?? $isFull,
-            FILTER_VALIDATE_BOOL
-        );
-
         if ($terrenoId <= 0) {
             return AiToolResponse::validation('Informe um terreno_id válido.');
         }
@@ -53,9 +41,43 @@ class GetTerrenoDetailsTool implements Tool
             return $deny;
         }
 
-        $with = [
-            'cidade:code,city',
-            'viabilidadeAtual' => static function ($query): void {
+        $isFull = $mode === 'full';
+        $requestedViabilidades = filter_var(
+            $request['include_viabilidades'] ?? false,
+            FILTER_VALIDATE_BOOL
+        );
+        $requestedNegociacao = filter_var(
+            $request['include_negociacao'] ?? $isFull,
+            FILTER_VALIDATE_BOOL
+        );
+        $requestedContrato = filter_var(
+            $request['include_contrato'] ?? $isFull,
+            FILTER_VALIDATE_BOOL
+        );
+        $requestedProjetos = filter_var(
+            $request['include_projetos'] ?? $isFull,
+            FILTER_VALIDATE_BOOL
+        );
+
+        $canViewViabilidades = $auth->canUseFeature('viabilities.enabled')
+            && $auth->canViewAny(Viabilidade::class);
+        $canViewNegociacao = $auth->canUseFeature('negotiation')
+            && $auth->canViewAny(Negociacao::class);
+        $canViewContrato = $auth->canUseFeature('negotiation')
+            && $auth->canViewAny(Contrato::class);
+        $canViewProjetos = $auth->canUseFeature('projects.room')
+            && $auth->canViewAny(Projeto::class);
+        $canViewDocumentos = $auth->canViewAny(Documento::class);
+        $canViewProprietarios = $auth->canViewAny(Proprietario::class);
+
+        $includeNegociacao = $requestedNegociacao && $canViewNegociacao;
+        $includeContrato = $requestedContrato && $canViewContrato;
+        $includeProjetos = $requestedProjetos && $canViewProjetos;
+        $includeViabilidades = $requestedViabilidades && $canViewViabilidades;
+
+        $with = ['cidade:code,city'];
+        if ($canViewViabilidades) {
+            $with['viabilidadeAtual'] = static function ($query): void {
                 $query->select([
                     'viabilidades.id',
                     'viabilidades.terreno_id',
@@ -64,8 +86,8 @@ class GetTerrenoDetailsTool implements Tool
                     'viabilidades.approval_status',
                     'viabilidades.updated_at',
                 ]);
-            },
-        ];
+            };
+        }
 
         if ($includeNegociacao) {
             $with['negociacaoAtual'] = static function ($query): void {
@@ -97,9 +119,23 @@ class GetTerrenoDetailsTool implements Tool
             $with[] = 'projetos:id,terreno_id,nome,status,created_at';
         }
 
+        $withCount = ['contatos'];
+        if ($canViewDocumentos) {
+            $withCount[] = 'documentos';
+        }
+        if ($canViewProprietarios) {
+            $withCount[] = 'proprietarios';
+        }
+        if ($canViewViabilidades) {
+            $withCount[] = 'viabilidades';
+        }
+        if ($canViewProjetos) {
+            $withCount[] = 'projetos';
+        }
+
         $terreno = Terreno::query()
             ->with($with)
-            ->withCount(['documentos', 'contatos', 'proprietarios', 'viabilidades', 'projetos'])
+            ->withCount($withCount)
             ->select([
                 'id',
                 'nome',
@@ -151,20 +187,46 @@ class GetTerrenoDetailsTool implements Tool
             'workflow_status_code' => $terreno->workflow_status_code,
             'updated_at' => optional($terreno->updated_at)?->toAtomString(),
             'totais' => [
-                'documentos' => $terreno->documentos_count,
                 'contatos' => $terreno->contatos_count,
-                'proprietarios' => $terreno->proprietarios_count,
-                'viabilidades' => $terreno->viabilidades_count,
-                'projetos' => $terreno->projetos_count,
             ],
-            'viabilidade_atual' => $terreno->viabilidadeAtual ? [
+        ];
+
+        if ($canViewDocumentos) {
+            $payload['totais']['documentos'] = $terreno->documentos_count;
+        }
+        if ($canViewProprietarios) {
+            $payload['totais']['proprietarios'] = $terreno->proprietarios_count;
+        }
+        if ($canViewViabilidades) {
+            $payload['totais']['viabilidades'] = $terreno->viabilidades_count;
+            $payload['viabilidade_atual'] = $terreno->viabilidadeAtual ? [
                 'id' => $terreno->viabilidadeAtual->id,
                 'version' => $terreno->viabilidadeAtual->version,
                 'status' => $terreno->viabilidadeAtual->status,
                 'approval_status' => $terreno->viabilidadeAtual->approval_status,
                 'updated_at' => optional($terreno->viabilidadeAtual->updated_at)?->toAtomString(),
-            ] : null,
-        ];
+            ] : null;
+        }
+        if ($canViewProjetos) {
+            $payload['totais']['projetos'] = $terreno->projetos_count;
+        }
+
+        $restrictedSections = [];
+        if ($requestedViabilidades && ! $canViewViabilidades) {
+            $restrictedSections[] = 'viabilidades';
+        }
+        if ($requestedNegociacao && ! $canViewNegociacao) {
+            $restrictedSections[] = 'negociacao';
+        }
+        if ($requestedContrato && ! $canViewContrato) {
+            $restrictedSections[] = 'contrato';
+        }
+        if ($requestedProjetos && ! $canViewProjetos) {
+            $restrictedSections[] = 'projetos';
+        }
+        if ($restrictedSections !== []) {
+            $payload['restricted_sections'] = $restrictedSections;
+        }
 
         if ($isFull) {
             $payload['cep'] = $terreno->cep;

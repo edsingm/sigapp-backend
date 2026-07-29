@@ -21,12 +21,20 @@ class GetDashboardSummaryTool implements Tool
 
     public function handle(Request $request): Stringable|string
     {
-        if ($deny = app(AiToolAuth::class)->ensureViewAny(
+        $auth = app(AiToolAuth::class);
+        if ($deny = $auth->ensureViewAny(
             Terreno::class,
             'Acesso negado: você não tem permissão para acessar dados do dashboard.'
         )) {
             return $deny;
         }
+
+        $canViewViabilidades = $auth->canUseFeature('viabilities.enabled')
+            && $auth->canViewAny(Viabilidade::class);
+        $canViewComite = $auth->canUseFeature('committee')
+            && $auth->canViewAny(ComiteRevisao::class);
+        $canViewNegociacao = $auth->canUseFeature('negotiation')
+            && $auth->canViewAny(Negociacao::class);
 
         $totalTerrenos = Terreno::query()->count();
         $porStage = Terreno::query()
@@ -36,32 +44,9 @@ class GetDashboardSummaryTool implements Tool
             ->mapWithKeys(fn ($r): array => [$r->workflow_stage ?? 'sem_etapa' => (int) $r->total])
             ->toArray();
 
-        $viabilidadeAtivas = Viabilidade::query()
-            ->where('is_current', true)
-            ->selectRaw('COUNT(*) as total, status')
-            ->groupBy('status')
-            ->get()
-            ->mapWithKeys(fn ($r): array => [$r->status ?? 'sem_status' => (int) $r->total])
-            ->toArray();
-
-        $aprovaPendentes = Viabilidade::query()
-            ->where('approval_status', 'pendente')
-            ->where('approval_requested_at', '!=', null)
-            ->count();
-
-        $comitePendentes = ComiteRevisao::query()
-            ->where('status', 'em_andamento')
-            ->count();
-
-        $negociacaoAtivas = Negociacao::query()
-            ->whereNull('closed_at')
-            ->count();
-
         $parados = Terreno::query()
             ->where('updated_at', '<', now()->subDays(30))
             ->count();
-
-        $vgv = $this->sumCurrentVgv();
 
         $topCidadesRaw = Terreno::query()
             ->selectRaw('COUNT(*) as total, cidade_code, estado')
@@ -86,18 +71,54 @@ class GetDashboardSummaryTool implements Tool
                 'por_stage' => $porStage,
                 'parados_30_dias' => $parados,
             ],
-            'viabilidades' => [
-                'por_status' => $viabilidadeAtivas,
-                'aprovacoes_pendentes' => $aprovaPendentes,
-            ],
-            'comite' => [
-                'decisoes_pendentes' => $comitePendentes,
-            ],
-            'negociacoes_ativas' => $negociacaoAtivas,
-            'vgv_estimado' => $vgv,
             'top_cidades' => $topCidades,
             'gerado_em' => now()->toIso8601String(),
         ];
+
+        $restrictedSections = [];
+
+        if ($canViewViabilidades) {
+            $viabilidadeAtivas = Viabilidade::query()
+                ->where('is_current', true)
+                ->selectRaw('COUNT(*) as total, status')
+                ->groupBy('status')
+                ->get()
+                ->mapWithKeys(fn ($r): array => [$r->status ?? 'sem_status' => (int) $r->total])
+                ->toArray();
+
+            $payload['viabilidades'] = [
+                'por_status' => $viabilidadeAtivas,
+                'aprovacoes_pendentes' => Viabilidade::query()
+                    ->where('approval_status', 'pendente')
+                    ->whereNotNull('approval_requested_at')
+                    ->count(),
+            ];
+            $payload['vgv_estimado'] = $this->sumCurrentVgv();
+        } else {
+            $restrictedSections[] = 'viabilidades';
+        }
+
+        if ($canViewComite) {
+            $payload['comite'] = [
+                'decisoes_pendentes' => ComiteRevisao::query()
+                    ->where('status', 'em_andamento')
+                    ->count(),
+            ];
+        } else {
+            $restrictedSections[] = 'comite';
+        }
+
+        if ($canViewNegociacao) {
+            $payload['negociacoes_ativas'] = Negociacao::query()
+                ->whereNull('closed_at')
+                ->count();
+        } else {
+            $restrictedSections[] = 'negociacao';
+        }
+
+        if ($restrictedSections !== []) {
+            $payload['restricted_sections'] = $restrictedSections;
+        }
 
         return AiToolResponse::ok($payload);
     }
@@ -113,7 +134,7 @@ class GetDashboardSummaryTool implements Tool
      */
     private function sumCurrentVgv(): float
     {
-        $connection = Viabilidade::query()->getConnection();
+        $connection = Viabilidade::query()->getModel()->getConnection();
         $driver = $connection->getDriverName();
 
         if ($driver === 'pgsql') {

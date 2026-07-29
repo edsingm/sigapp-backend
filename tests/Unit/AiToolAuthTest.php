@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Models\Central\Tenant;
 use App\Models\Tenant\Terreno;
 use App\Services\Ai\Tools\AiToolAuth;
 use App\Services\Ai\Tools\AiToolResponse;
@@ -22,7 +23,7 @@ class AiToolAuthTest extends TestCase
 
     public function test_ensure_view_any_returns_denied_envelope(): void
     {
-        Gate::shouldReceive('denies')->once()->with('viewAny', Terreno::class)->andReturn(true);
+        Gate::shouldReceive('allows')->once()->with('viewAny', Terreno::class)->andReturn(false);
 
         $auth = app(AiToolAuth::class);
         $result = $auth->ensureViewAny(Terreno::class, 'Acesso negado: você não tem permissão para listar terrenos.');
@@ -46,7 +47,7 @@ class AiToolAuthTest extends TestCase
 
     public function test_ensure_feature_ok_when_tenant_has_feature(): void
     {
-        $tenant = new \App\Models\Central\Tenant;
+        $tenant = new Tenant;
         app(Tenancy::class)->tenant = $tenant;
 
         $plan = Mockery::mock(PlanMatrixService::class);

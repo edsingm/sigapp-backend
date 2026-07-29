@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace App\Services\Ai\Tools;
 
+use App\Exceptions\AiBudgetExceededException;
 use App\Models\Tenant\AiRequestLog;
 use App\Repositories\Contracts\AiTelemetryRepositoryInterface;
 use App\Services\PlanMatrixService as ServicesPlanMatrixService;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
+use Throwable;
 
 class AiTelemetryService
 {
@@ -36,7 +40,123 @@ class AiTelemetryService
      */
     public function logRequest(array $data): AiRequestLog
     {
-        return $this->repository->create([
+        return $this->repository->create($this->requestPayload($data));
+    }
+
+    /**
+     * Telemetria best effort para nunca interromper a operação principal.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public function tryLogRequest(array $data): ?AiRequestLog
+    {
+        try {
+            return $this->logRequest($data);
+        } catch (Throwable $exception) {
+            $this->reportTelemetryFailure('log', $exception);
+
+            return null;
+        }
+    }
+
+    /**
+     * Reserva parte do orçamento antes de chamar o provider.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public function reserveBudget(array $data, float $amount): AiRequestLog
+    {
+        if (! tenancy()->initialized) {
+            throw new RuntimeException('Não é possível reservar orçamento de IA fora do contexto tenant.');
+        }
+
+        $amount = round(max(0.000001, $amount), 6);
+
+        return Cache::lock($this->budgetLockKey(), 10)->block(5, function () use ($data, $amount): AiRequestLog {
+            $this->repository->expireStaleReservations(
+                now()->subMinutes((int) config('ai.budget_reservation_ttl_minutes', 15))
+            );
+
+            $budgetLimit = $this->resolveBudgetLimit();
+            $committed = $this->repository->getCurrentMonthCost();
+
+            if ($budgetLimit <= 0 || $committed + $amount > $budgetLimit) {
+                throw new AiBudgetExceededException;
+            }
+
+            return $this->repository->create($this->requestPayload([
+                ...$data,
+                'estimated_cost_usd' => $amount,
+                'status' => 'reserved',
+            ]));
+        });
+    }
+
+    /**
+     * Substitui a reserva pelo custo real e pelos dados finais da chamada.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public function settleReservation(AiRequestLog $reservation, array $data): AiRequestLog
+    {
+        return Cache::lock($this->budgetLockKey(), 10)->block(
+            5,
+            fn (): AiRequestLog => $this->repository->update(
+                $reservation,
+                $this->requestPayload([...$data, 'status' => $data['status'] ?? 'success'])
+            )
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function trySettleReservation(AiRequestLog $reservation, array $data): ?AiRequestLog
+    {
+        try {
+            return $this->settleReservation($reservation, $data);
+        } catch (Throwable $exception) {
+            $this->reportTelemetryFailure('settle', $exception);
+
+            return null;
+        }
+    }
+
+    /**
+     * Libera o valor reservado quando a chamada não chega a consumir o provider.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public function failReservation(AiRequestLog $reservation, array $data): AiRequestLog
+    {
+        return $this->settleReservation($reservation, [
+            ...$data,
+            'estimated_cost_usd' => $data['estimated_cost_usd'] ?? 0,
+            'status' => $data['status'] ?? 'error',
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function tryFailReservation(AiRequestLog $reservation, array $data): ?AiRequestLog
+    {
+        try {
+            return $this->failReservation($reservation, $data);
+        } catch (Throwable $exception) {
+            $this->reportTelemetryFailure('fail', $exception);
+
+            return null;
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function requestPayload(array $data): array
+    {
+        return [
             'user_id' => $data['user_id'] ?? null,
             'conversation_id' => $data['conversation_id'] ?? null,
             'provider' => $data['provider'] ?? null,
@@ -56,7 +176,7 @@ class AiTelemetryService
             'status' => $data['status'] ?? 'success',
             'error_message' => $data['error_message'] ?? null,
             'ip_address' => $data['ip_address'] ?? null,
-        ]);
+        ];
     }
 
     /**
@@ -88,6 +208,13 @@ class AiTelemetryService
         $outputCost = ($completionTokens / 1_000_000) * ($prices['output'] ?? 0);
 
         return round($inputCost + $outputCost, 6);
+    }
+
+    public function estimateEmbeddingCost(?string $provider, int $tokens): float
+    {
+        $price = (float) config("ai.embedding_prices_per_million_tokens.{$provider}", 0);
+
+        return round(($tokens / 1_000_000) * $price, 6);
     }
 
     /**
@@ -198,7 +325,7 @@ class AiTelemetryService
         $budget = $this->getBudgetStatus();
 
         if ($budget['exceeded']) {
-            throw new RuntimeException('O orçamento mensal de IA do tenant foi excedido.');
+            throw new AiBudgetExceededException;
         }
     }
 
@@ -220,7 +347,7 @@ class AiTelemetryService
             if (array_key_exists('ai_budget', $limits)) {
                 return (float) $limits['ai_budget'];
             }
-        } catch (\Throwable) {
+        } catch (Throwable) {
             // Fallback ao default se o plano não estiver configurado
         }
 
@@ -244,5 +371,23 @@ class AiTelemetryService
             'usage_percent' => $budgetLimit > 0 ? round(($spent / $budgetLimit) * 100, 1) : 100,
             'exceeded' => $spent >= $budgetLimit,
         ];
+    }
+
+    private function budgetLockKey(): string
+    {
+        return sprintf(
+            'ai-budget:%s:%s',
+            (string) tenant('id'),
+            now()->format('Y-m'),
+        );
+    }
+
+    private function reportTelemetryFailure(string $operation, Throwable $exception): void
+    {
+        Log::warning('AI telemetry persistence failed', [
+            'operation' => $operation,
+            'tenant_id' => tenancy()->initialized ? tenant('id') : null,
+            'error' => $exception->getMessage(),
+        ]);
     }
 }

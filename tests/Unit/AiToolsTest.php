@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Models\Central\Tenant;
 use App\Models\Tenant\AiGeneratedReport;
 use App\Services\Ai\Agents\SIG_IA;
 use App\Services\Ai\Tools\AiAnomalyDetectionService;
@@ -12,7 +13,6 @@ use App\Services\Ai\Tools\AiScoringService;
 use App\Services\Ai\Tools\AnalyticsTool;
 use App\Services\Ai\Tools\CreatePdfsTool;
 use App\Services\Ai\Tools\CreateTaskTool;
-use App\Services\Ai\Tools\CreateTerrenoReportTool;
 use App\Services\Ai\Tools\DetectAnomaliesTool;
 use App\Services\Ai\Tools\DocumentosTool;
 use App\Services\Ai\Tools\EstimateVgvTool;
@@ -36,14 +36,13 @@ use App\Services\Ai\Tools\Meta\GetTerrenoProcessTool;
 use App\Services\Ai\Tools\Meta\GetTerrenoTool;
 use App\Services\Ai\Tools\Meta\MarketIntelTool;
 use App\Services\Ai\Tools\Meta\SearchPortfolioTool;
-use App\Services\Ai\Tools\PesquisarEmpreendimentosImobiliariosTool;
 use App\Services\Ai\Tools\PredictStallingTool;
 use App\Services\Ai\Tools\PredictViabilityTool;
 use App\Services\Ai\Tools\ProactiveMonitorTool;
 use App\Services\Ai\Tools\RedactingToolDecorator;
-use App\Services\Ai\Tools\SearchDocumentsTool;
 use App\Services\Ai\Tools\TransitionWorkflowTool;
 use App\Services\Ai\Tools\UpdateTaskStatusTool;
+use App\Services\PlanMatrixService;
 use App\Services\Tenant\Area\PolygonCalculator;
 use App\Services\Tenant\Geo\GeoProximityService;
 use App\Services\Tenant\LandWorkflowService;
@@ -51,8 +50,10 @@ use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Gateway\TextGenerationOptions;
 use Laravel\Ai\Providers\Tools\ProviderTool;
 use Laravel\Ai\Tools\Request;
+use Mockery;
 use RuntimeException;
 use Spatie\LaravelPdf\Facades\Pdf;
+use Stancl\Tenancy\Tenancy;
 use Tests\TestCase;
 
 /**
@@ -63,6 +64,13 @@ use Tests\TestCase;
  */
 class AiToolsTest extends TestCase
 {
+    protected function tearDown(): void
+    {
+        app(Tenancy::class)->tenant = null;
+
+        parent::tearDown();
+    }
+
     // ── Registro no Agent ─────────────────────────────────────────
 
     public function test_sig_ai_registers_all_tools(): void
@@ -310,6 +318,8 @@ class AiToolsTest extends TestCase
 
     public function test_create_pdfs_tool_returns_friendly_message_when_chrome_is_missing(): void
     {
+        $this->enablePdfFeature();
+
         Pdf::shouldReceive('view')
             ->once()
             ->andThrow(new RuntimeException('Could not find Chrome (ver. 148.0.7778.97).'));
@@ -343,8 +353,30 @@ class AiToolsTest extends TestCase
         $this->assertSame('DENIED', $result['code'] ?? null);
     }
 
+    public function test_create_pdfs_tool_requires_pdf_feature_even_after_parent_tool_authorization(): void
+    {
+        $this->enablePdfFeature(false);
+
+        Pdf::shouldReceive('view')->never();
+
+        $tool = app(CreatePdfsTool::class);
+
+        $result = json_decode((string) $tool->handle(new Request([
+            'filename' => 'relatorio-ibge',
+            'title' => 'Relatorio IBGE',
+            'html_content' => '<h1>Teste</h1>',
+            '_auth_checked' => true,
+            '_skip_rate_limit' => true,
+        ])), true);
+
+        $this->assertFalse($result['ok'] ?? true);
+        $this->assertSame('PLAN_DENIED', $result['code'] ?? null);
+    }
+
     public function test_create_pdfs_tool_clears_previous_report_before_a_new_generation(): void
     {
+        $this->enablePdfFeature();
+
         $tool = app(CreatePdfsTool::class);
         $reflection = new \ReflectionProperty($tool, 'lastGeneratedReport');
         $reflection->setValue($tool, new AiGeneratedReport(['id' => 12, 'terreno_id' => 42]));
@@ -362,6 +394,17 @@ class AiToolsTest extends TestCase
         ]));
 
         $this->assertNull($tool->lastGeneratedReport());
+    }
+
+    private function enablePdfFeature(bool $enabled = true): void
+    {
+        app(Tenancy::class)->tenant = new Tenant;
+
+        $planMatrix = Mockery::mock(PlanMatrixService::class);
+        $planMatrix->shouldReceive('hasFeatureForTenant')
+            ->with(Mockery::type(Tenant::class), 'exports.pdf')
+            ->andReturn($enabled);
+        $this->app->instance(PlanMatrixService::class, $planMatrix);
     }
 
     public function test_sig_ia_uses_configured_provider(): void

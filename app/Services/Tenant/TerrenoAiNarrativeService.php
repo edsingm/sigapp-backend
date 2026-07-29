@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Tenant;
 
+use App\Models\Tenant\AiRequestLog;
 use App\Services\Ai\Tools\AiProviderRouter;
 use App\Services\Ai\Tools\AiTelemetryService;
 use Illuminate\Support\Facades\Auth;
@@ -104,9 +105,18 @@ PROMPT;
         $agentRoute = app(AiProviderRouter::class)->getAgentWithFallback();
         $agent = $agentRoute['agent'];
         $startTime = microtime(true);
+        $reservation = null;
 
         try {
-            $this->telemetryService->ensureBudgetAvailable();
+            $reservation = $this->telemetryService->reserveBudget([
+                'user_id' => Auth::id(),
+                'provider' => $agentRoute['provider'],
+                'model' => $agentRoute['model'],
+                'tool_calls_count' => 1,
+                'tool_calls' => [['tool' => 'terreno_ai_report_narrative']],
+                'ip_address' => request()->ip(),
+            ], (float) config('ai.agent_budget_reservation_usd', 0.25));
+
             $response = $agent->prompt(
                 $prompt,
                 provider: $agentRoute['providers'],
@@ -133,7 +143,7 @@ PROMPT;
                 $cacheReadInputTokens
             );
 
-            $this->telemetryService->logRequest([
+            $this->telemetryService->trySettleReservation($reservation, [
                 'user_id' => Auth::id(),
                 'provider' => $provider,
                 'model' => $model,
@@ -150,7 +160,7 @@ PROMPT;
                 'ip_address' => request()->ip(),
             ]);
         } catch (\Throwable $e) {
-            $this->telemetryService->logRequest([
+            $errorTelemetry = [
                 'user_id' => Auth::id(),
                 'provider' => $agentRoute['provider'],
                 'model' => $agentRoute['model'],
@@ -162,7 +172,13 @@ PROMPT;
                 'status' => 'error',
                 'error_message' => $e->getMessage(),
                 'ip_address' => request()->ip(),
-            ]);
+            ];
+
+            if ($reservation instanceof AiRequestLog) {
+                $this->telemetryService->tryFailReservation($reservation, $errorTelemetry);
+            } else {
+                $this->telemetryService->tryLogRequest($errorTelemetry);
+            }
 
             $markdown = $this->fallbackNarrative($context, $e->getMessage());
         }

@@ -50,6 +50,13 @@ class CreatePdfsTool implements Tool
             }
         }
 
+        if ($deny = $auth->ensureFeature(
+            'exports.pdf',
+            'Acesso negado: seu plano não inclui exportação em PDF.'
+        )) {
+            return $deny;
+        }
+
         if (! $skipRateLimit) {
             if ($deny = $auth->ensureRateLimit(
                 'ai-tool-pdf',

@@ -30,13 +30,24 @@ final class AiToolAuth
         return null;
     }
 
+    /**
+     * @param  class-string<Model>  $modelClass
+     */
     public function ensureViewAny(string $modelClass, string $message): ?string
     {
-        if (Gate::denies('viewAny', $modelClass)) {
+        if (! $this->canViewAny($modelClass)) {
             return AiToolResponse::denied($message);
         }
 
         return null;
+    }
+
+    /**
+     * @param  class-string<Model>  $modelClass
+     */
+    public function canViewAny(string $modelClass): bool
+    {
+        return Gate::allows('viewAny', $modelClass);
     }
 
     public function ensureView(Model $model, string $message): ?string
@@ -62,13 +73,19 @@ final class AiToolAuth
      */
     public function ensureFeature(string $featureKey, string $message): ?string
     {
-        $tenant = tenancy()->tenant;
-
-        if (! $tenant || ! $this->planMatrix->hasFeatureForTenant($tenant, $featureKey)) {
+        if (! $this->canUseFeature($featureKey)) {
             return AiToolResponse::planDenied($message);
         }
 
         return null;
+    }
+
+    public function canUseFeature(string $featureKey): bool
+    {
+        $tenant = tenancy()->tenant;
+
+        return $tenant !== null
+            && $this->planMatrix->hasFeatureForTenant($tenant, $featureKey);
     }
 
     /**

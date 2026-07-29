@@ -110,9 +110,9 @@ class TerrenoAiReportServiceTest extends TestCase
 
         $this->assertSame('**Resumo Executivo**\nNarrativa gerada.', $result['markdown']);
         $this->assertStringContainsString('<strong>Resumo Executivo</strong>', $result['html']);
-        $telemetry->shouldHaveReceived('ensureBudgetAvailable');
+        $telemetry->shouldHaveReceived('reserveBudget');
         $telemetry->shouldHaveReceived('estimateCost', ['fake-provider', 'fake-model', 10, 5, 2]);
-        $telemetry->shouldHaveReceived('logRequest', [Mockery::on(
+        $telemetry->shouldHaveReceived('trySettleReservation', [Mockery::type(AiRequestLog::class), Mockery::on(
             static fn (array $data): bool => ($data['status'] ?? null) === 'success'
                 && ($data['prompt_tokens'] ?? null) === 10
                 && ($data['completion_tokens'] ?? null) === 5,
@@ -132,8 +132,8 @@ class TerrenoAiReportServiceTest extends TestCase
         $this->assertStringContainsString('A IA não conseguiu redigir a narrativa completa', $result['markdown']);
         $this->assertStringContainsString('provider indisponível', $result['markdown']);
         $this->assertStringContainsString('Terreno de Teste', $result['html']);
-        $telemetry->shouldHaveReceived('ensureBudgetAvailable');
-        $telemetry->shouldHaveReceived('logRequest', [Mockery::on(
+        $telemetry->shouldHaveReceived('reserveBudget');
+        $telemetry->shouldHaveReceived('tryFailReservation', [Mockery::type(AiRequestLog::class), Mockery::on(
             static fn (array $data): bool => ($data['status'] ?? null) === 'error'
                 && ($data['error_message'] ?? null) === 'provider indisponível',
         )]);
@@ -144,10 +144,10 @@ class TerrenoAiReportServiceTest extends TestCase
     {
         /** @var AiTelemetryService&MockInterface $telemetry */
         $telemetry = Mockery::mock(AiTelemetryService::class);
-        $telemetry->shouldReceive('ensureBudgetAvailable')
+        $telemetry->shouldReceive('reserveBudget')
             ->once()
             ->andThrow(new RuntimeException('orçamento excedido'));
-        $telemetry->shouldReceive('logRequest')->once()->andReturn(new AiRequestLog);
+        $telemetry->shouldReceive('tryLogRequest')->once()->andReturn(new AiRequestLog);
 
         /** @var SIG_IA&MockInterface $agent */
         $agent = Mockery::mock(SIG_IA::class);
@@ -182,11 +182,14 @@ class TerrenoAiReportServiceTest extends TestCase
     private function mockTelemetry(bool $withCost = true): AiTelemetryService&MockInterface
     {
         $telemetry = Mockery::mock(AiTelemetryService::class);
-        $telemetry->shouldReceive('ensureBudgetAvailable')->once();
+        $reservation = new AiRequestLog;
+        $telemetry->shouldReceive('reserveBudget')->once()->andReturn($reservation);
         if ($withCost) {
             $telemetry->shouldReceive('estimateCost')->once()->andReturn(0.123);
+            $telemetry->shouldReceive('trySettleReservation')->once()->andReturn($reservation);
+        } else {
+            $telemetry->shouldReceive('tryFailReservation')->once()->andReturn($reservation);
         }
-        $telemetry->shouldReceive('logRequest')->once()->andReturn(new AiRequestLog);
 
         if (! $telemetry instanceof AiTelemetryService) {
             throw new RuntimeException('Mock de telemetria inválido.');

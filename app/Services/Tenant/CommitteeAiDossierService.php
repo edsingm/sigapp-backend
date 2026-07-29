@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Tenant;
 
+use App\Models\Tenant\AiRequestLog;
 use App\Models\Tenant\ComiteAiDossier;
 use App\Models\Tenant\ComiteRevisao;
 use App\Models\Tenant\Documento;
@@ -69,9 +70,19 @@ class CommitteeAiDossierService
         }
 
         $startedAt = microtime(true);
+        $reservation = null;
 
         try {
-            $this->telemetry->ensureBudgetAvailable();
+            $reservation = $this->telemetry->reserveBudget([
+                'user_id' => $userId,
+                'conversation_id' => null,
+                'provider' => $route['provider'],
+                'model' => $route['model'],
+                'tool_calls_count' => 1,
+                'tool_calls' => [['tool' => 'committee_ai_dossier']],
+                'ip_address' => request()?->ip(),
+            ], (float) config('ai.agent_budget_reservation_usd', 0.25));
+
             $prompt = $this->redactor->redactPrompt($this->buildPrompt($review));
             $response = $route['agent']->prompt($prompt, provider: $route['providers']);
             $duration = (int) ((microtime(true) - $startedAt) * 1000);
@@ -82,7 +93,7 @@ class CommitteeAiDossierService
             $cacheReadInputTokens = $response->usage->cacheReadInputTokens ?? 0;
 
             $this->providerRouter->recordAttempt($provider, $model, true);
-            $this->telemetry->logRequest([
+            $this->telemetry->trySettleReservation($reservation, [
                 'user_id' => $userId,
                 'conversation_id' => null,
                 'provider' => $provider,
@@ -124,7 +135,7 @@ class CommitteeAiDossierService
                 false,
                 $exception->getMessage(),
             );
-            $this->telemetry->logRequest([
+            $errorTelemetry = [
                 'user_id' => $userId,
                 'conversation_id' => null,
                 'provider' => $route['provider'],
@@ -133,7 +144,13 @@ class CommitteeAiDossierService
                 'duration_ms' => $duration,
                 'error_message' => $exception->getMessage(),
                 'ip_address' => request()?->ip(),
-            ]);
+            ];
+
+            if ($reservation instanceof AiRequestLog) {
+                $this->telemetry->tryFailReservation($reservation, $errorTelemetry);
+            } else {
+                $this->telemetry->tryLogRequest($errorTelemetry);
+            }
 
             $this->dossiers->upsertForReview($review, [
                 'status' => 'error',

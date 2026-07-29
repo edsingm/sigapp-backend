@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Services\Ai\Tools\AiToolResponse;
 use App\Services\Ai\Tools\CreateTerrenoReportTool;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Laravel\Ai\Tools\Request;
 use Tests\TestCase;
 
@@ -20,7 +21,7 @@ class CreateTerrenoReportToolTest extends TestCase
 
     public function test_validates_missing_terreno_id_when_authenticated_via_gate_bypass(): void
     {
-        $this->be(new class implements \Illuminate\Contracts\Auth\Authenticatable
+        $this->be(new class implements Authenticatable
         {
             public function getAuthIdentifierName(): string
             {

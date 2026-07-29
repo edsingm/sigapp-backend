@@ -57,7 +57,7 @@ class PlatformAnnouncementController extends Controller
      *
      * POST /api/v1/platform-announcements/{announcement}/dismiss
      */
-    public function dismiss(Request $request, int $announcement): JsonResponse
+    public function dismiss(Request $request, PlatformAnnouncement $announcement): JsonResponse
     {
         $tenant = tenancy()->tenant;
         if (! $tenant instanceof Tenant) {
@@ -69,13 +69,8 @@ class PlatformAnnouncementController extends Controller
             return ApiResponseService::error('UNAUTHORIZED', 'Não autenticado.', null, 401);
         }
 
-        $model = PlatformAnnouncement::query()->find($announcement);
-        if ($model === null) {
-            return ApiResponseService::notFound(language()->t('RESOURCE_NOT_FOUND'));
-        }
-
         try {
-            $this->service->dismissForUser($model, $tenant, (int) $user->getKey());
+            $this->service->dismissForUser($announcement, $tenant, (int) $user->getKey());
         } catch (InvalidArgumentException $e) {
             return ApiResponseService::error('INVALID_STATE', $e->getMessage(), null, 422);
         }

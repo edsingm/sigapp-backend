@@ -5,7 +5,6 @@ namespace Tests\Unit;
 use App\Services\Ai\Tools\AiDataRedactor;
 use App\Services\Ai\Tools\AiToolCallTelemetry;
 use App\Services\Ai\Tools\AiToolResponse;
-use Illuminate\Support\Collection;
 use Laravel\Ai\Responses\Data\ToolCall as ToolCallData;
 use Laravel\Ai\Responses\Data\ToolResult as ToolResultData;
 use Laravel\Ai\Streaming\Events\ToolCall;

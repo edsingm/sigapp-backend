@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ListAdminLoginAttemptsRequest extends FormRequest
@@ -12,7 +13,7 @@ class ListAdminLoginAttemptsRequest extends FormRequest
     }
 
     /**
-     * @return array<string, list<\Illuminate\Contracts\Validation\ValidationRule|string>>
+     * @return array<string, list<ValidationRule|string>>
      */
     public function rules(): array
     {

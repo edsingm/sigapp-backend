@@ -3,6 +3,8 @@
 namespace Tests\Unit;
 
 use App\Services\Ai\Agents\SIG_IA;
+use App\Services\Ai\Tools\AiAnomalyDetectionService;
+use App\Services\Ai\Tools\AiPredictiveAnalysisService;
 use App\Services\Ai\Tools\AiPredictivePayload;
 use App\Services\Ai\Tools\DetectAnomaliesTool;
 use App\Services\Ai\Tools\GetDashboardSummaryTool;
@@ -11,6 +13,8 @@ use App\Services\Ai\Tools\GetTerrenoDetailsTool;
 use App\Services\Ai\Tools\ListTerrenosTool;
 use App\Services\Ai\Tools\PredictStallingTool;
 use App\Services\Ai\Tools\ProactiveMonitorTool;
+use App\Services\Tenant\LandWorkflowService;
+use Illuminate\JsonSchema\JsonSchemaTypeFactory;
 use Tests\TestCase;
 
 class AiPhase2PayloadTest extends TestCase
@@ -31,10 +35,10 @@ class AiPhase2PayloadTest extends TestCase
 
     public function test_tool_descriptions_disambiguate_monitor_vs_stalling_vs_dashboard(): void
     {
-        $monitor = (string) (new ProactiveMonitorTool(app(\App\Services\Tenant\LandWorkflowService::class)))->description();
-        $stalling = (string) (new PredictStallingTool(app(\App\Services\Ai\Tools\AiPredictiveAnalysisService::class)))->description();
+        $monitor = (string) (new ProactiveMonitorTool(app(LandWorkflowService::class)))->description();
+        $stalling = (string) (new PredictStallingTool(app(AiPredictiveAnalysisService::class)))->description();
         $dashboard = (string) (new GetDashboardSummaryTool)->description();
-        $anomalies = (string) (new DetectAnomaliesTool(app(\App\Services\Ai\Tools\AiAnomalyDetectionService::class)))->description();
+        $anomalies = (string) (new DetectAnomaliesTool(app(AiAnomalyDetectionService::class)))->description();
 
         $this->assertStringContainsString('ATUAL', mb_strtoupper($monitor));
         $this->assertStringContainsString('FUTURO', mb_strtoupper($stalling));
@@ -63,7 +67,7 @@ class AiPhase2PayloadTest extends TestCase
 
     public function test_details_and_list_schemas_expose_phase2_fields(): void
     {
-        $factory = new \Illuminate\JsonSchema\JsonSchemaTypeFactory;
+        $factory = new JsonSchemaTypeFactory;
 
         $detailsSchema = (new GetTerrenoDetailsTool)->schema($factory);
         $listSchema = (new ListTerrenosTool)->schema($factory);

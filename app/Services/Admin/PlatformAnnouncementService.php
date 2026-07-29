@@ -165,7 +165,7 @@ class PlatformAnnouncementService
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, Tenant>
+     * @return Collection<int, Tenant>
      */
     private function resolveRecipients(PlatformAnnouncement $announcement)
     {

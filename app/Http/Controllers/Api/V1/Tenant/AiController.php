@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api\V1\Tenant;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\ChatAiRequest;
 use App\Repositories\AiConversationRepository;
+use App\Services\Ai\AiStreamResponseGuard;
 use App\Services\Ai\Tools\AiDataRedactor;
 use App\Services\Ai\Tools\AiProviderRouter;
 use App\Services\Ai\Tools\AiTelemetryService;
+use App\Services\Ai\Tools\AiToolCallTelemetry;
 use App\Services\ApiResponseService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -15,7 +17,6 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Ai\Contracts\ConversationStore;
 use Laravel\Ai\Exceptions\RateLimitedException;
-use Laravel\Ai\Streaming\Events\ToolCall;
 use Symfony\Component\HttpFoundation\Response;
 
 class AiController extends Controller
@@ -139,11 +140,10 @@ class AiController extends Controller
                 $cacheReadInputTokens = $usage->cacheReadInputTokens ?? 0;
                 $totalTokens = $promptTokens + $completionTokens;
                 $estimatedCost = $telemetryService->estimateCost($provider, $model, $promptTokens, $completionTokens, $cacheReadInputTokens);
-                $toolCalls = $streamedResponse->events
-                    ->whereInstanceOf(ToolCall::class)
-                    ->map(fn (ToolCall $event) => ['tool' => $event->toolCall->name, 'input' => $redactor->redactPayload($event->toolCall->arguments)])
-                    ->values()
-                    ->toArray();
+                $toolCalls = AiToolCallTelemetry::fromStreamEvents(
+                    $streamedResponse->events,
+                    $redactor
+                );
 
                 $providerRouter->recordAttempt($provider, $model, true);
 
@@ -175,6 +175,7 @@ class AiController extends Controller
             ) {
                 try {
                     $hasTextContent = false;
+                    $accumulatedText = '';
 
                     foreach ($streamable as $event) {
                         $type = method_exists($event, 'type') ? $event->type() : ($event->type ?? null);
@@ -192,6 +193,10 @@ class AiController extends Controller
                                 continue;
                             }
                             $hasTextContent = true;
+                            $accumulatedText .= $delta;
+                        } elseif ($type === 'text' && is_string($event->content ?? null)) {
+                            $hasTextContent = true;
+                            $accumulatedText .= (string) $event->content;
                         }
 
                         echo 'data: '.((string) $event)."\n\n";
@@ -201,8 +206,7 @@ class AiController extends Controller
                         flush();
                     }
 
-                    // If no real text was produced (only tool calls or empty response),
-                    // send a friendly message instead of a blank response
+                    // Sem texto: fallback genérico
                     if (! $hasTextContent) {
                         Log::warning('AI stream produced no text content', [
                             'user_id' => $userId,
@@ -213,7 +217,21 @@ class AiController extends Controller
 
                         echo 'data: '.json_encode([
                             'type' => 'text',
-                            'content' => 'A análise foi realizada, mas não encontrei informações relevantes para formular uma resposta. Isso pode ocorrer quando não há dados disponíveis no momento.',
+                            'content' => AiStreamResponseGuard::emptyFallbackMessage(),
+                        ], JSON_UNESCAPED_UNICODE)."\n\n";
+                    } elseif (AiStreamResponseGuard::looksIncomplete($accumulatedText)) {
+                        // Texto só com monólogo de progresso ("vou buscar…") sem entrega final
+                        Log::warning('AI stream produced incomplete progress monologue', [
+                            'user_id' => $userId,
+                            'conversation_id' => $conversationId,
+                            'provider' => $agentRoute['provider'],
+                            'model' => $agentRoute['model'],
+                            'text_tail' => mb_substr($accumulatedText, -240),
+                        ]);
+
+                        echo 'data: '.json_encode([
+                            'type' => 'text',
+                            'content' => "\n\n".AiStreamResponseGuard::incompleteFallbackMessage(),
                         ], JSON_UNESCAPED_UNICODE)."\n\n";
                     }
 

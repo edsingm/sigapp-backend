@@ -134,18 +134,25 @@ class AiToolsDataContractTest extends TestCase
             'created_by' => $this->user->id,
         ]);
 
-        $legalizacaoPayload = json_decode((string) app(GetLegalizacaoTool::class)->handle(new Request(['terreno_id' => $this->terreno->id])), true);
+        $legalizacaoPayload = json_decode((string) app(GetLegalizacaoTool::class)->handle(new Request([
+            'terreno_id' => $this->terreno->id,
+            'include_etapas' => true,
+        ])), true);
         $comitePayload = json_decode((string) app(GetComiteTool::class)->handle(new Request(['terreno_id' => $this->terreno->id])), true);
         $negociacaoPayload = json_decode((string) app(GetNegociacaoTool::class)->handle(new Request(['terreno_id' => $this->terreno->id])), true);
         $tasksPayload = json_decode((string) app(GetTasksTool::class)->handle(new Request(['terreno_id' => $this->terreno->id])), true);
 
-        $this->assertSame('Aprovação municipal', $legalizacaoPayload['items'][0]['etapas'][0]['nome']);
-        $this->assertSame(1000, $legalizacaoPayload['items'][0]['etapas'][0]['custo_realizado']);
-        $this->assertSame('Anexar certidão', $legalizacaoPayload['items'][0]['pendencias'][0]['descricao']);
-        $this->assertSame('juridico', $comitePayload['items'][0]['pareceres'][0]['departamento']);
-        $this->assertSame('aprovado_com_ressalvas', $comitePayload['items'][0]['pareceres'][0]['posicao']);
-        $this->assertSame('offer.sent', $negociacaoPayload['items'][0]['eventos'][0]['tipo']);
-        $this->assertSame('Proposta enviada ao proprietário.', $negociacaoPayload['items'][0]['eventos'][0]['descricao']);
-        $this->assertSame(1, $tasksPayload['resumo']['overdue']);
+        $this->assertTrue($legalizacaoPayload['ok'] ?? false);
+        $this->assertSame('OK', $legalizacaoPayload['code'] ?? null);
+
+        $this->assertSame('Aprovação municipal', $legalizacaoPayload['data']['items'][0]['etapas'][0]['nome']);
+        $this->assertSame(1000, $legalizacaoPayload['data']['items'][0]['etapas'][0]['custo_realizado']);
+        $this->assertSame('Anexar certidão', $legalizacaoPayload['data']['items'][0]['pendencias'][0]['descricao']);
+        $this->assertSame('juridico', $comitePayload['data']['items'][0]['pareceres'][0]['departamento']);
+        $this->assertSame('aprovado_com_ressalvas', $comitePayload['data']['items'][0]['pareceres'][0]['posicao']);
+        $this->assertSame('offer.sent', $negociacaoPayload['data']['items'][0]['eventos'][0]['tipo']);
+        $this->assertSame('Proposta enviada ao proprietário.', $negociacaoPayload['data']['items'][0]['eventos'][0]['descricao']);
+        $this->assertArrayNotHasKey('dados', $negociacaoPayload['data']['items'][0]['eventos'][0]);
+        $this->assertSame(1, $tasksPayload['data']['resumo']['overdue']);
     }
 }

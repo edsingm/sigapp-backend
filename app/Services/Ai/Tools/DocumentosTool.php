@@ -4,7 +4,6 @@ namespace App\Services\Ai\Tools;
 
 use App\Models\Tenant\Documento;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
-use Illuminate\Support\Facades\Gate;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
@@ -18,8 +17,11 @@ class DocumentosTool implements Tool
 
     public function handle(Request $request): Stringable|string
     {
-        if (Gate::denies('viewAny', Documento::class)) {
-            return 'Acesso negado: você não tem permissão para acessar documentos.';
+        if ($deny = app(AiToolAuth::class)->ensureViewAny(
+            Documento::class,
+            'Acesso negado: você não tem permissão para acessar documentos.'
+        )) {
+            return $deny;
         }
 
         $documentId = (int) ($request['document_id'] ?? 0);
@@ -35,11 +37,14 @@ class DocumentosTool implements Tool
     {
         $documento = Documento::find($documentId);
         if (! $documento) {
-            return "Documento {$documentId} não encontrado.";
+            return AiToolResponse::empty("Documento {$documentId} não encontrado.");
         }
 
-        if (Gate::denies('view', $documento->terreno)) {
-            return "Acesso negado: você não tem permissão para visualizar o documento {$documentId}.";
+        if ($deny = app(AiToolAuth::class)->ensureView(
+            $documento->terreno,
+            "Acesso negado: você não tem permissão para visualizar o documento {$documentId}."
+        )) {
+            return $deny;
         }
 
         $payload = [
@@ -54,7 +59,8 @@ class DocumentosTool implements Tool
             'status' => $documento->status,
             'status_label' => $documento->status_label ?? $documento->status,
             'tamanho_bytes' => (int) ($documento->tamanho ?? 0),
-            'ai_analysis' => [
+            'heuristica_tipo' => [
+                'source' => 'rule',
                 'tipo_detectado' => $documento->tipo ?? 'desconhecido',
                 'sugestao_acao' => match ($documento->tipo ?? '') {
                     'matricula' => 'Verificar se a matrícula está atualizada com a última transmissão.',
@@ -67,23 +73,28 @@ class DocumentosTool implements Tool
                     'certidao_negativa' => 'Confirmar que não há débitos ou impedimentos.',
                     default => 'Documento sem classificação específica. Revisar conteúdo.',
                 },
+                'disclaimer' => 'Sugestão por regra de tipo de arquivo — não é análise de conteúdo por IA.',
             ],
             'created_at' => optional($documento->created_at)?->toAtomString(),
             'updated_at' => optional($documento->updated_at)?->toAtomString(),
         ];
 
-        return json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT)
-            ?: 'Falha ao serializar análise do documento.';
+        return AiToolResponse::ok($payload);
     }
 
     private function listDocumentos(Request $request): string
     {
         $query = Documento::query()
+            ->with('terreno:id')
             ->select(['id', 'terreno_id', 'nome', 'tipo', 'categoria', 'descricao', 'tamanho', 'status', 'created_at'])
             ->orderByDesc('created_at');
 
         $terrenoId = (int) ($request['terreno_id'] ?? 0);
         if ($terrenoId > 0) {
+            $terrenoOrDeny = app(AiToolAuth::class)->ensureTerrenoView($terrenoId);
+            if (is_string($terrenoOrDeny)) {
+                return $terrenoOrDeny;
+            }
             $query->where('terreno_id', $terrenoId);
         }
 
@@ -102,8 +113,17 @@ class DocumentosTool implements Tool
             $query->where('status', $status);
         }
 
-        $limit = max(1, min((int) ($request['limit'] ?? 20), 100));
+        $limit = AiToolResponse::clampLimit($request['limit'] ?? 20, default: 20, max: 50);
+        $total = (int) $query->count();
         $documentos = $query->limit($limit)->get();
+
+        if ($terrenoId <= 0) {
+            $documentos = app(AiToolAuth::class)->filterByView(
+                $documentos,
+                static fn ($d) => $d->terreno
+            );
+            $total = $documentos->count();
+        }
 
         if ($documentos->isEmpty()) {
             $filtros = [];
@@ -121,39 +141,41 @@ class DocumentosTool implements Tool
                 $msg .= ' para '.implode(', ', $filtros);
             }
 
-            return $msg.'.';
+            return AiToolResponse::empty(
+                $msg.'.',
+                ['items' => [], 'meta' => AiToolResponse::listMeta($total, 0, $limit)]
+            );
         }
 
-        $payload = [
-            'total' => $documentos->count(),
-            'items' => $documentos->map(static function (Documento $d): array {
-                $bytes = (int) ($d->tamanho ?? 0);
+        $items = $documentos->map(static function (Documento $d): array {
+            $bytes = (int) ($d->tamanho ?? 0);
 
-                return [
-                    'id' => $d->id,
-                    'terreno_id' => $d->terreno_id,
-                    'nome' => $d->nome,
-                    'tipo' => $d->tipo,
-                    'tipo_label' => $d->tipo_label ?? $d->tipo,
-                    'categoria' => $d->categoria,
-                    'categoria_label' => $d->categoria_label ?? $d->categoria,
-                    'descricao' => $d->descricao,
-                    'tamanho_bytes' => $bytes,
-                    'tamanho_formatado' => self::formatBytes($bytes),
-                    'status' => $d->status,
-                    'status_label' => $d->status_label ?? $d->status,
-                    'created_at' => optional($d->created_at)?->toAtomString(),
-                ];
-            })->all(),
+            return [
+                'id' => $d->id,
+                'terreno_id' => $d->terreno_id,
+                'nome' => $d->nome,
+                'tipo' => $d->tipo,
+                'tipo_label' => $d->tipo_label ?? $d->tipo,
+                'categoria' => $d->categoria,
+                'categoria_label' => $d->categoria_label ?? $d->categoria,
+                'descricao' => $d->descricao,
+                'tamanho_bytes' => $bytes,
+                'tamanho_formatado' => self::formatBytes($bytes),
+                'status' => $d->status,
+                'status_label' => $d->status_label ?? $d->status,
+                'created_at' => optional($d->created_at)?->toAtomString(),
+            ];
+        })->all();
+
+        return AiToolResponse::ok([
+            'items' => $items,
             'resumo' => [
                 'por_status' => $documentos->groupBy('status')->map(fn ($g) => $g->count())->toArray(),
                 'por_tipo' => $documentos->groupBy('tipo')->map(fn ($g) => $g->count())->toArray(),
                 'por_categoria' => $documentos->groupBy('categoria')->map(fn ($g) => $g->count())->toArray(),
             ],
-        ];
-
-        return json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT)
-            ?: 'Falha ao serializar documentos.';
+            'meta' => AiToolResponse::listMeta($total, count($items), $limit),
+        ]);
     }
 
     protected static function formatBytes(int $bytes): string
@@ -170,12 +192,19 @@ class DocumentosTool implements Tool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'document_id' => $schema->integer()->description('Se informado, analisa o documento específico; caso contrário, lista documentos.'),
-            'terreno_id' => $schema->integer(),
-            'tipo' => $schema->string(),
-            'categoria' => $schema->string(),
-            'status' => $schema->string(),
-            'limit' => $schema->integer(),
+            'document_id' => $schema->integer()
+                ->description('Se informado, analisa o documento específico; caso contrário, lista documentos.'),
+            'terreno_id' => $schema->integer()
+                ->description('Filtra documentos de um terreno.'),
+            'tipo' => $schema->string()
+                ->description('Tipo do documento (ex.: matricula, escritura).'),
+            'categoria' => $schema->string()
+                ->description('Categoria do documento.'),
+            'status' => $schema->string()
+                ->description('Status do documento.'),
+            'limit' => $schema->integer()
+                ->description('Máximo de itens na listagem (padrão 20).')
+                ->min(1),
         ];
     }
 }

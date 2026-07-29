@@ -6,7 +6,6 @@ use App\Models\Tenant\Terreno;
 use App\Services\Tenant\Area\PolygonCalculator;
 use App\Services\Tenant\Geo\GeoProximityService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
-use Illuminate\Support\Facades\Gate;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
@@ -29,11 +28,15 @@ class GetTerrenoGeoAnalysisTool implements Tool
         $radiusMetros = max(100, min(5000, (int) ($request['radius_metros'] ?? 1000)));
 
         if ($terrenoId <= 0) {
-            return 'Informe um terreno_id válido.';
+            return AiToolResponse::validation('Informe um terreno_id válido.');
         }
 
-        if (Gate::denies('viewAny', Terreno::class)) {
-            return 'Acesso negado: você não tem permissão para acessar terrenos.';
+        $auth = app(AiToolAuth::class);
+        if ($deny = $auth->ensureViewAny(
+            Terreno::class,
+            'Acesso negado: você não tem permissão para acessar terrenos.'
+        )) {
+            return $deny;
         }
 
         $terreno = Terreno::query()
@@ -52,11 +55,14 @@ class GetTerrenoGeoAnalysisTool implements Tool
             ->find($terrenoId);
 
         if (! $terreno) {
-            return "Terreno {$terrenoId} não encontrado.";
+            return AiToolResponse::empty("Terreno {$terrenoId} não encontrado.");
         }
 
-        if (Gate::denies('view', $terreno)) {
-            return "Acesso negado: você não tem permissão para visualizar o terreno {$terrenoId}.";
+        if ($deny = $auth->ensureView(
+            $terreno,
+            "Acesso negado: você não tem permissão para visualizar o terreno {$terrenoId}."
+        )) {
+            return $deny;
         }
 
         $polygon = $terreno->polygon_coords ?? [];
@@ -102,15 +108,17 @@ class GetTerrenoGeoAnalysisTool implements Tool
             $payload['aviso'] = 'Polígono do terreno não cadastrado. Cadastre as coordenadas para obter dados de vias e pontos de apoio.';
         }
 
-        return json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT)
-            ?: 'Falha ao serializar análise geográfica.';
+        return AiToolResponse::ok($payload);
     }
 
     public function schema(JsonSchema $schema): array
     {
         return [
-            'terreno_id' => $schema->integer()->required(),
-            'radius_metros' => $schema->integer()->description('Raio em metros para busca de vias e pontos de apoio (padrão: 1000, máx: 5000).'),
+            'terreno_id' => $schema->integer()->required()
+                ->description('ID do terreno para análise geográfica.'),
+            'radius_metros' => $schema->integer()
+                ->description('Raio em metros para busca de vias e pontos de apoio (padrão: 1000, máx: 5000).')
+                ->min(100),
         ];
     }
 

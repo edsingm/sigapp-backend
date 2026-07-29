@@ -27,6 +27,7 @@ services:
       - FRONTEND_URL=http://localhost:8080
       - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
       - BROWSERSHOT_CHROME_PATH=/usr/bin/chromium
+      - BROWSERSHOT_NO_SANDBOX=true
     depends_on:
       - redis
     networks:

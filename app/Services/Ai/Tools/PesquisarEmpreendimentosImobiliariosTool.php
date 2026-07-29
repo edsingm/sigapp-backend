@@ -26,17 +26,25 @@ class PesquisarEmpreendimentosImobiliariosTool implements Tool
         $anos = max(1, min(10, (int) ($request['anos'] ?? 5)));
 
         if ($cidade === '') {
-            return 'Informe o nome da cidade para realizar a pesquisa de empreendimentos.';
+            return AiToolResponse::validation('Informe o nome da cidade para realizar a pesquisa de empreendimentos.');
+        }
+
+        if ($deny = app(AiToolAuth::class)->ensureRateLimit(
+            'ai-tool-mercado',
+            (int) config('ai.mercado_rate_limit_per_hour', 10),
+            3600,
+            'Limite de pesquisas de mercado atingido para este período.'
+        )) {
+            return $deny;
         }
 
         try {
             $resultado = $this->mercadoService->pesquisar($cidade, $estado, $anos);
         } catch (Throwable $exception) {
-            return 'Falha ao pesquisar empreendimentos imobiliários: '.$exception->getMessage();
+            return AiToolResponse::error('Falha ao pesquisar empreendimentos imobiliários: '.$exception->getMessage());
         }
 
-        return json_encode($resultado, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT)
-            ?: 'Falha ao serializar resultados da pesquisa.';
+        return AiToolResponse::ok(is_array($resultado) ? $resultado : ['result' => $resultado]);
     }
 
     public function schema(JsonSchema $schema): array

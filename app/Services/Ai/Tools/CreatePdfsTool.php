@@ -28,7 +28,7 @@ class CreatePdfsTool implements Tool
 
     public function description(): Stringable|string
     {
-        return 'Gera PDFs para o usuário. Use quando o usuário pedir um relatório, contrato, invoice, resumo, etc. Forneça um nome de arquivo, título e o conteúdo HTML completo.';
+        return 'Gera PDFs a partir de HTML fornecido (relatório customizado, resumo, documento). Para relatório completo de um terreno, prefira CreateTerrenoReportTool. Retorna data.url com o link de download.';
     }
 
     public function handle(Request $request): Stringable|string
@@ -38,18 +38,72 @@ class CreatePdfsTool implements Tool
         // can never mistake a stale report for the current one.
         $this->lastGeneratedReport = null;
 
-        $filename = Str::slug($request['filename']).'-'.Str::uuid().'.pdf';
+        $auth = app(AiToolAuth::class);
+        $authChecked = filter_var($request['_auth_checked'] ?? false, FILTER_VALIDATE_BOOL);
+        $skipRateLimit = filter_var($request['_skip_rate_limit'] ?? false, FILTER_VALIDATE_BOOL);
+
+        if (! $authChecked) {
+            if ($deny = $auth->ensureAuthenticated(
+                'Acesso negado: autenticação necessária para gerar PDFs.'
+            )) {
+                return $deny;
+            }
+        }
+
+        if (! $skipRateLimit) {
+            if ($deny = $auth->ensureRateLimit(
+                'ai-tool-pdf',
+                (int) config('ai.pdf_rate_limit_per_hour', 10),
+                3600,
+                'Limite de geração de PDF atingido para este período.'
+            )) {
+                return $deny;
+            }
+        }
+
+        $filenameInput = trim((string) ($request['filename'] ?? ''));
+        $title = trim((string) ($request['title'] ?? ''));
+        $htmlContent = (string) ($request['html_content'] ?? '');
+        $terrenoId = (int) ($request['terreno_id'] ?? 0);
+
+        if ($filenameInput === '' || mb_strlen($filenameInput) < 3) {
+            return AiToolResponse::validation('Informe um filename com pelo menos 3 caracteres.');
+        }
+
+        if ($title === '') {
+            return AiToolResponse::validation('Informe o título do PDF.');
+        }
+
+        if (trim($htmlContent) === '') {
+            return AiToolResponse::validation('Informe o html_content do PDF.');
+        }
+
+        $maxHtml = max(1000, (int) config('ai.pdf_max_html_chars', 150000));
+        if (mb_strlen($htmlContent) > $maxHtml) {
+            return AiToolResponse::validation(
+                "html_content excede o limite de {$maxHtml} caracteres. Reduza o conteúdo ou use o relatório por terreno."
+            );
+        }
+
+        if ($terrenoId > 0 && ! $authChecked) {
+            $terrenoOrDeny = $auth->ensureTerrenoView($terrenoId);
+            if (is_string($terrenoOrDeny)) {
+                return $terrenoOrDeny;
+            }
+        }
+
+        $filename = Str::slug($filenameInput).'-'.Str::uuid().'.pdf';
         $path = 'pdfs/'.$filename;
 
         try {
             Pdf::view('exports.ai-pdf', [
-                'title' => $request['title'],
-                'content' => $this->sanitizeHtml($request['html_content']),
+                'title' => $title,
+                'content' => $this->sanitizeHtml($htmlContent),
             ])
                 ->format('A4')
                 ->margins(14, 16, 24, 16)
                 ->footerView('exports.ai-pdf-footer', [
-                    'title' => $request['title'],
+                    'title' => $title,
                 ])
                 ->withBrowsershot(function ($browsershot) {
                     $chromePath = $this->resolveChromePath();
@@ -70,17 +124,21 @@ class CreatePdfsTool implements Tool
         } catch (Throwable $e) {
             Log::warning('AI PDF generation failed', [
                 'filename' => $filename,
-                'title' => $request['title'],
+                'title' => $title,
                 'error' => $e->getMessage(),
             ]);
 
             if (str_contains($e->getMessage(), 'Could not find Chrome')) {
-                return 'Nao foi possivel gerar o PDF neste ambiente porque o Chrome/Chromium nao esta instalado no servidor. '
+                return AiToolResponse::error(
+                    'Nao foi possivel gerar o PDF neste ambiente porque o Chrome/Chromium nao esta instalado no servidor. '
                     .'O chat continua funcionando, mas a infraestrutura de PDF precisa da instalacao do navegador headless '
-                    .'ou de um driver alternativo para concluir essa acao.';
+                    .'ou de um driver alternativo para concluir essa acao.'
+                );
             }
 
-            return 'Nao foi possivel gerar o PDF solicitado neste momento. Motivo tecnico: '.$e->getMessage();
+            return AiToolResponse::error(
+                'Nao foi possivel gerar o PDF solicitado neste momento. Motivo tecnico: '.$e->getMessage()
+            );
         }
 
         $tamanho = (int) Storage::disk('s3')->size($path);
@@ -92,16 +150,16 @@ class CreatePdfsTool implements Tool
             if (($this->usageService->getStorageUsedBytes() + $tamanho) > $maxBytes) {
                 Storage::disk('s3')->delete($path);
 
-                return 'Não foi possível salvar o PDF: o limite de armazenamento do plano foi atingido. '
-                    .'Faça upgrade do plano ou libere espaço para continuar gerando PDFs.';
+                return AiToolResponse::planDenied(
+                    'Não foi possível salvar o PDF: o limite de armazenamento do plano foi atingido. '
+                    .'Faça upgrade do plano ou libere espaço para continuar gerando PDFs.'
+                );
             }
         }
 
-        $terrenoId = (int) ($request['terreno_id'] ?? 0);
-
         $report = $this->reportRepository->create([
             'terreno_id' => $terrenoId > 0 ? $terrenoId : null,
-            'nome' => (string) $request['title'],
+            'nome' => $title,
             'file_path' => $path,
             'tamanho' => $tamanho,
             'created_by' => auth()->id(),
@@ -111,10 +169,13 @@ class CreatePdfsTool implements Tool
 
         $url = route('ai.reports.download', ['id' => $report->getKey()]);
 
-        return "✅ PDF gerado com sucesso!\n\n".
-               "📄 Nome do arquivo: {$filename}\n".
-               '🔗 Link para download: '.$url."\n\n".
-               'O usuário pode baixar diretamente nesse link.';
+        return AiToolResponse::ok([
+            'filename' => $filename,
+            'report_id' => $report->getKey(),
+            'url' => $url,
+            'bytes' => $tamanho,
+            'terreno_id' => $terrenoId > 0 ? $terrenoId : null,
+        ], 'PDF gerado com sucesso. Envie o link de download ao usuário (campo data.url).');
     }
 
     public function lastGeneratedReport(): ?AiGeneratedReport

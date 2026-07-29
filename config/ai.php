@@ -27,6 +27,9 @@ return [
     'fallback_agent_model' => env('AI_FALLBACK_AGENT_MODEL', ''),
     'tenant_budget_default' => (float) env('AI_TENANT_BUDGET_DEFAULT', 10.00),
     'rate_limit_per_minute' => (int) env('AI_RATE_LIMIT_PER_MINUTE', 30),
+    'pdf_rate_limit_per_hour' => (int) env('AI_PDF_RATE_LIMIT_PER_HOUR', 10),
+    'pdf_max_html_chars' => (int) env('AI_PDF_MAX_HTML_CHARS', 150000),
+    'mercado_rate_limit_per_hour' => (int) env('AI_MERCADO_RATE_LIMIT_PER_HOUR', 10),
 
     'prices_per_million_tokens' => [
         'deepseek' => [

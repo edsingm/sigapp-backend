@@ -4,7 +4,6 @@ namespace App\Services\Ai\Tools;
 
 use App\Models\Tenant\Terreno;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
-use Illuminate\Support\Facades\Gate;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
@@ -22,13 +21,16 @@ class AnalyticsTool implements Tool
 
     public function handle(Request $request): Stringable|string
     {
-        if (Gate::denies('viewAny', Terreno::class)) {
-            return 'Acesso negado: você não tem permissão para acessar análises.';
+        if ($deny = app(AiToolAuth::class)->ensureViewAny(
+            Terreno::class,
+            'Acesso negado: você não tem permissão para acessar análises.'
+        )) {
+            return $deny;
         }
 
         $type = trim((string) ($request['type'] ?? 'insights'));
         $dimension = trim((string) ($request['dimension'] ?? '')) ?: null;
-        $limit = max(1, min((int) ($request['limit'] ?? 10), 50));
+        $limit = AiToolResponse::clampLimit($request['limit'] ?? 10);
 
         $result = match ($type) {
             'trends' => $this->insightService->getTrends($dimension),
@@ -36,16 +38,20 @@ class AnalyticsTool implements Tool
             default => $this->insightService->generateInsights($limit),
         };
 
-        return json_encode($result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT)
-            ?: 'Falha ao serializar análise.';
+        return AiToolResponse::ok(is_array($result) ? $result : ['result' => $result]);
     }
 
     public function schema(JsonSchema $schema): array
     {
         return [
-            'type' => $schema->string()->required()->description('insights | trends | compare'),
-            'dimension' => $schema->string()->description('Para trends: city | responsavel | monthly. Para compare: responsavel | cidade.'),
-            'limit' => $schema->integer(),
+            'type' => $schema->string()->required()
+                ->description('Modo: insights | trends | compare')
+                ->enum(['insights', 'trends', 'compare']),
+            'dimension' => $schema->string()
+                ->description('Para trends: city | responsavel | monthly. Para compare: responsavel | cidade.'),
+            'limit' => $schema->integer()
+                ->description('Máximo de itens quando aplicável (padrão 10).')
+                ->min(1),
         ];
     }
 }

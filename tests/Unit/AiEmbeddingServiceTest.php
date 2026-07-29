@@ -196,8 +196,11 @@ class AiEmbeddingServiceTest extends TestCase
             )
         );
 
-        $this->assertTrue($classNames->contains('SearchDocumentsTool'), 'SearchDocumentsTool deve estar registrada');
-        $this->assertTrue($classNames->contains('DocumentosTool'), 'DocumentosTool deve estar registrada');
+        // Fase 3: documentos/RAG expostos via meta-tool GetDocumentsHubTool (action=list|search)
+        $this->assertTrue(
+            $classNames->contains('GetDocumentsHubTool'),
+            'GetDocumentsHubTool deve estar registrada no catálogo consolidado'
+        );
     }
 
     public function test_search_documents_tool_has_description_and_schema(): void

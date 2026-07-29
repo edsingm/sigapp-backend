@@ -4,7 +4,6 @@ namespace App\Services\Ai\Tools;
 
 use App\Models\Tenant\Terreno;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
-use Illuminate\Support\Facades\Gate;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
@@ -17,29 +16,40 @@ class DetectAnomaliesTool implements Tool
 
     public function description(): Stringable|string
     {
-        return 'Escaneia o portfólio em busca de anomalias: inconsistências de workflow, VGV desproporcional, terrenos duplicados e problemas de qualidade de dados.';
+        return 'Escaneia anomalias de DADOS/CADASTRO: inconsistências de workflow, VGV desproporcional, duplicados e qualidade. NÃO use para parados atuais (ProactiveMonitor) nem previsão de travamento (PredictStalling) nem KPIs (Dashboard).';
     }
 
     public function handle(Request $request): Stringable|string
     {
-        if (Gate::denies('viewAny', Terreno::class)) {
-            return 'Acesso negado: você não tem permissão para executar análises.';
+        if ($deny = app(AiToolAuth::class)->ensureViewAny(
+            Terreno::class,
+            'Acesso negado: você não tem permissão para executar análises.'
+        )) {
+            return $deny;
         }
 
         $category = trim((string) ($request['category'] ?? '')) ?: null;
-        $limit = max(1, min((int) ($request['limit'] ?? 50), 200));
+        $limit = AiToolResponse::clampLimit($request['limit'] ?? 50, default: 50, max: 50);
 
         $result = $this->anomalyService->scanPortfolio($category, $limit);
 
-        return json_encode($result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT)
-            ?: 'Falha ao serializar análise.';
+        return AiToolResponse::ok(is_array($result) ? $result : ['result' => $result]);
     }
 
     public function schema(JsonSchema $schema): array
     {
         return [
-            'category' => $schema->string(),
-            'limit' => $schema->integer(),
+            'category' => $schema->string()
+                ->description('Categoria opcional de anomalia.')
+                ->enum([
+                    'workflow_inconsistencies',
+                    'financial_anomalies',
+                    'duplicate_terrains',
+                    'data_quality',
+                ]),
+            'limit' => $schema->integer()
+                ->description('Máximo de itens (padrão 50).')
+                ->min(1),
         ];
     }
 }

@@ -24,6 +24,9 @@ use Illuminate\Support\Str;
  * e ressincronizados a cada execução, preservando produtos cadastrados
  * manualmente (sem essa tag).
  *
+ * Terrenos são gravados com Terreno::withoutEvents para não disparar o
+ * CalculateUsableAreaJob (Overpass/elevação) durante o import em massa.
+ *
  * Gere o JSON antes com:
  *   php artisan portal:enriquecer-terrenos
  *
@@ -73,57 +76,60 @@ class TerrenosPortalSeeder extends Seeder
         $importados = 0;
         $cidadesNaoResolvidas = [];
 
-        foreach ($terrenos as $item) {
-            $ficha = $item['ficha'] ?? null;
-            $formulario = $item['formulario'] ?? [];
-            $corretoresList = $item['corretores'] ?? [];
+        // Sem events: evita CalculateUsableAreaJob (Overpass etc.) no import em massa.
+        Terreno::withoutEvents(function () use ($terrenos, &$importados, &$cidadesNaoResolvidas): void {
+            foreach ($terrenos as $item) {
+                $ficha = $item['ficha'] ?? null;
+                $formulario = $item['formulario'] ?? [];
+                $corretoresList = $item['corretores'] ?? [];
 
-            $statusPortal = $ficha['status_portal'] ?? ($item['status'] ?? '');
-            $cidadeNome = $ficha['cidade'] ?? '';
-            $uf = $ficha['uf'] ?? '';
-            $cidadeCode = $this->resolverCidade($cidadeNome, $uf);
+                $statusPortal = $ficha['status_portal'] ?? ($item['status'] ?? '');
+                $cidadeNome = $ficha['cidade'] ?? '';
+                $uf = $ficha['uf'] ?? '';
+                $cidadeCode = $this->resolverCidade($cidadeNome, $uf);
 
-            if ($cidadeNome !== '' && $cidadeCode === null) {
-                $cidadesNaoResolvidas[$cidadeNome.'/'.$uf] = true;
+                if ($cidadeNome !== '' && $cidadeCode === null) {
+                    $cidadesNaoResolvidas[$cidadeNome.'/'.$uf] = true;
+                }
+
+                $corretorId = $this->resolverCorretor($corretoresList);
+                $gestorNome = $ficha['gestor'] ?? ($item['gestor'] ?? '');
+                $responsavelId = $this->resolverGestor($gestorNome);
+                $dataApresentacao = $this->parseData($formulario['Data Apresentação'] ?? '');
+
+                $terreno = Terreno::updateOrCreate(
+                    ['nome' => $item['nome'] ?? ('Terreno '.($item['id'] ?? ''))],
+                    [
+                        'endereco' => $this->montarEndereco($ficha),
+                        'bairro' => $this->valorOuNull($ficha['bairro'] ?? ''),
+                        'estado' => $uf !== '' ? $uf : null,
+                        'cidade_code' => $cidadeCode,
+                        'zona' => $this->valorOuNull($ficha['zona_regional'] ?? ''),
+                        'distrito' => $this->valorOuNull($ficha['distrito'] ?? ''),
+                        'operacao_urbana' => $this->valorOuNull($ficha['operacao_urbana'] ?? ''),
+                        'area_total' => $this->parseNumero($ficha['area_total'] ?? ''),
+                        'polygon_coords' => $item['poligono'] ?? null,
+                        'corretor_id' => $corretorId,
+                        'responsavel_id' => $responsavelId,
+                        'workflow_status_code' => $this->mapearStatus($statusPortal)->value,
+                        'data_apresentacao' => $dataApresentacao,
+                        'data_negociacao' => $this->parseData($formulario['Data Negociação'] ?? ''),
+                        'data_opcao' => $this->parseData($formulario['Data Assinatura'] ?? ''),
+                        'data_contrato' => $this->parseData($formulario['Data Contrato'] ?? ''),
+                        'data_descarte' => $this->parseData($formulario['Data Descarte'] ?? ''),
+                        'observacoes' => $this->montarObservacoes($statusPortal, $gestorNome),
+                    ]
+                );
+
+                // created_at deve refletir a data de apresentação, não a data do import.
+                if ($dataApresentacao !== null) {
+                    Terreno::withoutTimestamps(fn () => $terreno->update(['created_at' => $dataApresentacao]));
+                }
+
+                $this->sincronizarProdutos($terreno, $ficha['produtos'] ?? [], $formulario);
+                $importados++;
             }
-
-            $corretorId = $this->resolverCorretor($corretoresList);
-            $gestorNome = $ficha['gestor'] ?? ($item['gestor'] ?? '');
-            $responsavelId = $this->resolverGestor($gestorNome);
-            $dataApresentacao = $this->parseData($formulario['Data Apresentação'] ?? '');
-
-            $terreno = Terreno::updateOrCreate(
-                ['nome' => $item['nome'] ?? ('Terreno '.($item['id'] ?? ''))],
-                [
-                    'endereco' => $this->montarEndereco($ficha),
-                    'bairro' => $this->valorOuNull($ficha['bairro'] ?? ''),
-                    'estado' => $uf !== '' ? $uf : null,
-                    'cidade_code' => $cidadeCode,
-                    'zona' => $this->valorOuNull($ficha['zona_regional'] ?? ''),
-                    'distrito' => $this->valorOuNull($ficha['distrito'] ?? ''),
-                    'operacao_urbana' => $this->valorOuNull($ficha['operacao_urbana'] ?? ''),
-                    'area_total' => $this->parseNumero($ficha['area_total'] ?? ''),
-                    'polygon_coords' => $item['poligono'] ?? null,
-                    'corretor_id' => $corretorId,
-                    'responsavel_id' => $responsavelId,
-                    'workflow_status_code' => $this->mapearStatus($statusPortal)->value,
-                    'data_apresentacao' => $dataApresentacao,
-                    'data_negociacao' => $this->parseData($formulario['Data Negociação'] ?? ''),
-                    'data_opcao' => $this->parseData($formulario['Data Assinatura'] ?? ''),
-                    'data_contrato' => $this->parseData($formulario['Data Contrato'] ?? ''),
-                    'data_descarte' => $this->parseData($formulario['Data Descarte'] ?? ''),
-                    'observacoes' => $this->montarObservacoes($statusPortal, $gestorNome),
-                ]
-            );
-
-            // created_at deve refletir a data de apresentação, não a data do import.
-            if ($dataApresentacao !== null) {
-                Terreno::withoutTimestamps(fn () => $terreno->update(['created_at' => $dataApresentacao]));
-            }
-
-            $this->sincronizarProdutos($terreno, $ficha['produtos'] ?? [], $formulario);
-            $importados++;
-        }
+        });
 
         $this->command?->info("Terrenos importados/atualizados: {$importados}.");
 

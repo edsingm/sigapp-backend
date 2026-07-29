@@ -11,6 +11,9 @@ use Laravel\Ai\Tools\Request;
 use RuntimeException;
 use Stringable;
 
+/**
+ * @deprecated UI only — não registrar no SIG_IA. Transições de workflow ficam na interface do produto.
+ */
 class TransitionWorkflowTool implements Tool
 {
     public function __construct(

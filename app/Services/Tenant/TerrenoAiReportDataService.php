@@ -5,14 +5,13 @@ declare(strict_types=1);
 namespace App\Services\Tenant;
 
 use App\Models\Tenant\Terreno;
-use App\Services\Ai\Tools\CompareAreasTool;
+use App\Services\Ai\Tools\AnalyticsTool;
 use App\Services\Ai\Tools\DetectAnomaliesTool;
+use App\Services\Ai\Tools\DocumentosTool;
 use App\Services\Ai\Tools\EstimateVgvTool;
-use App\Services\Ai\Tools\GenerateInsightsTool;
 use App\Services\Ai\Tools\GetCityIbgeProfileTool;
 use App\Services\Ai\Tools\GetComiteTool;
 use App\Services\Ai\Tools\GetDashboardSummaryTool;
-use App\Services\Ai\Tools\GetDocumentosTool;
 use App\Services\Ai\Tools\GetLegalizacaoTool;
 use App\Services\Ai\Tools\GetNegociacaoTool;
 use App\Services\Ai\Tools\GetRankingTool;
@@ -20,7 +19,6 @@ use App\Services\Ai\Tools\GetTasksTool;
 use App\Services\Ai\Tools\GetTerrenoDetailsTool;
 use App\Services\Ai\Tools\GetTerrenoGeoAnalysisTool;
 use App\Services\Ai\Tools\GetTerrenoScoreTool;
-use App\Services\Ai\Tools\GetTrendsTool;
 use App\Services\Ai\Tools\GetViabilidadesTool;
 use App\Services\Ai\Tools\PredictViabilityTool;
 use App\Services\Ai\Tools\ProactiveMonitorTool;
@@ -47,7 +45,7 @@ final class TerrenoAiReportDataService
         $legalizacaoTool = app(GetLegalizacaoTool::class);
         $comiteTool = app(GetComiteTool::class);
         $negociacaoTool = app(GetNegociacaoTool::class);
-        $documentosTool = app(GetDocumentosTool::class);
+        $documentosTool = app(DocumentosTool::class);
         $tasksTool = app(GetTasksTool::class);
         $scoreTool = app(GetTerrenoScoreTool::class);
         $rankingTool = app(GetRankingTool::class);
@@ -56,14 +54,13 @@ final class TerrenoAiReportDataService
         $dashboardTool = app(GetDashboardSummaryTool::class);
         $monitorTool = app(ProactiveMonitorTool::class);
         $anomaliesTool = app(DetectAnomaliesTool::class);
-        $insightsTool = app(GenerateInsightsTool::class);
-        $trendsTool = app(GetTrendsTool::class);
-        $compareTool = app(CompareAreasTool::class);
+        $analyticsTool = app(AnalyticsTool::class);
         $cityTool = app(GetCityIbgeProfileTool::class);
 
         $detail = $this->toolArray(
             $detailTool->handle(new AiToolRequest([
                 'terreno_id' => $terreno->id,
+                'mode' => 'full',
                 'include_viabilidades' => true,
             ]))
         );
@@ -161,26 +158,30 @@ final class TerrenoAiReportDataService
         );
 
         $insights = $this->toolArray(
-            $insightsTool->handle(new AiToolRequest([
+            $analyticsTool->handle(new AiToolRequest([
+                'type' => 'insights',
                 'limit' => 8,
             ]))
         );
 
         $trends = $this->toolArray(
-            $trendsTool->handle(new AiToolRequest([
+            $analyticsTool->handle(new AiToolRequest([
+                'type' => 'trends',
                 'dimension' => '',
             ]))
         );
 
         $compareResponsavel = $this->toolArray(
-            $compareTool->handle(new AiToolRequest([
+            $analyticsTool->handle(new AiToolRequest([
+                'type' => 'compare',
                 'dimension' => 'responsavel',
                 'limit' => 10,
             ]))
         );
 
         $compareCidade = $this->toolArray(
-            $compareTool->handle(new AiToolRequest([
+            $analyticsTool->handle(new AiToolRequest([
+                'type' => 'compare',
                 'dimension' => 'cidade',
                 'limit' => 10,
             ]))
@@ -283,6 +284,11 @@ final class TerrenoAiReportDataService
         $decoded = json_decode($text, true);
 
         if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            // Envelope padrão das AI tools: { ok, code, message, data }
+            if (array_key_exists('ok', $decoded) && array_key_exists('data', $decoded) && is_array($decoded['data'])) {
+                return $decoded['data'];
+            }
+
             return $decoded;
         }
 

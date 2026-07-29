@@ -4,35 +4,38 @@ namespace App\Services\Ai\Tools;
 
 use App\Models\Tenant\Terreno;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
-use Illuminate\Support\Facades\Gate;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
 
 class ListTerrenosTool implements Tool
 {
-    /**
-     * Get the description of the tool's purpose.
-     */
     public function description(): Stringable|string
     {
-        return 'Lista terrenos com filtros opcionais para apoiar análise inicial.';
+        return 'Lista terrenos com filtros (busca, etapa, status, cidade por nome ou código, parados, ordenação). Use para varredura inicial da carteira — não para totais agregados (dashboard) nem alertas proativos.';
     }
 
-    /**
-     * Execute the tool.
-     */
     public function handle(Request $request): Stringable|string
     {
-        if (Gate::denies('viewAny', Terreno::class)) {
-            return 'Acesso negado: você não tem permissão para listar terrenos.';
+        if ($deny = app(AiToolAuth::class)->ensureViewAny(
+            Terreno::class,
+            'Acesso negado: você não tem permissão para listar terrenos.'
+        )) {
+            return $deny;
         }
 
         $search = trim((string) ($request['search'] ?? ''));
         $workflowStage = trim((string) ($request['workflow_stage'] ?? ''));
         $workflowStatus = trim((string) ($request['workflow_status_code'] ?? ''));
         $cidadeCode = trim((string) ($request['cidade_code'] ?? ''));
-        $limit = max(1, min((int) ($request['limit'] ?? 10), 50));
+        $cidade = trim((string) ($request['cidade'] ?? ''));
+        $somenteParados = filter_var($request['somente_parados'] ?? false, FILTER_VALIDATE_BOOL);
+        $paradosDias = max(1, min(365, (int) ($request['parados_dias'] ?? 30)));
+        $orderBy = strtolower(trim((string) ($request['order_by'] ?? 'updated_at')));
+        if (! in_array($orderBy, ['updated_at', 'valor', 'nome'], true)) {
+            $orderBy = 'updated_at';
+        }
+        $limit = AiToolResponse::clampLimit($request['limit'] ?? 10);
 
         $query = Terreno::query()
             ->with([
@@ -59,8 +62,15 @@ class ListTerrenosTool implements Tool
                 'workflow_stage',
                 'workflow_status_code',
                 'updated_at',
-            ])
-            ->orderByDesc('updated_at');
+            ]);
+
+        if ($orderBy === 'valor') {
+            $query->orderByDesc('valor');
+        } elseif ($orderBy === 'nome') {
+            $query->orderBy('nome');
+        } else {
+            $query->orderByDesc('updated_at');
+        }
 
         if ($search !== '') {
             $query->where(function ($builder) use ($search) {
@@ -82,52 +92,106 @@ class ListTerrenosTool implements Tool
             $query->where('cidade_code', $cidadeCode);
         }
 
-        $terrenos = $query->limit($limit)->get();
-
-        if ($terrenos->isEmpty()) {
-            return 'Nenhum terreno encontrado para os filtros informados.';
+        if ($cidade !== '') {
+            $needle = '%'.mb_strtolower($cidade).'%';
+            $query->whereHas('cidade', static function ($q) use ($needle): void {
+                $q->whereRaw('LOWER(city) LIKE ?', [$needle]);
+            });
         }
 
-        $payload = [
-            'total' => $terrenos->count(),
-            'items' => $terrenos->map(static function (Terreno $terreno): array {
-                return [
-                    'id' => $terreno->id,
-                    'nome' => $terreno->nome,
-                    'endereco' => $terreno->endereco,
-                    'cidade' => $terreno->cidade?->city ?? $terreno->cidade_code,
-                    'estado' => $terreno->estado,
-                    'area_calculada' => $terreno->area_calculada,
-                    'valor' => $terreno->valor,
-                    'workflow_stage' => $terreno->workflow_stage,
-                    'workflow_status_code' => $terreno->workflow_status_code,
-                    'updated_at' => optional($terreno->updated_at)?->toAtomString(),
-                    'viabilidade_atual' => $terreno->viabilidadeAtual ? [
-                        'id' => $terreno->viabilidadeAtual->id,
-                        'version' => $terreno->viabilidadeAtual->version,
-                        'status' => $terreno->viabilidadeAtual->status,
-                        'approval_status' => $terreno->viabilidadeAtual->approval_status,
-                        'updated_at' => optional($terreno->viabilidadeAtual->updated_at)?->toAtomString(),
-                    ] : null,
-                ];
-            })->all(),
-        ];
+        if ($somenteParados) {
+            $query->where('updated_at', '<', now()->subDays($paradosDias))
+                ->whereNotIn('workflow_status_code', ['descartado', 'arquivado', 'legalizado_finalizado']);
+        }
 
-        return json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT)
-            ?: 'Falha ao serializar a lista de terrenos.';
+        $total = (int) $query->count();
+        $terrenos = $query->limit($limit)->get();
+        $terrenos = app(AiToolAuth::class)->filterByView($terrenos, static fn ($t) => $t);
+
+        if ($terrenos->isEmpty()) {
+            return AiToolResponse::empty(
+                'Nenhum terreno encontrado para os filtros informados.',
+                [
+                    'items' => [],
+                    'meta' => AiToolResponse::listMeta($total, 0, $limit),
+                ]
+            );
+        }
+
+        $items = $terrenos->map(static function (Terreno $terreno): array {
+            return [
+                'id' => $terreno->id,
+                'nome' => $terreno->nome,
+                'endereco' => $terreno->endereco,
+                'cidade' => $terreno->cidade?->city ?? $terreno->cidade_code,
+                'estado' => $terreno->estado,
+                'area_calculada' => $terreno->area_calculada,
+                'valor' => $terreno->valor,
+                'workflow_stage' => $terreno->workflow_stage,
+                'workflow_status_code' => $terreno->workflow_status_code,
+                'updated_at' => optional($terreno->updated_at)?->toAtomString(),
+                'viabilidade_atual' => $terreno->viabilidadeAtual ? [
+                    'id' => $terreno->viabilidadeAtual->id,
+                    'version' => $terreno->viabilidadeAtual->version,
+                    'status' => $terreno->viabilidadeAtual->status,
+                    'approval_status' => $terreno->viabilidadeAtual->approval_status,
+                    'updated_at' => optional($terreno->viabilidadeAtual->updated_at)?->toAtomString(),
+                ] : null,
+            ];
+        })->all();
+
+        return AiToolResponse::ok([
+            'items' => $items,
+            'meta' => AiToolResponse::listMeta($total, count($items), $limit),
+            'order_by' => $orderBy,
+            'somente_parados' => $somenteParados,
+        ]);
     }
 
-    /**
-     * Get the tool's schema definition.
-     */
     public function schema(JsonSchema $schema): array
     {
         return [
-            'search' => $schema->string(),
-            'workflow_stage' => $schema->string(),
-            'workflow_status_code' => $schema->string(),
-            'cidade_code' => $schema->string(),
-            'limit' => $schema->integer(),
+            'search' => $schema->string()
+                ->description('Busca textual em nome ou endereço do terreno.'),
+            'workflow_stage' => $schema->string()
+                ->description('Etapa do workflow.')
+                ->enum([
+                    'captacao',
+                    'viabilidade',
+                    'comite',
+                    'negociacao_contrato',
+                    'legalizacao',
+                    'encerramento',
+                ]),
+            'workflow_status_code' => $schema->string()
+                ->description('Status detalhado do workflow.')
+                ->enum([
+                    'em_analise',
+                    'aguardando_viabilidade',
+                    'viabilidade_aprovada',
+                    'aguardando_comite',
+                    'negociacao_minuta',
+                    'contrato_assinado',
+                    'legalizando',
+                    'legalizado_finalizado',
+                    'descartado',
+                    'arquivado',
+                ]),
+            'cidade_code' => $schema->string()
+                ->description('Código IBGE da cidade (quando conhecido).'),
+            'cidade' => $schema->string()
+                ->description('Nome da cidade (busca parcial, preferível ao código quando o LLM só tem o nome).'),
+            'somente_parados' => $schema->boolean()
+                ->description('Se true, só terrenos sem atualização recente (padrão 30 dias).'),
+            'parados_dias' => $schema->integer()
+                ->description('Janela em dias para somente_parados (padrão 30).')
+                ->min(1),
+            'order_by' => $schema->string()
+                ->description('Ordenação: updated_at (padrão), valor ou nome.')
+                ->enum(['updated_at', 'valor', 'nome']),
+            'limit' => $schema->integer()
+                ->description('Máximo de itens retornados (padrão 10, máximo 50).')
+                ->min(1),
         ];
     }
 }

@@ -8,7 +8,6 @@ use App\Models\Tenant\Negociacao;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\Viabilidade;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
-use Illuminate\Support\Facades\Gate;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
@@ -17,13 +16,16 @@ class GetDashboardSummaryTool implements Tool
 {
     public function description(): Stringable|string
     {
-        return 'Retorna um resumo executivo do portfólio: totais de terrenos por etapa, viabilidades, comitês e negociações pendentes.';
+        return 'Resumo executivo numérico do portfólio (totais por etapa, viabilidades, comitês, negociações, VGV estimado, top cidades). Use para "como está a carteira?" ou totais — NÃO para alertas de itens parados (use ProactiveMonitorTool) nem anomalias de dados (DetectAnomaliesTool).';
     }
 
     public function handle(Request $request): Stringable|string
     {
-        if (Gate::denies('viewAny', Terreno::class)) {
-            return 'Acesso negado: você não tem permissão para acessar dados do dashboard.';
+        if ($deny = app(AiToolAuth::class)->ensureViewAny(
+            Terreno::class,
+            'Acesso negado: você não tem permissão para acessar dados do dashboard.'
+        )) {
+            return $deny;
         }
 
         $totalTerrenos = Terreno::query()->count();
@@ -34,7 +36,6 @@ class GetDashboardSummaryTool implements Tool
             ->mapWithKeys(fn ($r): array => [$r->workflow_stage ?? 'sem_etapa' => (int) $r->total])
             ->toArray();
 
-        // Viabilidades ativas
         $viabilidadeAtivas = Viabilidade::query()
             ->where('is_current', true)
             ->selectRaw('COUNT(*) as total, status')
@@ -43,34 +44,25 @@ class GetDashboardSummaryTool implements Tool
             ->mapWithKeys(fn ($r): array => [$r->status ?? 'sem_status' => (int) $r->total])
             ->toArray();
 
-        // Aprovações pendentes
         $aprovaPendentes = Viabilidade::query()
             ->where('approval_status', 'pendente')
             ->where('approval_requested_at', '!=', null)
             ->count();
 
-        // Comitês com decisões pendentes
         $comitePendentes = ComiteRevisao::query()
             ->where('status', 'em_andamento')
             ->count();
 
-        // Negociações em andamento
         $negociacaoAtivas = Negociacao::query()
             ->whereNull('closed_at')
             ->count();
 
-        // Terrenos parados (> 30 dias sem atualização)
         $parados = Terreno::query()
             ->where('updated_at', '<', now()->subDays(30))
             ->count();
 
-        // VGV total das viabilidades ativas
-        $vgv = Viabilidade::query()
-            ->where('is_current', true)
-            ->get()
-            ->sum(fn ($v): float => $v->resultados_dre['vgv'] ?? 0);
+        $vgv = $this->sumCurrentVgv();
 
-        // Top cidades
         $topCidadesRaw = Terreno::query()
             ->selectRaw('COUNT(*) as total, cidade_code, estado')
             ->groupBy('cidade_code', 'estado')
@@ -96,7 +88,7 @@ class GetDashboardSummaryTool implements Tool
             ],
             'viabilidades' => [
                 'por_status' => $viabilidadeAtivas,
-                'aprovacoes pendentes' => $aprovaPendentes,
+                'aprovacoes_pendentes' => $aprovaPendentes,
             ],
             'comite' => [
                 'decisoes_pendentes' => $comitePendentes,
@@ -107,12 +99,45 @@ class GetDashboardSummaryTool implements Tool
             'gerado_em' => now()->toIso8601String(),
         ];
 
-        return json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT)
-            ?: 'Falha ao serializar resumo do dashboard.';
+        return AiToolResponse::ok($payload);
     }
 
     public function schema(JsonSchema $schema): array
     {
         return [];
+    }
+
+    /**
+     * Soma VGV das viabilidades vigentes sem carregar todos os models em memória (PG).
+     * Fallback seguro para SQLite/outros drivers.
+     */
+    private function sumCurrentVgv(): float
+    {
+        $connection = Viabilidade::query()->getConnection();
+        $driver = $connection->getDriverName();
+
+        if ($driver === 'pgsql') {
+            $total = Viabilidade::query()
+                ->where('is_current', true)
+                ->whereNotNull('resultados_dre')
+                ->selectRaw("COALESCE(SUM(NULLIF(resultados_dre->>'vgv', '')::numeric), 0) as total")
+                ->value('total');
+
+            return (float) $total;
+        }
+
+        // SQLite/MySQL: pluck só a coluna JSON (cast array) em vez de carregar o model inteiro.
+        return (float) Viabilidade::query()
+            ->where('is_current', true)
+            ->whereNotNull('resultados_dre')
+            ->pluck('resultados_dre')
+            ->sum(function (mixed $dre): float {
+                if (is_string($dre)) {
+                    $decoded = json_decode($dre, true);
+                    $dre = is_array($decoded) ? $decoded : [];
+                }
+
+                return (float) (is_array($dre) ? ($dre['vgv'] ?? 0) : 0);
+            });
     }
 }

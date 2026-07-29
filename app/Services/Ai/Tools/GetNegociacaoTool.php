@@ -3,31 +3,33 @@
 namespace App\Services\Ai\Tools;
 
 use App\Models\Tenant\Negociacao;
-use App\Services\PlanMatrixService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
-use Illuminate\Support\Facades\Gate;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
 
 class GetNegociacaoTool implements Tool
 {
-    public function __construct(private readonly PlanMatrixService $planMatrix) {}
-
     public function description(): Stringable|string
     {
-        return 'Consulta o status de negociações de um terreno, incluindo proposta, modelo de negócio e eventos.';
+        return 'Consulta negociações de terreno (proposta, modelo, eventos resumidos). Não devolve payload_json cru de eventos.';
     }
 
     public function handle(Request $request): Stringable|string
     {
-        $tenant = tenancy()->tenant;
-        if (! $tenant || ! $this->planMatrix->hasFeatureForTenant($tenant, 'negotiation')) {
-            return 'Acesso negado: seu plano não inclui negociações.';
+        $auth = app(AiToolAuth::class);
+        if ($deny = $auth->ensureFeature(
+            'negotiation',
+            'Acesso negado: seu plano não inclui negociações.'
+        )) {
+            return $deny;
         }
 
-        if (Gate::denies('viewAny', Negociacao::class)) {
-            return 'Acesso negado: você não tem permissão para acessar negociações.';
+        if ($deny = $auth->ensureViewAny(
+            Negociacao::class,
+            'Acesso negado: você não tem permissão para acessar negociações.'
+        )) {
+            return $deny;
         }
 
         $query = Negociacao::query()
@@ -35,7 +37,12 @@ class GetNegociacaoTool implements Tool
             ->orderByDesc('started_at');
 
         $terrenoId = (int) ($request['terreno_id'] ?? 0);
+
         if ($terrenoId > 0) {
+            $terrenoOrDeny = $auth->ensureTerrenoView($terrenoId);
+            if (is_string($terrenoOrDeny)) {
+                return $terrenoOrDeny;
+            }
             $query->where('terreno_id', $terrenoId);
         }
 
@@ -44,51 +51,67 @@ class GetNegociacaoTool implements Tool
             $query->where('status', $status);
         }
 
-        $limit = max(1, min((int) ($request['limit'] ?? 10), 50));
+        $limit = AiToolResponse::clampLimit($request['limit'] ?? 10);
+        $total = (int) $query->count();
         $negociacoes = $query->limit($limit)->get();
 
         if ($negociacoes->isEmpty()) {
-            return 'Nenhuma negociação encontrada'.($terrenoId > 0 ? " para o terreno {$terrenoId}." : '.');
+            return AiToolResponse::empty(
+                'Nenhuma negociação encontrada'.($terrenoId > 0 ? " para o terreno {$terrenoId}." : '.'),
+                ['items' => [], 'meta' => AiToolResponse::listMeta($total, 0, $limit)]
+            );
         }
 
-        $payload = [
-            'total' => $negociacoes->count(),
-            'items' => $negociacoes->map(static function (Negociacao $item): array {
-                return [
-                    'id' => $item->id,
-                    'terreno_id' => $item->terreno_id,
-                    'terreno' => $item->terreno ? [
-                        'nome' => $item->terreno->nome,
-                        'endereco' => $item->terreno->endereco,
-                    ] : null,
-                    'status' => $item->status,
-                    'proposal_value' => $item->proposal_value,
-                    'business_model' => $item->business_model,
-                    'started_at' => optional($item->started_at)?->toAtomString(),
-                    'closed_at' => optional($item->closed_at)?->toAtomString(),
-                    'notes' => $item->notes,
-                    'eventos_count' => $item->eventos->count(),
-                    'eventos' => $item->eventos->map(fn ($e): array => [
+        $items = $negociacoes->map(static function (Negociacao $item): array {
+            return [
+                'id' => $item->id,
+                'terreno_id' => $item->terreno_id,
+                'terreno' => $item->terreno ? [
+                    'nome' => $item->terreno->nome,
+                    'endereco' => $item->terreno->endereco,
+                ] : null,
+                'status' => $item->status,
+                'proposal_value' => $item->proposal_value,
+                'business_model' => $item->business_model,
+                'started_at' => optional($item->started_at)?->toAtomString(),
+                'closed_at' => optional($item->closed_at)?->toAtomString(),
+                'notes' => $item->notes,
+                'eventos_count' => $item->eventos->count(),
+                'eventos' => $item->eventos->map(function ($e): array {
+                    $payload = $e->payload_json;
+                    $resumo = null;
+                    if (is_array($payload) && $payload !== []) {
+                        $keys = array_slice(array_keys($payload), 0, 5);
+                        $resumo = implode(', ', $keys);
+                    }
+
+                    return [
                         'tipo' => $e->event_type,
                         'descricao' => $e->notes ?? '',
-                        'dados' => $e->payload_json,
+                        'resumo_campos' => $resumo,
                         'data' => optional($e->happened_at)?->toAtomString(),
-                    ])->values()->all(),
-                    'created_at' => optional($item->created_at)?->toAtomString(),
-                ];
-            })->all(),
-        ];
+                    ];
+                })->values()->all(),
+                'created_at' => optional($item->created_at)?->toAtomString(),
+            ];
+        })->all();
 
-        return json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT)
-            ?: 'Falha ao serializar negociações.';
+        return AiToolResponse::ok([
+            'items' => $items,
+            'meta' => AiToolResponse::listMeta($total, count($items), $limit),
+        ]);
     }
 
     public function schema(JsonSchema $schema): array
     {
         return [
-            'terreno_id' => $schema->integer(),
-            'status' => $schema->string(),
-            'limit' => $schema->integer(),
+            'terreno_id' => $schema->integer()
+                ->description('ID do terreno para filtrar (opcional).'),
+            'status' => $schema->string()
+                ->description('Status da negociação (opcional).'),
+            'limit' => $schema->integer()
+                ->description('Máximo de itens (padrão 10, máximo 50).')
+                ->min(1),
         ];
     }
 }

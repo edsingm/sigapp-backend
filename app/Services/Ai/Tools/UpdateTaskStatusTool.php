@@ -10,6 +10,9 @@ use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
 
+/**
+ * @deprecated UI only — não registrar no SIG_IA. Mutações de tarefa ficam na interface do produto.
+ */
 class UpdateTaskStatusTool implements Tool
 {
     public function description(): Stringable|string

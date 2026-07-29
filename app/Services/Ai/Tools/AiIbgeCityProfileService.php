@@ -2,11 +2,14 @@
 
 namespace App\Services\Ai\Tools;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Throwable;
 
 class AiIbgeCityProfileService
 {
@@ -21,6 +24,26 @@ class AiIbgeCityProfileService
     private const CIDADES_BASE = 'https://www.ibge.gov.br/cidades-e-estados';
 
     /**
+     * Metadados dos indicadores oficiais que consultamos.
+     * O endpoint /resultados devolve só id+valor; o nome/unidade vêm daqui.
+     *
+     * @var array<int, array{indicador: string, unidade: string}>
+     */
+    private const INDICADOR_META = [
+        29171 => ['indicador' => 'População estimada', 'unidade' => 'pessoas'],
+        47001 => ['indicador' => 'PIB per capita', 'unidade' => 'R$'],
+        46997 => ['indicador' => 'PIB a preços correntes', 'unidade' => 'R$ 1.000'],
+        143514 => ['indicador' => 'Pessoal ocupado', 'unidade' => 'pessoas'],
+        143536 => ['indicador' => 'Pessoal ocupado assalariado', 'unidade' => 'pessoas'],
+        143558 => ['indicador' => 'Salário médio mensal', 'unidade' => 'salários mínimos'],
+        27664 => ['indicador' => 'Domicílios recenseados', 'unidade' => 'domicílios'],
+        27658 => ['indicador' => 'Domicílios particulares ocupados', 'unidade' => 'domicílios'],
+        27744 => ['indicador' => 'Média de moradores em domicílios particulares ocupados', 'unidade' => 'moradores'],
+        28844 => ['indicador' => 'Domicílios com acesso à internet', 'unidade' => 'domicílios'],
+        288790 => ['indicador' => 'Rendimento domiciliar per capita', 'unidade' => 'R$'],
+    ];
+
+    /**
      * @return array<string, mixed>
      */
     public function getCityProfile(
@@ -28,8 +51,10 @@ class AiIbgeCityProfileService
         ?string $cidade = null,
         ?string $uf = null
     ): array {
+        $uf = $this->normalizeUf($uf);
+
         $cacheKey = sprintf(
-            'ai:ibge-city-profile:%s:%s:%s',
+            'ai:ibge-city-profile:v2:%s:%s:%s',
             $codigoMunicipio ?: 'null',
             Str::slug((string) $cidade),
             Str::lower((string) $uf)
@@ -50,7 +75,19 @@ class AiIbgeCityProfileService
         ?string $cidade,
         ?string $uf
     ): array {
-        $municipio = $this->resolveMunicipio($codigoMunicipio, $cidade, $uf);
+        $avisos = [];
+
+        try {
+            $municipio = $this->resolveMunicipio($codigoMunicipio, $cidade, $uf);
+        } catch (Throwable $e) {
+            Log::warning('IBGE resolveMunicipio failed', ['error' => $e->getMessage()]);
+
+            throw new RuntimeException(
+                'Não foi possível localizar o município no IBGE ('.$e->getMessage().'). '
+                .'Confirme o nome da cidade e a UF (ex.: Londrina + PR) ou o código IBGE de 7 dígitos.'
+            );
+        }
+
         $codigo = (string) ($municipio['id'] ?? '');
 
         if ($codigo === '') {
@@ -61,20 +98,86 @@ class AiIbgeCityProfileService
         $cidadeSlug = Str::slug((string) ($municipio['nome'] ?? ''));
         $panoramaUrl = self::CIDADES_BASE."/{$ufSigla}/{$cidadeSlug}.html";
 
-        $historico = $this->fetchHistorico($codigo);
-        $panorama = $this->fetchPanorama($panoramaUrl);
+        $historico = $this->safeFetch(
+            fn () => $this->fetchHistorico($codigo),
+            [],
+            $avisos,
+            'historico'
+        );
 
-        $populacaoEstimada = $this->fetchIndicador($codigo, 33, '2025', 29171);
-        $pibPerCapita = $this->fetchIndicador($codigo, 38, '2023', 47001);
-        $pibTotal = $this->fetchIndicador($codigo, 38, '2023', 46997);
-        $pessoalOcupado = $this->fetchIndicador($codigo, 19, '2023', 143514);
-        $pessoalAssalariado = $this->fetchIndicador($codigo, 19, '2023', 143536);
-        $salarioMedio = $this->fetchIndicador($codigo, 19, '2023', 143558);
-        $domiciliosRecenseados = $this->fetchIndicador($codigo, 23, '2010', 27664);
-        $domiciliosOcupados = $this->fetchIndicador($codigo, 23, '2010', 27658);
-        $mediaMoradores = $this->fetchIndicador($codigo, 23, '2010', 27744);
-        $domiciliosInternet = $this->fetchIndicador($codigo, 23, '2010', 28844);
-        $rendaPerCapita = $this->fetchIndicador($codigo, 45, '2025', 288790);
+        $panorama = $this->safeFetch(
+            fn () => $this->fetchPanorama($panoramaUrl),
+            [],
+            $avisos,
+            'panorama_html'
+        );
+
+        $populacaoEstimada = $this->safeFetch(
+            fn () => $this->fetchIndicador($codigo, 33, '2025', 29171),
+            null,
+            $avisos,
+            'populacao_estimada'
+        );
+        $pibPerCapita = $this->safeFetch(
+            fn () => $this->fetchIndicador($codigo, 38, '2023', 47001),
+            null,
+            $avisos,
+            'pib_per_capita'
+        );
+        $pibTotal = $this->safeFetch(
+            fn () => $this->fetchIndicador($codigo, 38, '2023', 46997),
+            null,
+            $avisos,
+            'pib_total'
+        );
+        $pessoalOcupado = $this->safeFetch(
+            fn () => $this->fetchIndicador($codigo, 19, '2023', 143514),
+            null,
+            $avisos,
+            'pessoal_ocupado'
+        );
+        $pessoalAssalariado = $this->safeFetch(
+            fn () => $this->fetchIndicador($codigo, 19, '2023', 143536),
+            null,
+            $avisos,
+            'pessoal_assalariado'
+        );
+        $salarioMedio = $this->safeFetch(
+            fn () => $this->fetchIndicador($codigo, 19, '2023', 143558),
+            null,
+            $avisos,
+            'salario_medio'
+        );
+        $domiciliosRecenseados = $this->safeFetch(
+            fn () => $this->fetchIndicador($codigo, 23, '2010', 27664),
+            null,
+            $avisos,
+            'domicilios_recenseados'
+        );
+        $domiciliosOcupados = $this->safeFetch(
+            fn () => $this->fetchIndicador($codigo, 23, '2010', 27658),
+            null,
+            $avisos,
+            'domicilios_ocupados'
+        );
+        $mediaMoradores = $this->safeFetch(
+            fn () => $this->fetchIndicador($codigo, 23, '2010', 27744),
+            null,
+            $avisos,
+            'media_moradores'
+        );
+        $domiciliosInternet = $this->safeFetch(
+            fn () => $this->fetchIndicador($codigo, 23, '2010', 28844),
+            null,
+            $avisos,
+            'domicilios_internet'
+        );
+        $rendaPerCapita = $this->safeFetch(
+            fn () => $this->fetchIndicador($codigo, 45, '2025', 288790),
+            null,
+            $avisos,
+            'renda_per_capita'
+        );
 
         return [
             'municipio' => [
@@ -120,6 +223,7 @@ class AiIbgeCityProfileService
                 'gentilico' => $historico['GENTILICO'] ?? null,
                 'fonte' => $historico['HISTORICO_FONTE'] ?? null,
             ],
+            'avisos' => array_values(array_unique($avisos)),
             'fontes' => [
                 'biblioteca' => self::BIBLIOTECA_BASE.'?aspas=3&codmun='.$codigo.'&tipoRetorno=json',
                 'pagina_panorama' => $panoramaUrl,
@@ -141,6 +245,29 @@ class AiIbgeCityProfileService
     }
 
     /**
+     * @template T
+     *
+     * @param  callable(): T  $callback
+     * @param  T  $fallback
+     * @param  list<string>  $avisos
+     * @return T
+     */
+    private function safeFetch(callable $callback, mixed $fallback, array &$avisos, string $label): mixed
+    {
+        try {
+            return $callback();
+        } catch (Throwable $e) {
+            Log::warning('IBGE partial fetch failed', [
+                'part' => $label,
+                'error' => $e->getMessage(),
+            ]);
+            $avisos[] = "Parte \"{$label}\" indisponível na fonte IBGE no momento.";
+
+            return $fallback;
+        }
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function resolveMunicipio(
@@ -149,40 +276,63 @@ class AiIbgeCityProfileService
         ?string $uf
     ): array {
         if ($codigoMunicipio !== null && preg_match('/^\d{7}$/', $codigoMunicipio) === 1) {
-            $response = $this->http()
+            $response = $this->httpJson()
                 ->get(self::LOCALIDADES_BASE.'/municipios/'.$codigoMunicipio);
 
             if (! $response->successful()) {
-                throw new RuntimeException('Falha ao consultar o município no IBGE.');
+                throw new RuntimeException(
+                    'Falha ao consultar o município no IBGE (HTTP '.$response->status().').'
+                );
             }
 
-            return $response->json() ?? [];
+            $json = $response->json() ?? [];
+
+            return is_array($json) ? $json : [];
         }
 
         if ($cidade === null || trim($cidade) === '' || $uf === null || trim($uf) === '') {
-            throw new RuntimeException('Informe um código IBGE válido ou a combinação cidade + UF.');
+            throw new RuntimeException('Informe um código IBGE válido (7 dígitos) ou a combinação cidade + UF.');
         }
 
-        $response = $this->http()
-            ->get(self::LOCALIDADES_BASE.'/estados/'.Str::upper(trim($uf)).'/municipios');
+        $ufUpper = Str::upper(trim($uf));
+        $response = $this->httpJson()
+            ->get(self::LOCALIDADES_BASE.'/estados/'.$ufUpper.'/municipios');
 
         if (! $response->successful()) {
-            throw new RuntimeException('Falha ao listar municípios da UF informada no IBGE.');
+            throw new RuntimeException(
+                'Falha ao listar municípios da UF '.$ufUpper.' no IBGE (HTTP '.$response->status().').'
+            );
         }
 
         $cidadeNormalizada = $this->normalizeText($cidade);
+        $candidatos = [];
 
         foreach ($response->json() ?? [] as $municipio) {
             if (! is_array($municipio)) {
                 continue;
             }
 
-            if ($this->normalizeText((string) ($municipio['nome'] ?? '')) === $cidadeNormalizada) {
+            $nomeNorm = $this->normalizeText((string) ($municipio['nome'] ?? ''));
+            if ($nomeNorm === $cidadeNormalizada) {
                 return $municipio;
+            }
+
+            // match parcial: "Londrina" vs "Londrina - PR" no input do LLM
+            if ($nomeNorm !== '' && (
+                str_contains($cidadeNormalizada, $nomeNorm)
+                || str_contains($nomeNorm, $cidadeNormalizada)
+            )) {
+                $candidatos[] = $municipio;
             }
         }
 
-        throw new RuntimeException('Município não encontrado para a UF informada.');
+        if (count($candidatos) === 1) {
+            return $candidatos[0];
+        }
+
+        throw new RuntimeException(
+            "Município \"{$cidade}\" não encontrado na UF {$ufUpper}."
+        );
     }
 
     /**
@@ -190,7 +340,7 @@ class AiIbgeCityProfileService
      */
     private function fetchHistorico(string $codigoMunicipio): array
     {
-        $response = $this->http()
+        $response = $this->httpJson()
             ->get(self::BIBLIOTECA_BASE, [
                 'aspas' => 3,
                 'codmun' => $codigoMunicipio,
@@ -213,14 +363,16 @@ class AiIbgeCityProfileService
      */
     private function fetchPanorama(string $panoramaUrl): array
     {
-        $response = $this->http()->get($panoramaUrl);
+        // Página HTML do IBGE costuma bloquear scrapers (Cloudflare 403).
+        // Não falha a tool inteira: indicadores oficiais vêm da API de pesquisas.
+        $response = $this->httpHtml()->get($panoramaUrl);
 
         if (! $response->successful()) {
             return [];
         }
 
         $html = $response->body();
-        if ($html === '') {
+        if ($html === '' || str_contains($html, 'Just a moment')) {
             return [];
         }
 
@@ -290,9 +442,19 @@ class AiIbgeCityProfileService
         string $periodo,
         int $indicadorId
     ): ?array {
-        $response = $this->http()->get(
-            $this->buildIndicadorUrl($codigoMunicipio, $pesquisaId, $periodo, $indicadorId)
-        );
+        // Preferir endpoint /resultados/{localidade} (payload curto e estável).
+        $urlResultados = self::PESQUISAS_BASE
+            ."/{$pesquisaId}/periodos/{$periodo}/indicadores/{$indicadorId}"
+            .'/resultados/'.$codigoMunicipio;
+
+        $response = $this->httpJson()->get($urlResultados);
+
+        if (! $response->successful()) {
+            // Fallback para o formato com query string (legado, traz nome do indicador).
+            $response = $this->httpJson()->get(
+                $this->buildIndicadorUrl($codigoMunicipio, $pesquisaId, $periodo, $indicadorId)
+            );
+        }
 
         if (! $response->successful()) {
             return null;
@@ -305,6 +467,8 @@ class AiIbgeCityProfileService
             return null;
         }
 
+        // Formato /resultados: res[0].res.{periodo}
+        // Formato query: res[0].res.{periodo} ou estrutura aninhada
         $resultado = $primeiro['res'][0] ?? null;
         $serie = is_array($resultado['res'] ?? null) ? $resultado['res'] : null;
 
@@ -319,12 +483,17 @@ class AiIbgeCityProfileService
             return null;
         }
 
+        $meta = self::INDICADOR_META[$indicadorId] ?? null;
+        $unidadeApi = is_array($primeiro['unidade'] ?? null)
+            ? ($primeiro['unidade']['id'] ?? null)
+            : ($primeiro['unidade'] ?? null);
+
         return [
-            'indicador' => $primeiro['indicador'] ?? null,
+            'indicador' => $primeiro['indicador'] ?? ($meta['indicador'] ?? null),
             'valor' => $valor,
-            'unidade' => $primeiro['unidade']['id'] ?? null,
+            'unidade' => $unidadeApi ?? ($meta['unidade'] ?? null),
             'periodo' => $ultimoPeriodo,
-            'fonte' => $primeiro['fonte'][0]['fontes'][0] ?? null,
+            'fonte' => $primeiro['fonte'][0]['fontes'][0] ?? 'IBGE',
         ];
     }
 
@@ -338,6 +507,40 @@ class AiIbgeCityProfileService
             ."/{$pesquisaId}/periodos/{$periodo}/indicadores/{$indicadorId}"
             .'?scope=all&localidade='.$codigoMunicipio
             .'&lang=PT';
+    }
+
+    private function normalizeUf(?string $uf): ?string
+    {
+        if ($uf === null || trim($uf) === '') {
+            return null;
+        }
+
+        $clean = Str::upper(trim($uf));
+
+        // "Paraná" / "Parana" → PR (fallback comum do LLM)
+        $map = [
+            'PARANA' => 'PR',
+            'SAO PAULO' => 'SP',
+            'RIO DE JANEIRO' => 'RJ',
+            'MINAS GERAIS' => 'MG',
+            'RIO GRANDE DO SUL' => 'RS',
+            'SANTA CATARINA' => 'SC',
+            'BAHIA' => 'BA',
+            'GOIAS' => 'GO',
+            'DISTRITO FEDERAL' => 'DF',
+        ];
+
+        $ascii = Str::of($clean)->ascii()->upper()->value();
+        if (isset($map[$ascii])) {
+            return $map[$ascii];
+        }
+
+        // Extrair sigla de strings tipo "PR" ou "Londrina - PR"
+        if (preg_match('/\b([A-Z]{2})\b/', $clean, $m) === 1) {
+            return $m[1];
+        }
+
+        return strlen($clean) === 2 ? $clean : null;
     }
 
     private function normalizeText(string $value): string
@@ -355,10 +558,26 @@ class AiIbgeCityProfileService
         return trim(preg_replace('/\s+/u', ' ', html_entity_decode((string) $value)) ?? '');
     }
 
-    private function http(): PendingRequest
+    private function httpJson(): PendingRequest
     {
         return Http::acceptJson()
-            ->timeout(20)
-            ->retry(2, 300);
+            ->withHeaders([
+                'User-Agent' => 'SIGAPP/1.0 (+https://sigapp.com.br; ibge-profile)',
+                'Accept' => 'application/json',
+            ])
+            ->timeout(25)
+            ->retry(2, 400, function ($exception) {
+                return $exception instanceof ConnectionException;
+            });
+    }
+
+    private function httpHtml(): PendingRequest
+    {
+        return Http::withHeaders([
+            'User-Agent' => 'Mozilla/5.0 (compatible; SIGAPP/1.0; +https://sigapp.com.br)',
+            'Accept' => 'text/html,application/xhtml+xml',
+        ])
+            ->timeout(15)
+            ->retry(1, 200);
     }
 }

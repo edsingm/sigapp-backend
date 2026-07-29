@@ -5,7 +5,6 @@ namespace App\Services\Ai\Tools;
 use App\Models\Tenant\Terreno;
 use App\Services\Tenant\LandWorkflowService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
-use Illuminate\Support\Facades\Gate;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
@@ -18,17 +17,20 @@ class ProactiveMonitorTool implements Tool
 
     public function description(): Stringable|string
     {
-        return 'Analisa o portfólio e retorna alertas proativos: terrenos parados, inconsistências de workflow, viabilidades reprovas, legalizações atrasadas e tarefas atrasadas.';
+        return 'Alertas do estado ATUAL do portfólio: terrenos já parados, inconsistências e atrasos. Use para "o que precisa de atenção agora?". NÃO use para risco futuro (PredictStallingTool), totais/KPIs (GetDashboardSummaryTool) nem anomalias de qualidade de dados (DetectAnomaliesTool).';
     }
 
     public function handle(Request $request): Stringable|string
     {
-        if (Gate::denies('viewAny', Terreno::class)) {
-            return 'Acesso negado: você não tem permissão para monitorar o portfólio.';
+        if ($deny = app(AiToolAuth::class)->ensureViewAny(
+            Terreno::class,
+            'Acesso negado: você não tem permissão para monitorar o portfólio.'
+        )) {
+            return $deny;
         }
 
         $focusArea = trim((string) ($request['focus_area'] ?? ''));
-        $limit = max(1, min((int) ($request['limit'] ?? 50), 200));
+        $limit = AiToolResponse::clampLimit($request['limit'] ?? 50, default: 50, max: 50);
 
         $alerts = [];
 
@@ -45,19 +47,18 @@ class ProactiveMonitorTool implements Tool
         }
 
         if (empty($alerts)) {
-            return 'Nenhum alerta encontrado para os filtros informados.';
+            return AiToolResponse::empty('Nenhum alerta encontrado para os filtros informados.');
         }
 
         usort($alerts, static fn ($a, $b) => $b['severity_score'] <=> $a['severity_score']);
 
-        $payload = [
-            'total_alerts' => count($alerts),
-            'alerts' => array_slice($alerts, 0, $limit),
-            'scan_timestamp' => now()->toIso8601String(),
-        ];
+        $sliced = array_slice($alerts, 0, $limit);
 
-        return json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT)
-            ?: 'Falha ao serializar alertas.';
+        return AiToolResponse::ok([
+            'alerts' => $sliced,
+            'scan_timestamp' => now()->toIso8601String(),
+            'meta' => AiToolResponse::listMeta(count($alerts), count($sliced), $limit),
+        ]);
     }
 
     /**
@@ -218,8 +219,12 @@ class ProactiveMonitorTool implements Tool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'focus_area' => $schema->string(),
-            'limit' => $schema->integer(),
+            'focus_area' => $schema->string()
+                ->description('Foco opcional: stalled | inconsistencies | overdue (vazio = todos).')
+                ->enum(['stalled', 'inconsistencies', 'overdue']),
+            'limit' => $schema->integer()
+                ->description('Máximo de alertas (padrão 50).')
+                ->min(1),
         ];
     }
 }

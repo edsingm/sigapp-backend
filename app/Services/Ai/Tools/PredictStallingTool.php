@@ -4,7 +4,6 @@ namespace App\Services\Ai\Tools;
 
 use App\Models\Tenant\Terreno;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
-use Illuminate\Support\Facades\Gate;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
@@ -17,19 +16,26 @@ class PredictStallingTool implements Tool
 
     public function description(): Stringable|string
     {
-        return 'Prevê terrenos em risco de ficarem parados e identifica os principais gargalos do workflow.';
+        return 'Prevê risco FUTURO de travamento no workflow (quais PODEM parar). NÃO use para o que já está parado agora (ProactiveMonitorTool) nem totais da carteira (GetDashboardSummaryTool).';
     }
 
     public function handle(Request $request): Stringable|string
     {
-        if (Gate::denies('viewAny', Terreno::class)) {
-            return 'Acesso negado: você não tem permissão para acessar previsões.';
+        if ($deny = app(AiToolAuth::class)->ensureViewAny(
+            Terreno::class,
+            'Acesso negado: você não tem permissão para acessar previsões.'
+        )) {
+            return $deny;
         }
 
         $forecast = $this->predictiveService->getStallingForecast();
+        $payload = is_array($forecast) ? $forecast : ['result' => $forecast];
 
-        return json_encode($forecast, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT)
-            ?: 'Falha ao serializar previsão.';
+        return AiToolResponse::ok(AiPredictivePayload::withMeta(
+            $payload,
+            isset($payload['total_active']) ? (int) $payload['total_active'] : null,
+            'stalling_forecast_heuristic'
+        ));
     }
 
     public function schema(JsonSchema $schema): array

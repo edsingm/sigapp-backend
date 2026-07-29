@@ -4,7 +4,6 @@ namespace App\Services\Ai\Tools;
 
 use App\Models\Tenant\Terreno;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
-use Illuminate\Support\Facades\Gate;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
@@ -22,30 +21,30 @@ class GetRankingTool implements Tool
 
     public function handle(Request $request): Stringable|string
     {
-        if (Gate::denies('viewAny', Terreno::class)) {
-            return 'Acesso negado: você não tem permissão para acessar ranking.';
+        if ($deny = app(AiToolAuth::class)->ensureViewAny(
+            Terreno::class,
+            'Acesso negado: você não tem permissão para acessar ranking.'
+        )) {
+            return $deny;
         }
 
-        $limit = max(1, min((int) ($request['limit'] ?? 20), 100));
+        $limit = AiToolResponse::clampLimit($request['limit'] ?? 20, default: 20, max: 50);
         $ranking = $this->scoringService->getRanking($limit);
 
         if (empty($ranking)) {
-            return 'Ranking indisponível. Execute "php artisan ai:recalculate-scores" primeiro.';
+            return AiToolResponse::empty('Ranking indisponível. Execute "php artisan ai:recalculate-scores" primeiro.');
         }
 
-        $payload = [
-            'total' => count($ranking),
+        return AiToolResponse::ok([
             'ranking' => $ranking,
-        ];
-
-        return json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT)
-            ?: 'Falha ao serializar ranking.';
+            'meta' => AiToolResponse::listMeta(count($ranking), count($ranking), $limit),
+        ]);
     }
 
     public function schema(JsonSchema $schema): array
     {
         return [
-            'limit' => $schema->integer(),
+            'limit' => $schema->integer()->description('Quantidade de terrenos no ranking (padrão 20).')->min(1),
         ];
     }
 }

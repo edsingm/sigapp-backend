@@ -136,7 +136,20 @@ class AiTelemetryService
                 ? round(($logs->where('status', '!=', 'success')->count() / $logs->count()) * 100, 2)
                 : 0,
             'provider_breakdown' => $this->groupByProvider($logs),
+            'tools' => AiToolCallTelemetry::summarizeFromLogs($logs),
         ];
+    }
+
+    /**
+     * Estatísticas agregadas de tools no período (atalho).
+     *
+     * @return array<string, mixed>
+     */
+    public function getToolUsageStats(Carbon $from, ?Carbon $to = null): array
+    {
+        $logs = $this->repository->getLogsBetween($from, $to);
+
+        return AiToolCallTelemetry::summarizeFromLogs($logs);
     }
 
     /**

@@ -5,7 +5,6 @@ namespace App\Services\Ai\Tools;
 use App\Models\Tenant\Task;
 use App\Models\Tenant\Terreno;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
-use Illuminate\Support\Facades\Gate;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
@@ -19,8 +18,11 @@ class GetTasksTool implements Tool
 
     public function handle(Request $request): Stringable|string
     {
-        if (Gate::denies('viewAny', Terreno::class)) {
-            return 'Acesso negado: você não tem permissão para acessar tarefas.';
+        if ($deny = app(AiToolAuth::class)->ensureViewAny(
+            Terreno::class,
+            'Acesso negado: você não tem permissão para acessar tarefas.'
+        )) {
+            return $deny;
         }
 
         $query = Task::query()
@@ -28,6 +30,13 @@ class GetTasksTool implements Tool
             ->orderBy('due_date');
 
         $terrenoId = (int) ($request['terreno_id'] ?? 0);
+
+        if ($terrenoId > 0) {
+            $terrenoOrDeny = app(AiToolAuth::class)->ensureTerrenoView($terrenoId);
+            if (is_string($terrenoOrDeny)) {
+                return $terrenoOrDeny;
+            }
+        }
         if ($terrenoId > 0) {
             $query->where('terreno_id', $terrenoId);
         }
@@ -48,11 +57,15 @@ class GetTasksTool implements Tool
                 ->whereNotIn('status', ['concluded', 'cancelled']);
         }
 
-        $limit = max(1, min((int) ($request['limit'] ?? 50), 200));
+        $limit = AiToolResponse::clampLimit($request['limit'] ?? 50, default: 50, max: 50);
+        $total = (int) $query->count();
         $tasks = $query->limit($limit)->get();
 
         if ($tasks->isEmpty()) {
-            return 'Nenhuma tarefa encontrada'.($onlyOverdue ? ' atrasada.' : ' para os filtros informados.');
+            return AiToolResponse::empty(
+                'Nenhuma tarefa encontrada'.($onlyOverdue ? ' atrasada.' : ' para os filtros informados.'),
+                ['items' => [], 'meta' => AiToolResponse::listMeta($total, 0, $limit)]
+            );
         }
 
         $items = $tasks->map(static function (Task $t): array {
@@ -79,30 +92,27 @@ class GetTasksTool implements Tool
             ];
         });
 
-        $payload = [
-            'total' => $tasks->count(),
+        return AiToolResponse::ok([
             'items' => $items->all(),
             'resumo' => [
-                'total' => $tasks->count(),
+                'total' => $items->count(),
                 'overdue' => $items->where('is_overdue', true)->count(),
                 'open' => $items->where('status', 'open')->count(),
                 'in_progress' => $items->where('status', 'in_progress')->count(),
                 'concluded' => $items->where('status', 'concluded')->count(),
             ],
-        ];
-
-        return json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT)
-            ?: 'Falha ao serializar tarefas.';
+            'meta' => AiToolResponse::listMeta($total, $items->count(), $limit),
+        ]);
     }
 
     public function schema(JsonSchema $schema): array
     {
         return [
-            'terreno_id' => $schema->integer(),
-            'assigned_to' => $schema->integer(),
-            'status' => $schema->string(),
-            'only_overdue' => $schema->boolean(),
-            'limit' => $schema->integer(),
+            'terreno_id' => $schema->integer()->description('Filtra tarefas de um terreno.'),
+            'assigned_to' => $schema->integer()->description('ID do responsável.'),
+            'status' => $schema->string()->description('Status da tarefa (ex.: open, in_progress, concluded).'),
+            'only_overdue' => $schema->boolean()->description('Se true, apenas tarefas atrasadas.'),
+            'limit' => $schema->integer()->description('Máximo de itens (padrão 50).')->min(1),
         ];
     }
 }

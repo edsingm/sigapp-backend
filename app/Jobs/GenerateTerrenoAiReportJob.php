@@ -69,9 +69,17 @@ class GenerateTerrenoAiReportJob implements ShouldBeUnique, ShouldQueue
                 'title' => $report['title'],
                 'html_content' => $report['html_content'],
                 'terreno_id' => $terreno->id,
+                // Job já validou o terreno na API; fila não tem sessão de usuário.
+                '_auth_checked' => true,
+                '_skip_rate_limit' => true,
             ]));
 
-            if (! is_string($pdfResult) || ! str_contains($pdfResult, 'PDF gerado com sucesso')) {
+            $pdfOk = is_string($pdfResult) && (
+                str_contains($pdfResult, 'PDF gerado com sucesso')
+                || str_contains($pdfResult, '"code":"OK"')
+            );
+
+            if (! $pdfOk) {
                 throw new RuntimeException(is_string($pdfResult) ? $pdfResult : 'Falha ao gerar relatório em PDF.');
             }
 

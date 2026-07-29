@@ -9,14 +9,13 @@ use App\Models\Tenant\Terreno;
 use App\Services\Ai\Agents\SIG_IA;
 use App\Services\Ai\Tools\AiProviderRouter;
 use App\Services\Ai\Tools\AiTelemetryService;
-use App\Services\Ai\Tools\CompareAreasTool;
+use App\Services\Ai\Tools\AnalyticsTool;
 use App\Services\Ai\Tools\DetectAnomaliesTool;
+use App\Services\Ai\Tools\DocumentosTool;
 use App\Services\Ai\Tools\EstimateVgvTool;
-use App\Services\Ai\Tools\GenerateInsightsTool;
 use App\Services\Ai\Tools\GetCityIbgeProfileTool;
 use App\Services\Ai\Tools\GetComiteTool;
 use App\Services\Ai\Tools\GetDashboardSummaryTool;
-use App\Services\Ai\Tools\GetDocumentosTool;
 use App\Services\Ai\Tools\GetLegalizacaoTool;
 use App\Services\Ai\Tools\GetNegociacaoTool;
 use App\Services\Ai\Tools\GetRankingTool;
@@ -24,7 +23,6 @@ use App\Services\Ai\Tools\GetTasksTool;
 use App\Services\Ai\Tools\GetTerrenoDetailsTool;
 use App\Services\Ai\Tools\GetTerrenoGeoAnalysisTool;
 use App\Services\Ai\Tools\GetTerrenoScoreTool;
-use App\Services\Ai\Tools\GetTrendsTool;
 use App\Services\Ai\Tools\GetViabilidadesTool;
 use App\Services\Ai\Tools\PredictViabilityTool;
 use App\Services\Ai\Tools\ProactiveMonitorTool;
@@ -46,25 +44,23 @@ class TerrenoAiReportServiceTest extends TestCase
      * @var array<class-string, string>
      */
     private const TOOL_RESULTS = [
-        GetTerrenoDetailsTool::class => '{"totais":{"documentos":2,"contatos":1,"proprietarios":1,"viabilidades":1,"projetos":0}}',
-        GetTerrenoGeoAnalysisTool::class => '{"area":{"area_util_m2":123.45},"vias":[],"pontos_de_apoio":[]}',
-        GetViabilidadesTool::class => '{"items":[{"status":"aprovada"}]}',
-        GetLegalizacaoTool::class => '{"items":[]}',
-        GetComiteTool::class => '{"items":[]}',
-        GetNegociacaoTool::class => '{"items":[]}',
-        GetDocumentosTool::class => '{"total":0,"items":[]}',
-        GetTasksTool::class => '{"total":0,"items":[]}',
-        GetTerrenoScoreTool::class => '{"score":87,"tier":"alto"}',
-        GetRankingTool::class => '{"ranking":[{"terreno_id":42}]}',
-        PredictViabilityTool::class => '{}',
-        EstimateVgvTool::class => '{}',
-        GetDashboardSummaryTool::class => '{}',
-        ProactiveMonitorTool::class => '{}',
-        DetectAnomaliesTool::class => '{}',
-        GenerateInsightsTool::class => '{}',
-        GetTrendsTool::class => '{}',
-        CompareAreasTool::class => '{}',
-        GetCityIbgeProfileTool::class => '{}',
+        GetTerrenoDetailsTool::class => '{"ok":true,"code":"OK","message":null,"data":{"totais":{"documentos":2,"contatos":1,"proprietarios":1,"viabilidades":1,"projetos":0}}}',
+        GetTerrenoGeoAnalysisTool::class => '{"ok":true,"code":"OK","message":null,"data":{"area":{"area_util_m2":123.45},"vias":[],"pontos_de_apoio":[]}}',
+        GetViabilidadesTool::class => '{"ok":true,"code":"OK","message":null,"data":{"items":[{"status":"aprovada"}]}}',
+        GetLegalizacaoTool::class => '{"ok":true,"code":"OK","message":null,"data":{"items":[]}}',
+        GetComiteTool::class => '{"ok":true,"code":"OK","message":null,"data":{"items":[]}}',
+        GetNegociacaoTool::class => '{"ok":true,"code":"OK","message":null,"data":{"items":[]}}',
+        DocumentosTool::class => '{"ok":true,"code":"OK","message":null,"data":{"items":[],"meta":{"total":0,"returned":0,"limit":10,"has_more":false}}}',
+        GetTasksTool::class => '{"ok":true,"code":"OK","message":null,"data":{"items":[],"resumo":{"total":0,"overdue":0}}}',
+        GetTerrenoScoreTool::class => '{"ok":true,"code":"OK","message":null,"data":{"score":87,"tier":"alto"}}',
+        GetRankingTool::class => '{"ok":true,"code":"OK","message":null,"data":{"ranking":[{"terreno_id":42}]}}',
+        PredictViabilityTool::class => '{"ok":true,"code":"OK","message":null,"data":{}}',
+        EstimateVgvTool::class => '{"ok":true,"code":"OK","message":null,"data":{}}',
+        GetDashboardSummaryTool::class => '{"ok":true,"code":"OK","message":null,"data":{}}',
+        ProactiveMonitorTool::class => '{"ok":true,"code":"OK","message":null,"data":{}}',
+        DetectAnomaliesTool::class => '{"ok":true,"code":"OK","message":null,"data":{}}',
+        AnalyticsTool::class => '{"ok":true,"code":"OK","message":null,"data":{}}',
+        GetCityIbgeProfileTool::class => '{"ok":true,"code":"OK","message":null,"data":{}}',
     ];
 
     public function test_build_returns_stable_report_contract_without_map_for_empty_polygon(): void

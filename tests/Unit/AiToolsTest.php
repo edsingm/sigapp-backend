@@ -10,17 +10,15 @@ use App\Services\Ai\Tools\AiInsightGeneratorService;
 use App\Services\Ai\Tools\AiPredictiveAnalysisService;
 use App\Services\Ai\Tools\AiScoringService;
 use App\Services\Ai\Tools\AnalyticsTool;
-use App\Services\Ai\Tools\CompareAreasTool;
 use App\Services\Ai\Tools\CreatePdfsTool;
 use App\Services\Ai\Tools\CreateTaskTool;
+use App\Services\Ai\Tools\CreateTerrenoReportTool;
 use App\Services\Ai\Tools\DetectAnomaliesTool;
 use App\Services\Ai\Tools\DocumentosTool;
 use App\Services\Ai\Tools\EstimateVgvTool;
-use App\Services\Ai\Tools\GenerateInsightsTool;
 use App\Services\Ai\Tools\GetCityIbgeProfileTool;
 use App\Services\Ai\Tools\GetComiteTool;
 use App\Services\Ai\Tools\GetDashboardSummaryTool;
-use App\Services\Ai\Tools\GetDocumentosTool;
 use App\Services\Ai\Tools\GetLegalizacaoTool;
 use App\Services\Ai\Tools\GetNegociacaoTool;
 use App\Services\Ai\Tools\GetRankingTool;
@@ -28,9 +26,16 @@ use App\Services\Ai\Tools\GetTasksTool;
 use App\Services\Ai\Tools\GetTerrenoDetailsTool;
 use App\Services\Ai\Tools\GetTerrenoGeoAnalysisTool;
 use App\Services\Ai\Tools\GetTerrenoScoreTool;
-use App\Services\Ai\Tools\GetTrendsTool;
 use App\Services\Ai\Tools\GetViabilidadesTool;
 use App\Services\Ai\Tools\ListTerrenosTool;
+use App\Services\Ai\Tools\Meta\AnalyzePortfolioTool;
+use App\Services\Ai\Tools\Meta\ExportPdfTool;
+use App\Services\Ai\Tools\Meta\GetDocumentsHubTool;
+use App\Services\Ai\Tools\Meta\GetTasksHubTool;
+use App\Services\Ai\Tools\Meta\GetTerrenoProcessTool;
+use App\Services\Ai\Tools\Meta\GetTerrenoTool;
+use App\Services\Ai\Tools\Meta\MarketIntelTool;
+use App\Services\Ai\Tools\Meta\SearchPortfolioTool;
 use App\Services\Ai\Tools\PesquisarEmpreendimentosImobiliariosTool;
 use App\Services\Ai\Tools\PredictStallingTool;
 use App\Services\Ai\Tools\PredictViabilityTool;
@@ -66,33 +71,37 @@ class AiToolsTest extends TestCase
         $tools = collect($agent->tools());
 
         $expected = [
-            ListTerrenosTool::class,
-            GetTerrenoDetailsTool::class,
-            GetTerrenoGeoAnalysisTool::class,
-            GetViabilidadesTool::class,
-            GetLegalizacaoTool::class,
-            GetComiteTool::class,
-            GetNegociacaoTool::class,
-            DocumentosTool::class,
-            GetDashboardSummaryTool::class,
-            GetTasksTool::class,
-            GetCityIbgeProfileTool::class,
-            SearchDocumentsTool::class,
-            GetTerrenoScoreTool::class,
-            GetRankingTool::class,
-            ProactiveMonitorTool::class,
-            PredictViabilityTool::class,
-            EstimateVgvTool::class,
-            PredictStallingTool::class,
-            DetectAnomaliesTool::class,
-            AnalyticsTool::class,
-            PesquisarEmpreendimentosImobiliariosTool::class,
+            SearchPortfolioTool::class,
+            GetTerrenoTool::class,
+            GetTerrenoProcessTool::class,
+            GetDocumentsHubTool::class,
+            GetTasksHubTool::class,
+            AnalyzePortfolioTool::class,
+            MarketIntelTool::class,
+            ExportPdfTool::class,
         ];
 
         $actual = $tools->map(fn ($t) => $this->toolClass($t))->sort()->values();
         sort($expected);
 
         $this->assertEquals($expected, $actual->toArray());
+    }
+
+    public function test_sig_ia_instructions_allow_pdf_generation_in_chat(): void
+    {
+        $agent = new SIG_IA;
+        $instructions = $agent->instructions();
+
+        $this->assertStringContainsString('ExportPdf', $instructions);
+        $this->assertStringContainsString('terreno_report', $instructions);
+        $this->assertStringContainsString('data.url', $instructions);
+        $this->assertStringContainsString('SearchPortfolio', $instructions);
+        $this->assertStringContainsString('Proibido narrar o processo', $instructions);
+        $this->assertStringContainsString('approval_status', $instructions);
+        $this->assertStringNotContainsString(
+            'nem gere arquivos',
+            $instructions,
+        );
     }
 
     public function test_all_tools_implement_tool_contract(): void
@@ -174,9 +183,9 @@ class AiToolsTest extends TestCase
         $this->assertNotEmpty($tool->description());
     }
 
-    public function test_get_documentos_tool_has_description(): void
+    public function test_documentos_tool_has_description(): void
     {
-        $tool = new GetDocumentosTool;
+        $tool = new DocumentosTool;
 
         $this->assertNotEmpty($tool->description());
     }
@@ -290,27 +299,9 @@ class AiToolsTest extends TestCase
         $this->assertNotEmpty($tool->description());
     }
 
-    public function test_generate_insights_tool_has_description(): void
+    public function test_analytics_tool_has_description(): void
     {
-        $tool = new GenerateInsightsTool(
-            app(AiInsightGeneratorService::class)
-        );
-
-        $this->assertNotEmpty($tool->description());
-    }
-
-    public function test_get_trends_tool_has_description(): void
-    {
-        $tool = new GetTrendsTool(
-            app(AiInsightGeneratorService::class)
-        );
-
-        $this->assertNotEmpty($tool->description());
-    }
-
-    public function test_compare_areas_tool_has_description(): void
-    {
-        $tool = new CompareAreasTool(
+        $tool = new AnalyticsTool(
             app(AiInsightGeneratorService::class)
         );
 
@@ -329,11 +320,27 @@ class AiToolsTest extends TestCase
             'filename' => 'relatorio-ibge',
             'title' => 'Relatorio IBGE',
             'html_content' => '<html><body><h1>Teste</h1></body></html>',
+            '_auth_checked' => true,
+            '_skip_rate_limit' => true,
         ]));
 
         $this->assertStringContainsString('Chrome/Chromium', $result);
         $this->assertStringContainsString('infraestrutura de PDF', $result);
         $this->assertNull($tool->lastGeneratedReport());
+    }
+
+    public function test_create_pdfs_tool_rejects_unauthenticated_user(): void
+    {
+        $tool = app(CreatePdfsTool::class);
+
+        $result = json_decode((string) $tool->handle(new Request([
+            'filename' => 'relatorio-ibge',
+            'title' => 'Relatorio IBGE',
+            'html_content' => '<h1>Teste</h1>',
+        ])), true);
+
+        $this->assertFalse($result['ok'] ?? true);
+        $this->assertSame('DENIED', $result['code'] ?? null);
     }
 
     public function test_create_pdfs_tool_clears_previous_report_before_a_new_generation(): void
@@ -350,6 +357,8 @@ class AiToolsTest extends TestCase
             'filename' => 'relatorio-ibge',
             'title' => 'Relatorio IBGE',
             'html_content' => '<h1>Teste</h1>',
+            '_auth_checked' => true,
+            '_skip_rate_limit' => true,
         ]));
 
         $this->assertNull($tool->lastGeneratedReport());
@@ -378,8 +387,8 @@ class AiToolsTest extends TestCase
     {
         $options = TextGenerationOptions::forAgent(new SIG_IA);
 
-        $this->assertSame(8, $options->maxSteps);
-        $this->assertSame(2048, $options->maxTokens);
+        $this->assertSame(12, $options->maxSteps);
+        $this->assertSame(3072, $options->maxTokens);
     }
 
     private function toolClass(Tool|ProviderTool $tool): string

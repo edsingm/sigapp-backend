@@ -46,6 +46,11 @@ Schedule::command('tenant:check-storage-usage')
     ->name('tenant-check-storage-usage')
     ->onOneServer()
     ->withoutOverlapping(120);
+Schedule::command('tenant:cleanup-terreno-imports')
+    ->dailyAt('03:45')
+    ->name('tenant-cleanup-terreno-imports')
+    ->onOneServer()
+    ->withoutOverlapping(120);
 Schedule::command('notifications:send-email-digests daily')
     ->dailyAt('08:30')
     ->name('notifications-send-email-digests-daily')

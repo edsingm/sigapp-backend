@@ -96,5 +96,13 @@
     "VIABILITY": "Viability",
     "PRODUCT_TYPE_2_DORM": "2 Bedrooms",
     "PRODUCT_TYPE_3_DORM": "3 Bedrooms",
-    "PRODUCT_TYPE_LOTES": "Lots"
+    "PRODUCT_TYPE_LOTES": "Lots",
+    "TERRAIN_IMPORT_QUEUED": "Terrain import queued for validation",
+    "TERRAIN_IMPORT_CONFIRMED": "Terrain import confirmed",
+    "TERRAIN_IMPORT_RATE_LIMITED": "Too many imports in a short period. Try again in 1 minute.",
+    "TERRAIN_IMPORT_VALIDATION_FAILED": "The terrain spreadsheet could not be validated",
+    "TERRAIN_IMPORT_COMMIT_FAILED": "The terrain import could not be completed",
+    "POLYGON_IMPORT_QUEUED": "Polygon import queued for processing",
+    "POLYGON_IMPORT_PROCESSING_FAILED": "The polygon files could not be processed",
+    "POLYGON_LINKED": "Polygon linked to terrain successfully"
 }

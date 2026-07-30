@@ -6,14 +6,17 @@ namespace Tests\Unit;
 
 use App\Jobs\AnalyzeDocumentJob;
 use App\Jobs\CleanupPendingTenantsJob;
+use App\Jobs\CommitTerrenoImportJob;
 use App\Jobs\CreateFullTenantJob;
 use App\Jobs\GenerateCommitteeAiDossierJob;
 use App\Jobs\GenerateReportRunJob;
 use App\Jobs\GenerateTenantExportJob;
 use App\Jobs\GenerateTerrenoAiReportJob;
 use App\Jobs\IndexDocumentEmbeddingJob;
+use App\Jobs\ParseTerrenoPolygonImportJob;
 use App\Jobs\RecalculateAiScoresJob;
 use App\Jobs\RefreshTenantStatsJob;
+use App\Jobs\ValidateTerrenoImportJob;
 use App\Notifications\TenantWelcomeNotification;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
@@ -57,13 +60,16 @@ class QueueTopologyTest extends TestCase
     {
         $expectedQueues = [
             AnalyzeDocumentJob::class => 'ai',
+            CommitTerrenoImportJob::class => 'exports',
             CreateFullTenantJob::class => 'tenant-provisioning',
             GenerateCommitteeAiDossierJob::class => 'ai',
             GenerateReportRunJob::class => 'exports',
             GenerateTenantExportJob::class => 'exports',
             GenerateTerrenoAiReportJob::class => 'ai',
             IndexDocumentEmbeddingJob::class => 'ai',
+            ParseTerrenoPolygonImportJob::class => 'exports',
             RecalculateAiScoresJob::class => 'ai',
+            ValidateTerrenoImportJob::class => 'exports',
         ];
 
         foreach ($expectedQueues as $jobClass => $expectedQueue) {
@@ -78,13 +84,16 @@ class QueueTopologyTest extends TestCase
     {
         foreach ([
             CleanupPendingTenantsJob::class,
+            CommitTerrenoImportJob::class,
             GenerateCommitteeAiDossierJob::class,
             GenerateReportRunJob::class,
             GenerateTenantExportJob::class,
             GenerateTerrenoAiReportJob::class,
             IndexDocumentEmbeddingJob::class,
+            ParseTerrenoPolygonImportJob::class,
             RecalculateAiScoresJob::class,
             RefreshTenantStatsJob::class,
+            ValidateTerrenoImportJob::class,
         ] as $jobClass) {
             $reflection = new ReflectionClass($jobClass);
             $defaults = $reflection->getDefaultProperties();
@@ -107,6 +116,7 @@ class QueueTopologyTest extends TestCase
             'tenants-cleanup-pending' => 60,
             'tenant-notify-overdue-legalizacao-etapas' => 60,
             'tenant-check-storage-usage' => 120,
+            'tenant-cleanup-terreno-imports' => 120,
             'notifications-send-email-digests-daily' => 120,
             'notifications-send-email-digests-weekly' => 120,
             'ai-recalculate-scores' => 360,

@@ -15,6 +15,8 @@ interface TerrenoRepositoryInterface
 
     public function findOrFail(int|string $id): Terreno;
 
+    public function findForUpdate(int|string $id): Terreno;
+
     public function findInfoOrFail(int|string $id): TerrenoInfos;
 
     /**

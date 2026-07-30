@@ -99,6 +99,12 @@ class UsageMetricsRepository implements UsageMetricsRepositoryInterface
             DB::table('tenant_export_generations')
                 ->whereNotNull('storage_path')
                 ->selectRaw("COALESCE(storage_disk, 's3') AS disk, storage_path AS path, COALESCE(size, 0) AS size"),
+            DB::table('terreno_imports')
+                ->whereNotNull('storage_path')
+                ->selectRaw("COALESCE(storage_disk, 's3') AS disk, storage_path AS path, COALESCE(size, 0) AS size"),
+            DB::table('terreno_polygon_import_files')
+                ->whereNotNull('storage_path')
+                ->selectRaw("COALESCE(storage_disk, 's3') AS disk, storage_path AS path, COALESCE(size, 0) AS size"),
         ];
 
         $query = array_shift($queries);

@@ -22,6 +22,11 @@ class TerrenoRepository implements TerrenoRepositoryInterface
         return Terreno::query()->findOrFail($id);
     }
 
+    public function findForUpdate(int|string $id): Terreno
+    {
+        return Terreno::query()->lockForUpdate()->findOrFail($id);
+    }
+
     public function findInfoOrFail(int|string $id): TerrenoInfos
     {
         return TerrenoInfos::query()->findOrFail($id);

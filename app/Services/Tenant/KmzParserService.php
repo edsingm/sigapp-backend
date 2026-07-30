@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Tenant;
 
 use Illuminate\Http\UploadedFile;
@@ -21,22 +23,37 @@ class KmzParserService
      */
     public function parse(UploadedFile $file): array
     {
-        $extension = strtolower($file->getClientOriginalExtension());
+        $geometries = $this->parseMany($file);
 
-        if ($extension === 'kmz') {
-            $kmlContent = $this->extractKmlFromKmz($file->getRealPath());
-        } elseif ($extension === 'kml') {
-            $kmlContent = file_get_contents($file->getRealPath());
-            if ($kmlContent === false) {
-                throw new RuntimeException('Não foi possível ler o arquivo KML.');
-            }
-        } else {
-            throw new RuntimeException(
+        return $geometries[0]['coords'];
+    }
+
+    /**
+     * @return list<array{source_entry: string|null, placemark_name: string|null, geometry_index: int, coords: list<array{lat: float, lng: float}>, geometry_hash: string, bounds: array{min_lat: float, max_lat: float, min_lng: float, max_lng: float}}>
+     */
+    public function parseMany(UploadedFile $file): array
+    {
+        $extension = strtolower($file->getClientOriginalExtension());
+        $documents = match ($extension) {
+            'kmz' => $this->extractKmlDocumentsFromKmz($file->getRealPath()),
+            'kml' => [[
+                'entry' => $file->getClientOriginalName(),
+                'content' => $this->readKmlFile($file->getRealPath()),
+            ]],
+            default => throw new RuntimeException(
                 "Extensão de arquivo não suportada: \"{$extension}\". Envie um arquivo .kml ou .kmz."
-            );
+            ),
+        };
+
+        $geometries = [];
+        foreach ($documents as $document) {
+            array_push($geometries, ...$this->parseManyKml($document['content'], $document['entry']));
+        }
+        if ($geometries === []) {
+            throw new RuntimeException('Nenhum polígono ou linha foi encontrado no arquivo.');
         }
 
-        return $this->parseKml($kmlContent);
+        return $geometries;
     }
 
     /**
@@ -45,6 +62,14 @@ class KmzParserService
      * @throws RuntimeException
      */
     public function extractKmlFromKmz(string $path): string
+    {
+        return $this->extractKmlDocumentsFromKmz($path)[0]['content'];
+    }
+
+    /**
+     * @return list<array{entry: string, content: string}>
+     */
+    private function extractKmlDocumentsFromKmz(string $path): array
     {
         $zip = new ZipArchive;
         $result = $zip->open($path);
@@ -59,6 +84,8 @@ class KmzParserService
             throw new RuntimeException('O arquivo KMZ contém itens demais para ser processado com segurança.');
         }
 
+        $documents = [];
+        $totalSize = 0;
         try {
             for ($i = 0; $i < $zip->numFiles; $i++) {
                 $name = $zip->getNameIndex($i);
@@ -67,10 +94,9 @@ class KmzParserService
                 }
 
                 $metadata = $zip->statIndex($i);
-                if (
-                    is_array($metadata)
-                    && $metadata['size'] > self::MAX_UNCOMPRESSED_KML_BYTES
-                ) {
+                $entrySize = is_array($metadata) ? (int) $metadata['size'] : 0;
+                $totalSize += $entrySize;
+                if ($entrySize > self::MAX_UNCOMPRESSED_KML_BYTES || $totalSize > self::MAX_UNCOMPRESSED_KML_BYTES) {
                     throw new RuntimeException('O conteúdo KML descompactado excede o limite de 20 MB.');
                 }
 
@@ -93,13 +119,17 @@ class KmzParserService
                     throw new RuntimeException('O conteúdo KML descompactado excede o limite de 20 MB.');
                 }
 
-                return $kmlContent;
+                $documents[] = ['entry' => $name, 'content' => $kmlContent];
             }
         } finally {
             $zip->close();
         }
 
-        throw new RuntimeException('Nenhum arquivo .kml encontrado dentro do arquivo KMZ.');
+        if ($documents === []) {
+            throw new RuntimeException('Nenhum arquivo .kml encontrado dentro do arquivo KMZ.');
+        }
+
+        return $documents;
     }
 
     /**
@@ -112,32 +142,59 @@ class KmzParserService
      */
     public function parseKml(string $kmlContent): array
     {
-        $kmlContent = $this->sanitizeKml($kmlContent);
+        $geometries = $this->parseManyKml($kmlContent, null);
 
-        libxml_use_internal_errors(true);
-        $xml = simplexml_load_string($kmlContent);
+        return $geometries[0]['coords'];
+    }
 
-        if ($xml === false) {
-            $errors = libxml_get_errors();
-            libxml_clear_errors();
-            $msg = ! empty($errors) ? trim($errors[0]->message) : 'erro desconhecido';
-            throw new RuntimeException("O arquivo KML contém XML inválido: {$msg}");
+    /**
+     * @return list<array{source_entry: string|null, placemark_name: string|null, geometry_index: int, coords: list<array{lat: float, lng: float}>, geometry_hash: string, bounds: array{min_lat: float, max_lat: float, min_lng: float, max_lng: float}}>
+     */
+    public function parseManyKml(string $kmlContent, ?string $sourceEntry = null): array
+    {
+        $xml = $this->loadXml($kmlContent);
+        $placemarks = $xml->xpath('//*[local-name()="Placemark"]') ?: [];
+        $geometries = [];
+        $geometryIndex = 0;
+
+        foreach ($placemarks as $placemark) {
+            $nameNodes = $placemark->xpath('./*[local-name()="name"]') ?: [];
+            $name = isset($nameNodes[0]) && trim((string) $nameNodes[0]) !== ''
+                ? trim((string) $nameNodes[0])
+                : null;
+            $polygons = $placemark->xpath('.//*[local-name()="Polygon"]') ?: [];
+            foreach ($polygons as $polygon) {
+                if (($polygon->xpath('.//*[local-name()="innerBoundaryIs"]') ?: []) !== []) {
+                    throw new RuntimeException('Polígonos com áreas internas (buracos) ainda não são suportados.');
+                }
+                $coordinateNodes = $polygon->xpath('.//*[local-name()="outerBoundaryIs"]/*[local-name()="LinearRing"]/*[local-name()="coordinates"]') ?: [];
+                if (! isset($coordinateNodes[0])) {
+                    continue;
+                }
+                $geometries[] = $this->geometry(
+                    (string) $coordinateNodes[0],
+                    $sourceEntry,
+                    $name,
+                    $geometryIndex++,
+                );
+            }
         }
 
-        libxml_clear_errors();
+        if ($geometries === []) {
+            $lineStrings = $xml->xpath('//*[local-name()="LineString"]/*[local-name()="coordinates"]') ?: [];
+            foreach ($lineStrings as $lineString) {
+                $geometries[] = $this->geometry((string) $lineString, $sourceEntry, null, $geometryIndex++);
+            }
+        }
 
-        // Tenta Polygon primeiro, depois LineString como fallback
-        $rawCoords = $this->findFirstCoordinateString($xml, 'Polygon/outerBoundaryIs/LinearRing/coordinates')
-            ?? $this->findFirstCoordinateString($xml, 'LineString/coordinates');
-
-        if ($rawCoords === null) {
+        if ($geometries === []) {
             throw new RuntimeException(
                 'Nenhum polígono ou linha encontrada no arquivo KML. '
                 .'Verifique se o arquivo contém um Placemark com geometria Polygon ou LineString.'
             );
         }
 
-        return $this->parseCoordinateString(trim($rawCoords));
+        return $geometries;
     }
 
     /**
@@ -160,45 +217,11 @@ class KmzParserService
     }
 
     /**
-     * Busca uma string de coordenadas usando XPath dentro do XML.
-     * Tenta primeiro sem namespace (KML simples) e depois com prefixo kml:
-     * (exportações do Google Earth que declaram xmlns).
-     */
-    private function findFirstCoordinateString(\SimpleXMLElement $xml, string $path): ?string
-    {
-        // Tentativa 1: XPath sem namespace
-        $results = $xml->xpath('//'.$path);
-        if (! empty($results)) {
-            return (string) $results[0];
-        }
-
-        // Tentativa 2: XPath com prefixo kml: para documentos com namespace declarado
-        $xml->registerXPathNamespace('kml', 'http://www.opengis.net/kml/2.2');
-        $segments = explode('/', $path);
-        $namespacedPath = implode('/', array_map(fn (string $s) => 'kml:'.$s, $segments));
-        $results = $xml->xpath('//'.$namespacedPath);
-
-        if (! empty($results)) {
-            return (string) $results[0];
-        }
-
-        // Tentativa 3: namespace legado do Google Earth (kml/2.1)
-        $xml->registerXPathNamespace('kml', 'http://earth.google.com/kml/2.1');
-        $results = $xml->xpath('//'.$namespacedPath);
-
-        if (! empty($results)) {
-            return (string) $results[0];
-        }
-
-        return null;
-    }
-
-    /**
      * Converte string de coordenadas KML para array de {lat, lng}.
      * Formato KML: "lon,lat[,alt] lon,lat[,alt] ..." (longitude PRIMEIRO).
      * A coordenada de fechamento duplicada é removida.
      *
-     * @return array<int, array{lat: float, lng: float}>
+     * @return non-empty-list<array{lat: float, lng: float}>
      *
      * @throws RuntimeException
      */
@@ -214,11 +237,17 @@ class KmzParserService
             if (count($parts) < 2) {
                 continue;
             }
+            if (! is_numeric($parts[0]) || ! is_numeric($parts[1])) {
+                throw new RuntimeException('O arquivo KML contém coordenadas não numéricas.');
+            }
 
-            $coords[] = [
-                'lat' => (float) $parts[1], // KML: latitude é o segundo token
-                'lng' => (float) $parts[0], // KML: longitude é o primeiro token
-            ];
+            $lat = (float) $parts[1];
+            $lng = (float) $parts[0];
+            if (! is_finite($lat) || ! is_finite($lng)
+                || $lat < -90 || $lat > 90 || $lng < -180 || $lng > 180) {
+                throw new RuntimeException('O arquivo KML contém latitude ou longitude fora do intervalo válido.');
+            }
+            $coords[] = ['lat' => $lat, 'lng' => $lng];
         }
 
         if (empty($coords)) {
@@ -236,6 +265,77 @@ class KmzParserService
             }
         }
 
+        if (count($coords) < 3) {
+            throw new RuntimeException('O polígono deve conter ao menos três pontos.');
+        }
+
         return $coords;
+    }
+
+    private function readKmlFile(string $path): string
+    {
+        $size = filesize($path);
+        if ($size !== false && $size > self::MAX_UNCOMPRESSED_KML_BYTES) {
+            throw new RuntimeException('O arquivo KML excede o limite de 20 MB.');
+        }
+        $content = file_get_contents($path);
+        if ($content === false) {
+            throw new RuntimeException('Não foi possível ler o arquivo KML.');
+        }
+
+        return $content;
+    }
+
+    private function loadXml(string $kmlContent): \SimpleXMLElement
+    {
+        $kmlContent = $this->sanitizeKml($kmlContent);
+        libxml_use_internal_errors(true);
+        $xml = simplexml_load_string($kmlContent, \SimpleXMLElement::class, LIBXML_NONET);
+        if ($xml === false) {
+            $errors = libxml_get_errors();
+            libxml_clear_errors();
+            $message = ! empty($errors) ? trim($errors[0]->message) : 'erro desconhecido';
+            throw new RuntimeException("O arquivo KML contém XML inválido: {$message}");
+        }
+        libxml_clear_errors();
+
+        return $xml;
+    }
+
+    /**
+     * @return array{source_entry: string|null, placemark_name: string|null, geometry_index: int, coords: list<array{lat: float, lng: float}>, geometry_hash: string, bounds: array{min_lat: float, max_lat: float, min_lng: float, max_lng: float}}
+     */
+    private function geometry(string $rawCoords, ?string $sourceEntry, ?string $name, int $index): array
+    {
+        $coords = $this->parseCoordinateString(trim($rawCoords));
+        $minLat = $maxLat = $coords[0]['lat'];
+        $minLng = $maxLng = $coords[0]['lng'];
+        foreach ($coords as $coordinate) {
+            $minLat = min($minLat, $coordinate['lat']);
+            $maxLat = max($maxLat, $coordinate['lat']);
+            $minLng = min($minLng, $coordinate['lng']);
+            $maxLng = max($maxLng, $coordinate['lng']);
+        }
+        $canonical = array_map(
+            static fn (array $coordinate): array => [
+                'lat' => round($coordinate['lat'], 8),
+                'lng' => round($coordinate['lng'], 8),
+            ],
+            $coords,
+        );
+
+        return [
+            'source_entry' => $sourceEntry,
+            'placemark_name' => $name,
+            'geometry_index' => $index,
+            'coords' => $coords,
+            'geometry_hash' => hash('sha256', json_encode($canonical, JSON_THROW_ON_ERROR)),
+            'bounds' => [
+                'min_lat' => $minLat,
+                'max_lat' => $maxLat,
+                'min_lng' => $minLng,
+                'max_lng' => $maxLng,
+            ],
+        ];
     }
 }

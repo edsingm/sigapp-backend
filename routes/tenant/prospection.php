@@ -8,6 +8,8 @@ use App\Http\Controllers\Api\V1\Tenant\ProprietariosController;
 use App\Http\Controllers\Api\V1\Tenant\RegionaisController;
 use App\Http\Controllers\Api\V1\Tenant\ShortlistController;
 use App\Http\Controllers\Api\V1\Tenant\TerrenoController;
+use App\Http\Controllers\Api\V1\Tenant\TerrenoImportController;
+use App\Http\Controllers\Api\V1\Tenant\TerrenoPolygonImportController;
 use App\Http\Controllers\Api\V1\Tenant\TerrenoProdutosController;
 use App\Http\Controllers\Api\V1\Tenant\TerrenosExportController;
 use App\Http\Controllers\Api\V1\Tenant\TerrenoWorkflowController;
@@ -22,6 +24,47 @@ Route::middleware(['check.feature:prospection', 'enforce.limits:terrenos'])->gro
 });
 // Rotas específicas devem vir ANTES do apiResource
 Route::middleware('check.feature:prospection')->group(function () {
+    Route::prefix('terrenos/imports')->middleware('permission.gate:prospection,terrains')->group(function () {
+        Route::get('/template', [TerrenoImportController::class, 'template'])
+            ->name('tenant.terreno-imports.template');
+        Route::post('/', [TerrenoImportController::class, 'store'])
+            ->middleware(['throttle:terrain-imports', 'enforce.limits:storage_gb'])
+            ->name('tenant.terreno-imports.store');
+        Route::get('/{import}', [TerrenoImportController::class, 'show'])
+            ->whereNumber('import')
+            ->name('tenant.terreno-imports.show');
+        Route::get('/{import}/rows', [TerrenoImportController::class, 'rows'])
+            ->whereNumber('import')
+            ->name('tenant.terreno-imports.rows');
+        Route::post('/{import}/confirm', [TerrenoImportController::class, 'confirm'])
+            ->whereNumber('import')
+            ->name('tenant.terreno-imports.confirm');
+        Route::get('/{import}/errors', [TerrenoImportController::class, 'errors'])
+            ->whereNumber('import')
+            ->name('tenant.terreno-imports.errors');
+    });
+    Route::post('/terrenos/polygon-imports', [TerrenoPolygonImportController::class, 'store'])
+        ->middleware([
+            'permission.gate:prospection,terrains',
+            'throttle:terrain-imports',
+            'enforce.limits:storage_gb',
+        ])
+        ->name('tenant.terreno-polygon-imports.store');
+    Route::get('/terrenos/polygon-imports/{import}', [TerrenoPolygonImportController::class, 'show'])
+        ->whereNumber('import')
+        ->middleware('permission.gate:prospection,terrains')
+        ->name('tenant.terreno-polygon-imports.show');
+    Route::get('/terrenos/polygons', [TerrenoPolygonImportController::class, 'index'])
+        ->middleware('permission.gate:prospection,maps')
+        ->name('tenant.terreno-polygons.index');
+    Route::post('/terrenos/polygons/{polygon}/link', [TerrenoPolygonImportController::class, 'link'])
+        ->whereNumber('polygon')
+        ->middleware('permission.gate:prospection,terrains')
+        ->name('tenant.terreno-polygons.link');
+    Route::delete('/terrenos/polygons/{polygon}', [TerrenoPolygonImportController::class, 'destroy'])
+        ->whereNumber('polygon')
+        ->middleware('permission.gate:prospection,terrains')
+        ->name('tenant.terreno-polygons.destroy');
     Route::post('/terrenos/compare', [ShortlistController::class, 'compare'])
         ->middleware([
             'check.feature:prospection.comparison',

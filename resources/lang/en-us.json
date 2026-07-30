@@ -1,4 +1,5 @@
 {
+    "PLAN_LIMIT_CHECK_BUSY": "The plan limit could not be checked right now. Please try again.",
     "ACCESS_LEVEL_EDITOR": "Editor",
     "ACCESS_LEVEL_MANAGER": "Manager",
     "ACCESS_LEVEL_VIEWER": "Viewer",

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repositories\Contracts;
 
+use App\Models\Tenant\User;
 use Illuminate\Database\Eloquent\Collection;
 use Spatie\Permission\Models\Permission;
 
@@ -27,4 +28,6 @@ interface PermissionRepositoryInterface
     public function countUserUsage(Permission $permission): int;
 
     public function isSystemPermission(string $name): bool;
+
+    public function userCanViewModule(User $user, string $module): bool;
 }

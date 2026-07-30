@@ -43,7 +43,7 @@ class EntitlementController extends Controller
         try {
             $model = $this->entitlementService->create($request->validated());
         } catch (InvalidArgumentException $e) {
-            return ApiResponseService::error('CONFLICT', $e->getMessage(), null, 409);
+            return ApiResponseService::error('INVALID_ENTITLEMENT', $e->getMessage(), null, 422);
         }
 
         return ApiResponseService::success(
@@ -58,7 +58,7 @@ class EntitlementController extends Controller
         try {
             $model = $this->entitlementService->update($entitlement, $request->validated());
         } catch (InvalidArgumentException $e) {
-            return ApiResponseService::notFound($e->getMessage());
+            return ApiResponseService::error('INVALID_ENTITLEMENT', $e->getMessage(), null, 422);
         }
 
         return ApiResponseService::success(

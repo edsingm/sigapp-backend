@@ -2,20 +2,20 @@
 
 namespace App\Services\Modules;
 
-use App\Enums\Common\SectorsEnum;
-use App\Models\Central\Modules\Modules;
+use App\Repositories\Contracts\ModulesRepositoryInterface;
 
 class ModulesService
 {
+    public function __construct(
+        private readonly ModulesRepositoryInterface $repository,
+    ) {}
+
     public function getAllModules(): array
     {
-        $modules = Modules::where('active', true)
-            ->orderBy('order', 'asc')
-            ->get();
+        $modules = $this->repository->activeOrdered();
 
         return $modules
-            ->groupBy(fn (Modules $module) => $module->sector->value)
-            ->sortBy(fn ($_, string $sectorValue) => SectorsEnum::from($sectorValue)->order())
+            ->groupBy(fn ($module) => $module->sector->value)
             ->all();
     }
 }

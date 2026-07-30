@@ -26,11 +26,13 @@ Route::get('/municipios/{ibge_codigo}/dados-sidra', [MunicipioController::class,
 Route::prefix('dashboard')
     ->middleware('check.feature:dashboard.enabled')
     ->group(function () {
-        Route::get('/overview', [DashboardController::class, 'overview']);
-        Route::get('/management-overview', [DashboardController::class, 'managementOverview'])
+        Route::get('/overview', [DashboardController::class, 'overview'])
             ->middleware('check.feature:dashboard.overview');
+        Route::get('/management-overview', [DashboardController::class, 'managementOverview'])
+            ->middleware('check.feature:dashboard.management');
         Route::get('/cards', [DashboardController::class, 'cards']);
-        Route::get('/status-chart', [DashboardController::class, 'statusChart']);
+        Route::get('/status-chart', [DashboardController::class, 'statusChart'])
+            ->middleware('check.feature:dashboard.funnel');
         Route::get('/cadastros-mensais', [DashboardController::class, 'cadastrosMensais']);
         Route::get('/terrenos-responsavel', [DashboardController::class, 'terrenosPorResponsavel']);
         Route::get('/top-cidades', [DashboardController::class, 'topCidades']);
@@ -51,6 +53,7 @@ Route::prefix('mobile')->group(function () {
         Route::put('/captures/{clientId}', [MobileCaptureController::class, 'update'])
             ->whereUuid('clientId');
         Route::post('/captures/{clientId}/attachments', [MobileCaptureController::class, 'attachment'])
+            ->middleware('enforce.limits:storage_gb')
             ->whereUuid('clientId');
         Route::post('/captures/{clientId}/commit', [MobileCaptureController::class, 'commit'])
             ->whereUuid('clientId');

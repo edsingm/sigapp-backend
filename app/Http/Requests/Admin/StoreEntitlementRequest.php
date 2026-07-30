@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Enums\Common\EntitlementScope;
 use App\Enums\Common\EntitlementType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -20,7 +21,8 @@ class StoreEntitlementRequest extends FormRequest
             'label' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:1000'],
             'type' => ['required', Rule::enum(EntitlementType::class)],
-            'default_value' => ['nullable'],
+            'scope' => ['sometimes', Rule::enum(EntitlementScope::class)],
+            'default_value' => ['required'],
         ];
     }
 }

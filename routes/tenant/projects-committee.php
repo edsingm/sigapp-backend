@@ -8,13 +8,13 @@ use App\Http\Controllers\Api\V1\Tenant\ProjetoPlanningController;
 use Illuminate\Support\Facades\Route;
 
 // Projetos
-Route::middleware('check.feature:projects_room')->group(function () {
+Route::middleware('check.feature:projects.enabled')->group(function () {
     Route::get('/projetos/eligible-terrenos', [ProjetoController::class, 'eligibleTerrenos']);
     Route::post('/projetos/{id}/marcar-pronto-registro', [ProjetoController::class, 'markReady']);
     Route::post('/projetos/{id}/cancelar', [ProjetoController::class, 'cancel']);
     Route::apiResource('projetos', ProjetoController::class)->only(['index', 'store', 'show', 'update']);
 
-    Route::middleware('check.feature:projects.room')->group(function () {
+    Route::middleware('check.feature:projects.planning')->group(function () {
         Route::get('/projetos/{projeto}/milestones', [ProjetoPlanningController::class, 'milestones']);
         Route::post('/projetos/{projeto}/milestones', [ProjetoPlanningController::class, 'storeMilestone']);
         Route::post('/projetos/{projeto}/milestones/reorder', [ProjetoPlanningController::class, 'reorderMilestones']);
@@ -49,7 +49,7 @@ Route::middleware('check.feature:committee')->group(function () {
     Route::post('/comite/{id}/department-reviews', [CommitteeController::class, 'upsertDepartmentReview'])->whereNumber('id');
     Route::post('/comite/{id}/decision', [CommitteeController::class, 'finalize'])->whereNumber('id');
 
-    Route::middleware('check.feature:committee.meeting_mode')->group(function () {
+    Route::middleware('check.feature:committee.meeting')->group(function () {
         Route::get('/comite/sessions', [CommitteeMeetingController::class, 'index']);
         Route::post('/comite/sessions', [CommitteeMeetingController::class, 'store']);
         Route::get('/comite/sessions/{session}', [CommitteeMeetingController::class, 'show'])
@@ -57,8 +57,10 @@ Route::middleware('check.feature:committee')->group(function () {
         Route::put('/comite/sessions/{session}', [CommitteeMeetingController::class, 'update'])
             ->whereNumber('session');
         Route::post('/comite/sessions/{session}/start', [CommitteeMeetingController::class, 'start'])
+            ->middleware('check.feature:committee.meeting_mode')
             ->whereNumber('session');
         Route::post('/comite/sessions/{session}/close', [CommitteeMeetingController::class, 'finish'])
+            ->middleware('check.feature:committee.meeting_mode')
             ->whereNumber('session');
 
         Route::get('/comite/sessions/{session}/agenda-items', [CommitteeMeetingController::class, 'agenda'])
@@ -82,12 +84,16 @@ Route::middleware('check.feature:committee')->group(function () {
             ->whereNumber(['session', 'participant']);
 
         Route::get('/comite/sessions/{session}/minutes', [CommitteeMeetingController::class, 'minutes'])
+            ->middleware('check.feature:committee.meeting_mode')
             ->whereNumber('session');
         Route::post('/comite/sessions/{session}/minutes', [CommitteeMeetingController::class, 'saveMinutes'])
+            ->middleware('check.feature:committee.meeting_mode')
             ->whereNumber('session');
         Route::put('/comite/sessions/{session}/minutes', [CommitteeMeetingController::class, 'saveMinutes'])
+            ->middleware('check.feature:committee.meeting_mode')
             ->whereNumber('session');
         Route::post('/comite/sessions/{session}/minutes/approve', [CommitteeMeetingController::class, 'approveMinutes'])
+            ->middleware('check.feature:committee.meeting_mode')
             ->whereNumber('session');
     });
 });

@@ -5,7 +5,10 @@ namespace Database\Seeders;
 use App\Enums\Common\EntitlementType;
 use App\Models\Central\Entitlement;
 use App\Models\Central\Plan;
+use App\Repositories\Contracts\PlanRepositoryInterface;
+use App\Support\EntitlementCatalog;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Popula a tabela entitlements com todos os recursos definidos em config/plans.php
@@ -17,29 +20,39 @@ class EntitlementSeeder extends Seeder
 {
     public function run(): void
     {
+        DB::transaction(function (): void {
+            $this->seedCatalogAndMatrix();
+        });
+    }
+
+    private function seedCatalogAndMatrix(): void
+    {
         $entitlementDefs = $this->entitlementDefinitions();
 
         // 1. Upsert de todos os entitlements
         foreach ($entitlementDefs as $def) {
-            Entitlement::updateOrCreate(
+            Entitlement::query()->updateOrCreate(
                 ['key' => $def['key']],
                 [
                     'label' => $def['label'],
                     'description' => $def['description'] ?? null,
                     'type' => $def['type']->value,
+                    'scope' => $def['type'] === EntitlementType::LIMIT
+                        ? 'internal'
+                        : EntitlementCatalog::scopeForFeature($def['key'])->value,
                     'default_value' => $def['default_value'],
                 ]
             );
         }
 
-        $this->command?->info('✅ Entitlements upserted: '.count($entitlementDefs));
+        $this->command->info('✅ Entitlements upserted: '.count($entitlementDefs));
 
         // 2. Sincroniza valores por plano
         foreach ($this->planMatrix() as $slug => $matrix) {
             $plan = Plan::where('slug', $slug)->first();
 
             if (! $plan) {
-                $this->command?->warn("Plano [{$slug}] não encontrado no banco, pulando sync de entitlements.");
+                $this->command->warn("Plano [{$slug}] não encontrado no banco, pulando sync de entitlements.");
 
                 continue;
             }
@@ -63,7 +76,8 @@ class EntitlementSeeder extends Seeder
             }
 
             $plan->entitlements()->sync($pivotData);
-            $this->command?->info("  ↳ [{$slug}] sincronizado com ".count($pivotData).' entitlements.');
+            app(PlanRepositoryInterface::class)->invalidateMatrixCache((int) $plan->id);
+            $this->command->info("  ↳ [{$slug}] sincronizado com ".count($pivotData).' entitlements.');
         }
     }
 
@@ -97,7 +111,8 @@ class EntitlementSeeder extends Seeder
                     'ai' => false,
                     'negotiation' => false,
                     'legalizations' => false,
-                    'projects_room' => false,
+                    'projects.enabled' => false,
+                    'projects.planning' => false,
                     'product_settings' => true,
                     'regionals' => true,
                     'territorial_base' => true,
@@ -134,7 +149,8 @@ class EntitlementSeeder extends Seeder
                     'ai' => false,
                     'negotiation' => false,
                     'legalizations' => false,
-                    'projects_room' => false,
+                    'projects.enabled' => false,
+                    'projects.planning' => false,
                     'product_settings' => true,
                     'regionals' => true,
                     'territorial_base' => true,
@@ -171,7 +187,8 @@ class EntitlementSeeder extends Seeder
                     'ai' => true,
                     'negotiation' => false,
                     'legalizations' => true,
-                    'projects_room' => false,
+                    'projects.enabled' => false,
+                    'projects.planning' => false,
                     'product_settings' => true,
                     'regionals' => true,
                     'territorial_base' => true,
@@ -208,7 +225,8 @@ class EntitlementSeeder extends Seeder
                     'ai' => true,
                     'negotiation' => true,
                     'legalizations' => true,
-                    'projects_room' => true,
+                    'projects.enabled' => true,
+                    'projects.planning' => true,
                     'product_settings' => true,
                     'regionals' => true,
                     'territorial_base' => true,
@@ -232,8 +250,8 @@ class EntitlementSeeder extends Seeder
      * Broker concentra a operação individual; Básico adiciona análise;
      * Master adiciona gestão; Pro libera os recursos estratégicos e de IA.
      * `onboarding.profile` e `experience.accessibility` ficam disponíveis em
-     * todos os planos. `projects.room` é o alias canônico novo de
-     * `projects_room` e preserva o acesso legado do plano Pro.
+     * todos os planos. As chaves `projects_room` e `projects.room` são aliases
+     * temporários resolvidos em runtime, fora do catálogo comercial.
      *
      * @return array<string, bool>
      */
@@ -249,7 +267,7 @@ class EntitlementSeeder extends Seeder
             'dashboard.executive' => false,
             'dashboard.goals' => false,
             'dashboard.management' => false,
-            'projects.room' => false,
+            'projects.planning' => false,
             'committee.meeting' => false,
             'committee.meeting_mode' => false,
             'negotiation.deal_room' => false,
@@ -301,7 +319,7 @@ class EntitlementSeeder extends Seeder
 
         $pro = [
             ...$master,
-            'projects.room',
+            'projects.planning',
             'negotiation.deal_room',
             'territorial.map_comparison',
             'ai.contextual',
@@ -336,7 +354,7 @@ class EntitlementSeeder extends Seeder
             ['key' => 'committee',                  'label' => 'Comitê de Revisão',           'type' => EntitlementType::FEATURE, 'default_value' => false],
             ['key' => 'negotiation',                'label' => 'Negociações',                 'type' => EntitlementType::FEATURE, 'default_value' => false],
             ['key' => 'legalizations',              'label' => 'Legalizações',                'type' => EntitlementType::FEATURE, 'default_value' => false],
-            ['key' => 'projects_room',              'label' => 'Sala de Projetos',            'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'projects.enabled',           'label' => 'Projetos — CRUD',             'type' => EntitlementType::FEATURE, 'default_value' => false],
             ['key' => 'product_settings',           'label' => 'Configuração de Produtos',   'type' => EntitlementType::FEATURE, 'default_value' => false],
             ['key' => 'regionals',                  'label' => 'Regionais',                   'type' => EntitlementType::FEATURE, 'default_value' => false],
             ['key' => 'territorial_base',           'label' => 'Base Territorial',            'type' => EntitlementType::FEATURE, 'default_value' => false],
@@ -352,7 +370,7 @@ class EntitlementSeeder extends Seeder
             ['key' => 'dashboard.executive',               'label' => 'Roadmap — Cockpit executivo',            'type' => EntitlementType::FEATURE, 'default_value' => false],
             ['key' => 'dashboard.goals',                   'label' => 'Roadmap — Metas gerenciais',             'type' => EntitlementType::FEATURE, 'default_value' => false],
             ['key' => 'dashboard.management',              'label' => 'Roadmap — Capacidade gerencial',         'type' => EntitlementType::FEATURE, 'default_value' => false],
-            ['key' => 'projects.room',                     'label' => 'Roadmap — Sala de projetos',             'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'projects.planning',                 'label' => 'Projetos — Planejamento',               'type' => EntitlementType::FEATURE, 'default_value' => false],
             ['key' => 'committee.meeting',                 'label' => 'Roadmap — Reuniões de comitê',           'type' => EntitlementType::FEATURE, 'default_value' => false],
             ['key' => 'committee.meeting_mode',            'label' => 'Roadmap — Modo reunião do comitê',      'type' => EntitlementType::FEATURE, 'default_value' => false],
             ['key' => 'negotiation.deal_room',             'label' => 'Roadmap — Deal room',                    'type' => EntitlementType::FEATURE, 'default_value' => false],

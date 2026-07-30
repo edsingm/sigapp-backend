@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Tenant;
 
+use App\Services\Tenant\Viabilidade\ViabilidadeResultProjector;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Str;
@@ -27,20 +28,33 @@ class ViabilidadeCalculationResource extends JsonResource
         $viabilidade = $payload['viabilidade'] ?? null;
         $dreResultados = is_array($payload['dre_resultados'] ?? null) ? $payload['dre_resultados'] : [];
         $include = $this->parseInclude($request);
+        $projector = app(ViabilidadeResultProjector::class);
+        $rawInclude = $request->query('include');
+        $projector->assertExplicitIncludesAllowed(is_string($rawInclude) ? $rawInclude : null);
+        $dreResultados = $projector->project($dreResultados);
 
         $response = [
             'viabilidade' => $viabilidade !== null ? new ViabilidadeResource($viabilidade) : null,
-            'resumo' => $this->buildResumo($dreResultados),
-            'indicadores' => $this->buildIndicadores($dreResultados),
-            'produtos_resumo' => $this->buildProdutosResumo($dreResultados),
             'calculation_engine_version' => $dreResultados['calculation_engine_version'] ?? null,
             'warnings' => is_array($dreResultados['warnings'] ?? null)
                 ? array_values($dreResultados['warnings'])
                 : [],
-            'reconciliation' => is_array($dreResultados['reconciliation'] ?? null)
-                ? $dreResultados['reconciliation']
-                : null,
         ];
+
+        if ($projector->allows('summary')) {
+            $response['resumo'] = $this->buildResumo($dreResultados);
+            $response['produtos_resumo'] = $this->buildProdutosResumo($dreResultados);
+        }
+
+        if ($projector->allows('kpis')) {
+            $response['indicadores'] = $this->buildIndicadores($dreResultados);
+        }
+
+        if ($projector->allows('dre')) {
+            $response['reconciliation'] = is_array($dreResultados['reconciliation'] ?? null)
+                ? $dreResultados['reconciliation']
+                : null;
+        }
 
         if ($this->shouldInclude($include, 'dre')) {
             $response['dre'] = $dreResultados['dre_itens'] ?? [];

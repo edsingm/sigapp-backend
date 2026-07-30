@@ -15,7 +15,7 @@ class AddTenantEntitlementRequest extends FormRequest
     {
         return [
             'entitlement_id' => ['required', 'integer', 'exists:entitlements,id'],
-            'value' => ['required'],
+            'value' => ['sometimes'],
             'price' => ['required', 'integer', 'min:0'],
         ];
     }

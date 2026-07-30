@@ -2,16 +2,13 @@
 
 namespace App\Services;
 
-use App\Models\Tenant\AiGeneratedReport;
-use App\Models\Tenant\Documento;
-use App\Models\Tenant\Produto;
-use App\Models\Tenant\Terreno;
-use App\Models\Tenant\User;
+use App\Repositories\Contracts\UsageMetricsRepositoryInterface;
 
 class UsageMetricsService
 {
     public function __construct(
         private readonly PlanMatrixService $planMatrix,
+        private readonly UsageMetricsRepositoryInterface $repository,
     ) {}
 
     /**
@@ -23,7 +20,7 @@ class UsageMetricsService
             return 0;
         }
 
-        return User::count();
+        return $this->repository->userCount();
     }
 
     /**
@@ -35,7 +32,7 @@ class UsageMetricsService
             return 0;
         }
 
-        return Terreno::count();
+        return $this->repository->terrenoCount();
     }
 
     /**
@@ -47,7 +44,7 @@ class UsageMetricsService
             return 0;
         }
 
-        return Produto::count();
+        return $this->repository->produtoCount();
     }
 
     /**
@@ -59,7 +56,7 @@ class UsageMetricsService
             return 0;
         }
 
-        return (int) Documento::query()->sum('tamanho') + (int) AiGeneratedReport::query()->sum('tamanho');
+        return $this->repository->storageUsedBytes();
     }
 
     /**

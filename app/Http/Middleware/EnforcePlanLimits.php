@@ -2,12 +2,14 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Central\Tenant;
 use App\Services\ApiResponseService;
 use App\Services\PlanMatrixService;
 use App\Services\UsageMetricsService;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Symfony\Component\HttpFoundation\Response;
 
 class EnforcePlanLimits
@@ -44,22 +46,60 @@ class EnforcePlanLimits
             );
         }
 
-        // Verifica limites específicos do recurso
-        if ($resource) {
-            $limitExceeded = $this->checkResourceLimit($resource, $request);
+        if (! $resource) {
+            return $next($request);
+        }
 
-            if ($limitExceeded) {
-                return ApiResponseService::error(
-                    'PLAN_LIMIT_EXCEEDED',
-                    "Limite do plano atingido para {$resource}. Faça upgrade para continuar.",
-                    [
-                        'resource' => $resource,
-                        'plan' => $plan->name,
-                        'upgrade_url' => '/api/v1/tenant/subscription/upgrade',
-                    ],
-                    403
-                );
-            }
+        $canonicalResource = $resource === 'storage' ? 'storage_gb' : $resource;
+        $protectedResources = ['users', 'terrenos', 'products', 'storage_gb'];
+
+        if (! in_array($canonicalResource, $protectedResources, true)) {
+            return $this->continueWhenAllowed($request, $next, $canonicalResource, $plan->name);
+        }
+
+        if (! $tenant instanceof Tenant) {
+            return ApiResponseService::error('NO_PLAN', 'Tenant inválido.', null, 403);
+        }
+
+        $tenantId = (string) $tenant->getTenantKey();
+        $lock = Cache::lock("plan-limit:{$tenantId}:{$canonicalResource}", 30);
+
+        if (! $lock->get()) {
+            return ApiResponseService::error(
+                'PLAN_LIMIT_CHECK_BUSY',
+                'PLAN_LIMIT_CHECK_BUSY',
+                ['resource' => $canonicalResource],
+                409,
+            );
+        }
+
+        try {
+            return $this->continueWhenAllowed($request, $next, $canonicalResource, $plan->name);
+        } finally {
+            $lock->release();
+        }
+    }
+
+    /**
+     * @param  Closure(Request): Response  $next
+     */
+    private function continueWhenAllowed(
+        Request $request,
+        Closure $next,
+        string $resource,
+        string $planName,
+    ): Response {
+        if ($this->checkResourceLimit($resource, $request)) {
+            return ApiResponseService::error(
+                'PLAN_LIMIT_EXCEEDED',
+                "Limite do plano atingido para {$resource}. Faça upgrade para continuar.",
+                [
+                    'resource' => $resource,
+                    'plan' => $planName,
+                    'upgrade_url' => '/api/v1/tenant/subscription/upgrade',
+                ],
+                403
+            );
         }
 
         return $next($request);

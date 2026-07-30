@@ -14,8 +14,8 @@ class UpdateTenantEntitlementRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'value' => ['required'],
-            'price' => ['required', 'integer', 'min:0'],
+            'value' => ['sometimes'],
+            'price' => ['sometimes', 'integer', 'min:0'],
         ];
     }
 }

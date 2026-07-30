@@ -247,4 +247,22 @@ class TenantRepository implements TenantRepositoryInterface
             ->firstOrFail()
             ->delete() === true;
     }
+
+    public function readyForEntitlementAudit(?string $identifier = null): iterable
+    {
+        foreach (Tenant::all() as $model) {
+            if (! $model instanceof Tenant) {
+                continue;
+            }
+
+            $matchesIdentifier = $identifier === null
+                || $identifier === ''
+                || $model->id === $identifier
+                || $model->slug === $identifier;
+
+            if ($matchesIdentifier && $model->database_created) {
+                yield $model;
+            }
+        }
+    }
 }

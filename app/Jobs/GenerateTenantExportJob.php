@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
+use App\Exceptions\StorageQuotaExceededException;
 use App\Models\Tenant\TenantExportGeneration;
 use App\Repositories\Tenant\TenantExportGenerationRepository;
 use App\Services\Tenant\TenantExportGenerator;
@@ -48,6 +49,8 @@ class GenerateTenantExportJob implements ShouldBeUnique, ShouldQueue
 
         try {
             $repository->markCompleted($generation, $generator->generate($generation));
+        } catch (StorageQuotaExceededException) {
+            $repository->markFailed($this->generationId);
         } catch (Throwable $exception) {
             $repository->releaseForRetry($this->generationId);
 

@@ -18,4 +18,9 @@ interface EntitlementRepositoryInterface
     public function update(Entitlement $entitlement, array $data): Entitlement;
 
     public function delete(Entitlement $entitlement): void;
+
+    /** @return array<int, int> */
+    public function linkedPlanIds(Entitlement $entitlement): array;
+
+    public function hasLinks(Entitlement $entitlement): bool;
 }

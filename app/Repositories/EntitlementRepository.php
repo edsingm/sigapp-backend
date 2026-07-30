@@ -39,4 +39,18 @@ class EntitlementRepository implements EntitlementRepositoryInterface
     {
         $entitlement->delete();
     }
+
+    public function linkedPlanIds(Entitlement $entitlement): array
+    {
+        return $entitlement->plans()
+            ->pluck('plans.id')
+            ->map(static fn (mixed $id): int => (int) $id)
+            ->all();
+    }
+
+    public function hasLinks(Entitlement $entitlement): bool
+    {
+        return $entitlement->plans()->exists()
+            || $entitlement->tenantEntitlements()->exists();
+    }
 }

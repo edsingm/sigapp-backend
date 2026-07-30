@@ -11,6 +11,10 @@ use Illuminate\Support\Facades\Storage;
 
 class ReportGenerationService
 {
+    public function __construct(
+        private readonly StorageQuotaService $storageQuota,
+    ) {}
+
     /** @var array<string, array<string, string>> */
     private const DIMENSION_COLUMNS = [
         'terrenos' => ['status' => 'workflow_status_code', 'workflow_status_code' => 'workflow_status_code', 'estado' => 'estado', 'created_at' => 'created_at'],
@@ -51,13 +55,14 @@ class ReportGenerationService
 
         $path = 'reports/runs/'.$run->id.'.csv';
         Storage::disk('s3')->put($path, $contents, ['visibility' => 'private']);
+        $size = $this->storageQuota->assertGeneratedFileFits('s3', $path);
         $run->update([
             'status' => 'completed',
             'progress' => 100,
             'storage_disk' => 's3',
             'storage_path' => $path,
             'mime_type' => 'text/csv',
-            'size' => strlen($contents),
+            'size' => $size,
             'completed_by' => $run->requested_by,
             'completed_at' => now(),
         ]);

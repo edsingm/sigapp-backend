@@ -2,6 +2,7 @@
 
 namespace App\Models\Central;
 
+use App\Enums\Common\EntitlementScope;
 use App\Enums\Common\EntitlementType;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -9,6 +10,7 @@ use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Stancl\Tenancy\Database\Concerns\CentralConnection;
 
 /**
@@ -17,12 +19,13 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * @property string $label
  * @property string|null $description
  * @property EntitlementType $type
+ * @property EntitlementScope $scope
  * @property mixed $default_value
  * @property Carbon $created_at
  * @property Carbon $updated_at
  */
 #[Table('entitlements')]
-#[Fillable(['key', 'label', 'description', 'type', 'default_value'])]
+#[Fillable(['key', 'label', 'description', 'type', 'scope', 'default_value'])]
 class Entitlement extends Model
 {
     use CentralConnection, HasFactory;
@@ -31,6 +34,7 @@ class Entitlement extends Model
     {
         return [
             'type' => EntitlementType::class,
+            'scope' => EntitlementScope::class,
             'default_value' => 'json',
         ];
     }
@@ -40,5 +44,11 @@ class Entitlement extends Model
         return $this->belongsToMany(Plan::class, 'plan_entitlements')
             ->withPivot('value')
             ->withTimestamps();
+    }
+
+    /** @return HasMany<TenantEntitlement, $this> */
+    public function tenantEntitlements(): HasMany
+    {
+        return $this->hasMany(TenantEntitlement::class);
     }
 }

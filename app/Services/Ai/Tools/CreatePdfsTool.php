@@ -2,13 +2,12 @@
 
 namespace App\Services\Ai\Tools;
 
+use App\Exceptions\StorageQuotaExceededException;
 use App\Models\Tenant\AiGeneratedReport;
 use App\Repositories\Tenant\AiGeneratedReportRepository;
-use App\Services\PlanMatrixService;
-use App\Services\UsageMetricsService;
+use App\Services\Tenant\StorageQuotaService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -21,8 +20,7 @@ class CreatePdfsTool implements Tool
     private ?AiGeneratedReport $lastGeneratedReport = null;
 
     public function __construct(
-        private readonly PlanMatrixService $planMatrix,
-        private readonly UsageMetricsService $usageService,
+        private readonly StorageQuotaService $storageQuota,
         private readonly AiGeneratedReportRepository $reportRepository,
     ) {}
 
@@ -148,20 +146,13 @@ class CreatePdfsTool implements Tool
             );
         }
 
-        $tamanho = (int) Storage::disk('s3')->size($path);
-        $tenant = tenancy()->tenant;
-
-        if ($tenant && ! $this->planMatrix->isUnlimitedLimitForTenant($tenant, 'storage_gb')) {
-            $maxBytes = $this->planMatrix->getLimitForTenant($tenant, 'storage_gb') * 1024 * 1024 * 1024;
-
-            if (($this->usageService->getStorageUsedBytes() + $tamanho) > $maxBytes) {
-                Storage::disk('s3')->delete($path);
-
-                return AiToolResponse::planDenied(
-                    'Não foi possível salvar o PDF: o limite de armazenamento do plano foi atingido. '
-                    .'Faça upgrade do plano ou libere espaço para continuar gerando PDFs.'
-                );
-            }
+        try {
+            $tamanho = $this->storageQuota->assertGeneratedFileFits('s3', $path);
+        } catch (StorageQuotaExceededException) {
+            return AiToolResponse::planDenied(
+                'Não foi possível salvar o PDF: o limite de armazenamento do plano foi atingido. '
+                .'Faça upgrade do plano ou libere espaço para continuar gerando PDFs.'
+            );
         }
 
         $report = $this->reportRepository->create([

@@ -103,7 +103,7 @@ class TenantPlanController extends Controller
             $record = $this->tenantPlanService->addExtraEntitlement(
                 $id,
                 (int) $data['entitlement_id'],
-                $data['value'],
+                $data['value'] ?? null,
                 (int) $data['price'],
             );
         } catch (UniqueConstraintViolationException) {
@@ -130,6 +130,8 @@ class TenantPlanController extends Controller
             );
         } catch (ModelNotFoundException) {
             return ApiResponseService::notFound(language()->t('RESOURCE_NOT_FOUND'));
+        } catch (InvalidArgumentException $e) {
+            return ApiResponseService::error('INVALID_ENTITLEMENT', $e->getMessage(), null, 422);
         }
 
         $record->load('entitlement');

@@ -111,4 +111,17 @@ class PermissionRepository implements PermissionRepositoryInterface
 
         return false;
     }
+
+    public function userCanViewModule(User $user, string $module): bool
+    {
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        return $user->getAllPermissions()
+            ->contains(static function (Permission $permission) use ($module): bool {
+                return str_starts_with($permission->name, $module.'.')
+                    && str_ends_with($permission->name, '.viewer');
+            });
+    }
 }

@@ -16,6 +16,7 @@ class TenantPlanService
         private readonly TenantRepositoryInterface $tenantRepository,
         private readonly PlanRepositoryInterface $planRepository,
         private readonly EntitlementRepositoryInterface $entitlementRepository,
+        private readonly EntitlementValueService $valueService,
     ) {}
 
     /**
@@ -115,11 +116,19 @@ class TenantPlanService
             throw new InvalidArgumentException('Tenant não encontrado.');
         }
 
-        if (! $this->entitlementRepository->findById($entitlementId)) {
+        $entitlement = $this->entitlementRepository->findById($entitlementId);
+        if (! $entitlement) {
             throw new InvalidArgumentException('Entitlement não encontrado.');
         }
 
-        return $this->tenantRepository->addExtraEntitlement($tenant, $entitlementId, $value, $price);
+        $resolvedValue = $value ?? $entitlement->default_value;
+
+        return $this->tenantRepository->addExtraEntitlement(
+            $tenant,
+            $entitlementId,
+            $this->valueService->normalize($entitlement->type, $entitlement->key, $resolvedValue),
+            $price,
+        );
     }
 
     /**
@@ -132,6 +141,19 @@ class TenantPlanService
         $tenant = $this->tenantRepository->findById($tenantId);
         if (! $tenant) {
             throw new InvalidArgumentException('Tenant não encontrado.');
+        }
+
+        $entitlement = $this->entitlementRepository->findById($entitlementId);
+        if (! $entitlement) {
+            throw new InvalidArgumentException('Entitlement não encontrado.');
+        }
+
+        if (array_key_exists('value', $data)) {
+            $data['value'] = $this->valueService->normalize(
+                $entitlement->type,
+                $entitlement->key,
+                $data['value'],
+            );
         }
 
         return $this->tenantRepository->updateExtraEntitlement($tenant, $entitlementId, $data);

@@ -9,6 +9,7 @@ use App\Models\Tenant\User;
 use App\Models\Tenant\Viabilidade;
 use App\Services\Tenant\Viabilidade\v1\PremissasViabilidadeService;
 use App\Services\Tenant\Viabilidade\v1\ViabilidadeSnapshotService;
+use App\Services\Tenant\Viabilidade\ViabilidadeResultProjector;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -33,6 +34,9 @@ class ViabilidadeResource extends JsonResource
     public function toArray(Request $request): array
     {
         $include = $this->parseInclude($request);
+        $projector = app(ViabilidadeResultProjector::class);
+        $rawInclude = $request->query('include');
+        $projector->assertExplicitIncludesAllowed(is_string($rawInclude) ? $rawInclude : null);
         $perfilFinanciamento = $this->getAttribute('perfil_financiamento');
         $terreno = $this->relationLoaded('terreno') ? $this->resource->getRelation('terreno') : null;
         $updatedBy = $this->relationLoaded('updatedBy') ? $this->resource->getRelation('updatedBy') : null;
@@ -138,7 +142,7 @@ class ViabilidadeResource extends JsonResource
             'inadimplencia' => $this->resolveFloatValue([], 'inadimplencia', 'inadimplencia', 'inadimplencia', true),
             'atraso_meses' => $this->resolveIntValue([], 'atraso_meses', 'atrasoMeses', 'atraso_meses'),
             'taxa_perda' => $this->resolveFloatValue([], 'taxa_perda', 'taxaPerda', 'taxa_perda', true),
-            'produtos' => $this->resolveProdutos(),
+            'produtos' => $projector->allows('comercial') ? $this->resolveProdutos() : [],
             'perfil_financiamento' => $perfil,
             'status' => $this->status,
             'approval_status' => $approvalStatus->value,
@@ -153,7 +157,9 @@ class ViabilidadeResource extends JsonResource
             // Fluxo mensal completo sob demanda: include=monthly_cash_flow|resultados_dre|*.
             // Por padrão devolve o payload persistido (compatibilidade). Listagens leves
             // devem usar select sem a coluna JSON no repository.
-            'resultados_dre' => $this->getAttribute('resultados_dre'),
+            'resultados_dre' => is_array($this->getAttribute('resultados_dre'))
+                ? $projector->project($this->getAttribute('resultados_dre'))
+                : null,
             'terreno' => $terreno instanceof Terreno ? [
                 'id' => $terreno->id,
                 'nome' => $terreno->getAttribute('nome'),
@@ -195,7 +201,7 @@ class ViabilidadeResource extends JsonResource
             ];
         }
 
-        if ($this->shouldInclude($include, 'premissas_snapshot')) {
+        if ($this->shouldInclude($include, 'premissas_snapshot') && $projector->allows('premises')) {
             $data['premissas_snapshot'] = $this->snapshot();
         }
 

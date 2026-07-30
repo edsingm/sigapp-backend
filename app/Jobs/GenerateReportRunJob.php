@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
+use App\Exceptions\StorageQuotaExceededException;
 use App\Repositories\Tenant\ReportRunRepository;
 use App\Services\Tenant\ReportGenerationService;
 use Illuminate\Bus\Queueable;
@@ -45,6 +46,8 @@ class GenerateReportRunJob implements ShouldBeUnique, ShouldQueue
 
         try {
             $service->generate($run);
+        } catch (StorageQuotaExceededException) {
+            $repository->markFailed($this->runId);
         } catch (Throwable $exception) {
             $repository->releaseForRetry($this->runId);
 

@@ -21,6 +21,7 @@ class TenantExportGenerator
     public function __construct(
         private readonly TerrenoExportService $terrenos,
         private readonly ViabilidadeService $viabilidades,
+        private readonly StorageQuotaService $storageQuota,
     ) {}
 
     /**
@@ -49,7 +50,7 @@ class TenantExportGenerator
             'storage_path' => $path,
             'file_name' => $fileName,
             'mime_type' => $generation->type->mimeType(),
-            'size' => $disk->size($path),
+            'size' => $this->storageQuota->assertGeneratedFileFits(self::STORAGE_DISK, $path),
         ];
     }
 

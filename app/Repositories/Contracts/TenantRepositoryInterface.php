@@ -47,4 +47,7 @@ interface TenantRepositoryInterface
     public function updateExtraEntitlement(Tenant $tenant, int $entitlementId, array $data): TenantEntitlement;
 
     public function removeExtraEntitlement(Tenant $tenant, int $entitlementId): bool;
+
+    /** @return iterable<Tenant> */
+    public function readyForEntitlementAudit(?string $identifier = null): iterable;
 }

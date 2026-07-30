@@ -8,6 +8,7 @@ use App\Enums\TenantExportType;
 use App\Exports\Tenant\TerrenosExport;
 use App\Models\Tenant\TenantExportGeneration;
 use App\Models\Tenant\Terreno;
+use App\Services\Tenant\StorageQuotaService;
 use App\Services\Tenant\TenantExportGenerator;
 use App\Services\Tenant\TerrenoExportService;
 use App\Services\Tenant\Viabilidade\v1\ViabilidadeService;
@@ -43,7 +44,12 @@ final class TenantExportGeneratorTest extends TestCase
         Storage::fake('s3');
         Storage::disk('s3')->put($path, 'pdf');
 
-        $artifact = (new TenantExportGenerator($service, $viabilidades))->generate($generation);
+        $quota = $this->createMock(StorageQuotaService::class);
+        $quota->expects($this->once())
+            ->method('assertGeneratedFileFits')
+            ->with('s3', $path)
+            ->willReturn(3);
+        $artifact = (new TenantExportGenerator($service, $viabilidades, $quota))->generate($generation);
 
         $pdf->assertViewIs('exports.terreno-pdf');
         $pdf->assertSaved($path);
@@ -62,7 +68,12 @@ final class TenantExportGeneratorTest extends TestCase
         Storage::fake('s3');
         Storage::disk('s3')->put($path, 'xlsx');
 
-        $artifact = (new TenantExportGenerator($service, $viabilidades))->generate($generation);
+        $quota = $this->createMock(StorageQuotaService::class);
+        $quota->expects($this->once())
+            ->method('assertGeneratedFileFits')
+            ->with('s3', $path)
+            ->willReturn(4);
+        $artifact = (new TenantExportGenerator($service, $viabilidades, $quota))->generate($generation);
 
         Excel::assertStored(
             $path,

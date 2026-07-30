@@ -8,6 +8,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 
 interface PlanRepositoryInterface
 {
+    /** @return Collection<int, Plan> */
     public function all(): Collection;
 
     /**
@@ -33,7 +34,7 @@ interface PlanRepositoryInterface
      * Retorna os entitlements do plano com o pivot value, indexados por entitlement_id.
      * Resultado cacheado por plan_id.
      *
-     * @return array{features: array<string, mixed>, limits: array<string, int>}
+     * @return array{features: array<string, mixed>, limits: array<string, int|float>}
      */
     public function getMatrix(int $planId): array;
 

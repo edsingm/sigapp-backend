@@ -8,6 +8,7 @@ use App\Http\Resources\Tenant\Modules\ModulesResource;
 use App\Http\Resources\TenantResource;
 use App\Http\Resources\UserResource;
 use App\Services\ApiResponseService;
+use App\Services\Modules\ModuleAccessService;
 use App\Services\Modules\ModulesService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,6 +17,7 @@ class ModulesController extends Controller
 {
     public function __construct(
         private readonly ModulesService $modulesService,
+        private readonly ModuleAccessService $moduleAccessService,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -27,26 +29,36 @@ class ModulesController extends Controller
 
         $user = $request->user();
 
-        return ApiResponseService::success([
+        $groupedModules = $this->modulesService->getAllModules();
+        $payload = [
             'tenant' => $tenant ? new TenantResource($tenant) : null,
             'user' => $user ? new UserResource($user) : null,
-            'modules' => $this->serializedModules($request),
-        ]);
+            'modules' => $this->serializedModules($request, $groupedModules),
+        ];
+
+        if ($tenant && $user) {
+            $payload['access'] = $this->moduleAccessService->resolve($tenant, $user, $groupedModules);
+        }
+
+        return ApiResponseService::success($payload);
     }
 
     public function modules(Request $request): JsonResponse
     {
-        return ApiResponseService::success($this->serializedModules($request));
+        return ApiResponseService::success($this->serializedModules(
+            $request,
+            $this->modulesService->getAllModules(),
+        ));
     }
 
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function serializedModules(Request $request): array
+    private function serializedModules(Request $request, ?array $groupedModules = null): array
     {
         $modules = [];
 
-        foreach ($this->modulesService->getAllModules() as $sectorValue => $moduleCollection) {
+        foreach ($groupedModules ?? $this->modulesService->getAllModules() as $sectorValue => $moduleCollection) {
             $sector = SectorsEnum::from($sectorValue);
 
             $modules[] = [

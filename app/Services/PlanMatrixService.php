@@ -6,6 +6,7 @@ use App\Enums\Common\EntitlementType;
 use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
 use App\Repositories\Contracts\PlanRepositoryInterface;
+use App\Support\EntitlementCatalog;
 use InvalidArgumentException;
 
 class PlanMatrixService
@@ -17,7 +18,7 @@ class PlanMatrixService
     /**
      * Resolve a matriz de features e limites de um plano pelo modelo ou slug.
      *
-     * @return array{features: array<string, mixed>, limits: array<string, int>}
+     * @return array{features: array<string, mixed>, limits: array<string, int|float>}
      */
     public function resolve(Plan|string|null $plan): array
     {
@@ -27,7 +28,7 @@ class PlanMatrixService
             throw new InvalidArgumentException('Plano não informado ou não encontrado para resolução da matriz.');
         }
 
-        return $this->planRepository->getMatrix($planModel->id);
+        return $this->withLegacyAliases($this->planRepository->getMatrix($planModel->id));
     }
 
     /**
@@ -39,7 +40,7 @@ class PlanMatrixService
     }
 
     /**
-     * @return array<string, int>
+     * @return array<string, int|float>
      */
     public function limits(Plan|string|null $plan): array
     {
@@ -55,7 +56,11 @@ class PlanMatrixService
 
     public function featureValue(Plan|string|null $plan, string $path, mixed $default = null): mixed
     {
-        return $this->resolveFeatureValue($this->features($plan), $path, $default);
+        return $this->resolveFeatureValue(
+            $this->features($plan),
+            EntitlementCatalog::canonicalKey($path),
+            $default,
+        );
     }
 
     public function getLimit(Plan|string|null $plan, string $key, int $default = 0): int
@@ -74,7 +79,7 @@ class PlanMatrixService
      * Resolve a matriz efetiva de features e limites para um tenant específico,
      * mesclando os entitlements extras do tenant sobre a matriz base do plano.
      *
-     * @return array{features: array<string, mixed>, limits: array<string, int>}
+     * @return array{features: array<string, mixed>, limits: array<string, int|float>}
      */
     public function resolveForTenant(Tenant $tenant): array
     {
@@ -87,7 +92,7 @@ class PlanMatrixService
         $extras = $tenant->extraEntitlements()->with('entitlement')->get();
 
         if ($extras->isEmpty()) {
-            return $base;
+            return $this->withLegacyAliases($base);
         }
 
         $features = $base['features'];
@@ -100,11 +105,13 @@ class PlanMatrixService
             if ($ent->type === EntitlementType::FEATURE) {
                 $this->setFeatureValue($features, (string) $ent->key, (bool) $value);
             } else {
-                $limits[$ent->key] = (int) $value;
+                $limits[$ent->key] = $ent->key === 'ai_budget'
+                    ? (float) $value
+                    : (int) $value;
             }
         }
 
-        return ['features' => $features, 'limits' => $limits];
+        return $this->withLegacyAliases(['features' => $features, 'limits' => $limits]);
     }
 
     /**
@@ -113,7 +120,7 @@ class PlanMatrixService
     public function hasFeatureForTenant(Tenant $tenant, string $path): bool
     {
         $features = $this->resolveForTenant($tenant)['features'];
-        $value = $this->resolveFeatureValue($features, $path);
+        $value = $this->resolveFeatureValue($features, EntitlementCatalog::canonicalKey($path));
 
         return $value === true;
     }
@@ -194,5 +201,23 @@ class PlanMatrixService
         }
 
         unset($cursor);
+    }
+
+    /**
+     * @param  array{features: array<string, mixed>, limits: array<string, int|float>}  $matrix
+     * @return array{features: array<string, mixed>, limits: array<string, int|float>}
+     */
+    private function withLegacyAliases(array $matrix): array
+    {
+        foreach (EntitlementCatalog::LEGACY_ALIASES as $legacy => $canonical) {
+            $missing = new \stdClass;
+            $value = $this->resolveFeatureValue($matrix['features'], $canonical, $missing);
+            if ($value === $missing) {
+                continue;
+            }
+            $this->setFeatureValue($matrix['features'], $legacy, $value === true);
+        }
+
+        return $matrix;
     }
 }

@@ -81,7 +81,7 @@ class PlanAdminController extends Controller
         try {
             $model = $this->planService->syncEntitlements($plan, $request->validated()['entitlements']);
         } catch (InvalidArgumentException $e) {
-            return ApiResponseService::notFound(language()->t('PLAN_NOT_FOUND'));
+            return ApiResponseService::error('INVALID_ENTITLEMENT', $e->getMessage(), null, 422);
         }
 
         return ApiResponseService::success(

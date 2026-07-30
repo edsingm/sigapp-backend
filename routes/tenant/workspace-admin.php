@@ -89,8 +89,10 @@ Route::middleware('check.feature:collaboration.inbox')->group(function () {
 
 // Tarefas colaborativas. O middleware de permissão preserva a
 // ACL de prospecção até existir um módulo collaboration próprio.
-Route::middleware('check.feature:collaboration.tasks')
-    ->middleware('permission.gate:prospection,terrains')
+Route::middleware([
+    'check.feature:collaboration.tasks',
+    'permission.gate:prospection,terrains',
+])
     ->prefix('tasks')
     ->group(function () {
         Route::get('/my-queue', [TaskController::class, 'myQueue']);

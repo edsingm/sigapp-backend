@@ -79,7 +79,7 @@ class PlanRepository implements PlanRepositoryInterface
     }
 
     /**
-     * @return array{features: array<string, mixed>, limits: array<string, int>}
+     * @return array{features: array<string, mixed>, limits: array<string, int|float>}
      */
     public function getMatrix(int $planId): array
     {
@@ -117,7 +117,7 @@ class PlanRepository implements PlanRepositoryInterface
     }
 
     /**
-     * @return array{features: array<string, mixed>, limits: array<string, int>}
+     * @return array{features: array<string, mixed>, limits: array<string, int|float>}
      */
     private function buildMatrix(int $planId): array
     {
@@ -136,7 +136,9 @@ class PlanRepository implements PlanRepositoryInterface
             if ($row->type === EntitlementType::FEATURE->value || $row->type === EntitlementType::FEATURE) {
                 $this->setFeatureValue($features, (string) $row->key, (bool) $value);
             } else {
-                $limits[$row->key] = (int) $value;
+                $limits[$row->key] = $row->key === 'ai_budget'
+                    ? (float) $value
+                    : (int) $value;
             }
         }
 

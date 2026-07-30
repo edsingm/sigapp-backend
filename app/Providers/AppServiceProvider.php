@@ -33,6 +33,7 @@ use App\Repositories\Contracts\EntitlementRepositoryInterface;
 use App\Repositories\Contracts\LandWorkflowRepositoryInterface;
 use App\Repositories\Contracts\MobileDeviceInstallationRepositoryInterface;
 use App\Repositories\Contracts\MobileNotificationRepositoryInterface;
+use App\Repositories\Contracts\ModulesRepositoryInterface;
 use App\Repositories\Contracts\NotificationPreferenceRepositoryInterface;
 use App\Repositories\Contracts\PermissionRepositoryInterface;
 use App\Repositories\Contracts\PlanRepositoryInterface;
@@ -49,6 +50,7 @@ use App\Repositories\Contracts\TerrenoExportRepositoryInterface;
 use App\Repositories\Contracts\TerrenoFilterRepositoryInterface;
 use App\Repositories\Contracts\TerrenoProdutoRepositoryInterface;
 use App\Repositories\Contracts\TerrenoRepositoryInterface;
+use App\Repositories\Contracts\UsageMetricsRepositoryInterface;
 use App\Repositories\Contracts\ViabilidadeRepositoryInterface;
 use App\Repositories\Contracts\WebhookEventRepositoryInterface;
 use App\Repositories\DashboardRepository;
@@ -56,6 +58,7 @@ use App\Repositories\DomainRepository;
 use App\Repositories\EntitlementRepository;
 use App\Repositories\MobileDeviceInstallationRepository;
 use App\Repositories\MobileNotificationRepository;
+use App\Repositories\ModulesRepository;
 use App\Repositories\NotificationPreferenceRepository;
 use App\Repositories\PermissionRepository;
 use App\Repositories\PlanRepository;
@@ -70,6 +73,7 @@ use App\Repositories\RoleRepository;
 use App\Repositories\Tenant\LandWorkflowRepository;
 use App\Repositories\Tenant\TerrenoFilterRepository;
 use App\Repositories\Tenant\TerrenoRepository;
+use App\Repositories\Tenant\UsageMetricsRepository;
 use App\Repositories\Tenant\ViabilidadeRepository;
 use App\Repositories\TenantRepository;
 use App\Repositories\TerrenoExportRepository;
@@ -120,9 +124,11 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(ViabilidadeRepositoryInterface::class, ViabilidadeRepository::class);
         $this->app->bind(TerrenoFilterRepositoryInterface::class, TerrenoFilterRepository::class);
         $this->app->bind(MobileDeviceInstallationRepositoryInterface::class, MobileDeviceInstallationRepository::class);
+        $this->app->bind(ModulesRepositoryInterface::class, ModulesRepository::class);
         $this->app->bind(MobileNotificationRepositoryInterface::class, MobileNotificationRepository::class);
         $this->app->bind(NotificationPreferenceRepositoryInterface::class, NotificationPreferenceRepository::class);
         $this->app->bind(LandWorkflowRepositoryInterface::class, LandWorkflowRepository::class);
+        $this->app->bind(UsageMetricsRepositoryInterface::class, UsageMetricsRepository::class);
     }
 
     /**

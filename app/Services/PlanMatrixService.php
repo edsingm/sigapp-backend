@@ -6,13 +6,15 @@ use App\Enums\Common\EntitlementType;
 use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
 use App\Repositories\Contracts\PlanRepositoryInterface;
+use App\Repositories\Contracts\TenantRepositoryInterface;
 use App\Support\EntitlementCatalog;
 use InvalidArgumentException;
 
 class PlanMatrixService
 {
     public function __construct(
-        private readonly PlanRepositoryInterface $planRepository
+        private readonly PlanRepositoryInterface $planRepository,
+        private readonly TenantRepositoryInterface $tenantRepository,
     ) {}
 
     /**
@@ -89,7 +91,7 @@ class PlanMatrixService
         }
 
         $base = $this->planRepository->getMatrix($planId);
-        $extras = $tenant->extraEntitlements()->with('entitlement')->get();
+        $extras = $this->tenantRepository->listExtraEntitlements($tenant);
 
         if ($extras->isEmpty()) {
             return $this->withLegacyAliases($base);

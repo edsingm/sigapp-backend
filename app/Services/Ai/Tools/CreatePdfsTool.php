@@ -147,21 +147,24 @@ class CreatePdfsTool implements Tool
         }
 
         try {
-            $tamanho = $this->storageQuota->assertGeneratedFileFits('s3', $path);
+            $report = $this->storageQuota->commitFile(
+                's3',
+                $path,
+                fn (int $size): AiGeneratedReport => $this->reportRepository->create([
+                    'terreno_id' => $terrenoId > 0 ? $terrenoId : null,
+                    'nome' => $title,
+                    'file_path' => $path,
+                    'tamanho' => $size,
+                    'created_by' => auth()->id(),
+                ]),
+            );
         } catch (StorageQuotaExceededException) {
             return AiToolResponse::planDenied(
                 'Não foi possível salvar o PDF: o limite de armazenamento do plano foi atingido. '
                 .'Faça upgrade do plano ou libere espaço para continuar gerando PDFs.'
             );
         }
-
-        $report = $this->reportRepository->create([
-            'terreno_id' => $terrenoId > 0 ? $terrenoId : null,
-            'nome' => $title,
-            'file_path' => $path,
-            'tamanho' => $tamanho,
-            'created_by' => auth()->id(),
-        ]);
+        $tamanho = (int) $report->getAttribute('tamanho');
 
         $this->lastGeneratedReport = $report;
 

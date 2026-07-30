@@ -250,19 +250,14 @@ class TenantRepository implements TenantRepositoryInterface
 
     public function readyForEntitlementAudit(?string $identifier = null): iterable
     {
-        foreach (Tenant::all() as $model) {
-            if (! $model instanceof Tenant) {
-                continue;
-            }
+        $query = Tenant::query()->where('database_created', true);
 
-            $matchesIdentifier = $identifier === null
-                || $identifier === ''
-                || $model->id === $identifier
-                || $model->slug === $identifier;
-
-            if ($matchesIdentifier && $model->database_created) {
-                yield $model;
-            }
+        if (is_string($identifier) && $identifier !== '') {
+            $query->where(function ($query) use ($identifier): void {
+                $query->where('id', $identifier)->orWhere('slug', $identifier);
+            });
         }
+
+        yield from $query->cursor();
     }
 }

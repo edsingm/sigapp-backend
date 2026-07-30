@@ -5,6 +5,7 @@ namespace Tests\Feature\Plans;
 use App\Models\Central\Entitlement;
 use App\Models\Central\Plan;
 use App\Models\User;
+use App\Services\PlanMatrixService;
 use Database\Seeders\EntitlementSeeder;
 use Database\Seeders\PlanSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -187,6 +188,24 @@ class AdminPlansApiTest extends TestCase
 
         $response->assertOk()->assertJsonPath('success', true);
         $this->assertCount(2, $plan->fresh()->entitlements);
+    }
+
+    public function test_sync_invalidates_matrix_after_transaction_commit(): void
+    {
+        $this->actingAsAdmin();
+        $plan = Plan::create(['name' => 'Cache', 'slug' => 'cache', 'price' => 0, 'trial_days' => 0, 'is_active' => true, 'sort_order' => 1]);
+        $entitlement = Entitlement::create(['key' => 'cache.feature', 'type' => 'feature', 'label' => 'Cache', 'default_value' => false]);
+        $matrix = app(PlanMatrixService::class);
+
+        self::assertFalse($matrix->hasFeature($plan, 'cache.feature'));
+
+        $this->adminJson('put', "/api/v1/admin/plans/{$plan->id}/entitlements", [
+            'entitlements' => [
+                ['entitlement_id' => $entitlement->id, 'value' => true],
+            ],
+        ])->assertOk();
+
+        self::assertTrue($matrix->hasFeature($plan, 'cache.feature'));
     }
 
     // ─── Response does not expose sensitive fields ────────────────────────────

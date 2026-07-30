@@ -20,14 +20,18 @@ class EntitlementSeeder extends Seeder
 {
     public function run(): void
     {
-        DB::transaction(function (): void {
-            $this->seedCatalogAndMatrix();
-        });
+        $planIds = DB::transaction(fn (): array => $this->seedCatalogAndMatrix());
+
+        foreach ($planIds as $planId) {
+            app(PlanRepositoryInterface::class)->invalidateMatrixCache($planId);
+        }
     }
 
-    private function seedCatalogAndMatrix(): void
+    /** @return list<int> */
+    private function seedCatalogAndMatrix(): array
     {
         $entitlementDefs = $this->entitlementDefinitions();
+        $planIds = [];
 
         // 1. Upsert de todos os entitlements
         foreach ($entitlementDefs as $def) {
@@ -76,9 +80,11 @@ class EntitlementSeeder extends Seeder
             }
 
             $plan->entitlements()->sync($pivotData);
-            app(PlanRepositoryInterface::class)->invalidateMatrixCache((int) $plan->id);
+            $planIds[] = (int) $plan->id;
             $this->command->info("  ↳ [{$slug}] sincronizado com ".count($pivotData).' entitlements.');
         }
+
+        return $planIds;
     }
 
     /**

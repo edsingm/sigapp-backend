@@ -97,10 +97,13 @@ class PlanService
             );
         }
 
-        return DB::transaction(function () use ($plan, $pivotData): Plan {
+        $updated = DB::transaction(function () use ($plan, $pivotData): Plan {
             $this->planRepository->syncEntitlements($plan, $pivotData);
 
             return $plan->load('entitlements');
         });
+        $this->planRepository->invalidateMatrixCache($plan->id);
+
+        return $updated;
     }
 }

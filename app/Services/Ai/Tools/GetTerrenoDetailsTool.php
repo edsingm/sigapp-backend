@@ -65,7 +65,7 @@ class GetTerrenoDetailsTool implements Tool
             && $auth->canViewAny(Negociacao::class);
         $canViewContrato = $auth->canUseFeature('negotiation')
             && $auth->canViewAny(Contrato::class);
-        $canViewProjetos = $auth->canUseFeature('projects.room')
+        $canViewProjetos = $auth->canUseFeature('projects.enabled')
             && $auth->canViewAny(Projeto::class);
         $canViewDocumentos = $auth->canViewAny(Documento::class);
         $canViewProprietarios = $auth->canViewAny(Proprietario::class);

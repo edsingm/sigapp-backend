@@ -7,6 +7,7 @@ namespace App\Jobs;
 use App\Exceptions\StorageQuotaExceededException;
 use App\Models\Tenant\TenantExportGeneration;
 use App\Repositories\Tenant\TenantExportGenerationRepository;
+use App\Services\Tenant\StorageQuotaService;
 use App\Services\Tenant\TenantExportGenerator;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
@@ -41,6 +42,7 @@ class GenerateTenantExportJob implements ShouldBeUnique, ShouldQueue
     public function handle(
         TenantExportGenerationRepository $repository,
         TenantExportGenerator $generator,
+        StorageQuotaService $storageQuota,
     ): void {
         $generation = $repository->claimQueued($this->generationId);
         if (! $generation instanceof TenantExportGeneration) {
@@ -48,7 +50,17 @@ class GenerateTenantExportJob implements ShouldBeUnique, ShouldQueue
         }
 
         try {
-            $repository->markCompleted($generation, $generator->generate($generation));
+            $artifact = $generator->generate($generation);
+            $storageQuota->commitFile(
+                $artifact['storage_disk'],
+                $artifact['storage_path'],
+                function (int $size) use ($repository, $generation, $artifact): void {
+                    $repository->markCompleted($generation, [
+                        ...$artifact,
+                        'size' => $size,
+                    ]);
+                },
+            );
         } catch (StorageQuotaExceededException) {
             $repository->markFailed($this->generationId);
         } catch (Throwable $exception) {

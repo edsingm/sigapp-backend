@@ -93,13 +93,29 @@ class AuditPlanEntitlementsCommand extends Command
         foreach ($tenants as $tenant) {
             try {
                 tenancy()->initialize($tenant);
-                foreach ($usage->storageObjects() as $object) {
-                    $actualSize = Storage::disk($object['disk'])->exists($object['path'])
-                        ? (int) Storage::disk($object['disk'])->size($object['path'])
-                        : null;
+                $objects = $usage->storageObjects();
+                $knownByDisk = [];
 
-                    if ($actualSize !== null && ($object['size'] <= 0 || $actualSize !== $object['size'])) {
+                foreach ($objects as $object) {
+                    $knownByDisk[$object['disk']][$object['path']] = true;
+                    $disk = Storage::disk($object['disk']);
+                    if (! $disk->exists($object['path'])) {
+                        $issues[] = "tenant {$tenant->slug}: registro aponta para arquivo ausente {$object['disk']}:{$object['path']}";
+
+                        continue;
+                    }
+
+                    $actualSize = (int) $disk->size($object['path']);
+                    if ($object['size'] <= 0 || $actualSize !== $object['size']) {
                         $issues[] = "tenant {$tenant->slug}: arquivo não contabilizado corretamente {$object['disk']}:{$object['path']}";
+                    }
+                }
+
+                foreach (array_unique(['s3', ...array_keys($knownByDisk)]) as $diskName) {
+                    foreach (Storage::disk($diskName)->allFiles() as $path) {
+                        if (! isset($knownByDisk[$diskName][$path])) {
+                            $issues[] = "tenant {$tenant->slug}: arquivo órfão no storage {$diskName}:{$path}";
+                        }
                     }
                 }
             } catch (Throwable $exception) {

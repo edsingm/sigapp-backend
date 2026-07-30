@@ -94,12 +94,12 @@ class EntitlementService
 
         $planIds = $this->entitlementRepository->linkedPlanIds($entitlement);
 
-        return DB::transaction(function () use ($entitlement, $data, $planIds): Entitlement {
-            $updated = $this->entitlementRepository->update($entitlement, $data);
-            $this->invalidatePlans($planIds);
+        $updated = DB::transaction(
+            fn (): Entitlement => $this->entitlementRepository->update($entitlement, $data),
+        );
+        $this->invalidatePlans($planIds);
 
-            return $updated;
-        });
+        return $updated;
     }
 
     public function delete(int $id): void
@@ -112,10 +112,10 @@ class EntitlementService
 
         $planIds = $this->entitlementRepository->linkedPlanIds($entitlement);
 
-        DB::transaction(function () use ($entitlement, $planIds): void {
-            $this->entitlementRepository->delete($entitlement);
-            $this->invalidatePlans($planIds);
-        });
+        DB::transaction(
+            fn () => $this->entitlementRepository->delete($entitlement),
+        );
+        $this->invalidatePlans($planIds);
     }
 
     public function findOrFail(int $id): Entitlement

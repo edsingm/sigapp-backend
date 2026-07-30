@@ -101,7 +101,6 @@ class PlanRepository implements PlanRepositoryInterface
         }
 
         $plan->entitlements()->sync($sync);
-        $this->invalidateMatrixCache($plan->id);
     }
 
     public function invalidateMatrixCache(int $planId): void

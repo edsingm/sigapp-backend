@@ -55,7 +55,9 @@ Route::prefix('documentos')->group(function () {
     Route::middleware('check.feature:documents.intelligence')->group(function () {
         Route::get('/requirements', [DocumentIntelligenceController::class, 'requirements']);
         Route::get('/{documento}/versions', [DocumentIntelligenceController::class, 'versions'])->whereNumber('documento');
-        Route::post('/{documento}/versions', [DocumentIntelligenceController::class, 'storeVersion'])->whereNumber('documento');
+        Route::post('/{documento}/versions', [DocumentIntelligenceController::class, 'storeVersion'])
+            ->whereNumber('documento')
+            ->middleware('enforce.limits:storage_gb');
         Route::get('/{documento}/analysis', [DocumentIntelligenceController::class, 'analysis'])->whereNumber('documento');
         Route::post('/{documento}/analysis', [DocumentIntelligenceController::class, 'requestAnalysis'])->whereNumber('documento');
         Route::post('/{documento}/reviews', [DocumentIntelligenceController::class, 'review'])->whereNumber('documento');

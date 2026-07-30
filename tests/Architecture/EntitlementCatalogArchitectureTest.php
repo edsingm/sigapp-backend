@@ -52,4 +52,24 @@ class EntitlementCatalogArchitectureTest extends TestCase
 
         self::assertSame([], $missing, 'Features API sem gate ou projeção registrada.');
     }
+
+    public function test_upload_routes_enforce_storage_quota(): void
+    {
+        $expected = [
+            'api/v1/documentos',
+            'api/v1/documentos/{documento}/versions',
+            'api/v1/mobile/captures/{clientId}/attachments',
+        ];
+        $protected = [];
+
+        foreach (Route::getRoutes()->getRoutes() as $route) {
+            if (in_array('enforce.limits:storage_gb', $route->gatherMiddleware(), true)) {
+                $protected[] = $route->uri();
+            }
+        }
+
+        foreach ($expected as $uri) {
+            self::assertContains($uri, $protected, "Upload sem quota de storage: {$uri}");
+        }
+    }
 }

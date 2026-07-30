@@ -8,9 +8,11 @@ use App\Exceptions\StorageQuotaExceededException;
 use App\Models\Central\Tenant;
 use App\Repositories\Contracts\UsageMetricsRepositoryInterface;
 use App\Services\PlanMatrixService;
+use Closure;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
+use Throwable;
 
 class StorageQuotaService
 {
@@ -19,7 +21,15 @@ class StorageQuotaService
         private readonly PlanMatrixService $planMatrix,
     ) {}
 
-    public function assertGeneratedFileFits(string $diskName, string $path): int
+    /**
+     * Verifica a quota e registra o arquivo enquanto o lock do tenant permanece ativo.
+     *
+     * @template TResult
+     *
+     * @param  Closure(int): TResult  $persist
+     * @return TResult
+     */
+    public function commitFile(string $diskName, string $path, Closure $persist): mixed
     {
         $disk = Storage::disk($diskName);
         if (! $disk->exists($path)) {
@@ -29,7 +39,13 @@ class StorageQuotaService
         $size = (int) $disk->size($path);
         $tenant = tenancy()->tenant;
         if (! $tenant instanceof Tenant) {
-            return $size;
+            try {
+                return $persist($size);
+            } catch (Throwable $exception) {
+                $disk->delete($path);
+
+                throw $exception;
+            }
         }
 
         $lock = Cache::lock("plan-limit:{$tenant->getTenantKey()}:storage_gb", 30);
@@ -39,22 +55,21 @@ class StorageQuotaService
         }
 
         try {
-            if ($this->planMatrix->isUnlimitedLimitForTenant($tenant, 'storage_gb')) {
-                return $size;
+            if (! $this->planMatrix->isUnlimitedLimitForTenant($tenant, 'storage_gb')) {
+                $usage = $this->usage->storageUsageForObject($diskName, $path);
+                $limit = $this->planMatrix->getLimitForTenant($tenant, 'storage_gb') * 1024 * 1024 * 1024;
+
+                if (($usage['used'] - $usage['previous'] + $size) > $limit) {
+                    $disk->delete($path);
+                    throw new StorageQuotaExceededException;
+                }
             }
 
-            $objects = $this->usage->storageObjects();
-            $key = $diskName."\0".$path;
-            $previousSize = $objects[$key]['size'] ?? 0;
-            $used = array_sum(array_column($objects, 'size'));
-            $limit = $this->planMatrix->getLimitForTenant($tenant, 'storage_gb') * 1024 * 1024 * 1024;
+            return $persist($size);
+        } catch (Throwable $exception) {
+            $disk->delete($path);
 
-            if (($used - $previousSize + $size) > $limit) {
-                $disk->delete($path);
-                throw new StorageQuotaExceededException;
-            }
-
-            return $size;
+            throw $exception;
         } finally {
             $lock->release();
         }

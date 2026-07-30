@@ -10,6 +10,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use RuntimeException;
 
 class DocumentoService
 {
@@ -37,6 +38,7 @@ class DocumentoService
 
     public function __construct(
         private readonly DocumentoRepository $documentoRepository,
+        private readonly StorageQuotaService $storageQuota,
     ) {}
 
     /**
@@ -55,20 +57,27 @@ class DocumentoService
         $safeBaseName = Str::limit($baseName, 80, '');
         $fileName = now()->format('YmdHis').'_'.Str::lower((string) Str::uuid()).'_'.$safeBaseName.'.'.$extension;
         $path = $file->storeAs('documentos', $fileName, self::STORAGE_DISK);
+        if (! is_string($path)) {
+            throw new RuntimeException('Não foi possível armazenar o documento.');
+        }
         $displayName = $data['nome'] ?? Str::limit($file->getClientOriginalName(), 200, '');
 
-        $documento = $this->documentoRepository->create([
-            'terreno_id' => $data['terreno_id'],
-            'nome' => $displayName,
-            'tipo' => $data['tipo'] ?? 'outros',
-            'categoria' => $data['categoria'] ?? null,
-            'descricao' => $data['descricao'] ?? null,
-            'file_path' => $path,
-            'tamanho' => $file->getSize(),
-            'status' => 'pendente',
-            'created_by' => $user->id,
-            'updated_by' => $user->id,
-        ]);
+        $documento = $this->storageQuota->commitFile(
+            self::STORAGE_DISK,
+            $path,
+            fn (int $size): Documento => $this->documentoRepository->create([
+                'terreno_id' => $data['terreno_id'],
+                'nome' => $displayName,
+                'tipo' => $data['tipo'] ?? 'outros',
+                'categoria' => $data['categoria'] ?? null,
+                'descricao' => $data['descricao'] ?? null,
+                'file_path' => $path,
+                'tamanho' => $size,
+                'status' => 'pendente',
+                'created_by' => $user->id,
+                'updated_by' => $user->id,
+            ]),
+        );
 
         IndexDocumentEmbeddingJob::dispatch($documento->getKey());
 

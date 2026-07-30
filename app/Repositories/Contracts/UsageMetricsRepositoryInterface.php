@@ -14,6 +14,9 @@ interface UsageMetricsRepositoryInterface
 
     public function storageUsedBytes(): int;
 
+    /** @return array{used: int, previous: int} */
+    public function storageUsageForObject(string $disk, string $path): array;
+
     /**
      * @return array<string, array{disk: string, path: string, size: int}>
      */

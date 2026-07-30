@@ -14,11 +14,13 @@ use App\Models\Tenant\User;
 use App\Repositories\Tenant\DocumentIntelligenceRepository;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
+use RuntimeException;
 
 class DocumentIntelligenceService
 {
     public function __construct(
         private readonly DocumentIntelligenceRepository $repository,
+        private readonly StorageQuotaService $storageQuota,
     ) {}
 
     /** @return array<int, DocumentRequirement> */
@@ -47,17 +49,24 @@ class DocumentIntelligenceService
             $version.'_'.Str::uuid().'_'.Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)).'.'.($file->guessExtension() ?: 'bin'),
             's3',
         );
+        if (! is_string($path)) {
+            throw new RuntimeException('Não foi possível armazenar a versão do documento.');
+        }
 
-        return $this->repository->createVersion($documento, [
-            'version' => $version,
-            'file_path' => $path,
-            'disk' => 's3',
-            'mime_type' => $file->getMimeType(),
-            'size' => $file->getSize(),
-            'checksum' => $checksum,
-            'created_by' => $user->id,
-            'metadata' => ['original_name' => $file->getClientOriginalName()],
-        ]);
+        return $this->storageQuota->commitFile(
+            's3',
+            $path,
+            fn (int $size): DocumentVersion => $this->repository->createVersion($documento, [
+                'version' => $version,
+                'file_path' => $path,
+                'disk' => 's3',
+                'mime_type' => $file->getMimeType(),
+                'size' => $size,
+                'checksum' => $checksum,
+                'created_by' => $user->id,
+                'metadata' => ['original_name' => $file->getClientOriginalName()],
+            ]),
+        );
     }
 
     public function requestAnalysis(Documento $documento, User $user): DocumentAnalysis

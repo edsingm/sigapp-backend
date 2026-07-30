@@ -49,5 +49,13 @@ class UsageMetricsRepositoryTest extends TestCase
 
         self::assertSame(100, $repository->storageUsedBytes());
         self::assertCount(1, $repository->storageObjects());
+        self::assertSame(
+            ['used' => 100, 'previous' => 100],
+            $repository->storageUsageForObject('s3', 'captures/shared.jpg'),
+        );
+        self::assertSame(
+            ['used' => 100, 'previous' => 0],
+            $repository->storageUsageForObject('s3', 'captures/new.jpg'),
+        );
     }
 }

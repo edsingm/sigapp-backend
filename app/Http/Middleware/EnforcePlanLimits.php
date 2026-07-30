@@ -14,6 +14,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 class EnforcePlanLimits
 {
+    private const RESOURCE_LOCK_SECONDS = 130;
+
     public function __construct(
         protected UsageMetricsService $usageService,
         protected PlanMatrixService $planMatrix
@@ -61,8 +63,14 @@ class EnforcePlanLimits
             return ApiResponseService::error('NO_PLAN', 'Tenant inválido.', null, 403);
         }
 
+        // Storage usa este middleware apenas para rejeição antecipada. A verificação
+        // definitiva e a persistência ocorrem sob lock em StorageQuotaService.
+        if ($canonicalResource === 'storage_gb') {
+            return $this->continueWhenAllowed($request, $next, $canonicalResource, $plan->name);
+        }
+
         $tenantId = (string) $tenant->getTenantKey();
-        $lock = Cache::lock("plan-limit:{$tenantId}:{$canonicalResource}", 30);
+        $lock = Cache::lock("plan-limit:{$tenantId}:{$canonicalResource}", self::RESOURCE_LOCK_SECONDS);
 
         if (! $lock->get()) {
             return ApiResponseService::error(

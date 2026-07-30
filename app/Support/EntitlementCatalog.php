@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support;
 
 use App\Enums\Common\EntitlementScope;
+use Illuminate\Support\Facades\Log;
 
 final class EntitlementCatalog
 {
@@ -46,7 +47,18 @@ final class EntitlementCatalog
 
     public static function canonicalKey(string $key): string
     {
-        return self::LEGACY_ALIASES[$key] ?? $key;
+        $canonical = self::LEGACY_ALIASES[$key] ?? null;
+        if ($canonical === null) {
+            return $key;
+        }
+
+        Log::info('Legacy entitlement alias resolved.', [
+            'legacy_key' => $key,
+            'canonical_key' => $canonical,
+            'tenant_id' => tenant('id'),
+        ]);
+
+        return $canonical;
     }
 
     public static function scopeForFeature(string $key): EntitlementScope

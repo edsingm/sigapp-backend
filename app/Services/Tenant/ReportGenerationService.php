@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Tenant;
 
 use App\Models\Tenant\ReportRun;
+use App\Repositories\Tenant\ReportRunRepository;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -13,6 +14,7 @@ class ReportGenerationService
 {
     public function __construct(
         private readonly StorageQuotaService $storageQuota,
+        private readonly ReportRunRepository $repository,
     ) {}
 
     /** @var array<string, array<string, string>> */
@@ -55,17 +57,20 @@ class ReportGenerationService
 
         $path = 'reports/runs/'.$run->id.'.csv';
         Storage::disk('s3')->put($path, $contents, ['visibility' => 'private']);
-        $size = $this->storageQuota->assertGeneratedFileFits('s3', $path);
-        $run->update([
-            'status' => 'completed',
-            'progress' => 100,
-            'storage_disk' => 's3',
-            'storage_path' => $path,
-            'mime_type' => 'text/csv',
-            'size' => $size,
-            'completed_by' => $run->requested_by,
-            'completed_at' => now(),
-        ]);
+        $this->storageQuota->commitFile(
+            's3',
+            $path,
+            fn (int $size): ReportRun => $this->repository->update($run, [
+                'status' => 'completed',
+                'progress' => 100,
+                'storage_disk' => 's3',
+                'storage_path' => $path,
+                'mime_type' => 'text/csv',
+                'size' => $size,
+                'completed_by' => $run->requested_by,
+                'completed_at' => now(),
+            ]),
+        );
     }
 
     private function queryFor(string $dataset): Builder

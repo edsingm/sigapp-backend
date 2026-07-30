@@ -67,5 +67,37 @@ class ModuleAccessServiceTest extends TestCase
         self::assertTrue($access['features']['projects']['enabled']);
         self::assertTrue($access['modules']['projects']['available']);
         self::assertSame([], $access['modules']['projects']['reasons']);
+
+        tenancy()->tenant = $tenant;
+        tenancy()->initialized = true;
+        try {
+            $this->actingAs($user)
+                ->withoutMiddleware()
+                ->getJson('/api/v1/start')
+                ->assertOk()
+                ->assertJsonStructure([
+                    'data' => [
+                        'tenant',
+                        'user',
+                        'modules',
+                        'access' => [
+                            'features',
+                            'limits',
+                            'modules' => [
+                                'projects' => [
+                                    'plan_enabled',
+                                    'rbac_allowed',
+                                    'available',
+                                    'reasons',
+                                ],
+                            ],
+                        ],
+                    ],
+                ])
+                ->assertJsonPath('data.access.modules.projects.available', true);
+        } finally {
+            tenancy()->tenant = null;
+            tenancy()->initialized = false;
+        }
     }
 }

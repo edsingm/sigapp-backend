@@ -17,6 +17,7 @@ use App\Jobs\GenerateTenantExportJob;
 use App\Models\Tenant\TenantExportGeneration;
 use App\Models\Tenant\User;
 use App\Repositories\Tenant\TenantExportGenerationRepository;
+use App\Services\Tenant\StorageQuotaService;
 use App\Services\Tenant\TenantExportGenerator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -131,8 +132,9 @@ final class TenantExportApiTest extends TestCase
             ]);
         $job = new GenerateTenantExportJob($generation->id);
 
-        $job->handle(app(TenantExportGenerationRepository::class), $generator);
-        $job->handle(app(TenantExportGenerationRepository::class), $generator);
+        $quota = $this->quotaThatCommits(123);
+        $job->handle(app(TenantExportGenerationRepository::class), $generator, $quota);
+        $job->handle(app(TenantExportGenerationRepository::class), $generator, $quota);
 
         $this->assertDatabaseHas('tenant_export_generations', [
             'id' => $generation->id,
@@ -165,7 +167,7 @@ final class TenantExportApiTest extends TestCase
             ]);
 
         (new GenerateTenantExportJob($generation->id))
-            ->handle(app(TenantExportGenerationRepository::class), $generator);
+            ->handle(app(TenantExportGenerationRepository::class), $generator, $this->quotaThatCommits(321));
 
         $this->assertDatabaseHas('tenant_export_generations', [
             'id' => $generation->id,
@@ -184,7 +186,11 @@ final class TenantExportApiTest extends TestCase
         $job = new GenerateTenantExportJob($generation->id);
 
         try {
-            $job->handle(app(TenantExportGenerationRepository::class), $generator);
+            $job->handle(
+                app(TenantExportGenerationRepository::class),
+                $generator,
+                $this->createMock(StorageQuotaService::class),
+            );
             $this->fail('A falha da geração deveria ser propagada para o worker.');
         } catch (RuntimeException) {
             $this->assertDatabaseHas('tenant_export_generations', [
@@ -201,6 +207,18 @@ final class TenantExportApiTest extends TestCase
             'status' => TenantExportStatus::FAILED->value,
             'error_message' => 'EXPORT_GENERATION_FAILED',
         ]);
+    }
+
+    private function quotaThatCommits(int $size): StorageQuotaService
+    {
+        $quota = $this->createMock(StorageQuotaService::class);
+        $quota->expects(self::once())
+            ->method('commitFile')
+            ->willReturnCallback(
+                static fn (string $disk, string $path, \Closure $persist): mixed => $persist($size),
+            );
+
+        return $quota;
     }
 
     public function test_only_requester_can_poll_and_download_completed_export(): void

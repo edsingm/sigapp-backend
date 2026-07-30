@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use RuntimeException;
 
 class MobileCaptureService
 {
@@ -32,6 +33,7 @@ class MobileCaptureService
         private readonly MobileCaptureRepository $repository,
         private readonly TerrenoService $terrenoService,
         private readonly DocumentoRepository $documentoRepository,
+        private readonly StorageQuotaService $storageQuota,
     ) {}
 
     /** @param array<string, mixed> $data */
@@ -91,17 +93,24 @@ class MobileCaptureService
             Str::uuid().'_'.Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)).'.'.($file->guessExtension() ?: 'bin'),
             self::STORAGE_DISK,
         );
+        if (! is_string($path)) {
+            throw new RuntimeException('Não foi possível armazenar o anexo da captura.');
+        }
 
-        $capture->attachments()->create([
-            'created_by' => $user->id,
-            'original_name' => Str::limit($file->getClientOriginalName(), 255, ''),
-            'file_path' => $path,
-            'disk' => self::STORAGE_DISK,
-            'mime_type' => $file->getMimeType(),
-            'size' => $file->getSize(),
-            'checksum' => $checksum,
-            'status' => 'uploaded',
-        ]);
+        $this->storageQuota->commitFile(
+            self::STORAGE_DISK,
+            $path,
+            fn (int $size) => $capture->attachments()->create([
+                'created_by' => $user->id,
+                'original_name' => Str::limit($file->getClientOriginalName(), 255, ''),
+                'file_path' => $path,
+                'disk' => self::STORAGE_DISK,
+                'mime_type' => $file->getMimeType(),
+                'size' => $size,
+                'checksum' => $checksum,
+                'status' => 'uploaded',
+            ]),
+        );
 
         return $capture->load('attachments', 'terreno');
     }

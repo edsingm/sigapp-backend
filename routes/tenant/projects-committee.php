@@ -43,6 +43,9 @@ Route::middleware('check.feature:committee')->group(function () {
     Route::post('/comite', [CommitteeController::class, 'store']);
     Route::get('/comite/{id}', [CommitteeController::class, 'show'])->whereNumber('id');
     Route::get('/comite/{id}/ai-dossier', [CommitteeAiDossierController::class, 'show'])->whereNumber('id');
+    Route::get('/comite/{id}/ai-dossier/export-pdf', [CommitteeAiDossierController::class, 'exportPdf'])
+        ->middleware('check.feature:exports.pdf')
+        ->whereNumber('id');
     Route::post('/comite/{id}/ai-dossier/regenerate', [CommitteeAiDossierController::class, 'regenerate'])
         ->middleware('ai.rate_limit', 'ai.budget')
         ->whereNumber('id');

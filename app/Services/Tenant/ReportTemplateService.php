@@ -12,28 +12,23 @@ use Illuminate\Validation\ValidationException;
 
 class ReportTemplateService
 {
-    /** @var list<string> */
-    private const DATASETS = ['terrenos', 'viabilidades', 'comites', 'legalizacoes'];
-
-    /** @var list<string> */
-    private const DIMENSIONS = ['status', 'workflow_status_code', 'estado', 'created_at'];
-
-    /** @var list<string> */
-    private const METRICS = ['count', 'sum_valor'];
-
-    /** @var list<string> */
-    private const CHARTS = ['table', 'bar', 'line'];
-
-    public function __construct(private readonly ReportTemplateRepository $repository) {}
+    public function __construct(
+        private readonly ReportTemplateRepository $repository,
+        private readonly ReportCatalogService $catalog,
+    ) {}
 
     /** @return Collection<int, ReportTemplate> */
     public function list(User $user): Collection
     {
+        $this->ensureSystemTemplates();
+
         return $this->repository->listForUser($user);
     }
 
     public function find(User $user, int $id): ReportTemplate
     {
+        $this->ensureSystemTemplates();
+
         return $this->repository->findForUser($user, $id);
     }
 
@@ -84,22 +79,165 @@ class ReportTemplateService
     }
 
     /**
+     * Garante templates de sistema no schema do tenant (idempotente).
+     */
+    public function ensureSystemTemplates(): void
+    {
+        foreach ($this->catalog->systemTemplateBlueprints() as $blueprint) {
+            $definition = $this->normalizeDefinition($blueprint['definition']);
+            $definition['system_key'] = $blueprint['system_key'];
+            $definition['preferred_format'] = $blueprint['preferred_format'];
+
+            $existing = $this->repository->findSystemByKey($blueprint['system_key']);
+            if ($existing === null) {
+                $this->repository->createSystem([
+                    'name' => $blueprint['name'],
+                    'scope' => 'shared',
+                    'definition' => $definition,
+                    'version' => 1,
+                    'is_system' => true,
+                ]);
+
+                continue;
+            }
+
+            // Atualiza definition dos system templates sem sobrescrever o nome customizado se houver.
+            $this->repository->update($existing, [
+                'definition' => $definition,
+                'name' => $blueprint['name'],
+                'version' => max(1, (int) $existing->version),
+            ]);
+        }
+    }
+
+    /**
      * @param  array<string, mixed>  $definition
      * @return array<string, mixed>
      */
     public function normalizeDefinition(array $definition): array
     {
-        $datasets = $this->allowlisted($definition['datasets'] ?? [], self::DATASETS, 'datasets');
-        $dimensions = $this->allowlisted($definition['dimensions'] ?? [], self::DIMENSIONS, 'dimensions');
-        $metrics = $this->allowlisted($definition['metrics'] ?? [], self::METRICS, 'metrics');
-        $charts = $this->allowlisted($definition['charts'] ?? ['table'], self::CHARTS, 'charts');
+        $mode = (string) ($definition['mode'] ?? ReportCatalogService::MODE_AGGREGATE);
+        if (! in_array($mode, $this->catalog->modeKeys(), true)) {
+            throw ValidationException::withMessages(['mode' => ['Modo de relatório não permitido.']]);
+        }
 
-        return [
-            'datasets' => array_values(array_unique($datasets)),
-            'dimensions' => array_values(array_unique($dimensions)),
-            'metrics' => array_values(array_unique($metrics)),
-            'charts' => array_values(array_unique($charts)),
-        ];
+        $datasets = $this->allowlisted($definition['datasets'] ?? [], $this->catalog->datasetKeys(), 'datasets');
+        $charts = $this->allowlistedOptional($definition['charts'] ?? ['table'], $this->catalog->chartKeys(), 'charts')
+            ?: ['table'];
+
+        if ($mode === ReportCatalogService::MODE_DETAIL) {
+            $columns = $this->normalizeColumnsAcrossDatasets($datasets, $definition['columns'] ?? []);
+            // Dimensões/métricas opcionais no detalhe (úteis se o usuário alternar para agregado depois).
+            $dimensions = $this->allowlistedOptional(
+                $definition['dimensions'] ?? $this->defaultDimensions($datasets),
+                $this->unionKeys($datasets, fn (string $dataset): array => $this->catalog->dimensionKeysFor($dataset)),
+                'dimensions',
+            );
+            $metrics = $this->allowlistedOptional(
+                $definition['metrics'] ?? ['count'],
+                $this->unionKeys($datasets, fn (string $dataset): array => $this->catalog->metricKeysFor($dataset)),
+                'metrics',
+            );
+
+            $normalized = [
+                'mode' => $mode,
+                'datasets' => array_values(array_unique($datasets)),
+                'columns' => $columns,
+                'dimensions' => $dimensions,
+                'metrics' => $metrics === [] ? ['count'] : $metrics,
+                'charts' => $charts,
+            ];
+        } else {
+            $allowedDimensions = $this->unionKeys(
+                $datasets,
+                fn (string $dataset): array => $this->catalog->dimensionKeysFor($dataset),
+            );
+            $allowedMetrics = $this->unionKeys(
+                $datasets,
+                fn (string $dataset): array => $this->catalog->metricKeysFor($dataset),
+            );
+
+            $dimensions = $this->allowlisted($definition['dimensions'] ?? [], $allowedDimensions, 'dimensions');
+            $metrics = $this->allowlisted($definition['metrics'] ?? [], $allowedMetrics, 'metrics');
+
+            // Garante que o dataset primário aceita ao menos uma dimensão/métrica escolhida.
+            $primary = $datasets[0];
+            if (array_intersect($dimensions, $this->catalog->dimensionKeysFor($primary)) === []) {
+                throw ValidationException::withMessages([
+                    'dimensions' => ['Nenhuma dimensão é válida para o dataset principal.'],
+                ]);
+            }
+            if (array_intersect($metrics, $this->catalog->metricKeysFor($primary)) === []) {
+                throw ValidationException::withMessages([
+                    'metrics' => ['Nenhuma métrica é válida para o dataset principal.'],
+                ]);
+            }
+
+            $normalized = [
+                'mode' => ReportCatalogService::MODE_AGGREGATE,
+                'datasets' => array_values(array_unique($datasets)),
+                'dimensions' => array_values(array_unique($dimensions)),
+                'metrics' => array_values(array_unique($metrics)),
+                'charts' => $charts,
+                'columns' => [],
+            ];
+        }
+
+        if (isset($definition['system_key']) && is_string($definition['system_key'])) {
+            $normalized['system_key'] = $definition['system_key'];
+        }
+        if (isset($definition['preferred_format']) && is_string($definition['preferred_format'])) {
+            $normalized['preferred_format'] = $definition['preferred_format'];
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * @param  list<string>  $datasets
+     * @return list<string>
+     */
+    private function normalizeColumnsAcrossDatasets(array $datasets, mixed $requested): array
+    {
+        $union = $this->unionKeys(
+            $datasets,
+            fn (string $dataset): array => $this->catalog->columnKeysFor($dataset),
+        );
+
+        if (! is_array($requested) || $requested === []) {
+            // Default: colunas do primeiro dataset (até 8).
+            return array_slice($this->catalog->columnKeysFor($datasets[0]), 0, 8);
+        }
+
+        return $this->allowlisted($requested, $union, 'columns');
+    }
+
+    /**
+     * @param  list<string>  $datasets
+     * @return list<string>
+     */
+    private function defaultDimensions(array $datasets): array
+    {
+        $dims = $this->catalog->dimensionKeysFor($datasets[0]);
+
+        return $dims === [] ? ['status'] : [array_values($dims)[0]];
+    }
+
+    /**
+     * @param  list<string>  $datasets
+     * @param  callable(string): list<string>  $resolver
+     * @return list<string>
+     */
+    private function unionKeys(array $datasets, callable $resolver): array
+    {
+        $keys = [];
+        foreach ($datasets as $dataset) {
+            foreach ($resolver($dataset) as $key) {
+                $keys[$key] = true;
+            }
+        }
+
+        return array_keys($keys);
     }
 
     /**
@@ -118,6 +256,25 @@ class ReportTemplateService
             throw ValidationException::withMessages([$field => ['Há itens não permitidos no catálogo.']]);
         }
 
-        return $values;
+        return array_values(array_unique($values));
+    }
+
+    /**
+     * @param  list<string>  $allowed
+     * @return list<string>
+     */
+    private function allowlistedOptional(mixed $values, array $allowed, string $field): array
+    {
+        if (! is_array($values) || $values === []) {
+            return [];
+        }
+
+        $values = array_values(array_filter($values, 'is_string'));
+        $invalid = array_values(array_diff($values, $allowed));
+        if ($invalid !== []) {
+            throw ValidationException::withMessages([$field => ['Há itens não permitidos no catálogo.']]);
+        }
+
+        return array_values(array_unique($values));
     }
 }

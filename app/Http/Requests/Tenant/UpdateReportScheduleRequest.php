@@ -7,7 +7,7 @@ namespace App\Http\Requests\Tenant;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class StoreReportRunRequest extends FormRequest
+class UpdateReportScheduleRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -18,14 +18,13 @@ class StoreReportRunRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'template_id' => ['required', 'integer', 'exists:report_templates,id'],
-            'idempotency_key' => ['required', 'uuid'],
+            'name' => ['sometimes', 'string', 'max:150'],
+            'template_id' => ['sometimes', 'integer', 'exists:report_templates,id'],
+            'frequency' => ['sometimes', 'string', Rule::in(['daily', 'weekly', 'monthly'])],
             'format' => ['sometimes', 'string', Rule::in(['csv', 'xlsx', 'pdf'])],
             'filters' => ['sometimes', 'array', 'max:20'],
-            'filters.status' => ['sometimes', 'string', 'max:80'],
-            'filters.estado' => ['sometimes', 'string', 'size:2'],
-            'filters.date_from' => ['sometimes', 'date'],
-            'filters.date_to' => ['sometimes', 'date', 'after_or_equal:filters.date_from'],
+            'notify_email' => ['sometimes', 'boolean'],
+            'is_active' => ['sometimes', 'boolean'],
         ];
     }
 }

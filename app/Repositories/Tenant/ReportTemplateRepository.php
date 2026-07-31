@@ -47,6 +47,34 @@ class ReportTemplateRepository
     }
 
     /** @param array<string, mixed> $data */
+    public function createSystem(array $data): ReportTemplate
+    {
+        return ReportTemplate::query()->create([
+            ...$data,
+            'owner_id' => null,
+            'is_system' => true,
+            'scope' => $data['scope'] ?? 'shared',
+        ]);
+    }
+
+    public function findSystemByKey(string $systemKey): ?ReportTemplate
+    {
+        /** @var Collection<int, ReportTemplate> $candidates */
+        $candidates = ReportTemplate::query()
+            ->where('is_system', true)
+            ->get();
+
+        foreach ($candidates as $template) {
+            $key = $template->definition['system_key'] ?? null;
+            if (is_string($key) && $key === $systemKey) {
+                return $template;
+            }
+        }
+
+        return null;
+    }
+
+    /** @param array<string, mixed> $data */
     public function update(ReportTemplate $template, array $data): ReportTemplate
     {
         $template->update($data);

@@ -54,7 +54,7 @@ class ReportRunRepository
             ]);
 
         return $claimed === 1
-            ? ReportRun::query()->find($id)
+            ? ReportRun::query()->with(['template', 'requester', 'schedule'])->find($id)
             : null;
     }
 

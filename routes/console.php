@@ -76,3 +76,8 @@ Schedule::command('cache:prune-stale-tags redis')
     ->name('cache-prune-stale-redis-tags')
     ->onOneServer()
     ->withoutOverlapping(120);
+Schedule::command('reports:run-due-schedules')
+    ->everyFifteenMinutes()
+    ->name('reports-run-due-schedules')
+    ->onOneServer()
+    ->withoutOverlapping(20);

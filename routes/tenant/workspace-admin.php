@@ -58,6 +58,7 @@ Route::middleware('check.feature:search.global')->group(function () {
 });
 
 Route::middleware('check.feature:reports.builder')->prefix('reports')->group(function () {
+    Route::get('/catalog', [ReportBuilderController::class, 'catalog']);
     Route::get('/templates', [ReportBuilderController::class, 'templates']);
     Route::post('/templates', [ReportBuilderController::class, 'storeTemplate']);
     Route::get('/templates/{template}', [ReportBuilderController::class, 'showTemplate'])->whereNumber('template');
@@ -66,6 +67,11 @@ Route::middleware('check.feature:reports.builder')->prefix('reports')->group(fun
     Route::post('/runs', [ReportBuilderController::class, 'storeRun']);
     Route::get('/runs/{run}', [ReportBuilderController::class, 'showRun'])->whereNumber('run');
     Route::get('/runs/{run}/download', [ReportBuilderController::class, 'download'])->whereNumber('run');
+    Route::get('/schedules', [ReportBuilderController::class, 'schedules']);
+    Route::post('/schedules', [ReportBuilderController::class, 'storeSchedule']);
+    Route::get('/schedules/{schedule}', [ReportBuilderController::class, 'showSchedule'])->whereNumber('schedule');
+    Route::put('/schedules/{schedule}', [ReportBuilderController::class, 'updateSchedule'])->whereNumber('schedule');
+    Route::delete('/schedules/{schedule}', [ReportBuilderController::class, 'destroySchedule'])->whereNumber('schedule');
 });
 
 Route::middleware('check.feature:workspace.saved_views')->group(function () {

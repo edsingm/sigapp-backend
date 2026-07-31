@@ -8,9 +8,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\RegenerateCommitteeAiDossierRequest;
 use App\Http\Requests\Tenant\ShowCommitteeReviewRequest;
 use App\Services\ApiResponseService;
+use App\Services\Tenant\CommitteeAiDossierPdfService;
 use App\Services\Tenant\CommitteeAiDossierService;
 use App\Services\Tenant\CommitteeService;
 use Illuminate\Http\JsonResponse;
+use RuntimeException;
 use Throwable;
 
 class CommitteeAiDossierController extends Controller
@@ -18,6 +20,7 @@ class CommitteeAiDossierController extends Controller
     public function __construct(
         private readonly CommitteeService $committee,
         private readonly CommitteeAiDossierService $dossiers,
+        private readonly CommitteeAiDossierPdfService $dossierPdf,
     ) {}
 
     public function show(ShowCommitteeReviewRequest $request, string $id): JsonResponse
@@ -46,5 +49,26 @@ class CommitteeAiDossierController extends Controller
             $this->dossiers->show($review),
             'Análise da SIG IA atualizada com sucesso',
         );
+    }
+
+    public function exportPdf(ShowCommitteeReviewRequest $request, string $id): mixed
+    {
+        try {
+            return $this->dossierPdf->download((int) $id);
+        } catch (RuntimeException $exception) {
+            return ApiResponseService::error(
+                'COMMITTEE_AI_DOSSIER_PDF_UNAVAILABLE',
+                $exception->getMessage(),
+                null,
+                409,
+            );
+        } catch (Throwable $exception) {
+            return ApiResponseService::error(
+                'COMMITTEE_AI_DOSSIER_PDF_FAILED',
+                'Não foi possível exportar o dossiê em PDF.',
+                ['detail' => $exception->getMessage()],
+                502,
+            );
+        }
     }
 }

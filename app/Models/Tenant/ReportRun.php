@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * @property int $id
  * @property int $report_template_id
+ * @property int|null $report_schedule_id
  * @property int $requested_by
  * @property int|null $completed_by
  * @property string $idempotency_key
@@ -32,9 +33,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property Carbon|null $completed_at
  * @property Carbon|null $expires_at
  * @property-read ReportTemplate|null $template
+ * @property-read ReportSchedule|null $schedule
  */
 #[Table('report_runs')]
-#[Fillable(['report_template_id', 'requested_by', 'completed_by', 'idempotency_key', 'definition_snapshot', 'filters', 'format', 'status', 'progress', 'storage_disk', 'storage_path', 'mime_type', 'size', 'error_message', 'requested_at', 'completed_at', 'expires_at'])]
+#[Fillable(['report_template_id', 'report_schedule_id', 'requested_by', 'completed_by', 'idempotency_key', 'definition_snapshot', 'filters', 'format', 'status', 'progress', 'storage_disk', 'storage_path', 'mime_type', 'size', 'error_message', 'requested_at', 'completed_at', 'expires_at'])]
 class ReportRun extends Model
 {
     /** @use HasFactory<Factory<self>> */
@@ -54,6 +56,12 @@ class ReportRun extends Model
     public function template(): BelongsTo
     {
         return $this->belongsTo(ReportTemplate::class, 'report_template_id');
+    }
+
+    /** @return BelongsTo<ReportSchedule, $this> */
+    public function schedule(): BelongsTo
+    {
+        return $this->belongsTo(ReportSchedule::class, 'report_schedule_id');
     }
 
     /** @return BelongsTo<User, $this> */

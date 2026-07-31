@@ -62,13 +62,20 @@ class TerrenoService
 
     public function create(array $data, User $actor): Terreno
     {
+        $terreno = $this->createImported($data, $actor);
+
+        return $this->repository->loadDetailRelations($terreno);
+    }
+
+    public function createImported(array $data, User $actor): Terreno
+    {
         unset($data['workflow_status_code']);
         $data['created_by'] = $actor->id;
 
         $terreno = $this->repository->create($data);
         $this->workflowService->initialize($terreno, $actor);
 
-        return $this->repository->loadDetailRelations($terreno);
+        return $terreno;
     }
 
     public function show(Terreno $terreno): Terreno

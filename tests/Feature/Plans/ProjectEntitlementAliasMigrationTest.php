@@ -46,11 +46,14 @@ class ProjectEntitlementAliasMigrationTest extends TestCase
 
         $canonical = Entitlement::query()->where('key', 'projects.enabled')->firstOrFail();
         self::assertDatabaseMissing('entitlements', ['key' => 'projects_room']);
-        self::assertDatabaseHas('plan_entitlements', [
-            'plan_id' => $plan->id,
-            'entitlement_id' => $canonical->id,
-            'value' => 'true',
-        ]);
+
+        $link = DB::table('plan_entitlements')
+            ->where('plan_id', $plan->id)
+            ->where('entitlement_id', $canonical->id)
+            ->first();
+
+        self::assertNotNull($link);
+        self::assertSame(true, $this->decodeJsonColumn($link->value));
     }
 
     public function test_existing_canonical_link_wins_without_unique_constraint_failure(): void
@@ -80,11 +83,14 @@ class ProjectEntitlementAliasMigrationTest extends TestCase
         $migration->up();
 
         self::assertSame(1, DB::table('plan_entitlements')->where('plan_id', $plan->id)->count());
-        self::assertDatabaseHas('plan_entitlements', [
-            'plan_id' => $plan->id,
-            'entitlement_id' => $canonical->id,
-            'value' => 'false',
-        ]);
+
+        $link = DB::table('plan_entitlements')
+            ->where('plan_id', $plan->id)
+            ->where('entitlement_id', $canonical->id)
+            ->first();
+
+        self::assertNotNull($link);
+        self::assertSame(false, $this->decodeJsonColumn($link->value));
 
         $migration->down();
 
@@ -119,5 +125,18 @@ class ProjectEntitlementAliasMigrationTest extends TestCase
             'scope' => EntitlementScope::API,
             'default_value' => false,
         ]);
+    }
+
+    /**
+     * JSON columns are not equality-comparable with "=" on PostgreSQL
+     * (json = unknown), so assert via a decoded fetch instead of assertDatabaseHas.
+     */
+    private function decodeJsonColumn(mixed $value): mixed
+    {
+        if (is_string($value)) {
+            return json_decode($value, true);
+        }
+
+        return $value;
     }
 }

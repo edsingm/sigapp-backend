@@ -201,6 +201,18 @@ class AppServiceProvider extends ServiceProvider
                 ], 429));
         });
 
+        RateLimiter::for('terrain-imports', function (Request $request) {
+            $user = $request->user();
+            $tenantId = tenancy()->initialized ? (string) tenant('id') : 'no-tenant';
+            $key = $user
+                ? "terrain-imports:{$tenantId}:user:{$user->id}"
+                : "terrain-imports:{$tenantId}:ip:{$request->ip()}";
+
+            return Limit::perMinute(5)
+                ->by($key)
+                ->response(fn () => ApiResponseService::tooManyRequests('TERRAIN_IMPORT_RATE_LIMITED'));
+        });
+
         RateLimiter::for('central-login', function (Request $request) {
             $email = strtolower(trim((string) $request->input('email', '')));
 

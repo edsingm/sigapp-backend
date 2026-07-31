@@ -16,6 +16,11 @@ use App\Models\Tenant\Proprietario;
 use App\Models\Tenant\Task;
 use App\Models\Tenant\TenantExportGeneration;
 use App\Models\Tenant\Terreno;
+use App\Models\Tenant\TerrenoImport;
+use App\Models\Tenant\TerrenoImportRow;
+use App\Models\Tenant\TerrenoPendingPolygon;
+use App\Models\Tenant\TerrenoPolygonImport;
+use App\Models\Tenant\TerrenoPolygonImportFile;
 use App\Models\Tenant\User as TenantUser;
 use App\Models\Tenant\Viabilidade;
 use App\Models\User as CentralUser;
@@ -61,6 +66,28 @@ class FactoriesSmokeTest extends TestCase
         $this->assertNotNull($terreno->id);
         $this->assertNotEmpty($terreno->nome);
         $this->assertDatabaseHas('terrenos', ['id' => $terreno->id, 'nome' => $terreno->nome]);
+    }
+
+    public function test_terreno_import_factories_create_valid_records(): void
+    {
+        $import = TerrenoImport::factory()->createOne();
+        $row = TerrenoImportRow::factory()->for($import, 'import')->createOne();
+        $polygonImport = TerrenoPolygonImport::factory()->createOne();
+        $file = TerrenoPolygonImportFile::factory()->for($polygonImport, 'import')->createOne();
+        $polygon = TerrenoPendingPolygon::factory()
+            ->for($polygonImport, 'import')
+            ->for($file, 'file')
+            ->createOne();
+
+        $this->assertDatabaseHas('terreno_import_rows', [
+            'id' => $row->id,
+            'terreno_import_id' => $import->id,
+        ]);
+        $this->assertDatabaseHas('terreno_pending_polygons', [
+            'id' => $polygon->id,
+            'terreno_polygon_import_id' => $polygonImport->id,
+            'terreno_polygon_import_file_id' => $file->id,
+        ]);
     }
 
     public function test_viabilidade_factory_creates_valid_viabilidade(): void

@@ -28,6 +28,7 @@ Route::middleware('check.feature:viabilities.enabled')->group(function () {
             Route::post('/{scenario}/promote', [ViabilidadeScenarioController::class, 'promote']);
         });
     Route::get('/viabilidades/for-select', [ViabilidadeController::class, 'forSelect']);
+    Route::get('/viabilidades/modelos-financiamento', [ViabilidadeController::class, 'modelosFinanciamento']);
     Route::get('/viabilidades/terreno/{terrenoId}', [ViabilidadeController::class, 'byTerreno']);
     Route::get('/viabilidades/terreno/{terrenoId}/latest', [ViabilidadeController::class, 'latest']);
     Route::post('/viabilidades/compare', [ViabilidadeController::class, 'compare']);

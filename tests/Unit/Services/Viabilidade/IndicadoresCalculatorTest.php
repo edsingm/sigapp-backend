@@ -214,6 +214,30 @@ class IndicadoresCalculatorTest extends TestCase
         $this->assertNotEmpty($cronograma['por_mes']);
     }
 
+    public function test_plano_empresario_libera_divida_pj_conforme_medicoes_da_obra(): void
+    {
+        $cronograma = $this->impostos->gerarCronogramaDividaPjPorMedicao(
+            valorObra: 1_000_000.0,
+            taxaAnual: 0.12,
+            percentualFinanciado: 0.80,
+            carenciaMeses: 1,
+            amortizacaoParcelas: 2,
+            inicioObra: Carbon::parse('2026-01-01'),
+            dataEntrega: Carbon::parse('2026-03-01'),
+            curvaMedicao: [25.0, 75.0],
+        );
+
+        $this->assertEqualsWithDelta(200_000.0, $cronograma['por_mes']['2026-01']['desembolso'], 0.01);
+        $this->assertEqualsWithDelta(600_000.0, $cronograma['por_mes']['2026-02']['desembolso'], 0.01);
+        $this->assertGreaterThan(
+            $cronograma['por_mes']['2026-01']['juros_pagos'],
+            $cronograma['por_mes']['2026-02']['juros_pagos'],
+        );
+        $this->assertEqualsWithDelta(800_000.0, $cronograma['valor_antecipado'], 0.01);
+        $this->assertEqualsWithDelta(800_000.0, $cronograma['principal_amortizado'], 0.01);
+        $this->assertSame(0.0, $cronograma['saldo_final']);
+    }
+
     public function test_cronograma_pj_separa_desembolso_por_demanda_da_janela_de_obra(): void
     {
         $cronograma = $this->impostos->gerarCronogramaDividaPj(

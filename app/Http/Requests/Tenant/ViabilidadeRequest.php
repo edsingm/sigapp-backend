@@ -2,10 +2,12 @@
 
 namespace App\Http\Requests\Tenant;
 
+use App\Enums\PerfilFinanciamento;
 use App\Models\Tenant\TerrenoProduto;
 use App\Models\Tenant\Viabilidade;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class ViabilidadeRequest extends FormRequest
 {
@@ -39,6 +41,8 @@ class ViabilidadeRequest extends FormRequest
     public function rules(): array
     {
         $isStore = $this->isMethod('post');
+        $perfil = PerfilFinanciamento::tryFrom((string) $this->input('perfil_financiamento'));
+        $usarFinanciamentoPj = $this->boolean('usar_antecipacao_pj');
 
         return [
             // terreno_id obrigatório no store; no update só aceita se for o mesmo terreno.
@@ -124,13 +128,27 @@ class ViabilidadeRequest extends FormRequest
             'despesas_onerosas_bancos' => 'nullable|numeric|min:0|max:100',
             'taxa_juros_pj' => 'nullable|numeric|min:0|max:100',
             'carencia_pj_meses' => 'nullable|integer|min:0|max:120',
-            'amortizacao_pj_parcelas' => $this->boolean('usar_antecipacao_pj')
+            'amortizacao_pj_parcelas' => $usarFinanciamentoPj
                 ? 'required|integer|min:1|max:240'
                 : 'nullable|integer|min:0|max:240',
-            'percentual_antecipacao_pj' => $this->boolean('usar_antecipacao_pj')
+            'percentual_antecipacao_pj' => $usarFinanciamentoPj
                 ? 'required|numeric|gt:0|max:100'
                 : 'nullable|numeric|min:0|max:100',
-            'usar_antecipacao_pj' => 'sometimes|boolean',
+            'usar_antecipacao_pj' => [
+                $isStore && $perfil?->isPlanoEmpresario() ? 'required' : 'sometimes',
+                'boolean',
+                function (string $attribute, mixed $value, \Closure $fail) use ($perfil): void {
+                    $habilitado = filter_var($value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE) ?? false;
+
+                    if ($perfil?->isPlanoEmpresario() && ! $habilitado) {
+                        $fail('O Plano Empresário exige financiamento PJ habilitado.');
+                    }
+
+                    if ($habilitado && $perfil !== null && ! $perfil->permiteFinanciamentoPj()) {
+                        $fail('O modelo de financiamento selecionado não permite financiamento PJ.');
+                    }
+                },
+            ],
             'aporte_adicional_mensal' => 'nullable|numeric|min:0',
             'devolucao_aporte_percentual' => 'nullable|numeric|min:0|max:100',
             'distribuicao_lucros_percentual_obra' => 'nullable|numeric|min:0|max:100',
@@ -138,7 +156,11 @@ class ViabilidadeRequest extends FormRequest
             'inadimplencia' => 'nullable|numeric|min:0|max:100',
             'atraso_meses' => 'nullable|integer|min:0|max:120',
             'taxa_perda' => 'nullable|numeric|min:0|max:100',
-            'perfil_financiamento' => 'nullable|string|in:cef,proprio',
+            'perfil_financiamento' => [
+                $isStore ? 'required' : 'sometimes',
+                'string',
+                Rule::enum(PerfilFinanciamento::class),
+            ],
             'produtos' => 'nullable|array',
             'produtos.*.id' => [
                 'required',

@@ -19,7 +19,7 @@ class PremissasViabilidadeService
      *
      * Seleção determinística: vigente na data, ordenada por vigente_em, version e id.
      *
-     * @param  string|null  $perfil  Perfil de financiamento ('cef' ou 'proprio')
+     * @param  string|null  $perfil  Perfil de financiamento
      * @return array<string, mixed>
      *
      * @throws RuntimeException Se não houver premissa ativa no banco
@@ -27,8 +27,18 @@ class PremissasViabilidadeService
     public function resolverDefaults(?string $perfil = null): array
     {
         $perfil ??= 'cef';
-        $premissa = $this->repository?->findActiveForPerfilAt($perfil)
-            ?? PremissasViabilidade::carregarAtiva($perfil);
+        $perfilEnum = PerfilFinanciamento::tryFrom($perfil);
+        $candidatos = $perfilEnum?->perfisPremissas() ?? [$perfil];
+        $premissa = null;
+
+        foreach ($candidatos as $candidato) {
+            $premissa = $this->repository?->findActiveForPerfilAt($candidato)
+                ?? PremissasViabilidade::carregarAtiva($candidato);
+
+            if ($premissa instanceof PremissasViabilidade) {
+                break;
+            }
+        }
 
         if (! $premissa) {
             throw new RuntimeException(

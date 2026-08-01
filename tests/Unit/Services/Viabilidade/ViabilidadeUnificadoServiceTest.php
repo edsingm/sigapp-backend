@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Services\Viabilidade;
 
+use App\Enums\PerfilFinanciamento;
 use App\Services\Tenant\Viabilidade\v1\Calculos\DespesasCalculator;
 use App\Services\Tenant\Viabilidade\v1\Calculos\DreCalculator;
 use App\Services\Tenant\Viabilidade\v1\Calculos\FluxoMensalCalculator;
@@ -285,6 +286,32 @@ class ViabilidadeUnificadoServiceTest extends TestCase
         ];
     }
 
+    private function fluxoMensalCalculator(): FluxoMensalCalculator
+    {
+        $property = new \ReflectionProperty(ViabilidadeUnificadoService::class, 'fluxoMensalCalculator');
+        $property->setAccessible(true);
+        $calculator = $property->getValue($this->service);
+
+        $this->assertInstanceOf(FluxoMensalCalculator::class, $calculator);
+
+        return $calculator;
+    }
+
+    /** @return array<string, mixed> */
+    private function produtoParaTesteDeModelo(): array
+    {
+        $produto = $this->makeDadosProdutos()['produtos'][0];
+        $produto['quantidade_unidades'] = 10;
+        $produto['permutas'] = 0;
+        $produto['preco'] = 100_000.0;
+        $produto['pgto_por_lote'] = 0.0;
+        $produto['curva_vendas'] = [100.0];
+        $produto['baloes_anuais'] = [];
+        $produto['balao_entrega_modo'] = 'saldo_restante';
+
+        return $produto;
+    }
+
     public function test_fluxo_mensal_normaliza_percentuais_do_produto_em_fracao_e_percentual(): void
     {
         $property = new \ReflectionProperty(ViabilidadeUnificadoService::class, 'fluxoMensalCalculator');
@@ -350,6 +377,63 @@ class ViabilidadeUnificadoServiceTest extends TestCase
         $this->assertArrayHasKey('2029-02', $ctx->vendasPorMes);
         $this->assertEqualsWithDelta(72.1, $ctx->vendasPorMes['2029-02'], 0.01);
         $this->assertEqualsWithDelta(72.1, $ctx->vendasPorMes['2029-03'], 0.01);
+    }
+
+    public function test_alocacao_de_recursos_concentra_repasses_anteriores_no_mes_da_entrega(): void
+    {
+        $calculator = $this->fluxoMensalCalculator();
+        $method = new \ReflectionMethod(FluxoMensalCalculator::class, 'preCalcularRecebiveis');
+        $method->setAccessible(true);
+        $datas = $this->makeDatas();
+        $produto = $this->produtoParaTesteDeModelo();
+        $produto['pgto_por_lote'] = 10_000.0;
+        $ctx = new ViabilidadeFluxoContext;
+        $ctx->perfil = PerfilFinanciamento::ALOCACAO_RECURSOS;
+
+        $method->invoke($calculator, [$produto], $datas, $this->makeParams(), $ctx);
+
+        $mesEntrega = $datas['dataEntrega']->format('Y-m');
+        $this->assertSame([$mesEntrega], array_keys($ctx->recursosProprios));
+        $this->assertEqualsWithDelta(900_000.0, $ctx->recursosProprios[$mesEntrega]['repasse_pf'], 0.01);
+        $this->assertEqualsWithDelta(10.0, $ctx->vendasPorMes[$datas['dataLancamento']->format('Y-m')], 0.001);
+    }
+
+    public function test_plano_empresario_separa_pagamentos_dos_clientes_e_repasse_pf(): void
+    {
+        $calculator = $this->fluxoMensalCalculator();
+        $method = new \ReflectionMethod(FluxoMensalCalculator::class, 'preCalcularRecebiveis');
+        $method->setAccessible(true);
+        $datas = $this->makeDatas();
+        $produto = $this->produtoParaTesteDeModelo();
+        $produto['pgto_por_lote'] = 10_000.0;
+        $produto['financeiro'] = [
+            ...$produto['financeiro'],
+            'sinal' => 10,
+            'parcela_obra' => 10,
+            'parcela_posChave' => 10,
+            'qtde_parcelas_posChave' => 1,
+        ];
+        $ctx = new ViabilidadeFluxoContext;
+        $ctx->perfil = PerfilFinanciamento::PLANO_EMPRESARIO;
+
+        $method->invoke($calculator, [$produto], $datas, $this->makeParams(), $ctx);
+
+        $mesLancamento = $datas['dataLancamento']->format('Y-m');
+        $mesEntrega = $datas['dataEntrega']->format('Y-m');
+        $this->assertEqualsWithDelta(100_000.0, $ctx->recursosProprios[$mesLancamento]['sinal'], 0.01);
+        $this->assertEqualsWithDelta(600_000.0, $ctx->recursosProprios[$mesEntrega]['repasse_pf'], 0.01);
+
+        $receitas = (new ReceitasCalculator(new CurvaService))->calcular(
+            $mesEntrega,
+            ['produtos' => ['principal' => $produto]],
+            $datas,
+            $this->makeParams(),
+            $ctx,
+        );
+
+        $this->assertSame(0.0, $receitas['detalhes']['recebimento_terreno']['recebimento_total_terreno']);
+        $this->assertSame(0.0, $receitas['detalhes']['medicao_obra']['recebimento_total_medicao']);
+        $this->assertEqualsWithDelta(600_000.0, $receitas['detalhes']['repasse_pf']['recebimento_total_repasse_pf'], 0.01);
     }
 
     // =========================================================================

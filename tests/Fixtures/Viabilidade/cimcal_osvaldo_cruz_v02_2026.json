@@ -9,7 +9,7 @@
     "A pasta de trabalho contém um vínculo externo na fórmula DRE!S6; os valores esperados usam o cache salvo no XLSX.",
     "Custos da DRE foram normalizados para valores positivos, como retornados pela API.",
     "O motor reproduz o XIRR da planilha sobre os saldos acumulados operacional e após a dívida PJ.",
-    "O motor 2.5.0 reproduz a sequência mensal de aporte, devolução, caixa mínimo e distribuição das colunas JA:JO da planilha com a antecipação PJ explicitamente ativada."
+    "O motor 3.0.0 preserva a sequência mensal de aporte, devolução, caixa mínimo e distribuição das colunas JA:JO da planilha com o perfil legado CEF e a antecipação PJ explicitamente ativada."
   ],
   "tolerances": {
     "dre_pct": 0.1,
@@ -53,7 +53,7 @@
     "indicadores": "Resumo!D42,F42,D50,F50,D61,F61"
   },
   "known_divergences": {
-    "profit_distribution": "O motor 2.5.0 replica as colunas JA:JO: aporta o déficit incremental, devolve até 25% ao mês após completar os aportes, reserva um mês de saídas e distribui o excedente acumulado até o saldo final elegível.",
+    "profit_distribution": "O motor 3.0.0 preserva as colunas JA:JO no perfil legado CEF: aporta o déficit incremental, devolve até 25% ao mês após completar os aportes, reserva um mês de saídas e distribui o excedente acumulado até o saldo final elegível.",
     "cash_timing": "O calendário operacional, a exposição e o payback reconciliam com a planilha dentro do arredondamento monetário.",
     "irr": "O sistema replica o XIRR da planilha sobre os saldos acumulados: 600,53% a.a. operacional e 991,81% a.a. financeira."
   },

@@ -192,9 +192,10 @@ class ViabilidadeUnificadoService
     private function montarParametros(?Viabilidade $v): array
     {
         $perfilValue = $v?->getAttribute('perfil_financiamento');
-        $perfilStr = $perfilValue instanceof PerfilFinanciamento
-            ? $perfilValue->value
-            : 'cef';
+        $perfilFinanciamento = $perfilValue instanceof PerfilFinanciamento
+            ? $perfilValue
+            : PerfilFinanciamento::CEF;
+        $perfilStr = $perfilFinanciamento->value;
         $dataLancamentoViabilidade = $v?->getAttribute('data_lancamento');
         $defaults = $this->premissasService->resolverDefaults($perfilStr);
         $snapshot = is_array($v?->getAttribute('premissas_snapshot'))
@@ -216,13 +217,15 @@ class ViabilidadeUnificadoService
             'percentualAntecipacaoPjConfigurado',
             'percentual_antecipacao_pj',
         );
-        $usarAntecipacaoPj = $this->resolverBooleano(
+        $usarAntecipacaoPjConfigurado = $this->resolverBooleano(
             $v,
             $formValues,
             $snapshotParams,
             'usar_antecipacao_pj',
             'usarAntecipacaoPj',
         );
+        $usarAntecipacaoPj = $usarAntecipacaoPjConfigurado
+            && $perfilFinanciamento->permiteFinanciamentoPj();
 
         return [
             'percentualImpostos' => ((($v->pis_cofins ?? $defaults['pis_cofins']) + ($v->iss ?? $defaults['iss']) + ($v->outros_impostos ?? $defaults['outros_impostos'])) / 100),
@@ -295,6 +298,7 @@ class ViabilidadeUnificadoService
             'carenciaPjMeses' => $this->resolverInteiro($v, $formValues, $snapshotParams, $defaults, ['carencia_pj_meses'], 'carencia_pj_meses', 'carenciaPjMeses', 'carencia_pj_meses'),
             'amortizacaoPjParcelas' => $this->resolverInteiro($v, $formValues, $snapshotParams, $defaults, ['amortizacao_pj_parcelas'], 'amortizacao_pj_parcelas', 'amortizacaoPjParcelas', 'amortizacao_pj_parcelas'),
             'usarAntecipacaoPj' => $usarAntecipacaoPj,
+            'usarAntecipacaoPjConfigurado' => $usarAntecipacaoPjConfigurado,
             'percentualAntecipacaoPjConfigurado' => $percentualAntecipacaoPjConfigurado,
             'percentualAntecipacaoPj' => $usarAntecipacaoPj
                 ? $percentualAntecipacaoPjConfigurado
@@ -309,7 +313,7 @@ class ViabilidadeUnificadoService
             'obraAteLancamento' => $this->resolverPercentual($v, $formValues, $snapshotParams, $defaults, [], 'obra_ate_lancamento', 'obraAteLancamento', 'obra_ate_lancamento'),
             'marketingInicioAntesLancamento' => (int) ($v->marketing_inicio_antes_lancamento ?? $defaults['marketing_inicio_antes_lancamento']),
             'custoMedicaoContratacao' => (float) ($v->custo_contratacao_cef ?? $defaults['custo_contratacao_cef'] ?? 0),
-            'perfilFinanciamento' => PerfilFinanciamento::tryFrom($perfilStr),
+            'perfilFinanciamento' => $perfilFinanciamento,
             'dataLancamento' => $dataLancamentoViabilidade !== null
                 ? Carbon::parse($dataLancamentoViabilidade)
                 : $defaults['data_lancamento_padrao'],

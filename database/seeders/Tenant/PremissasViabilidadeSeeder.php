@@ -12,8 +12,15 @@ class PremissasViabilidadeSeeder extends Seeder
     {
         $jaExisteCef = PremissasViabilidade::ativo()->porPerfil('cef')->exists();
         $jaExisteProprio = PremissasViabilidade::ativo()->porPerfil('proprio')->exists();
+        $jaExisteApoioProducao = PremissasViabilidade::ativo()->porPerfil('apoio_producao')->exists();
+        $jaExistePlanoEmpresario = PremissasViabilidade::ativo()->porPerfil('plano_empresario')->exists();
+        $jaExisteAlocacaoRecursos = PremissasViabilidade::ativo()->porPerfil('alocacao_recursos')->exists();
 
-        if ($jaExisteCef && $jaExisteProprio) {
+        if ($jaExisteCef
+            && $jaExisteProprio
+            && $jaExisteApoioProducao
+            && $jaExistePlanoEmpresario
+            && $jaExisteAlocacaoRecursos) {
             return;
         }
 
@@ -137,6 +144,34 @@ class PremissasViabilidadeSeeder extends Seeder
                 'inadimplencia' => 0.15,
                 'atraso_meses' => 3,
                 'taxa_perda' => 0.05,
+            ]));
+        }
+
+        if (! $jaExisteApoioProducao) {
+            PremissasViabilidade::create(array_merge($valoresCef, [
+                'nome' => 'Padrão Apoio à Produção',
+                'perfil_financiamento' => PerfilFinanciamento::APOIO_PRODUCAO->value,
+            ]));
+        }
+
+        if (! $jaExistePlanoEmpresario) {
+            PremissasViabilidade::create(array_merge($valoresCef, [
+                'nome' => 'Padrão Plano Empresário',
+                'perfil_financiamento' => PerfilFinanciamento::PLANO_EMPRESARIO->value,
+                'percentual_antecipacao_pj' => 80.0,
+            ]));
+        }
+
+        if (! $jaExisteAlocacaoRecursos) {
+            PremissasViabilidade::create(array_merge($valoresBase, [
+                'nome' => 'Padrão Alocação de Recursos',
+                'perfil_financiamento' => PerfilFinanciamento::ALOCACAO_RECURSOS->value,
+                'custo_medicao_cef' => 0.0,
+                'percentual_antecipacao_pj' => 0.0,
+                'taxa_juros_pj' => 0.0,
+                'inadimplencia' => 0.0,
+                'atraso_meses' => 0,
+                'taxa_perda' => 0.0,
             ]));
         }
     }

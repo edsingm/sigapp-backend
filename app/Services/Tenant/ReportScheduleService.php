@@ -141,7 +141,7 @@ class ReportScheduleService
                 'last_run_id' => $run->id,
             ]);
 
-            GenerateReportRunJob::dispatch($run->id);
+            GenerateReportRunJob::dispatch($run->id, $run->idempotency_key);
             $dispatched++;
         }
 

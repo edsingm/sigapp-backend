@@ -28,13 +28,20 @@ class GenerateReportRunJob implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public function __construct(private readonly int $runId) {}
+    public function __construct(
+        private readonly int $runId,
+        private readonly ?string $uniqueKey = null,
+    ) {}
 
     public int $uniqueFor = 660;
 
     public function uniqueId(): string
     {
-        return sprintf('%s:%d', tenant()?->getTenantKey() ?? 'central', $this->runId);
+        return sprintf(
+            '%s:%s',
+            tenant()?->getTenantKey() ?? 'central',
+            $this->uniqueKey ?? (string) $this->runId,
+        );
     }
 
     public function handle(ReportRunRepository $repository, ReportGenerationService $service): void

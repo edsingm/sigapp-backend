@@ -87,10 +87,7 @@ class DocumentIntelligenceService
 
         // Sem force: reutiliza a última completed (evita custo). Com force ou só failed: nova análise.
         if (! $force) {
-            $latestCompleted = $documento->analyses()
-                ->where('status', 'completed')
-                ->latest('id')
-                ->first();
+            $latestCompleted = $this->repository->findLatestCompletedAnalysis($documento);
             if ($latestCompleted instanceof DocumentAnalysis) {
                 return $latestCompleted;
             }

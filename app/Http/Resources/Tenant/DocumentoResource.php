@@ -41,6 +41,25 @@ class DocumentoResource extends JsonResource
                 'id' => $this->updatedBy->id,
                 'name' => $this->updatedBy->name,
             ]),
+            'latest_analysis' => $this->when(
+                $this->relationLoaded('analyses'),
+                function (): ?array {
+                    $analysis = $this->analyses->sortByDesc('id')->first();
+                    if ($analysis === null) {
+                        return null;
+                    }
+
+                    $fields = is_array($analysis->extracted_fields) ? $analysis->extracted_fields : [];
+
+                    return [
+                        'id' => $analysis->id,
+                        'status' => $analysis->status,
+                        'summary' => $fields['summary'] ?? null,
+                        'confidence' => $analysis->confidence,
+                        'completed_at' => $analysis->completed_at?->toIso8601String(),
+                    ];
+                }
+            ),
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
         ];

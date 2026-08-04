@@ -19,8 +19,9 @@ class GetDocumentsHubTool implements Tool
 
     public function description(): Stringable|string
     {
-        return 'Documentos. action=list (metadados/filtros ou document_id para detalhe), search (busca semântica no conteúdo). '
-            .'search exige query.';
+        return 'Documentos. action=list (metadados/filtros; document_id devolve detalhe + analysis de PDF se existir ou enfileira sob demanda), '
+            .'search (busca semântica; exige query). Para conteúdo de PDF use list com document_id e leia analysis.summary/key_fields; '
+            .'se status queued, informe que a análise foi enfileirada e não invente o conteúdo.';
     }
 
     public function handle(Request $request): Stringable|string

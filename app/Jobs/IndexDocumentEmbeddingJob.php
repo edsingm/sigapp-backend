@@ -94,6 +94,11 @@ class IndexDocumentEmbeddingJob implements ShouldBeUnique, ShouldQueue
      */
     protected function extractText(Documento $documento, DocumentoService $documentoService): string
     {
+        $analysisText = $this->textFromCompletedAnalysis($documento);
+        if ($analysisText !== '') {
+            return $analysisText;
+        }
+
         // Se tem path no storage, tenta ler o conteúdo
         $disk = Storage::disk($documentoService->storageDisk());
         if ($documento->file_path && $disk->exists($documento->file_path)) {
@@ -103,14 +108,41 @@ class IndexDocumentEmbeddingJob implements ShouldBeUnique, ShouldQueue
                 return $disk->get($documento->file_path);
             }
 
-            // PDF e outros binários exigem parser — por enquanto usa descrição
+            // PDF/Office sem análise: fallback a metadados (conteúdo binário não é indexado aqui)
             if (in_array($ext, ['pdf', 'doc', 'docx'], true)) {
-                // TODO: integrar spatie/laravel-pdf ou similar para extração de texto
-                return $documento->descricao ?? $documento->nome;
+                return $this->fallbackMetadataText($documento);
             }
         }
 
-        // Fallback: usa campos textuais do documento
+        return $this->fallbackMetadataText($documento);
+    }
+
+    protected function textFromCompletedAnalysis(Documento $documento): string
+    {
+        $analysis = $documento->analyses()
+            ->where('status', 'completed')
+            ->latest('id')
+            ->first();
+
+        if ($analysis === null) {
+            return '';
+        }
+
+        $fields = is_array($analysis->extracted_fields) ? $analysis->extracted_fields : [];
+        $summary = is_string($fields['summary'] ?? null) ? trim($fields['summary']) : '';
+        $keyFields = is_array($fields['key_fields'] ?? null) ? $fields['key_fields'] : [];
+
+        $parts = array_filter([
+            $documento->nome,
+            $summary,
+            $keyFields !== [] ? json_encode($keyFields, JSON_UNESCAPED_UNICODE) : null,
+        ], static fn ($part): bool => is_string($part) && $part !== '');
+
+        return implode("\n\n", $parts);
+    }
+
+    protected function fallbackMetadataText(Documento $documento): string
+    {
         $parts = array_filter([
             $documento->nome,
             $documento->descricao,

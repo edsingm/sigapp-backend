@@ -28,11 +28,26 @@ return [
     'tenant_budget_default' => (float) env('AI_TENANT_BUDGET_DEFAULT', 10.00),
     'agent_budget_reservation_usd' => (float) env('AI_AGENT_BUDGET_RESERVATION_USD', 0.25),
     'embedding_budget_reservation_usd' => (float) env('AI_EMBEDDING_BUDGET_RESERVATION_USD', 0.001),
+    'document_budget_reservation_usd' => (float) env('AI_DOCUMENT_BUDGET_RESERVATION_USD', 0.05),
     'budget_reservation_ttl_minutes' => (int) env('AI_BUDGET_RESERVATION_TTL_MINUTES', 15),
     'rate_limit_per_minute' => (int) env('AI_RATE_LIMIT_PER_MINUTE', 30),
     'pdf_rate_limit_per_hour' => (int) env('AI_PDF_RATE_LIMIT_PER_HOUR', 10),
     'pdf_max_html_chars' => (int) env('AI_PDF_MAX_HTML_CHARS', 150000),
     'mercado_rate_limit_per_hour' => (int) env('AI_MERCADO_RATE_LIMIT_PER_HOUR', 10),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Document analysis (OpenCode Go / GPT-5.6 Luna)
+    |--------------------------------------------------------------------------
+    |
+    | Used only by DocumentUnderstandingService — not by the SIG_IA chat agent.
+    |
+    */
+    'document_provider' => env('AI_DOCUMENT_PROVIDER', 'opencode_go'),
+    'document_model' => env('AI_DOCUMENT_MODEL', 'gpt-5.6-luna'),
+    'document_timeout_seconds' => (int) env('AI_DOCUMENT_TIMEOUT_SECONDS', 120),
+    'document_max_bytes' => (int) env('AI_DOCUMENT_MAX_BYTES', 10_485_760),
+    'document_max_pages' => (int) env('AI_DOCUMENT_MAX_PAGES', 30),
 
     'prices_per_million_tokens' => [
         'deepseek' => [
@@ -55,6 +70,10 @@ return [
         'openai' => [
             'input' => (float) env('AI_OPENAI_INPUT_PRICE_PER_M', 2.50),
             'output' => (float) env('AI_OPENAI_OUTPUT_PRICE_PER_M', 10.00),
+        ],
+        'opencode_go' => [
+            'input' => (float) env('AI_OPENCODE_GO_INPUT_PRICE_PER_M', 0.20),
+            'output' => (float) env('AI_OPENCODE_GO_OUTPUT_PRICE_PER_M', 1.20),
         ],
     ],
 
@@ -173,6 +192,12 @@ return [
         'openrouter' => [
             'driver' => 'openrouter',
             'key' => env('OPENROUTER_API_KEY'),
+        ],
+
+        'opencode_go' => [
+            'driver' => 'opencode_go',
+            'key' => env('OPENCODE_GO_API_KEY'),
+            'url' => env('OPENCODE_GO_BASE_URL', 'https://opencode.ai/zen/go/v1'),
         ],
 
         'voyageai' => [

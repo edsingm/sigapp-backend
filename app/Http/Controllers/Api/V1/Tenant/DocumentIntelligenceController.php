@@ -68,8 +68,13 @@ class DocumentIntelligenceController extends Controller
     public function requestAnalysis(DocumentAnalysisRequest $request, int $documento): JsonResponse
     {
         $document = $this->findAndAuthorize($documento, 'view');
+        $force = (bool) ($request->validated('force') ?? false);
 
-        return ApiResponseService::success(new DocumentAnalysisResource($this->service->requestAnalysis($document, $request->user())), 'Análise documental enfileirada com sucesso', 202);
+        return ApiResponseService::success(
+            new DocumentAnalysisResource($this->service->requestAnalysis($document, $request->user(), $force)),
+            'Análise documental enfileirada com sucesso',
+            202
+        );
     }
 
     public function review(DocumentReviewRequest $request, int $documento): JsonResponse

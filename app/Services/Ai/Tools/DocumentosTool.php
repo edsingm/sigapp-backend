@@ -2,7 +2,12 @@
 
 namespace App\Services\Ai\Tools;
 
+use App\Exceptions\DocumentAnalysisUnsupportedException;
+use App\Models\Tenant\DocumentAnalysis;
 use App\Models\Tenant\Documento;
+use App\Models\Tenant\User;
+use App\Services\Tenant\DocumentAnalysisEligibility;
+use App\Services\Tenant\DocumentIntelligenceService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -12,7 +17,7 @@ class DocumentosTool implements Tool
 {
     public function description(): Stringable|string
     {
-        return 'Documentos de terrenos: se document_id for informado, retorna análise detalhada do documento (metadados, tipo, sugestão de ação); caso contrário, lista documentos filtráveis por terreno, tipo, categoria e status.';
+        return 'Documentos de terrenos: com document_id retorna metadados e a análise de conteúdo do PDF (summary/campos) quando existir; se for PDF sem análise e o plano permitir, enfileira análise sob demanda. Sem document_id, lista documentos filtráveis.';
     }
 
     public function handle(Request $request): Stringable|string
@@ -35,7 +40,7 @@ class DocumentosTool implements Tool
 
     private function analyzeDocument(int $documentId): string
     {
-        $documento = Documento::find($documentId);
+        $documento = Documento::query()->with(['terreno:id'])->find($documentId);
         if (! $documento) {
             return AiToolResponse::empty("Documento {$documentId} não encontrado.");
         }
@@ -59,6 +64,8 @@ class DocumentosTool implements Tool
             'status' => $documento->status,
             'status_label' => $documento->status_label ?? $documento->status,
             'tamanho_bytes' => (int) ($documento->tamanho ?? 0),
+            'is_pdf' => app(DocumentAnalysisEligibility::class)->isPdfDocumento($documento),
+            'analysis' => $this->resolveAnalysisPayload($documento),
             'heuristica_tipo' => [
                 'source' => 'rule',
                 'tipo_detectado' => $documento->tipo ?? 'desconhecido',
@@ -73,13 +80,103 @@ class DocumentosTool implements Tool
                     'certidao_negativa' => 'Confirmar que não há débitos ou impedimentos.',
                     default => 'Documento sem classificação específica. Revisar conteúdo.',
                 },
-                'disclaimer' => 'Sugestão por regra de tipo de arquivo — não é análise de conteúdo por IA.',
+                'disclaimer' => 'Heurística por tipo cadastrado — complementar à analysis de conteúdo quando existir.',
             ],
             'created_at' => optional($documento->created_at)?->toAtomString(),
             'updated_at' => optional($documento->updated_at)?->toAtomString(),
         ];
 
         return AiToolResponse::ok($payload);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function resolveAnalysisPayload(Documento $documento): array
+    {
+        $latest = $documento->analyses()->latest('id')->first();
+        if ($latest instanceof DocumentAnalysis && in_array($latest->status, ['queued', 'running', 'completed'], true)) {
+            return $this->mapAnalysis($latest);
+        }
+
+        // failed / ausente: tenta enfileirar nova análise (reprocessamento)
+        $auth = app(AiToolAuth::class);
+        if ($deny = $auth->ensureFeature(
+            'documents.intelligence',
+            'Plano sem análise inteligente de documentos.'
+        )) {
+            if ($latest instanceof DocumentAnalysis) {
+                $mapped = $this->mapAnalysis($latest);
+                $mapped['message'] = 'Análise de conteúdo indisponível no plano atual; exibindo última tentativa.';
+
+                return $mapped;
+            }
+
+            return [
+                'status' => 'unavailable',
+                'message' => 'Análise de conteúdo indisponível no plano atual.',
+            ];
+        }
+
+        $eligibility = app(DocumentAnalysisEligibility::class);
+        if (! $eligibility->canAnalyzeOnDemand($documento)) {
+            return [
+                'status' => 'unsupported',
+                'message' => 'Somente arquivos PDF podem ser analisados por conteúdo.',
+            ];
+        }
+
+        $user = auth()->user();
+        if (! $user instanceof User) {
+            return [
+                'status' => 'unavailable',
+                'message' => 'Usuário não autenticado para enfileirar análise.',
+            ];
+        }
+
+        try {
+            // force=true quando a última falhou, para não “grudar” no failed
+            $force = $latest instanceof DocumentAnalysis && $latest->status === 'failed';
+            $queued = app(DocumentIntelligenceService::class)->requestAnalysis($documento, $user, $force);
+
+            return $this->mapAnalysis($queued);
+        } catch (DocumentAnalysisUnsupportedException $exception) {
+            return [
+                'status' => 'unsupported',
+                'message' => $exception->getMessage(),
+            ];
+        } catch (\Throwable $exception) {
+            // Nunca derrubar o stream do chat por falha de análise/embedding/provider.
+            return [
+                'status' => 'failed',
+                'message' => 'Não foi possível enfileirar ou concluir a análise neste momento. Tente POST /documentos/{id}/analysis ou consulte mais tarde.',
+                'error_code' => class_basename($exception),
+            ];
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function mapAnalysis(DocumentAnalysis $analysis): array
+    {
+        return [
+            'id' => $analysis->id,
+            'status' => $analysis->status,
+            'provider' => $analysis->provider,
+            'model' => $analysis->model,
+            'confidence' => $analysis->confidence,
+            'extracted_fields' => $analysis->extracted_fields,
+            'summary' => is_array($analysis->extracted_fields)
+                ? ($analysis->extracted_fields['summary'] ?? null)
+                : null,
+            'key_fields' => is_array($analysis->extracted_fields)
+                ? ($analysis->extracted_fields['key_fields'] ?? null)
+                : null,
+            'limitations' => $analysis->limitations,
+            'error_message' => $analysis->status === 'failed' ? $analysis->error_message : null,
+            'completed_at' => optional($analysis->completed_at)?->toAtomString(),
+        ];
     }
 
     private function listDocumentos(Request $request): string

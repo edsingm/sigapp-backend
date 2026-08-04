@@ -2,9 +2,12 @@
 
 namespace App\Http\Resources\Tenant;
 
+use App\Models\Tenant\Documento;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use LogicException;
 
+/** @mixin Documento */
 class DocumentoResource extends JsonResource
 {
     /**
@@ -14,6 +17,12 @@ class DocumentoResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        if (! $this->resource instanceof Documento) {
+            throw new LogicException('DocumentoResource requer um model Documento.');
+        }
+
+        $documento = $this->resource;
+
         return [
             'id' => $this->id,
             'terreno_id' => $this->terreno_id,
@@ -41,6 +50,25 @@ class DocumentoResource extends JsonResource
                 'id' => $this->updatedBy->id,
                 'name' => $this->updatedBy->name,
             ]),
+            'latest_analysis' => $this->when(
+                $documento->relationLoaded('analyses'),
+                function () use ($documento): ?array {
+                    $analysis = $documento->analyses->sortByDesc('id')->first();
+                    if ($analysis === null) {
+                        return null;
+                    }
+
+                    $fields = is_array($analysis->extracted_fields) ? $analysis->extracted_fields : [];
+
+                    return [
+                        'id' => $analysis->id,
+                        'status' => $analysis->status,
+                        'summary' => $fields['summary'] ?? null,
+                        'confidence' => $analysis->confidence,
+                        'completed_at' => $analysis->completed_at?->toIso8601String(),
+                    ];
+                }
+            ),
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
         ];

@@ -39,6 +39,7 @@ class DocumentoService
     public function __construct(
         private readonly DocumentoRepository $documentoRepository,
         private readonly StorageQuotaService $storageQuota,
+        private readonly DocumentIntelligenceService $documentIntelligence,
     ) {}
 
     /**
@@ -80,6 +81,7 @@ class DocumentoService
         );
 
         IndexDocumentEmbeddingJob::dispatch($documento->getKey());
+        $this->documentIntelligence->dispatchAutoAnalysisIfEligible($documento, $user);
 
         return $this->documentoRepository->findOrFail($documento->getKey(), ['terreno:id,nome', 'createdBy:id,name']);
     }

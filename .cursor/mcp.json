@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "youtrack": {
+      "url": "https://sigapp.youtrack.cloud/mcp",
+      "headers": {
+        "Authorization": "Bearer ${env:YOUTRACK_TOKEN}"
+      }
+    }
+  }
+}

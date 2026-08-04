@@ -17,6 +17,9 @@ class DocumentAnalysisRequest extends FormRequest
     /** @return array<string, mixed> */
     public function rules(): array
     {
-        return [];
+        return [
+            // force=true reprocessa mesmo com análise completed/failed anterior
+            'force' => ['sometimes', 'boolean'],
+        ];
     }
 }

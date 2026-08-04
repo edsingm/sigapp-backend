@@ -23,7 +23,7 @@ class StoreDocumentoRequest extends FormRequest
             'arquivo' => [
                 'required',
                 'file',
-                'max:3072',
+                'max:10240',
                 'mimes:pdf,jpg,jpeg,png,webp,doc,docx,xls,xlsx,ppt,pptx,kml,kmz,dwg',
             ],
             'nome' => ['nullable', 'string', 'max:255'],

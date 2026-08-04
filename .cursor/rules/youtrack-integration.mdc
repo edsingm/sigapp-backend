@@ -1,0 +1,43 @@
+---
+description: Integração YouTrack SIGAPP — usar token do .env local, nunca commitar
+alwaysApply: true
+---
+
+# YouTrack (integração local / scripts — não usado pelo Laravel em runtime)
+
+Servidor MCP oficial (Cursor):
+
+| Escopo | Arquivo | Auth |
+|--------|---------|------|
+| **Global (todas as sessões)** | `~/.cursor/mcp.json` | Token permanente (máquina local) |
+| **Projeto** | `.cursor/mcp.json` | `${env:YOUTRACK_TOKEN}` → `.env` |
+
+URL: `https://sigapp.youtrack.cloud/mcp`
+
+Após alterar config: **Cursor Settings → Tools & MCP → Refresh** no servidor `youtrack` (ou reiniciar o Cursor).
+
+## Credenciais
+
+- Ler **`YOUTRACK_TOKEN`**, **`YOUTRACK_BASE_URL`** e **`YOUTRACK_PROJECT_ID`** do arquivo **`.env`** na raiz do repo (gitignored).
+- **Nunca** commitar tokens, colocar em rules, docs, `AGENTS.md` ou mensagens do usuário.
+- Preferir **ferramentas MCP `youtrack`** para criar/consultar issues; fallback: REST API ou `scripts/youtrack/`.
+
+## API
+
+```bash
+# Carregar env
+set -a && source .env && set +a
+
+# Listar issues recentes
+curl -sf "${YOUTRACK_BASE_URL}/api/issues?query=project:SIG&fields=idReadable,summary&\$top=10&sort=created%20desc" \
+  -H "Authorization: Bearer ${YOUTRACK_TOKEN}" \
+  -H 'Accept: application/json'
+```
+
+Script reutilizável: `scripts/youtrack/create-youtrack-issue-from-doc.sh` (verifica duplicata + último idReadable antes de criar).
+
+## Convenções
+
+- Tickets do projeto seguem `SIG-N` (ex.: SIG-14 = plano de correções backend review).
+- Corpo longo de tickets: manter espelhado em `docs/2026-*-sig-*-*.md` quando existir.
+- Antes de criar issue: consultar último `SIG-N` e buscar summary duplicado.

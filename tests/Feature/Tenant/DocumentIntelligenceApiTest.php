@@ -15,11 +15,15 @@ use App\Models\Tenant\Documento;
 use App\Models\Tenant\DocumentRequirement;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\User;
+use App\Services\Ai\Document\DocumentAnalysisResult;
+use App\Services\Ai\Document\DocumentUnderstandingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
+use Mockery;
+use Mockery\MockInterface;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
@@ -79,10 +83,27 @@ class DocumentIntelligenceApiTest extends TestCase
             ->json('data.id');
         Queue::assertPushed(AnalyzeDocumentJob::class, 1);
 
+        /** @var DocumentUnderstandingService&MockInterface $understanding */
+        $understanding = Mockery::mock(DocumentUnderstandingService::class);
+        $understanding->shouldReceive('analyze')
+            ->once()
+            ->andReturn(new DocumentAnalysisResult(
+                extractedFields: [
+                    'summary' => 'Resumo de teste da matrícula.',
+                    'key_fields' => DocumentAnalysisResult::emptyExtractedFields()['key_fields'],
+                ],
+                confidence: 0.8,
+                limitations: [],
+                provider: 'opencode_go',
+                model: 'gpt-5.6-luna',
+            ));
+
         $job = new AnalyzeDocumentJob((int) $analysis);
-        $job->handle();
+        $job->handle($understanding);
         $this->actingAs($this->admin)->getJson("/api/v1/documentos/{$this->documento->id}/analysis")
-            ->assertOk()->assertJsonPath('data.status', 'completed');
+            ->assertOk()
+            ->assertJsonPath('data.status', 'completed')
+            ->assertJsonPath('data.extracted_fields.summary', 'Resumo de teste da matrícula.');
 
         $this->actingAs($this->admin)->postJson("/api/v1/documentos/{$this->documento->id}/reviews", [
             'status' => 'approved',

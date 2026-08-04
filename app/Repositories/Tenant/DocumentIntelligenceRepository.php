@@ -80,6 +80,15 @@ class DocumentIntelligenceRepository
         return $analysis;
     }
 
+    public function findLatestCompletedAnalysis(Documento $documento): ?DocumentAnalysis
+    {
+        return DocumentAnalysis::query()
+            ->where('documento_id', $documento->id)
+            ->where('status', 'completed')
+            ->latest('id')
+            ->first();
+    }
+
     /** @param array<string, mixed> $data */
     public function createAnalysis(array $data): DocumentAnalysis
     {

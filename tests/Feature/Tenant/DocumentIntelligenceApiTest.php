@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Mockery;
+use Mockery\MockInterface;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
@@ -82,6 +83,7 @@ class DocumentIntelligenceApiTest extends TestCase
             ->json('data.id');
         Queue::assertPushed(AnalyzeDocumentJob::class, 1);
 
+        /** @var DocumentUnderstandingService&MockInterface $understanding */
         $understanding = Mockery::mock(DocumentUnderstandingService::class);
         $understanding->shouldReceive('analyze')
             ->once()

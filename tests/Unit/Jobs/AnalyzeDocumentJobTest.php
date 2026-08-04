@@ -119,6 +119,7 @@ class AnalyzeDocumentJobTest extends TestCase
             'model' => 'gpt-5.6-luna',
         ]);
 
+        /** @var DocumentUnderstandingService&MockInterface $understanding */
         $understanding = Mockery::mock(DocumentUnderstandingService::class);
         $understanding->shouldReceive('analyze')->once()->andReturn(new DocumentAnalysisResult(
             extractedFields: [

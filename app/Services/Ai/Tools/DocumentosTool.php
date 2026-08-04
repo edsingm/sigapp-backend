@@ -90,9 +90,9 @@ class DocumentosTool implements Tool
     }
 
     /**
-     * @return array<string, mixed>|null
+     * @return array<string, mixed>
      */
-    private function resolveAnalysisPayload(Documento $documento): ?array
+    private function resolveAnalysisPayload(Documento $documento): array
     {
         $latest = $documento->analyses()->latest('id')->first();
         if ($latest instanceof DocumentAnalysis && in_array($latest->status, ['queued', 'running', 'completed'], true)) {

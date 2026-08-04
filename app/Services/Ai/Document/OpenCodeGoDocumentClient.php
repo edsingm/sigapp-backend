@@ -72,12 +72,8 @@ class OpenCodeGoDocumentClient
         } catch (ConnectionException $exception) {
             throw new RuntimeException('Falha de conexão com o provedor de análise documental.', 0, $exception);
         } catch (RequestException $exception) {
-            $status = $exception->response?->status() ?? 0;
-            $bodySnippet = '';
-            if ($exception->response !== null) {
-                $raw = $exception->response->body();
-                $bodySnippet = is_string($raw) ? mb_substr($raw, 0, 300) : '';
-            }
+            $status = $exception->response->status();
+            $bodySnippet = mb_substr($exception->response->body(), 0, 300);
             throw new RuntimeException(
                 'Provedor de análise documental retornou erro HTTP '.$status
                 .($bodySnippet !== '' ? ': '.$bodySnippet : '.'),

@@ -24,11 +24,18 @@ class DocumentUnderstandingServiceTest extends TestCase
         $documento->file_path = 'documentos/foto.png';
         $documento->id = 1;
 
+        /** @var OpenCodeGoDocumentClient&MockInterface $client */
+        $client = Mockery::mock(OpenCodeGoDocumentClient::class);
+        /** @var DocumentoService&MockInterface $documentoService */
+        $documentoService = Mockery::mock(DocumentoService::class);
+        /** @var AiTelemetryService&MockInterface $telemetry */
+        $telemetry = Mockery::mock(AiTelemetryService::class);
+
         $service = new DocumentUnderstandingService(
-            Mockery::mock(OpenCodeGoDocumentClient::class),
+            $client,
             new DocumentAnalysisEligibility,
-            Mockery::mock(DocumentoService::class),
-            Mockery::mock(AiTelemetryService::class),
+            $documentoService,
+            $telemetry,
         );
 
         $this->expectException(DocumentAnalysisUnsupportedException::class);

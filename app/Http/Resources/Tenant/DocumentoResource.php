@@ -2,9 +2,12 @@
 
 namespace App\Http\Resources\Tenant;
 
+use App\Models\Tenant\Documento;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use LogicException;
 
+/** @mixin Documento */
 class DocumentoResource extends JsonResource
 {
     /**
@@ -14,6 +17,12 @@ class DocumentoResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        if (! $this->resource instanceof Documento) {
+            throw new LogicException('DocumentoResource requer um model Documento.');
+        }
+
+        $documento = $this->resource;
+
         return [
             'id' => $this->id,
             'terreno_id' => $this->terreno_id,
@@ -42,9 +51,9 @@ class DocumentoResource extends JsonResource
                 'name' => $this->updatedBy->name,
             ]),
             'latest_analysis' => $this->when(
-                $this->relationLoaded('analyses'),
-                function (): ?array {
-                    $analysis = $this->analyses->sortByDesc('id')->first();
+                $documento->relationLoaded('analyses'),
+                function () use ($documento): ?array {
+                    $analysis = $documento->analyses->sortByDesc('id')->first();
                     if ($analysis === null) {
                         return null;
                     }

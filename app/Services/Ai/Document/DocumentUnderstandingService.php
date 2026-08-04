@@ -172,7 +172,15 @@ PROMPT;
      * @return array{
      *     extracted_fields: array{
      *         summary: string,
-     *         key_fields: array<string, mixed>
+     *         key_fields: array{
+     *             titulo_ou_tipo: mixed,
+     *             partes: list<mixed>,
+     *             datas: list<mixed>,
+     *             numeros_referencia: list<mixed>,
+     *             valores: list<mixed>,
+     *             local_ou_cartorio: mixed,
+     *             observacoes: mixed
+     *         }
      *     },
      *     confidence: float,
      *     limitations: list<string>

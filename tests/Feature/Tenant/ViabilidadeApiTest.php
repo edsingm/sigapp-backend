@@ -3,6 +3,7 @@
 namespace Tests\Feature\Tenant;
 
 use App\Enums\Common\RolesEnum;
+use App\Enums\PerfilFinanciamento;
 use App\Enums\WorkflowStatus;
 use App\Http\Middleware\AddTenantContextToLogs;
 use App\Http\Middleware\ApiRequestLogger;
@@ -83,7 +84,7 @@ class ViabilidadeApiTest extends TestCase
                     'reconciliation',
                 ],
             ])
-            ->assertJsonPath('data.calculation_engine_version', '2.5.0')
+            ->assertJsonPath('data.calculation_engine_version', '3.0.0')
             ->assertJsonPath('data.viabilidade.usar_antecipacao_pj', true)
             ->assertJsonPath('data.warnings', [
                 'Custo de obra incorrido ultrapassou o orçamento POC.',
@@ -210,6 +211,46 @@ class ViabilidadeApiTest extends TestCase
             0,
             (float) $reativada->json('data.indicadores.divida_pj.valor_antecipado'),
         );
+    }
+
+    public function test_catalogo_expoe_somente_modelos_selecionaveis(): void
+    {
+        $response = $this->actingAs($this->admin)
+            ->getJson('/api/v1/viabilidades/modelos-financiamento')
+            ->assertOk()
+            ->assertJsonCount(4, 'data');
+
+        $valores = array_column($response->json('data'), 'value');
+
+        $this->assertSame([
+            PerfilFinanciamento::PROPRIO->value,
+            PerfilFinanciamento::APOIO_PRODUCAO->value,
+            PerfilFinanciamento::PLANO_EMPRESARIO->value,
+            PerfilFinanciamento::ALOCACAO_RECURSOS->value,
+        ], $valores);
+        $this->assertNotContains(PerfilFinanciamento::CEF->value, $valores);
+    }
+
+    public function test_nova_viabilidade_exige_modelo_e_rejeita_financiamento_pj_quando_incompativel(): void
+    {
+        $terrenoProduto = $this->createViabilityFixture();
+        $payload = $this->makePayload($terrenoProduto);
+
+        unset($payload['perfil_financiamento']);
+
+        $this->actingAs($this->admin)
+            ->postJson('/api/v1/viabilidades', $payload)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['perfil_financiamento']);
+
+        $this->actingAs($this->admin)
+            ->postJson('/api/v1/viabilidades', [
+                ...$payload,
+                'perfil_financiamento' => PerfilFinanciamento::ALOCACAO_RECURSOS->value,
+                'usar_antecipacao_pj' => true,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['usar_antecipacao_pj']);
     }
 
     public function test_calculation_metadata_has_safe_fallbacks_for_legacy_snapshots(): void
@@ -590,6 +631,7 @@ class ViabilidadeApiTest extends TestCase
         $this->actingAs($this->admin)
             ->postJson('/api/v1/viabilidades', [
                 'terreno_id' => $terrenoSemProduto->id,
+                'perfil_financiamento' => PerfilFinanciamento::APOIO_PRODUCAO->value,
             ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['terreno_id']);
@@ -607,6 +649,7 @@ class ViabilidadeApiTest extends TestCase
         $response = $this->actingAs($this->admin)
             ->postJson('/api/v1/viabilidades?include=auditoria', [
                 'terreno_id' => $terrenoProduto->getAttribute('terreno_id'),
+                'perfil_financiamento' => PerfilFinanciamento::APOIO_PRODUCAO->value,
                 'medicao_contratacao' => 48000,
                 'custo_medicao_cef' => 1250,
                 'produtos' => [
@@ -635,6 +678,7 @@ class ViabilidadeApiTest extends TestCase
         $response = $this->actingAs($this->admin)
             ->postJson('/api/v1/viabilidades', [
                 'terreno_id' => $terrenoProduto->getAttribute('terreno_id'),
+                'perfil_financiamento' => PerfilFinanciamento::APOIO_PRODUCAO->value,
                 'gastos_mensais_stand' => 0.1234,
                 'comissao_house_percentual' => 4.5,
                 'comissao_imobiliarias_percentual' => 5.5,
@@ -749,6 +793,7 @@ class ViabilidadeApiTest extends TestCase
         $createResponse = $this->actingAs($this->admin)
             ->postJson('/api/v1/viabilidades', [
                 'terreno_id' => $terrenoProduto->getAttribute('terreno_id'),
+                'perfil_financiamento' => PerfilFinanciamento::APOIO_PRODUCAO->value,
                 'compra_terreno' => 1000000,
                 'produtos' => [
                     [
@@ -821,6 +866,7 @@ class ViabilidadeApiTest extends TestCase
         $createResponse = $this->actingAs($this->admin)
             ->postJson('/api/v1/viabilidades', [
                 'terreno_id' => $terrenoProduto->getAttribute('terreno_id'),
+                'perfil_financiamento' => PerfilFinanciamento::APOIO_PRODUCAO->value,
                 'produtos' => [
                     [
                         'id' => $terrenoProduto->getKey(),
@@ -936,6 +982,7 @@ class ViabilidadeApiTest extends TestCase
     {
         return [
             'terreno_id' => $terrenoProduto->getAttribute('terreno_id'),
+            'perfil_financiamento' => PerfilFinanciamento::APOIO_PRODUCAO->value,
             'prazo_obra' => 18,
             'usar_antecipacao_pj' => true,
             'taxa_juros_pj' => 10.5,

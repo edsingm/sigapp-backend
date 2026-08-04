@@ -142,6 +142,7 @@ class TenantRoutesArchitectureTest extends TestCase
             ['api/v1/terrenos/polygon-imports/{import}', 'api/v1/terrenos/{terreno}'],
             ['api/v1/terrenos/polygons/{polygon}', 'api/v1/terrenos/{terreno}'],
             ['api/v1/viabilidades/for-select', 'api/v1/viabilidades/{viabilidade}'],
+            ['api/v1/viabilidades/modelos-financiamento', 'api/v1/viabilidades/{viabilidade}'],
             ['api/v1/viabilidades/terreno/{terrenoId}', 'api/v1/viabilidades/{viabilidade}'],
             ['api/v1/viabilidades/compare', 'api/v1/viabilidades/{viabilidade}'],
             ['api/v1/tenant-admin/roles/select', 'api/v1/tenant-admin/roles/{role}'],

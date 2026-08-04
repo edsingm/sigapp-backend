@@ -23,7 +23,7 @@ class ViabilidadeFactory extends Factory
             'terreno_id' => Terreno::factory(),
             'version' => 1,
             'is_current' => true,
-            'perfil_financiamento' => PerfilFinanciamento::CEF->value,
+            'perfil_financiamento' => PerfilFinanciamento::APOIO_PRODUCAO->value,
             'parceria_vgv' => fake()->randomFloat(2, 0, 1000000),
             'compra_terreno' => fake()->randomFloat(2, 100000, 5000000),
             'pis_cofins' => 4.00,

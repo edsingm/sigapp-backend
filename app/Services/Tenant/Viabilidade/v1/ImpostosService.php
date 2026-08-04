@@ -414,4 +414,158 @@ class ImpostosService
             'por_mes' => $porMes,
         ];
     }
+
+    /**
+     * Cronograma do Plano Empresário: o principal é liberado gradualmente
+     * conforme a curva financeira de medição da obra. Juros são pagos sobre o
+     * saldo efetivamente desembolsado e a amortização SAC começa após entrega
+     * e carência.
+     *
+     * @param  list<float|int>  $curvaMedicao
+     * @return array{
+     *   valor_antecipado: float,
+     *   juros_totais: float,
+     *   principal_amortizado: float,
+     *   saldo_final: float,
+     *   por_mes: array<string, array{desembolso: float, juros_pagos: float, amortizacao: float, saldo_inicial: float, saldo_final: float}>
+     * }
+     */
+    public function gerarCronogramaDividaPjPorMedicao(
+        float $valorObra,
+        float $taxaAnual,
+        float $percentualFinanciado,
+        int $carenciaMeses,
+        int $amortizacaoParcelas,
+        Carbon|\DateTimeInterface $inicioObra,
+        Carbon|\DateTimeInterface $dataEntrega,
+        array $curvaMedicao,
+    ): array {
+        $principalTotal = max(0.0, $valorObra) * max(0.0, min(1.0, $percentualFinanciado));
+
+        if ($principalTotal <= 0.0) {
+            return [
+                'valor_antecipado' => 0.0,
+                'juros_totais' => 0.0,
+                'principal_amortizado' => 0.0,
+                'saldo_final' => 0.0,
+                'por_mes' => [],
+            ];
+        }
+
+        $inicio = $inicioObra instanceof Carbon
+            ? $inicioObra->copy()->startOfMonth()
+            : Carbon::instance(\DateTime::createFromInterface($inicioObra))->startOfMonth();
+        $entrega = $dataEntrega instanceof Carbon
+            ? $dataEntrega->copy()->startOfMonth()
+            : Carbon::instance(\DateTime::createFromInterface($dataEntrega))->startOfMonth();
+        $taxaMensal = max(0.0, $taxaAnual) > 0.0
+            ? pow(1 + max(0.0, $taxaAnual), 1 / 12) - 1
+            : 0.0;
+        $percentuais = array_map(
+            static fn (float|int $percentual): float => max(0.0, (float) $percentual),
+            $curvaMedicao,
+        );
+        $somaPercentuais = array_sum($percentuais);
+
+        if ($somaPercentuais <= 0.0) {
+            $percentuais = [100.0];
+            $somaPercentuais = 100.0;
+        }
+
+        $porMes = [];
+        $saldo = 0.0;
+        $jurosTotais = 0.0;
+        $desembolsado = 0.0;
+        $ultimoIndice = array_key_last($percentuais);
+
+        foreach ($percentuais as $indice => $percentual) {
+            $desembolso = $indice === $ultimoIndice
+                ? max(0.0, $principalTotal - $desembolsado)
+                : $principalTotal * ($percentual / $somaPercentuais);
+            $saldoInicial = $saldo;
+            $saldo += $desembolso;
+            $desembolsado += $desembolso;
+            $juros = $saldo * $taxaMensal;
+            $jurosTotais += $juros;
+            $mes = $inicio->copy()->addMonths((int) $indice)->format('Y-m');
+            $porMes[$mes] = [
+                'desembolso' => round($desembolso, 2),
+                'juros_pagos' => round($juros, 2),
+                'amortizacao' => 0.0,
+                'saldo_inicial' => round($saldoInicial, 2),
+                'saldo_final' => round($saldo, 2),
+            ];
+        }
+
+        $inicioAmortizacao = $entrega->copy()->addMonths(max(0, $carenciaMeses))->startOfMonth();
+        $cursor = $inicio->copy()->addMonths(count($percentuais));
+
+        while ($cursor->lessThan($inicioAmortizacao) && $saldo > 0.0) {
+            $mes = $cursor->format('Y-m');
+            $juros = $saldo * $taxaMensal;
+            $jurosTotais += $juros;
+            $porMes[$mes] = [
+                'desembolso' => 0.0,
+                'juros_pagos' => round($juros, 2),
+                'amortizacao' => 0.0,
+                'saldo_inicial' => round($saldo, 2),
+                'saldo_final' => round($saldo, 2),
+            ];
+            $cursor->addMonth();
+        }
+
+        if ($cursor->lessThan($inicioAmortizacao)) {
+            $cursor = $inicioAmortizacao->copy();
+        }
+
+        $amortizacaoParcelas = max(0, $amortizacaoParcelas);
+        $amortizacaoMensal = $amortizacaoParcelas > 0 ? $principalTotal / $amortizacaoParcelas : 0.0;
+        $principalAmortizado = 0.0;
+
+        for ($parcela = 0; $parcela < $amortizacaoParcelas && $saldo > 0.01; $parcela++) {
+            $saldoInicial = $saldo;
+            $amortizacao = $parcela === $amortizacaoParcelas - 1
+                ? $saldo
+                : min($saldo, $amortizacaoMensal);
+            $saldo = max(0.0, $saldo - $amortizacao);
+            $principalAmortizado += $amortizacao;
+            $juros = $saldo * $taxaMensal;
+            $jurosTotais += $juros;
+            $mes = $cursor->format('Y-m');
+            $porMes[$mes] = [
+                'desembolso' => 0.0,
+                'juros_pagos' => round($juros, 2),
+                'amortizacao' => round($amortizacao, 2),
+                'saldo_inicial' => round($saldoInicial, 2),
+                'saldo_final' => round($saldo, 2),
+            ];
+            $cursor->addMonth();
+        }
+
+        if ($saldo > 0.01) {
+            $saldoInicial = $saldo;
+            $juros = $saldo * $taxaMensal;
+            $jurosTotais += $juros;
+            $principalAmortizado += $saldo;
+            $mes = $cursor->format('Y-m');
+            $porMes[$mes] = [
+                'desembolso' => 0.0,
+                'juros_pagos' => round($juros, 2),
+                'amortizacao' => round($saldo, 2),
+                'saldo_inicial' => round($saldoInicial, 2),
+                'saldo_final' => 0.0,
+            ];
+            $saldo = 0.0;
+        }
+
+        ksort($porMes);
+
+        return [
+            'valor_antecipado' => round($principalTotal, 2),
+            'juros_totais' => round($jurosTotais, 2),
+            'principal_amortizado' => round($principalAmortizado, 2),
+            'saldo_final' => round($saldo, 2),
+            'por_mes' => $porMes,
+        ];
+    }
 }

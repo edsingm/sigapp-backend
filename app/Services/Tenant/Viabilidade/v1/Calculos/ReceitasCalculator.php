@@ -41,6 +41,7 @@ class ReceitasCalculator
 
         $rp = $ctx->recursosProprios[$mes] ?? [];
         $totalRp = ($rp['sinal'] ?? 0.0) + ($rp['parcelas_obra'] ?? 0.0) + ($rp['parcelas_pos'] ?? 0.0);
+        $repassePf = $rp['repasse_pf'] ?? 0.0;
         $totalAtrasadas = $ctx->parcelasAtrasadas[$mes] ?? 0.0;
 
         $rt = $ctx->perfil->isCef()
@@ -54,7 +55,7 @@ class ReceitasCalculator
         $jurosValor = $rp['juros'] ?? 0.0;
         $correcoesValor = ($rp['correcao'] ?? 0.0) + ($rp['correcao_obra'] ?? 0.0);
         $jurosCorrecao = $jurosValor + $correcoesValor;
-        $totalRecursosProprios = $totalRp + $totalAtrasadas + $jurosValor + $correcoesValor;
+        $totalRecursosProprios = $totalRp + $repassePf + $totalAtrasadas + $jurosValor + $correcoesValor;
         $total = $totalRecursosProprios + $rt['valor'] + $mo['valor'];
 
         return [
@@ -63,6 +64,7 @@ class ReceitasCalculator
             'detalhes' => [
                 'recursos_proprios' => [
                     'recurso_proprio' => round($totalRp, 2),
+                    'repasse_pf' => round($repassePf, 2),
                     'recursos_atrasados' => round($totalAtrasadas, 2),
                     'juros' => round($jurosValor, 2),
                     'correcoes' => round($correcoesValor, 2),
@@ -73,6 +75,9 @@ class ReceitasCalculator
                 ],
                 'medicao_obra' => [
                     'recebimento_total_medicao' => round($mo['valor'], 2),
+                ],
+                'repasse_pf' => [
+                    'recebimento_total_repasse_pf' => round($repassePf, 2),
                 ],
                 'total' => round($total, 2),
             ],

@@ -51,7 +51,7 @@ class ReportRunService
             'expires_at' => now()->addHours(24),
         ]);
 
-        GenerateReportRunJob::dispatch($run->id);
+        GenerateReportRunJob::dispatch($run->id, $run->idempotency_key);
 
         return $run->load(['template', 'requester']);
     }

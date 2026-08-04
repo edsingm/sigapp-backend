@@ -2,9 +2,11 @@
 
 namespace App\Http\Requests\Tenant;
 
+use App\Enums\PerfilFinanciamento;
 use App\Services\Acl\PermissionNameResolver;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StorePremissasViabilidadeRequest extends FormRequest
 {
@@ -28,7 +30,7 @@ class StorePremissasViabilidadeRequest extends FormRequest
     {
         return [
             'nome' => 'required|string|max:255',
-            'perfil_financiamento' => 'required|string|in:cef,proprio',
+            'perfil_financiamento' => ['required', 'string', Rule::enum(PerfilFinanciamento::class)],
             'ativo' => 'boolean',
             'vigente_em' => 'nullable|date',
             'encerrada_em' => 'nullable|date|after:vigente_em',

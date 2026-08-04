@@ -14,7 +14,7 @@ class ViabilidadeSnapshotService
 {
     public const SCHEMA_VERSION = 2;
 
-    public const ENGINE_VERSION = '2.5.0';
+    public const ENGINE_VERSION = '3.0.0';
 
     /**
      * @param  array<string, mixed>  $inputs

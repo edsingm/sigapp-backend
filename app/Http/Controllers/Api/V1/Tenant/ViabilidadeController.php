@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Tenant;
 
+use App\Enums\PerfilFinanciamento;
 use App\Enums\ViabilidadeApprovalStatus;
 use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
@@ -36,6 +37,16 @@ class ViabilidadeController extends Controller
         private readonly ViabilidadeService $viabilidadeService,
         private readonly TenantCacheService $cache,
     ) {}
+
+    /**
+     * Catálogo dos modelos selecionáveis em novos estudos.
+     */
+    public function modelosFinanciamento(): JsonResponse
+    {
+        $this->authorize('viewAny', Viabilidade::class);
+
+        return ApiResponseService::success(PerfilFinanciamento::options());
+    }
 
     /**
      * Ativar uma viabilidade (mudar status de rascunho para ativo)

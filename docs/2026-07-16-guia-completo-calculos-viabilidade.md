@@ -2,9 +2,9 @@
 
 > Documento funcional e técnico para orientar a página do frontend “Como funciona a viabilidade”.
 >
-> **Motor documentado:** `2.5.0`
+> **Motor documentado:** `3.0.0`
 > **Referência validada:** planilha Cimcal v.02.2026 — Osvaldo Cruz  
-> **Atualizado em:** 16/07/2026  
+> **Atualizado em:** 01/08/2026
 > **Fonte da verdade:** cálculo executado no backend. O frontend deve apresentar os resultados, nunca recalculá-los.
 
 ## 1. Objetivo deste documento
@@ -35,7 +35,7 @@ Ao criar a página, siga estas regras:
 5. Informe que todo resultado depende das premissas cadastradas, das curvas e do calendário do estudo.
 6. Use os nomes amigáveis deste documento nos textos e tooltips; use os caminhos da API somente na implementação.
 7. Solicite os blocos detalhados com `include` quando a tela precisar deles. A resposta padrão é resumida.
-8. Não apresente `aporte_adicional_mensal` nem `devolucao_aporte_percentual` como fórmulas ativas. Esses campos ainda existem no contrato de cadastro, mas o motor oficial `2.5.0` segue automaticamente a política de caixa da planilha: aporte do déficit e devolução de 25% ao mês, limitada ao total aportado.
+8. Não apresente `aporte_adicional_mensal` nem `devolucao_aporte_percentual` como fórmulas ativas. Esses campos ainda existem no contrato de cadastro, mas o motor oficial `3.0.0` segue automaticamente a política de caixa da planilha: aporte do déficit e devolução de 25% ao mês, limitada ao total aportado.
 9. Leia `calculation_engine_version` na resposta e mostre a versão usada em cada cálculo. Se vier `null`, identifique o registro como anterior ao versionamento disponível, sem assumir uma versão.
 10. Leia `warnings` e `reconciliation` diretamente na resposta padrão. Trate alertas e falhas de reconciliação como informação relevante, não como detalhe técnico descartável.
 11. Leia `usar_antecipacao_pj` como a decisão do estudo. Não presuma que um percentual configurado maior que zero significa dívida ativa.
@@ -97,10 +97,20 @@ Todos os eventos são agrupados por mês, usando a chave `AAAA-MM`. A TIR usa as
 
 ### 4.4 Perfis de financiamento
 
-O motor possui dois perfis:
+Toda nova viabilidade deve informar `perfil_financiamento`. A interface obtém os modelos selecionáveis em `GET /api/v1/viabilidades/modelos-financiamento` e não deve manter uma lista paralela.
 
-- **CEF:** combina recursos próprios do cliente, recurso terreno, medições de obra e dívida PJ.
-- **Próprio:** usa sinal, mensalidades, balões e saldo de entrega conforme a configuração do produto.
+| Valor | Modelo | Como as entradas são reconhecidas no fluxo mensal |
+|---|---|---|
+| `proprio` | Financiamento Próprio | Sinal, mensalidades, balões e saldo conforme a tabela comercial do produto, sem financiamento bancário. |
+| `apoio_producao` | Apoio à Produção | Pagamentos do cliente, recurso terreno conforme vendas e medição vinculada simultaneamente às vendas e à evolução da obra. Pode ter funding PJ complementar. |
+| `plano_empresario` | Plano Empresário | Pagamentos diretos do cliente durante a obra, funding PJ liberado pela curva mensal de medição e saldo do financiamento PF repassado na entrega; vendas posteriores são repassadas no mês da venda. |
+| `alocacao_recursos` | Alocação de Recursos | Não há funding bancário durante a obra. O valor líquido das vendas anteriores à conclusão entra como repasse PF na entrega; vendas posteriores entram no próprio mês. |
+
+O valor `cef` é um alias histórico de Apoio à Produção. Ele continua aceito para garantir a reprodução de estudos e snapshots antigos, mas não aparece no catálogo de novos estudos.
+
+Próprio e Alocação de Recursos não aceitam `usar_antecipacao_pj=true`. Plano Empresário exige funding PJ habilitado. Apoio à Produção permite escolher se haverá ou não funding PJ.
+
+A seleção muda a composição e o momento do fluxo mensal. As fórmulas da DRE e dos KPIs não são ramificadas por modelo; seus valores podem mudar porque recebem um fluxo diferente como entrada.
 
 ### 4.5 Premissas iniciais do seeder
 
@@ -121,7 +131,7 @@ O `PremissasViabilidadeSeeder` cria a premissa inicial **Padrão CEF** com os va
 | Correção adicional | 0% ao ano |
 | Incorporação / lançamento / obra / entrega / pós-obra | 18 / 6 / 36 / 1 / 60 meses |
 
-Esses valores são **defaults de cadastro**, e não uma migração de dados. O seeder só cria o perfil CEF quando o tenant ainda não possui uma premissa CEF ativa; ele não altera uma premissa ativa existente. O perfil **Próprio** continua independente, pois a planilha de referência não contém um cenário próprio equivalente e validado.
+Esses valores são **defaults de cadastro**, e não uma migração de dados. O seeder não altera premissas ativas existentes e cria conjuntos para CEF legado, Próprio, Apoio à Produção, Plano Empresário e Alocação de Recursos. Para tenants antigos, Apoio e Plano Empresário usam CEF como fallback enquanto não houver premissa específica; Alocação usa Próprio como fallback.
 
 Dados específicos do produto ou terreno — como quantidade de unidades, preço, área privativa, custo por metro quadrado, curva de vendas e avaliação CEF — não pertencem ao seeder de premissas e continuam sendo informados no estudo. O valor residual `bonus_equipe_comercial = -728.286` reproduz especificamente o modelo canônico e deve ser revisto antes de ser adotado como política comercial geral.
 
@@ -853,7 +863,7 @@ As chaves de detalhes são normalizadas para `snake_case` na resposta pública. 
 
 Os três campos são retornados no nível superior de `data` sem necessidade de `include`:
 
-- `calculation_engine_version`: string da versão, como `2.5.0`; retorna `null` em snapshots antigos sem versão registrada;
+- `calculation_engine_version`: string da versão, como `3.0.0`; retorna `null` em snapshots antigos sem versão registrada;
 - `warnings`: lista de mensagens; retorna `[]` quando não há alertas ou o snapshot antigo não possui o campo;
 - `reconciliation`: objeto com `status`, `differences`, `warnings` e `checks`; retorna `null` quando indisponível em snapshot antigo.
 
@@ -886,7 +896,7 @@ O cenário usado para validar o motor possui:
 - 18 meses de incorporação, 6 de lançamento, 36 de obra e 60 de pós-obra;
 - perfil CEF.
 
-Resultados do motor `2.5.0`, com `usar_antecipacao_pj = true`:
+Resultados canônicos preservados no motor `3.0.0`, com o perfil legado `cef` e `usar_antecipacao_pj = true`:
 
 | Métrica | Sistema |
 |---|---:|

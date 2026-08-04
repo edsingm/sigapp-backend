@@ -406,13 +406,57 @@ class FluxoMensalCalculator
      */
     private function preCalcularRecebiveis(array $produtos, array $datas, array $params, ViabilidadeFluxoContext $ctx): void
     {
-        if ($ctx->perfil->isCef()) {
+        if (! $ctx->perfil->isCef()) {
+            $this->preCalcularVendas($produtos, $datas, $ctx);
+        }
+
+        if ($ctx->perfil->isApoioProducao()) {
             $this->preCalcularRecebiveisCef($produtos, $datas, $params, $ctx);
-        } else {
+        } elseif ($ctx->perfil->isProprio()) {
             $this->preCalcularRecebiveisProprio($produtos, $datas, $params, $ctx);
+        } elseif ($ctx->perfil->isPlanoEmpresario()) {
+            $this->preCalcularRecebiveisPlanoEmpresario($produtos, $datas, $params, $ctx);
+        } else {
+            $this->preCalcularRecebiveisAlocacaoRecursos($produtos, $datas, $ctx);
         }
 
         $this->aplicarInadimplencia($ctx, $params);
+    }
+
+    /**
+     * A curva comercial determina o mês da venda independentemente do modelo
+     * de recebimento. No Apoio à Produção o cache continua sendo inicializado
+     * pelo caminho legado para preservar exatamente o cálculo existente.
+     *
+     * @param  list<array<string, mixed>>  $produtos
+     * @param  array<string, Carbon>  $datas
+     */
+    private function preCalcularVendas(array $produtos, array $datas, ViabilidadeFluxoContext $ctx): void
+    {
+        $ctx->vendasPorMes = [];
+        $dataLancamento = $datas['dataLancamento']->copy()->startOfMonth();
+
+        foreach ($produtos as $produto) {
+            $curvaVendas = $this->curvaService->normalizarCurva(
+                $this->curvaService->extrairCurva($produto['curva_vendas'] ?? null)
+            );
+            $unidades = max(
+                0.0,
+                (float) ($produto['quantidade_unidades'] ?? 0.0) - (float) ($produto['permutas'] ?? 0.0)
+            );
+
+            foreach ($curvaVendas as $mesVenda => $percentualVenda) {
+                if ($percentualVenda <= 0.0) {
+                    continue;
+                }
+
+                $mes = $dataLancamento->copy()->addMonths($mesVenda)->format('Y-m');
+                $ctx->vendasPorMes[$mes] = ($ctx->vendasPorMes[$mes] ?? 0.0)
+                    + ($unidades * $percentualVenda / 100);
+            }
+        }
+
+        ksort($ctx->vendasPorMes);
     }
 
     /**
@@ -642,11 +686,112 @@ class FluxoMensalCalculator
     }
 
     /**
+     * Plano Empresário: preserva sinal/parcelas pagos diretamente pelos
+     * clientes e concentra o saldo financiado pelo comprador no repasse PF da
+     * entrega. O financiamento PJ da obra é tratado no fluxo financeiro.
+     *
+     * @param  list<array<string, mixed>>  $produtos
+     * @param  array<string, Carbon>  $datas
+     * @param  array<string, mixed>  $params
+     */
+    private function preCalcularRecebiveisPlanoEmpresario(
+        array $produtos,
+        array $datas,
+        array $params,
+        ViabilidadeFluxoContext $ctx,
+    ): void {
+        $this->preCalcularRecebiveisCef($produtos, $datas, $params, $ctx);
+
+        $dataLancamento = $datas['dataLancamento']->copy()->startOfMonth();
+        $dataEntrega = $datas['dataEntrega']->copy()->startOfMonth();
+
+        foreach ($produtos as $produto) {
+            $curvaVendas = $this->curvaService->normalizarCurva(
+                $this->curvaService->extrairCurva($produto['curva_vendas'] ?? null)
+            );
+            $unidades = max(
+                0.0,
+                (float) ($produto['quantidade_unidades'] ?? 0.0) - (float) ($produto['permutas'] ?? 0.0)
+            );
+            $precoBruto = max(0.0, (float) ($produto['preco'] ?? 0.0));
+            $precoLiquido = max(0.0, $precoBruto - (float) ($produto['pgto_por_lote'] ?? 0.0));
+            $financeiro = is_array($produto['financeiro'] ?? null) ? $produto['financeiro'] : [];
+            $percentualCliente = min(1.0,
+                $this->normalizarPercentual($financeiro['sinal'] ?? null, 0.02)
+                + $this->normalizarPercentual($financeiro['parcela_obra'] ?? null, 0.09)
+                + $this->normalizarPercentual($financeiro['parcela_posChave'] ?? null, 0.09)
+            );
+            $saldoRepasseUnitario = max(0.0, $precoLiquido - ($precoBruto * $percentualCliente));
+
+            foreach ($curvaVendas as $mesVenda => $percentualVenda) {
+                if ($percentualVenda <= 0.0 || $saldoRepasseUnitario <= 0.0) {
+                    continue;
+                }
+
+                $dataVenda = $dataLancamento->copy()->addMonths($mesVenda)->startOfMonth();
+                $dataRepasse = $dataVenda->greaterThan($dataEntrega) ? $dataVenda : $dataEntrega;
+                $mesRepasse = $dataRepasse->format('Y-m');
+                $unidadesVendidas = $unidades * $percentualVenda / 100;
+                $ctx->recursosProprios[$mesRepasse]['repasse_pf'] =
+                    ($ctx->recursosProprios[$mesRepasse]['repasse_pf'] ?? 0.0)
+                    + ($saldoRepasseUnitario * $unidadesVendidas);
+            }
+        }
+
+        ksort($ctx->recursosProprios);
+    }
+
+    /**
+     * Alocação de Recursos: não há entrada bancária durante a obra. As vendas
+     * formalizadas antes da conclusão são liberadas juntas na entrega; vendas
+     * posteriores entram no respectivo mês da curva comercial.
+     *
+     * @param  list<array<string, mixed>>  $produtos
+     * @param  array<string, Carbon>  $datas
+     */
+    private function preCalcularRecebiveisAlocacaoRecursos(
+        array $produtos,
+        array $datas,
+        ViabilidadeFluxoContext $ctx,
+    ): void {
+        $ctx->recursosProprios = [];
+        $dataLancamento = $datas['dataLancamento']->copy()->startOfMonth();
+        $dataEntrega = $datas['dataEntrega']->copy()->startOfMonth();
+
+        foreach ($produtos as $produto) {
+            $curvaVendas = $this->curvaService->normalizarCurva(
+                $this->curvaService->extrairCurva($produto['curva_vendas'] ?? null)
+            );
+            $unidades = max(
+                0.0,
+                (float) ($produto['quantidade_unidades'] ?? 0.0) - (float) ($produto['permutas'] ?? 0.0)
+            );
+            $valorUnitario = max(0.0, (float) ($produto['preco'] ?? 0.0) - (float) ($produto['pgto_por_lote'] ?? 0.0));
+
+            foreach ($curvaVendas as $mesVenda => $percentualVenda) {
+                if ($percentualVenda <= 0.0 || $valorUnitario <= 0.0) {
+                    continue;
+                }
+
+                $dataVenda = $dataLancamento->copy()->addMonths($mesVenda)->startOfMonth();
+                $dataRepasse = $dataVenda->greaterThan($dataEntrega) ? $dataVenda : $dataEntrega;
+                $mesRepasse = $dataRepasse->format('Y-m');
+                $unidadesVendidas = $unidades * $percentualVenda / 100;
+                $ctx->recursosProprios[$mesRepasse]['repasse_pf'] =
+                    ($ctx->recursosProprios[$mesRepasse]['repasse_pf'] ?? 0.0)
+                    + ($valorUnitario * $unidadesVendidas);
+            }
+        }
+
+        ksort($ctx->recursosProprios);
+    }
+
+    /**
      * @param  array<string, mixed>  $params
      */
     private function aplicarInadimplencia(ViabilidadeFluxoContext $ctx, array $params): void
     {
-        if ($ctx->perfil->isCef()) {
+        if (! $ctx->perfil->isProprio()) {
             return;
         }
 

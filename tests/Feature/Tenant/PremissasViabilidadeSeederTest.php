@@ -127,4 +127,39 @@ class PremissasViabilidadeSeederTest extends TestCase
         $this->assertSame(3, (int) $premissa->atraso_meses);
         $this->assertSame(0.05, (float) $premissa->taxa_perda);
     }
+
+    public function test_seeds_canonical_financing_profiles_without_overwriting_existing_premises(): void
+    {
+        $this->seed(PremissasViabilidadeSeeder::class);
+
+        $perfis = PremissasViabilidade::query()
+            ->orderBy('perfil_financiamento')
+            ->pluck('perfil_financiamento')
+            ->map(static fn (PerfilFinanciamento|string $perfil): string => $perfil instanceof PerfilFinanciamento
+                ? $perfil->value
+                : $perfil)
+            ->all();
+
+        $this->assertEqualsCanonicalizing(PerfilFinanciamento::values(), $perfis);
+
+        $planoEmpresario = PremissasViabilidade::query()
+            ->where('perfil_financiamento', PerfilFinanciamento::PLANO_EMPRESARIO->value)
+            ->firstOrFail();
+        $alocacaoRecursos = PremissasViabilidade::query()
+            ->where('perfil_financiamento', PerfilFinanciamento::ALOCACAO_RECURSOS->value)
+            ->firstOrFail();
+
+        $this->assertSame(80.0, (float) $planoEmpresario->percentual_antecipacao_pj);
+        $this->assertSame(0.0, (float) $alocacaoRecursos->percentual_antecipacao_pj);
+
+        $planoEmpresario->update(['percentual_antecipacao_pj' => 72.0]);
+        $this->seed(PremissasViabilidadeSeeder::class);
+
+        $planoEmpresarioAtualizado = PremissasViabilidade::query()
+            ->where('perfil_financiamento', PerfilFinanciamento::PLANO_EMPRESARIO->value)
+            ->firstOrFail();
+
+        $this->assertSame(72.0, (float) $planoEmpresarioAtualizado->percentual_antecipacao_pj);
+        $this->assertSame(5, PremissasViabilidade::query()->count());
+    }
 }

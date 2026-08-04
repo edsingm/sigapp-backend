@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Tenant\Viabilidade\v1\Calculos;
 
+use App\Enums\PerfilFinanciamento;
 use App\Services\Tenant\Viabilidade\v1\ImpostosService;
 use Carbon\Carbon;
 
@@ -50,20 +51,43 @@ class IndicadoresCalculator
             + ((float) ($params['canteiroMensal'] ?? 0.0) * max(0, (int) ($params['mesesObra'] ?? 0)));
         $custoTerrenoBase = ($dadosProdutos['permutas'] * ($dadosProdutos['produtos'][0]['preco'] ?? 0)) + ($params['compraTerreno'] ?? 0);
 
-        $cronogramaDivida = $this->impostosService->gerarCronogramaDividaPj(
-            (float) $custoTotalObra,
-            (int) ($params['mesesObra'] ?? 0),
-            (float) ($params['taxaJurosPj'] ?? 0),
-            (float) ($params['percentualAntecipacaoPj'] ?? 0),
-            (float) $custoTerrenoBase,
-            (int) ($params['carenciaPjMeses'] ?? 0),
-            (int) ($params['amortizacaoPjParcelas'] ?? 0),
-            $datas['inicioObra']->copy()->startOfMonth(),
-            $datas['dataEntrega']->copy()->startOfMonth(),
-            ($params['dataAntecipacaoPj'] ?? null) instanceof \DateTimeInterface
-                ? $params['dataAntecipacaoPj']
-                : null,
-        );
+        $perfil = $params['perfilFinanciamento'] ?? null;
+        $curvaFinanceiraMedicao = [];
+        $curvaFinanceiraMedicaoInformada = $dadosProdutos['curvaFinanceiraMedicaoAgregada'] ?? null;
+
+        if (is_array($curvaFinanceiraMedicaoInformada)) {
+            foreach ($curvaFinanceiraMedicaoInformada as $percentual) {
+                if (is_float($percentual) || is_int($percentual)) {
+                    $curvaFinanceiraMedicao[] = $percentual;
+                }
+            }
+        }
+
+        $cronogramaDivida = $perfil instanceof PerfilFinanciamento && $perfil->isPlanoEmpresario()
+            ? $this->impostosService->gerarCronogramaDividaPjPorMedicao(
+                (float) $custoTotalObra,
+                (float) ($params['taxaJurosPj'] ?? 0),
+                (float) ($params['percentualAntecipacaoPj'] ?? 0),
+                (int) ($params['carenciaPjMeses'] ?? 0),
+                (int) ($params['amortizacaoPjParcelas'] ?? 0),
+                $datas['inicioObra']->copy()->startOfMonth(),
+                $datas['dataEntrega']->copy()->startOfMonth(),
+                $curvaFinanceiraMedicao,
+            )
+            : $this->impostosService->gerarCronogramaDividaPj(
+                (float) $custoTotalObra,
+                (int) ($params['mesesObra'] ?? 0),
+                (float) ($params['taxaJurosPj'] ?? 0),
+                (float) ($params['percentualAntecipacaoPj'] ?? 0),
+                (float) $custoTerrenoBase,
+                (int) ($params['carenciaPjMeses'] ?? 0),
+                (int) ($params['amortizacaoPjParcelas'] ?? 0),
+                $datas['inicioObra']->copy()->startOfMonth(),
+                $datas['dataEntrega']->copy()->startOfMonth(),
+                ($params['dataAntecipacaoPj'] ?? null) instanceof \DateTimeInterface
+                    ? $params['dataAntecipacaoPj']
+                    : null,
+            );
 
         $cronogramaPorMes = $cronogramaDivida['por_mes'];
         $pctDistribuicao = max(0.0, min(1.0, (float) ($params['distribuicaoLucrosPercentualObra'] ?? 0.0)));
@@ -123,6 +147,7 @@ class IndicadoresCalculator
                 'saldo_apos_devolucao_aporte' => round($politicaMes['saldo_apos_devolucao_aporte'], 2),
                 'caixa_minimo' => round($politicaMes['caixa_minimo'], 2),
                 'entrada_antecipacao_pj' => round($entradaAntecipacaoMes, 2),
+                'entrada_financiamento_pj' => round($entradaAntecipacaoMes, 2),
                 'pagamento_pj' => round($pagamentoPjMes, 2),
                 'juros_pj' => round($jurosPjMes, 2),
                 'amortizacao_pj' => round($amortizacaoPjMes, 2),
@@ -158,6 +183,7 @@ class IndicadoresCalculator
                 'saldo_apos_devolucao_aporte' => round($saldoFinanceiro, 2),
                 'caixa_minimo' => 0.0,
                 'entrada_antecipacao_pj' => round($linhaDivida['desembolso'], 2),
+                'entrada_financiamento_pj' => round($linhaDivida['desembolso'], 2),
                 'pagamento_pj' => round($pagamento, 2),
                 'juros_pj' => round($linhaDivida['juros_pagos'], 2),
                 'amortizacao_pj' => round($linhaDivida['amortizacao'], 2),
@@ -193,6 +219,9 @@ class IndicadoresCalculator
                 'payback_financeiro_meses' => $paybackFinanceiroMes,
                 'exposicao_aplicada_total' => round($exposicaoAplicadaTotal, 2),
                 'divida_pj' => [
+                    'modelo_desembolso' => $perfil instanceof PerfilFinanciamento && $perfil->isPlanoEmpresario()
+                        ? 'medicao_obra'
+                        : 'desembolso_unico',
                     'valor_antecipado' => $cronogramaDivida['valor_antecipado'],
                     'juros_totais' => $cronogramaDivida['juros_totais'],
                     'principal_amortizado' => $cronogramaDivida['principal_amortizado'],

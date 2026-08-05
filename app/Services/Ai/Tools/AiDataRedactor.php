@@ -11,7 +11,8 @@ class AiDataRedactor
      */
     protected array $patterns = [
         'cpf' => '/\b(\d{3})\.(\d{3})\.(\d{3})-(\d{2})\b/',
-        'cnpj' => '/\b(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})-(\d{2})\b/',
+        // Os 12 primeiros caracteres do CNPJ podem ser alfanuméricos; os dois DV finais são numéricos.
+        'cnpj' => '/(?<![A-Za-z0-9])[A-Za-z0-9]{2}\.[A-Za-z0-9]{3}\.[A-Za-z0-9]{3}\/[A-Za-z0-9]{4}-\d{2}(?![A-Za-z0-9])/',
         'email' => '/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/',
         // DDD obrigatório (2 dígitos) + número. Lookbehind/lookahead em vez de \b
         // para incluir o "(" inicial no match e não deixar resíduos no texto.

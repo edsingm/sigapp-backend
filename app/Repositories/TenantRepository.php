@@ -214,6 +214,14 @@ class TenantRepository implements TenantRepositoryInterface
         return $tenant->refresh();
     }
 
+    /** @param array<string, mixed> $attributes */
+    public function updateBillingProfile(Tenant $tenant, array $attributes): Tenant
+    {
+        $tenant->update($attributes);
+
+        return $tenant->refresh();
+    }
+
     public function listExtraEntitlements(Tenant $tenant): Collection
     {
         return $tenant->extraEntitlements()->with('entitlement')->get();

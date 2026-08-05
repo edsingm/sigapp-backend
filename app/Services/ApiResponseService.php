@@ -147,6 +147,14 @@ class ApiResponseService
         return static::error('CONFLICT', self::translate($message), null, 409);
     }
 
+    public static function preconditionRequired(
+        string $code,
+        string $message,
+        mixed $details = null,
+    ): JsonResponse {
+        return static::error($code, self::translate($message), $details, 428);
+    }
+
     /**
      * Retorna uma resposta de excesso de requisições.
      */

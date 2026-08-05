@@ -44,6 +44,31 @@ class StripeCheckoutService
     }
 
     /**
+     * Sincroniza no Customer os dados de contato/endereço usados pelo faturamento.
+     * O CPF/CNPJ local permanece canônico e não é alterado por esta operação.
+     *
+     * @param  array<string, mixed>  $profile
+     */
+    public function updateCustomerBillingProfile(string $customerId, array $profile): void
+    {
+        $address = is_array($profile['address'] ?? null) ? $profile['address'] : [];
+
+        $this->stripe()->customers->update($customerId, [
+            'name' => $profile['legal_name'] ?? null,
+            'email' => $profile['email'] ?? null,
+            'phone' => $profile['phone'] ?? null,
+            'address' => [
+                'line1' => trim((string) ($address['street'] ?? '').', '.(string) ($address['number'] ?? '')),
+                'line2' => $address['complement'] ?? null,
+                'city' => $address['city'] ?? null,
+                'state' => $address['state'] ?? null,
+                'postal_code' => $address['postal_code'] ?? null,
+                'country' => $address['country'] ?? 'BR',
+            ],
+        ]);
+    }
+
+    /**
      * Cria uma sessão de Checkout do Stripe para uma assinatura.
      *
      * Ao omitir `payment_method_types`, o Stripe usa automaticamente todos os métodos

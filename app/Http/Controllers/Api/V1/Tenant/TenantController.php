@@ -3,11 +3,15 @@
 namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Tenant\ShowTenantBillingProfileRequest;
 use App\Http\Requests\Tenant\UpdateDefaultPaymentMethodRequest;
+use App\Http\Requests\Tenant\UpdateTenantBillingProfileRequest;
 use App\Http\Resources\PlanResource;
+use App\Http\Resources\TenantBillingProfileResource;
 use App\Http\Resources\TenantResource;
 use App\Models\Tenant\Terreno;
 use App\Services\ApiResponseService;
+use App\Services\Billing\TenantBillingProfileService;
 use App\Services\Billing\TenantBillingService;
 use App\Services\UsageMetricsService;
 use Illuminate\Http\JsonResponse;
@@ -18,8 +22,29 @@ class TenantController extends Controller
 {
     public function __construct(
         protected UsageMetricsService $usageService,
-        protected TenantBillingService $billingService
+        protected TenantBillingService $billingService,
+        protected TenantBillingProfileService $billingProfileService,
     ) {}
+
+    public function billingProfile(ShowTenantBillingProfileRequest $request): JsonResponse
+    {
+        $tenant = tenancy()->tenant;
+
+        return ApiResponseService::success(
+            new TenantBillingProfileResource($this->billingProfileService->profile($tenant)),
+            'TENANT_BILLING_PROFILE_RETRIEVED',
+        );
+    }
+
+    public function updateBillingProfile(UpdateTenantBillingProfileRequest $request): JsonResponse
+    {
+        $tenant = $this->billingProfileService->update(tenancy()->tenant, $request->validated());
+
+        return ApiResponseService::success(
+            new TenantBillingProfileResource($this->billingProfileService->profile($tenant)),
+            'TENANT_BILLING_PROFILE_UPDATED',
+        );
+    }
 
     /**
      * Obter informações do tenant atual.

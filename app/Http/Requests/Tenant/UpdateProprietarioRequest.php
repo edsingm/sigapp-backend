@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Tenant;
 
 use App\Models\Tenant\Proprietario;
+use App\Services\Billing\BrazilianTaxIdValidator;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
@@ -47,5 +48,19 @@ class UpdateProprietarioRequest extends FormRequest
             'conjuge_cpf_cnpj' => 'nullable|string|max:20',
             'observacoes' => 'nullable|string',
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $normalized = [];
+
+        foreach (['cpf_cnpj', 'conjuge_cpf_cnpj'] as $field) {
+            $value = $this->input($field);
+            if (is_string($value)) {
+                $normalized[$field] = BrazilianTaxIdValidator::normalizeTaxId($value);
+            }
+        }
+
+        $this->merge($normalized);
     }
 }

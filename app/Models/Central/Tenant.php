@@ -2,6 +2,7 @@
 
 namespace App\Models\Central;
 
+use App\Enums\TenantBillingProfileType;
 use App\Enums\TenantStatus;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -36,15 +37,57 @@ use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
  * @property string|null $admin_name
  * @property string|null $admin_email
  * @property string|null $admin_password
+ * @property TenantBillingProfileType|null $billing_profile_type
+ * @property string|null $billing_tax_id
+ * @property string|null $billing_legal_name
+ * @property string|null $billing_trade_name
+ * @property string|null $billing_email
+ * @property string|null $billing_phone
+ * @property string|null $billing_postal_code
+ * @property string|null $billing_street
+ * @property string|null $billing_number
+ * @property string|null $billing_complement
+ * @property string|null $billing_neighborhood
+ * @property string|null $billing_city
+ * @property string|null $billing_state
+ * @property string $billing_country
+ * @property string|null $billing_municipal_registration
+ * @property string|null $billing_tax_regime
+ * @property bool $billing_profile_required
+ * @property Carbon|null $billing_profile_completed_at
  * @property Carbon $created_at
  * @property Carbon $updated_at
  */
 #[Table('tenants')]
-#[Fillable(['name', 'slug', 'status', 'stripe_id', 'stripe_subscription_id', 'plan_id', 'scheduled_plan_id', 'storage_alert_threshold', 'trial_ends_at', 'encryption_key', 'database_created', 'setup_completed_at', 'trial_extended', 'admin_name', 'admin_email', 'admin_password', 'data'])]
-#[Hidden(['admin_password', 'encryption_key'])]
+#[Fillable(['name', 'slug', 'status', 'stripe_id', 'stripe_subscription_id', 'plan_id', 'scheduled_plan_id', 'storage_alert_threshold', 'trial_ends_at', 'encryption_key', 'database_created', 'setup_completed_at', 'trial_extended', 'admin_name', 'admin_email', 'admin_password', 'billing_profile_type', 'billing_tax_id', 'billing_legal_name', 'billing_trade_name', 'billing_email', 'billing_phone', 'billing_postal_code', 'billing_street', 'billing_number', 'billing_complement', 'billing_neighborhood', 'billing_city', 'billing_state', 'billing_country', 'billing_municipal_registration', 'billing_tax_regime', 'billing_profile_required', 'billing_profile_completed_at', 'data'])]
+#[Hidden([
+    'admin_password',
+    'encryption_key',
+    'billing_tax_id',
+    'billing_legal_name',
+    'billing_trade_name',
+    'billing_email',
+    'billing_phone',
+    'billing_postal_code',
+    'billing_street',
+    'billing_number',
+    'billing_complement',
+    'billing_neighborhood',
+    'billing_city',
+    'billing_state',
+    'billing_country',
+    'billing_municipal_registration',
+    'billing_tax_regime',
+])]
 class Tenant extends BaseTenant implements TenantWithDatabase
 {
     use HasDatabase, HasDomains, HasFactory, \Laravel\Cashier\Billable, Notifiable;
+
+    /** @var array<string, mixed> */
+    protected $attributes = [
+        'billing_country' => 'BR',
+        'billing_profile_required' => true,
+    ];
 
     /**
      * Os atributos que devem ser convertidos.
@@ -54,6 +97,10 @@ class Tenant extends BaseTenant implements TenantWithDatabase
         return [
             'trial_ends_at' => 'datetime',
             'setup_completed_at' => 'datetime',
+            'billing_profile_type' => TenantBillingProfileType::class,
+            'billing_tax_id' => 'encrypted',
+            'billing_profile_required' => 'boolean',
+            'billing_profile_completed_at' => 'datetime',
             'database_created' => 'boolean',
             'trial_extended' => 'boolean',
             'data' => 'array',

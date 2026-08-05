@@ -35,6 +35,7 @@ class ServicesArchitectureTest extends TestCase
         'app/Services/Ai/Tools/AiScoringService.php',
         'app/Services/Ai/Tools/AiEmbeddingService.php',
         'app/Services/Billing/BillingHistoryService.php',
+        'app/Services/Billing/TenantBillingProfileService.php',
         'app/Services/Billing/WebhookEventService.php',
         'app/Services/ConsentLogService.php',
         'app/Services/TenantStatusService.php',

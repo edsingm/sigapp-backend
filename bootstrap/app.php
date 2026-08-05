@@ -12,6 +12,7 @@ use App\Http\Middleware\EnforcePlanLimits;
 use App\Http\Middleware\EnsureCentralContext;
 use App\Http\Middleware\EnsureCentralUser;
 use App\Http\Middleware\EnsureTenantAdmin;
+use App\Http\Middleware\EnsureTenantBillingProfileCompleted;
 use App\Http\Middleware\EnsureTenantContext;
 use App\Http\Middleware\EnsureTenantUser;
 use App\Http\Middleware\EnsureUserIsAdmin;
@@ -55,6 +56,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'subscription.active' => CheckSubscriptionStatus::class,
             'central.admin' => EnsureUserIsAdmin::class,
             'tenant.admin' => EnsureTenantAdmin::class,
+            'tenant.billing-profile.complete' => EnsureTenantBillingProfileCompleted::class,
             'user.admin' => EnsureUserIsAdmin::class,
             'permission.gate' => PermissionGate::class,
             'check.feature' => CheckFeature::class,

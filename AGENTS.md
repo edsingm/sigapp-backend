@@ -277,6 +277,8 @@ Este projeto tem um **envelope próprio**. Não invente formato novo:
 2. **Login direto no tenant**: `POST /api/v1/auth/login` no subdomínio (`TenantAuthController`/`TenantLoginService`).
 3. **Login admin da plataforma**: `POST /api/v1/admin/login` (`AdminController`), protegido por `central.admin` (`EnsureUserIsAdmin`).
 4. Reset de senha do tenant funciona tanto pelo domínio central quanto pelo do tenant (`TenantPasswordResetController`; URLs geradas por `App\Support\TenantAppUrl`).
+- Novos tenants nascem com o perfil fiscal obrigatório pendente. Login direto, exchange ticket e `GET /api/v1/start` expõem somente o resumo seguro `tenant.billing_profile`; o ADMIN consulta/atualiza os dados completos em `GET|PUT /api/v1/tenant/billing-profile`. O middleware `tenant.billing-profile.complete` bloqueia os módulos de negócio com `428 TENANT_BILLING_PROFILE_INCOMPLETE` até a conclusão, sem bloquear autenticação, bootstrap ou regularização de cobrança. O perfil pertence ao model central `Tenant`, CPF/CNPJ usa cast criptografado e tenants anteriores à migration de rollout permanecem explicitamente dispensados (`billing_profile_required=false`). Não reutilize o onboarding opcional por usuário para essa obrigação.
+- CNPJ deve aceitar os formatos numérico legado e alfanumérico da Receita Federal: 14 posições, letras maiúsculas `A-Z` e números nas 12 primeiras posições, dois dígitos verificadores numéricos e cálculo módulo 11 com valor ASCII menos 48 para cada caractere. Nunca converta um CNPJ alfanumérico somente com `digits()`; normalize separadores preservando letras e mantenha a formatação `XX.XXX.XXX/XXXX-XX`.
 - Sessões do broker expiram e são limpas por `auth:cleanup-central-login-broker` (a cada 5 min).
 
 #### RBAC
@@ -291,7 +293,7 @@ Este projeto tem um **envelope próprio**. Não invente formato novo:
 
 #### Aliases de middleware (bootstrap/app.php)
 
-`force.json`, `tenant.logs`, `api.logger`, `central.context`, `tenant.context`, `auth.central`, `auth.tenant`, `enforce.limits`, `subscription.active`, `central.admin`, `tenant.admin`, `user.admin`, `permission.gate`, `check.feature`, `ai.rate_limit`, `ai.budget` — além do grupo `tenant` (`InitializeTenancyFlexible`) e dos globais `SecurityHeaders` e `EnforceHostAccess`.
+`force.json`, `tenant.logs`, `api.logger`, `central.context`, `tenant.context`, `auth.central`, `auth.tenant`, `enforce.limits`, `subscription.active`, `tenant.billing-profile.complete`, `central.admin`, `tenant.admin`, `user.admin`, `permission.gate`, `check.feature`, `ai.rate_limit`, `ai.budget` — além do grupo `tenant` (`InitializeTenancyFlexible`) e dos globais `SecurityHeaders` e `EnforceHostAccess`.
 
 ### 9. Rotas da API
 
@@ -518,4 +520,4 @@ O domínio é **em português** (Terreno, Viabilidade, Legalizacao, Negociacao, 
 
 ---
 
-**Última atualização:** Agosto 2026 — modelos de financiamento da viabilidade e motor 3.0, saneamento de viabilidade (enum de aprovação, snapshot canônico v2, imutabilidade, constraints, resumo para IA), storage local/S3 e alertas de uso, `scheduled_plan` em billing, relatórios PDF de IA, cenários de viabilidade, planejamento de projetos, reuniões de comitê, deal room, insights de legalização, workspace, IA contextual, relatórios configuráveis, captura mobile, onboarding, versões/análise documental, regressões de query para Resources complexos e regra de manutenção contínua deste documento.
+**Última atualização:** Agosto 2026 — cadastro fiscal obrigatório do tenant após o primeiro login, compatibilidade com CNPJ alfanumérico da Receita Federal, modelos de financiamento da viabilidade e motor 3.0, saneamento de viabilidade (enum de aprovação, snapshot canônico v2, imutabilidade, constraints, resumo para IA), storage local/S3 e alertas de uso, `scheduled_plan` em billing, relatórios PDF de IA, cenários de viabilidade, planejamento de projetos, reuniões de comitê, deal room, insights de legalização, workspace, IA contextual, relatórios configuráveis, captura mobile, onboarding, versões/análise documental, regressões de query para Resources complexos e regra de manutenção contínua deste documento.

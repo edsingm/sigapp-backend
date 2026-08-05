@@ -77,7 +77,17 @@ class ModuleAccessServiceTest extends TestCase
                 ->assertOk()
                 ->assertJsonStructure([
                     'data' => [
-                        'tenant',
+                        'tenant' => [
+                            'billing_profile' => [
+                                'status',
+                                'required',
+                                'completed',
+                                'completed_at',
+                                'missing_fields',
+                                'required_action',
+                                'can_complete',
+                            ],
+                        ],
                         'user',
                         'modules',
                         'access' => [
@@ -94,7 +104,9 @@ class ModuleAccessServiceTest extends TestCase
                         ],
                     ],
                 ])
-                ->assertJsonPath('data.access.modules.projects.available', true);
+                ->assertJsonPath('data.access.modules.projects.available', true)
+                ->assertJsonPath('data.tenant.billing_profile.status', 'incomplete')
+                ->assertJsonPath('data.tenant.billing_profile.required_action', 'complete_tenant_billing_profile');
         } finally {
             tenancy()->tenant = null;
             tenancy()->initialized = false;

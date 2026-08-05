@@ -8,7 +8,9 @@ use App\Http\Requests\ExchangeTicketRequest;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\UpdateProfileRequest;
 use App\Http\Resources\CentralUserResource;
+use App\Http\Resources\TenantResource;
 use App\Http\Resources\UserResource;
+use App\Models\Central\Tenant;
 use App\Models\Tenant\User;
 use App\Models\User as CentralUser;
 use App\Services\ApiResponseService;
@@ -49,6 +51,7 @@ class TenantAuthController extends Controller
 
         return ApiResponseService::success([
             'user' => new UserResource($result['user']),
+            'tenant' => $this->tenantResource($result['user']),
             'token' => $result['token'],
             'abilities' => $result['abilities'],
             'expires_at' => $result['expires_at'],
@@ -170,9 +173,17 @@ class TenantAuthController extends Controller
 
         return ApiResponseService::success([
             'user' => new UserResource($result['user']),
+            'tenant' => $this->tenantResource($result['user']),
             'token' => $result['token'],
             'abilities' => $result['abilities'],
             'expires_at' => $result['expires_at'],
         ], 'LOGIN_SUCCESS');
+    }
+
+    private function tenantResource(User $user): ?TenantResource
+    {
+        $tenant = tenancy()->tenant;
+
+        return $tenant instanceof Tenant ? new TenantResource($tenant, $user) : null;
     }
 }

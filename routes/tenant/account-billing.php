@@ -31,6 +31,11 @@ Route::put('/me/notification-settings', [NotificationPreferenceController::class
 Route::get('/start', [ModulesController::class, 'index']);
 Route::get('/modules', [ModulesController::class, 'modules']);
 
+Route::middleware('tenant.admin')->group(function () {
+    Route::get('/tenant/billing-profile', [TenantController::class, 'billingProfile']);
+    Route::put('/tenant/billing-profile', [TenantController::class, 'updateBillingProfile']);
+});
+
 // Anúncios da plataforma (banner no app do tenant)
 Route::get('/platform-announcements/active', [PlatformAnnouncementController::class, 'active']);
 Route::post('/platform-announcements/{announcement}/dismiss', [PlatformAnnouncementController::class, 'dismiss'])

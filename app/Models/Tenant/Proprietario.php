@@ -2,6 +2,7 @@
 
 namespace App\Models\Tenant;
 
+use App\Services\Billing\BrazilianTaxIdValidator;
 use App\Traits\HasDashboardCache;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Table;
@@ -71,19 +72,27 @@ class Proprietario extends Model
     /**
      * Auxiliar para formatar CPF ou CNPJ
      */
-    private function formatarCpfCnpj($value, $tipo): string
+    private function formatarCpfCnpj(?string $value, ?string $tipo): string
     {
         if (empty($value)) {
             return '';
         }
 
-        $cleaned = preg_replace('/\D/', '', $value);
-
         if ($tipo === self::TIPO_FISICA) {
-            return preg_replace('/(\d{3})(\d{3})(\d{3})(\d{2})/', '$1.$2.$3-$4', $cleaned);
-        } else {
-            return preg_replace('/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/', '$1.$2.$3/$4-$5', $cleaned);
+            $cleaned = BrazilianTaxIdValidator::digits($value);
+            if (strlen($cleaned) !== 11) {
+                return $value;
+            }
+
+            return preg_replace('/(\d{3})(\d{3})(\d{3})(\d{2})/', '$1.$2.$3-$4', $cleaned) ?? $value;
         }
+
+        $cleaned = BrazilianTaxIdValidator::normalizeTaxId($value);
+        if (strlen($cleaned) !== 14) {
+            return $value;
+        }
+
+        return preg_replace('/([A-Z0-9]{2})([A-Z0-9]{3})([A-Z0-9]{3})([A-Z0-9]{4})(\d{2})/', '$1.$2.$3/$4-$5', $cleaned) ?? $value;
     }
 
     /**

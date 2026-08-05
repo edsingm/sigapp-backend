@@ -28,6 +28,8 @@ class TenantAdminRequestAuthorizationTest extends TestCase
             self::ROOT_PATH.'app/Http/Requests/Tenant/StoreVeiculoRequest.php',
             self::ROOT_PATH.'app/Http/Requests/Tenant/UpdateVeiculoRequest.php',
             self::ROOT_PATH.'app/Http/Requests/Tenant/SalvarTermoDeUsoVersaoRequest.php',
+            self::ROOT_PATH.'app/Http/Requests/Tenant/ShowTenantBillingProfileRequest.php',
+            self::ROOT_PATH.'app/Http/Requests/Tenant/UpdateTenantBillingProfileRequest.php',
         ];
     }
 

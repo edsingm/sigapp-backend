@@ -36,7 +36,10 @@ Route::middleware([
         ])->group(function () {
             require __DIR__.'/tenant/account-billing.php';
 
-            Route::middleware(CheckSubscriptionStatus::class)->group(function () {
+            Route::middleware([
+                CheckSubscriptionStatus::class,
+                'tenant.billing-profile.complete',
+            ])->group(function () {
                 require __DIR__.'/tenant/workspace-admin.php';
                 require __DIR__.'/tenant/prospection.php';
                 require __DIR__.'/tenant/viability-ai.php';

@@ -33,6 +33,9 @@ interface TenantRepositoryInterface
 
     public function updatePlan(Tenant $tenant, int $planId): Tenant;
 
+    /** @param array<string, mixed> $attributes */
+    public function updateBillingProfile(Tenant $tenant, array $attributes): Tenant;
+
     /**
      * @return array<string, int|float|null>
      */

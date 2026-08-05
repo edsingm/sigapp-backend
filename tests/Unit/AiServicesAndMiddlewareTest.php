@@ -22,6 +22,15 @@ class AiServicesAndMiddlewareTest extends TestCase
         $this->assertStringNotContainsString('123.456.789-00', $result);
     }
 
+    public function test_redacts_alphanumeric_cnpj(): void
+    {
+        $redactor = new AiDataRedactor;
+        $result = $redactor->redactText('O CNPJ do cliente é 12.ABC.345/01DE-35');
+
+        $this->assertStringContainsString('**.***.***/****-**', $result);
+        $this->assertStringNotContainsString('12.ABC.345/01DE-35', $result);
+    }
+
     public function test_redacts_email(): void
     {
         $redactor = new AiDataRedactor;

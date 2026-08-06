@@ -66,7 +66,7 @@ Há duas formas de rodar localmente: **Herd/`composer dev`** (nativo, macOS) ou 
 ### Compose
 
 - **Dev (`docker-compose.yml`)**: services `back` (`sigapp-backend:1.0-dev`, porta 8000) e `redis` (`redis:7-alpine`). O **PostgreSQL não está no compose** — é um container/host externo chamado `database`, alcançado pela rede externa `database_sigapp` (precisa existir: `docker network create database_sigapp`). As variáveis de ambiente de dev (DB, Redis, CORS, Sanctum, `CENTRAL_DOMAINS=localhost,127.0.0.1,sigapp-backend`, Chromium) já vêm definidas no compose.
-- **Prod (`docker-compose.prod.yml`)**: target `prod`, porta interna `80` via `expose` (sem publicação no host), PostgreSQL/Redis externos gerenciados pelo Coolify, envs obrigatórios via `${VAR:?}` e healthcheck em `GET /api/v1/health`. Cookies de sessão são seguros por padrão em produção; `TRUSTED_PROXIES` aceita somente IPs/CIDRs explícitos do proxy (nunca `*`).
+- **Prod (`docker-compose.prod.yml`)**: target `prod`, porta interna `80` via `expose` (sem publicação no host), PostgreSQL/Redis externos gerenciados pelo Dokploy, envs obrigatórios via `${VAR:?}` e healthcheck em `GET /api/v1/health`. O serviço `back` também se conecta à rede externa do Compose PostgreSQL (`sigapp-database-wlnxuu_default`) para resolver o alias `database`; se o projeto do banco mudar, atualize esse nome de rede. Cookies de sessão são seguros por padrão em produção; `TRUSTED_PROXIES` aceita somente IPs/CIDRs explícitos do proxy (nunca `*`).
 
 ### Produção — quem roda o quê
 
@@ -83,6 +83,7 @@ Há duas formas de rodar localmente: **Herd/`composer dev`** (nativo, macOS) ou 
 - `route:cache`/`config:cache` rodam no deploy — não use closures em rotas de `routes/api.php`/`tenant.php` que quebrem o cache de rotas fora dos padrões já existentes, nem `env()` fora de `config/`.
 - Ao alterar proxy/CORS/sessão, mantenha `TRUSTED_PROXIES` em `config/trustedproxy.php`, origens de produção explícitas em `CORS_ALLOWED_ORIGINS` e `SESSION_SECURE_COOKIE=true`; atualize `.env.example`, `.env.production.example` e os arquivos Compose.
 - O `.dockerignore` exclui `.env*` (exceto `.env.example`) — configuração de prod entra **somente** por variável de ambiente do compose.
+- O catálogo canônico de configuração fica em `.env.example` (local) e `.env.production.example` (Dokploy/produção); eles devem documentar as integrações ativas, sem segredos reais. Variáveis antigas não consumidas pelo backend, como `CASHIER_MODEL`, `NVIDIA_NIM_*`, `NIXPACKS_*` e `SERVICE_*`, não devem ser reintroduzidas. Documentos, relatórios e exports continuam exigindo as credenciais do disk `s3`, mesmo quando `FILESYSTEM_DISK=local` é usado no desenvolvimento.
 - O healthcheck de prod depende de `GET /api/v1/health` (definido em `routes/api.php`) — não remova nem proteja essa rota com auth/throttle agressivo.
 
 ---

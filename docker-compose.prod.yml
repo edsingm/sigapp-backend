@@ -93,3 +93,13 @@ services:
       timeout: 5s
       retries: 3
       start_period: 40s
+    networks:
+      - default
+      # PostgreSQL is deployed by Dokploy in a separate Compose project.
+      # This external network makes the database service alias `database`
+      # resolvable from the backend container.
+      - sigapp-database-wlnxuu_default
+
+networks:
+  sigapp-database-wlnxuu_default:
+    external: true

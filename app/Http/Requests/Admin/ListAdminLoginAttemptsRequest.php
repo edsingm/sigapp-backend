@@ -19,6 +19,7 @@ class ListAdminLoginAttemptsRequest extends FormRequest
     {
         return [
             'successful' => ['sometimes', 'nullable', 'boolean'],
+            'stage' => ['sometimes', 'nullable', 'in:password,mfa,recovery'],
             'email' => ['sometimes', 'nullable', 'string', 'max:255'],
             'ip' => ['sometimes', 'nullable', 'string', 'max:45'],
             'from' => ['sometimes', 'nullable', 'date'],

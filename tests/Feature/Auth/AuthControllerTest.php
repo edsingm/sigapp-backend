@@ -22,7 +22,10 @@ class AuthControllerTest extends TestCase
         ], $attrs));
 
         if ($isAdmin) {
-            $user->forceFill(['is_admin' => true])->save();
+            $user->forceFill([
+                'is_admin' => true,
+                'admin_mfa_confirmed_at' => now(),
+            ])->save();
         }
 
         return $user;
@@ -144,7 +147,7 @@ class AuthControllerTest extends TestCase
     public function test_me_retorna_dados_do_usuario(): void
     {
         $user = $this->createAdminUser();
-        $token = $user->createToken('test-token', ['admin'])->plainTextToken;
+        $token = $user->createToken('test-token', ['admin', 'admin:mfa'])->plainTextToken;
 
         $response = $this
             ->withHeader('Authorization', 'Bearer '.$token)
@@ -171,7 +174,7 @@ class AuthControllerTest extends TestCase
     public function test_logout_revoga_token_atual(): void
     {
         $user = $this->createAdminUser();
-        $token = $user->createToken('test-token', ['admin'])->plainTextToken;
+        $token = $user->createToken('test-token', ['admin', 'admin:mfa'])->plainTextToken;
 
         $response = $this
             ->withHeader('Authorization', 'Bearer '.$token)
@@ -183,7 +186,7 @@ class AuthControllerTest extends TestCase
     public function test_logout_all_revoga_todos_os_tokens(): void
     {
         $user = $this->createAdminUser();
-        $token = $user->createToken('token-1', ['admin'])->plainTextToken;
+        $token = $user->createToken('token-1', ['admin', 'admin:mfa'])->plainTextToken;
 
         $response = $this
             ->withHeader('Authorization', 'Bearer '.$token)

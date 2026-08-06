@@ -14,6 +14,7 @@ class AdminLoginAttemptLogger
      * @param  array{
      *     email: string,
      *     successful: bool,
+     *     stage?: string|null,
      *     user_id?: int|null,
      *     failure_reason?: string|null,
      *     ip_address?: string|null,
@@ -27,6 +28,7 @@ class AdminLoginAttemptLogger
             AdminLoginAttempt::query()->create([
                 'email' => mb_strtolower(trim($payload['email'])),
                 'successful' => (bool) $payload['successful'],
+                'stage' => $payload['stage'] ?? null,
                 'user_id' => $payload['user_id'] ?? null,
                 'failure_reason' => $payload['failure_reason'] ?? null,
                 'ip_address' => $payload['ip_address'] ?? null,

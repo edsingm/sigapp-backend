@@ -39,7 +39,7 @@ class CentralUserApiTest extends TestCase
     public function test_non_admin_cannot_access_central_users_api(): void
     {
         $user = $this->makeUser(['is_admin' => false]);
-        Sanctum::actingAs($user, ['admin']);
+        Sanctum::actingAs($user, ['admin', 'admin:mfa']);
 
         $response = $this->adminJson('get', '/api/v1/admin/users');
 
@@ -131,7 +131,7 @@ class CentralUserApiTest extends TestCase
     {
         $user = $this->makeUser(['is_admin' => true]);
 
-        Sanctum::actingAs($user, ['admin']);
+        Sanctum::actingAs($user, ['admin', 'admin:mfa']);
 
         return $user;
     }
@@ -147,7 +147,10 @@ class CentralUserApiTest extends TestCase
             'password' => $attributes['password'] ?? Hash::make('password123'),
         ]);
 
-        $user->forceFill(['is_admin' => $attributes['is_admin'] ?? true])->save();
+        $user->forceFill([
+            'is_admin' => $attributes['is_admin'] ?? true,
+            'admin_mfa_confirmed_at' => ($attributes['is_admin'] ?? true) ? now() : null,
+        ])->save();
 
         return $user;
     }

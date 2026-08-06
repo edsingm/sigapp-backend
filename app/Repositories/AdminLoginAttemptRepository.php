@@ -12,6 +12,7 @@ class AdminLoginAttemptRepository
     /**
      * @param  array{
      *     successful?: bool|null,
+     *     stage?: string|null,
      *     email?: string|null,
      *     ip?: string|null,
      *     from?: string|null,
@@ -27,6 +28,10 @@ class AdminLoginAttemptRepository
 
         if (array_key_exists('successful', $filters) && $filters['successful'] !== null) {
             $query->where('successful', $filters['successful']);
+        }
+
+        if (! empty($filters['stage'])) {
+            $query->where('stage', $filters['stage']);
         }
 
         if (! empty($filters['email'])) {

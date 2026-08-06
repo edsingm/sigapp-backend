@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Auth;
 
-use App\Models\User;
 use App\Repositories\Contracts\CentralUserRepositoryInterface;
 use Illuminate\Support\Facades\Hash;
 
@@ -12,15 +11,16 @@ class AdminAuthService
 {
     public function __construct(
         private readonly CentralUserRepositoryInterface $userRepository,
+        private readonly AdminMfaService $mfaService,
     ) {}
 
     /**
-     * Valida as credenciais de um administrador central e emite um token Sanctum.
+     * Valida as credenciais de um administrador central e inicia o segundo fator.
      *
      * @param  array<string, mixed>  $credentials
-     * @return array{user: User, token: string, expires_at: ?string}|null Null quando as credenciais são inválidas.
+     * @return array<string, mixed>|null Null quando as credenciais são inválidas.
      */
-    public function attempt(array $credentials): ?array
+    public function attempt(array $credentials, ?string $ipAddress, ?string $userAgent): ?array
     {
         $user = $this->userRepository->findByEmail((string) $credentials['email']);
 
@@ -32,19 +32,11 @@ class AdminAuthService
             return null;
         }
 
-        $deviceName = $credentials['device_name'] ?? 'admin-token';
-
-        if (isset($credentials['device_name'])) {
-            $user->tokens()->where('name', $credentials['device_name'])->delete();
-        }
-
-        $tokenResult = $user->createToken($deviceName, ['admin'], now()->addHours(12));
-        $expiresAt = $tokenResult->accessToken->getAttribute('expires_at');
-
-        return [
-            'user' => $user,
-            'token' => $tokenResult->plainTextToken,
-            'expires_at' => $expiresAt instanceof \DateTimeInterface ? $expiresAt->format(\DateTimeInterface::ATOM) : null,
-        ];
+        return $this->mfaService->beginLogin(
+            $user,
+            (string) ($credentials['device_name'] ?? 'admin-token'),
+            $ipAddress,
+            $userAgent,
+        );
     }
 }

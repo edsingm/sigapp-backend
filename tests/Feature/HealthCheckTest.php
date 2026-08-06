@@ -32,7 +32,8 @@ class HealthCheckTest extends TestCase
             $this->fail('Expected User instance from factory');
         }
 
-        Sanctum::actingAs($result, ['admin']);
+        $result->forceFill(['admin_mfa_confirmed_at' => now()])->save();
+        Sanctum::actingAs($result, ['admin', 'admin:mfa']);
     }
 
     public function test_check_retorna_status_ok_quando_todos_checks_passam(): void

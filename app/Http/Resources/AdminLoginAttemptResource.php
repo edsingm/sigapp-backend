@@ -22,6 +22,7 @@ class AdminLoginAttemptResource extends JsonResource
             'id' => $this->resource->id,
             'email' => $this->resource->email,
             'successful' => (bool) $this->resource->successful,
+            'stage' => $this->resource->stage,
             'failure_reason' => $this->resource->failure_reason,
             'ip_address' => $this->resource->ip_address,
             'user_agent' => $this->resource->user_agent,

@@ -61,7 +61,8 @@ class AdminTenantPlanApiTest extends TestCase
             'password' => 'password',
         ]);
 
-        Sanctum::actingAs($user, ['admin']);
+        $user->forceFill(['admin_mfa_confirmed_at' => now()])->save();
+        Sanctum::actingAs($user, ['admin', 'admin:mfa']);
     }
 
     private function adminJson(string $method, string $uri, array $data = []): TestResponse

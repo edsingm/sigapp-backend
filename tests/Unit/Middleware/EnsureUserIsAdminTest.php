@@ -51,6 +51,7 @@ class EnsureUserIsAdminTest extends TestCase
     {
         $user = Mockery::mock(CentralUser::class)->makePartial();
         $user->is_admin = true;
+        $user->shouldReceive('getAttribute')->with('admin_mfa_confirmed_at')->andReturn(now());
         $user->shouldReceive('currentAccessToken')->andReturn($this->mockToken(true));
 
         $request = Request::create('/api/v1/admin/tenants', 'GET');
@@ -65,6 +66,7 @@ class EnsureUserIsAdminTest extends TestCase
     {
         $token = Mockery::mock(PersonalAccessToken::class);
         $token->shouldReceive('can')->with('admin')->andReturn($canAdmin);
+        $token->shouldReceive('can')->with('admin:mfa')->andReturn($canAdmin);
 
         return $token;
     }

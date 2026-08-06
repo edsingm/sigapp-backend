@@ -19,10 +19,12 @@ use App\Models\Tenant\TerrenoProduto;
 use App\Models\Tenant\Viabilidade;
 use App\Observers\Tenant\TerrenoObserver;
 use App\Policies\Tenant\TenantPolicy;
+use App\Repositories\AdminMfaRepository;
 use App\Repositories\AiAnomalyRepository;
 use App\Repositories\AiPredictiveRepository;
 use App\Repositories\AiTelemetryRepository;
 use App\Repositories\CentralUserRepository;
+use App\Repositories\Contracts\AdminMfaRepositoryInterface;
 use App\Repositories\Contracts\AiAnomalyRepositoryInterface;
 use App\Repositories\Contracts\AiPredictiveRepositoryInterface;
 use App\Repositories\Contracts\AiTelemetryRepositoryInterface;
@@ -102,6 +104,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(AiAnomalyRepositoryInterface::class, AiAnomalyRepository::class);
         $this->app->bind(AiPredictiveRepositoryInterface::class, AiPredictiveRepository::class);
         $this->app->bind(AiTelemetryRepositoryInterface::class, AiTelemetryRepository::class);
+        $this->app->bind(AdminMfaRepositoryInterface::class, AdminMfaRepository::class);
         $this->app->bind(CentralUserRepositoryInterface::class, CentralUserRepository::class);
         $this->app->bind(EntitlementRepositoryInterface::class, EntitlementRepository::class);
         $this->app->bind(PostRepositoryInterface::class, PostRepository::class);
@@ -231,6 +234,20 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(5)
                 ->by('admin-login:'.$request->ip().':'.sha1($email))
                 ->response(fn () => ApiResponseService::tooManyRequests('Muitas tentativas de login de administrador. Tente novamente em 1 minuto.'));
+        });
+
+        RateLimiter::for('admin-mfa', function (Request $request) {
+            $challenge = strtolower(trim((string) $request->input('challenge', '')));
+            $challengeKey = $challenge !== '' ? hash('sha256', $challenge) : 'missing';
+
+            return [
+                Limit::perMinutes(10, 20)
+                    ->by('admin-mfa:ip:'.$request->ip())
+                    ->response(fn () => ApiResponseService::tooManyRequests('Muitas tentativas de MFA. Aguarde alguns minutos.')),
+                Limit::perMinutes(10, 5)
+                    ->by('admin-mfa:challenge:'.$challengeKey)
+                    ->response(fn () => ApiResponseService::tooManyRequests('Muitas tentativas para este desafio MFA.')),
+            ];
         });
 
         RateLimiter::for('transfer-ticket', function (Request $request) {

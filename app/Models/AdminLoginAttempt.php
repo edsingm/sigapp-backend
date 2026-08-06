@@ -15,6 +15,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * @property string $email
  * @property int|null $user_id
  * @property bool $successful
+ * @property string|null $stage
  * @property string|null $failure_reason
  * @property string|null $ip_address
  * @property string|null $user_agent
@@ -27,6 +28,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
     'email',
     'user_id',
     'successful',
+    'stage',
     'failure_reason',
     'ip_address',
     'user_agent',

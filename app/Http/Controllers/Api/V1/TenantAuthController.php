@@ -99,6 +99,15 @@ class TenantAuthController extends Controller
         $user = $request->user();
         $currentToken = $request->user()->currentAccessToken();
 
+        if ($user instanceof CentralUser) {
+            return ApiResponseService::error(
+                'ADMIN_MFA_REAUTH_REQUIRED',
+                'ADMIN_MFA_REAUTH_REQUIRED',
+                null,
+                422,
+            );
+        }
+
         if (! $currentToken) {
             return ApiResponseService::unauthorized('INVALID_TOKEN');
         }
@@ -106,7 +115,7 @@ class TenantAuthController extends Controller
         $tokenName = $currentToken->name ?? 'api-token';
         $abilities = is_array($currentToken->abilities) && $currentToken->abilities !== []
             ? $currentToken->abilities
-            : ($user instanceof CentralUser ? ['admin'] : ['tenant-api']);
+            : ['tenant-api'];
 
         $expiresAt = $tenantLogin->tokenExpiration($user, $abilities);
 

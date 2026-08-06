@@ -26,6 +26,11 @@ Schedule::command('auth:cleanup-central-login-broker')
     ->name('auth-cleanup-central-login-broker')
     ->onOneServer()
     ->withoutOverlapping(10);
+Schedule::command('admin:mfa-cleanup')
+    ->dailyAt('04:00')
+    ->name('admin-mfa-cleanup')
+    ->onOneServer()
+    ->withoutOverlapping(120);
 Schedule::command('privacy:cleanup-consent-logs')
     ->daily()
     ->name('privacy-cleanup-consent-logs')

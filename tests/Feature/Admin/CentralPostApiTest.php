@@ -70,7 +70,7 @@ class CentralPostApiTest extends TestCase
             ->assertJsonPath('error.code', 'VALIDATION_ERROR');
 
         $user = $this->makeUser(['is_admin' => false]);
-        Sanctum::actingAs($user, ['admin']);
+        Sanctum::actingAs($user, ['admin', 'admin:mfa']);
 
         $this->adminJson('get', '/api/v1/admin/posts')->assertForbidden();
     }
@@ -79,7 +79,7 @@ class CentralPostApiTest extends TestCase
     {
         $user = $this->makeUser(['is_admin' => true]);
 
-        Sanctum::actingAs($user, ['admin']);
+        Sanctum::actingAs($user, ['admin', 'admin:mfa']);
 
         return $user;
     }
@@ -95,7 +95,10 @@ class CentralPostApiTest extends TestCase
             'password' => $attributes['password'] ?? Hash::make('password123'),
         ]);
 
-        $user->forceFill(['is_admin' => $attributes['is_admin'] ?? true])->save();
+        $user->forceFill([
+            'is_admin' => $attributes['is_admin'] ?? true,
+            'admin_mfa_confirmed_at' => ($attributes['is_admin'] ?? true) ? now() : null,
+        ])->save();
 
         return $user;
     }

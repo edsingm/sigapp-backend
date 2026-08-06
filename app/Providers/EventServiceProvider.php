@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Events\AdminMfaChanged;
 use App\Events\Tenant\ContratoSigned;
 use App\Events\Tenant\LegalizacaoEtapaOverdue;
 use App\Events\Tenant\LegalizacaoEtapaStatusUpdated;
@@ -11,6 +12,7 @@ use App\Events\Tenant\ProjetoFinalizado;
 use App\Events\Tenant\ViabilidadeDecided;
 use App\Events\Tenant\ViabilidadeSubmitted;
 use App\Events\Tenant\WorkflowTransitioned;
+use App\Listeners\SendAdminMfaChangedNotification;
 use App\Listeners\Tenant\CreateCommitteeObservationTask;
 use App\Listeners\Tenant\NotifyContratoSigned;
 use App\Listeners\Tenant\NotifyLegalizacaoEtapaUpdate;
@@ -35,6 +37,9 @@ use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvi
 class EventServiceProvider extends ServiceProvider
 {
     protected $listen = [
+        AdminMfaChanged::class => [
+            SendAdminMfaChangedNotification::class,
+        ],
         WorkflowTransitioned::class => [
             RecordWorkflowStatusHistory::class,
             RecordWorkflowActivity::class,

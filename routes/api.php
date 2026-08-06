@@ -130,6 +130,11 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
 
                     // Admin Routes
                     Route::prefix('admin')->name($routeNamePrefix.'admin.')->group(function () {
+                        Route::get('/mfa', [AdminController::class, 'mfaStatus'])->name('mfa.show');
+                        Route::post('/mfa/rotate', [AdminController::class, 'rotate'])->name('mfa.rotate');
+                        Route::post('/mfa/rotate/verify', [AdminController::class, 'verifyRotation'])->name('mfa.rotate.verify');
+                        Route::post('/mfa/recovery-codes', [AdminController::class, 'recoveryCodes'])->name('mfa.recovery-codes');
+
                         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
                         Route::apiResource('posts', PostController::class);
 
@@ -187,7 +192,9 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
 
                 // Public Admin Login
                 Route::post('/admin/login', [AdminController::class, 'login'])
-                    ->middleware('throttle:admin-login');
+                    ->middleware(['central.context', 'throttle:admin-login']);
+                Route::post('/admin/login/verify', [AdminController::class, 'verify'])
+                    ->middleware(['central.context', 'throttle:admin-mfa']);
             });
         }
         // End of API v1 prefix

@@ -17,13 +17,15 @@ use Laravel\Ai\Attributes\MaxTokens;
 use Laravel\Ai\Concerns\RemembersConversations;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\Conversational;
+use Laravel\Ai\Contracts\HasProviderOptions;
 use Laravel\Ai\Contracts\HasTools;
 use Laravel\Ai\Contracts\Tool;
+use Laravel\Ai\Enums\Lab;
 use Laravel\Ai\Promptable;
 
 #[MaxSteps(12)]
 #[MaxTokens(3072)]
-class SIG_IA implements Agent, Conversational, HasTools
+class SIG_IA implements Agent, Conversational, HasProviderOptions, HasTools
 {
     use Promptable, RemembersConversations;
 
@@ -44,9 +46,11 @@ class SIG_IA implements Agent, Conversational, HasTools
     /**
      * @return array<string, mixed>
      */
-    public function providerOptions(string $provider): array
+    public function providerOptions(Lab|string $provider): array
     {
-        return match ($provider) {
+        $key = $provider instanceof Lab ? $provider->value : $provider;
+
+        return match ($key) {
             'openrouter' => [
                 'reasoning' => [
                     'enabled' => true,

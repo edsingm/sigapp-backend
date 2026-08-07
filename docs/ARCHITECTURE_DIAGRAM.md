@@ -485,7 +485,7 @@ graph TB
 | **Authentication** | Laravel Sanctum | Token-based auth |
 | **Authorization** | spatie/laravel-permission 7.0 | RBAC |
 | **Billing** | Laravel Cashier 16.0 | Stripe integration |
-| **AI** | laravel/ai 0.7 | AI agent framework |
+| **AI** | laravel/ai 0.10 | AI agent framework |
 | **AI Providers** | DeepSeek, Gemini, OpenRouter | LLM providers |
 | **Vector DB** | pgvector | Embedding storage |
 | **Cache** | Redis 7 | Caching & queues |

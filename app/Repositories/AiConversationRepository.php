@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\Models\Tenant\User;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -15,8 +16,9 @@ class AiConversationRepository
      */
     public function getRecentConversations(int $userId, int $limit = 50): Collection
     {
-        return DB::table('agent_conversations')
-            ->where('user_id', $userId)
+        return DB::table($this->conversationsTable())
+            ->where('participant_type', $this->participantType())
+            ->where('participant_id', $userId)
             ->orderByDesc('updated_at')
             ->limit($limit)
             ->get(['id', 'title', 'created_at', 'updated_at'])
@@ -30,9 +32,14 @@ class AiConversationRepository
 
     public function conversationExists(string $conversationId, int|string|null $userId): bool
     {
-        return DB::table('agent_conversations')
+        if ($userId === null) {
+            return false;
+        }
+
+        return DB::table($this->conversationsTable())
             ->where('id', $conversationId)
-            ->where('user_id', $userId)
+            ->where('participant_type', $this->participantType())
+            ->where('participant_id', $userId)
             ->exists();
     }
 
@@ -43,7 +50,7 @@ class AiConversationRepository
      */
     public function getMessages(string $conversationId): Collection
     {
-        return DB::table('agent_conversation_messages')
+        return DB::table($this->messagesTable())
             ->where('conversation_id', $conversationId)
             ->whereIn('role', ['user', 'assistant'])
             ->orderBy('created_at')
@@ -53,5 +60,20 @@ class AiConversationRepository
 
                 return $row;
             });
+    }
+
+    private function participantType(): string
+    {
+        return (new User)->getMorphClass();
+    }
+
+    private function conversationsTable(): string
+    {
+        return (string) config('ai.conversations.tables.conversations', 'agent_conversations');
+    }
+
+    private function messagesTable(): string
+    {
+        return (string) config('ai.conversations.tables.messages', 'agent_conversation_messages');
     }
 }

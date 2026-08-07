@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Ai\Contracts\ConversationStore;
 use Laravel\Ai\Exceptions\RateLimitedException;
+use Laravel\Ai\Models\Conversation;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
@@ -100,9 +101,13 @@ class AiController extends Controller
                     return ApiResponseService::notFound('Conversa não encontrada.');
                 }
             } else {
-                // Nova conversa: criar registro
+                // Nova conversa: criar registro com participante polimórfico (laravel/ai 0.10+)
                 $store = resolve(ConversationStore::class);
-                $conversationId = $store->storeConversation($userId, Str::limit($message, 60));
+                $conversationId = $store->storeConversation(
+                    Conversation::participantType($authUser),
+                    Conversation::participantKey($authUser),
+                    Str::limit($message, 60),
+                );
             }
         } catch (Throwable $e) {
             Log::error('AI conversation setup failed: '.$e->getMessage());

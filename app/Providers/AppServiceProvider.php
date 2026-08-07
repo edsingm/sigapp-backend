@@ -186,6 +186,19 @@ class AppServiceProvider extends ServiceProvider
             ->by('consent-log:'.$request->ip())
             ->response(fn () => ApiResponseService::tooManyRequests('Muitos registros de consentimento em curto período. Tente novamente em 1 minuto.')));
 
+        RateLimiter::for('demo-request', function (Request $request) {
+            $email = strtolower(trim((string) $request->input('email', '')));
+
+            return [
+                Limit::perMinute(5)
+                    ->by('demo-request:ip:'.$request->ip())
+                    ->response(fn () => ApiResponseService::tooManyRequests('Muitas solicitações de demonstração. Tente novamente em 1 minuto.')),
+                Limit::perMinutes(10, 3)
+                    ->by('demo-request:email:'.sha1($email))
+                    ->response(fn () => ApiResponseService::tooManyRequests('Muitas solicitações para este e-mail. Tente novamente mais tarde.')),
+            ];
+        });
+
         RateLimiter::for('api-auth', function (Request $request) {
             $user = $request->user();
             $tenantId = tenancy()->initialized ? (string) tenant('id') : null;

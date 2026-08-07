@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\V1\AdminController;
 use App\Http\Controllers\Api\V1\BlogController;
 use App\Http\Controllers\Api\V1\CentralAuthController;
 use App\Http\Controllers\Api\V1\ConsentLogController;
+use App\Http\Controllers\Api\V1\DemoRequestController;
 use App\Http\Controllers\Api\V1\LanguageController;
 use App\Http\Controllers\Api\V1\PlanController;
 use App\Http\Controllers\Api\V1\PublicTenantController;
@@ -73,7 +74,12 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
                 });
 
                 // Public routes (no authentication)
-                Route::middleware(['central.context', 'throttle:api-public'])->group(function () {
+                Route::middleware(['central.context', 'throttle:api-public'])->group(function () use ($routeNamePrefix) {
+
+                    // Public lead capture from the landing site's demo form.
+                    Route::post('/demo-request', [DemoRequestController::class, 'store'])
+                        ->middleware('throttle:demo-request')
+                        ->name($routeNamePrefix.'demo-request.store');
 
                     // Plans
                     Route::get('/plans', [PlanController::class, 'index']);

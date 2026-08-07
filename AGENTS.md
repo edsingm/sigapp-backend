@@ -302,6 +302,7 @@ Este projeto tem um **envelope próprio**. Não invente formato novo:
 - API **versionada** em `/api/v1/`. Central em `routes/api.php`; o agregador tenant fica em `routes/tenant.php` e carrega, na ordem declarada, os módulos em `routes/tenant/`.
 - Middlewares comuns, prefixo versionado e proteção de assinatura permanecem no agregador tenant. Arquivos em `routes/tenant/` declaram somente suas rotas de domínio; todo arquivo modular deve ser carregado exatamente uma vez pelo agregador. O `TenancyServiceProvider` não registra essas rotas novamente quando o cache de rotas está ativo.
 - **Rate limiting é obrigatório e nomeado** — os limiters são definidos no topo de `routes/api.php` (`api-public`, `api-auth`, `central-login`, `admin-login`, `admin-mfa`, `transfer-ticket`, `password-reset-*`, `signup-status`, `consent-log`, `viabilidade-approval`, ...). Rota nova entra num grupo com throttle existente ou ganha limiter próprio com resposta via `ApiResponseService::tooManyRequests()`.
+- A captura pública de demonstração usa `POST /api/v1/demo-request`, no contexto central, com o limiter dedicado `demo-request`. O lead é persistido em `demo_requests` e a notificação interna é enviada de forma assíncrona ao `CENTRAL_ADMIN_EMAIL`; o IP bruto não é armazenado.
 - Rotas centrais ficam dentro do loop de `central_domains` em `routes/api.php`. O primeiro domínio preserva os nomes canônicos (`admin.*`); os domínios alternativos recebem o prefixo interno `central-domain-{index}.` para que `route:cache` não encontre nomes duplicados. Siga esse padrão ao criar rotas centrais nomeadas.
 - Rotas tenant novas: declare `tenant.context` + `auth:sanctum` + `auth.tenant` + `throttle:api-auth`, e o gate de módulo/assinatura adequado (`check.feature:...`, `subscription.active`, `tenant.admin`, `permission.gate`).
 - `GET /api/v1/modules` mantém o contrato legado. `GET /api/v1/start` adiciona `access.features`, `access.limits` e `access.modules`; essa é a fonte oficial da matriz efetiva (plano + override), combinando módulo ativo, plano e RBAC e expondo `reasons` (`module`, `plan`, `rbac`) quando indisponível.
@@ -386,6 +387,7 @@ Fluxo macro do terreno (enum `WorkflowStatus`, orquestrado por `LandWorkflowServ
 ### 14. Notificações e E-mail
 
 - Transporte: **Resend** (`RESEND_API_KEY`). Teste manual: `php artisan mail:test {email}`.
+- Solicitações públicas de demonstração são persistidas no central e notificadas por `DemoRequestReceived` → `NotifyDemoRequestReceived` → `DemoRequestNotification`, na fila `notifications`; falha de e-mail não invalida o lead já salvo.
 - Notificações de workflow em `app/Notifications/Workflow/` respeitam as **preferências do usuário** (`NotificationPreference` + trait `RespectsEmailPreference` + `NotificationCatalog`). Notificação nova de fluxo deve entrar no catálogo e respeitar preferências/digest (`notifications:send-email-digests`).
 - Alertas de storage usam `tenant:check-storage-usage` + `StorageLimitApproachingNotification`, com thresholds persistidos em `tenants.storage_alert_threshold` (80%/90%) para evitar reenvio repetido.
 - Views de e-mail em `resources/views/emails/`.

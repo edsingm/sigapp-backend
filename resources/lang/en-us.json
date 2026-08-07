@@ -18,6 +18,7 @@
     "DASHBOARD_DATA_RETRIEVED": "Dashboard data retrieved successfully",
     "DATA": "Data",
     "DATA_RETRIEVED_SUCCESSFULLY": "Data retrieved successfully",
+    "DEMO_REQUEST_RECEIVED": "Demo request received. We will contact you soon.",
     "DEPRECATED_ENDPOINT": "Deprecated endpoint",
     "DIRECTOR": "Director",
     "EXPORT_EXPIRED": "The export has expired.",

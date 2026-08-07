@@ -1,11 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Enums\Common\EntitlementType;
 use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
 use App\Repositories\Contracts\PlanRepositoryInterface;
+use App\Repositories\Contracts\TenantAddonSubscriptionRepositoryInterface;
 use App\Repositories\Contracts\TenantRepositoryInterface;
 use App\Support\EntitlementCatalog;
 use InvalidArgumentException;
@@ -15,6 +18,7 @@ class PlanMatrixService
     public function __construct(
         private readonly PlanRepositoryInterface $planRepository,
         private readonly TenantRepositoryInterface $tenantRepository,
+        private readonly TenantAddonSubscriptionRepositoryInterface $tenantAddonSubscriptionRepository,
     ) {}
 
     /**
@@ -65,11 +69,15 @@ class PlanMatrixService
         );
     }
 
-    public function getLimit(Plan|string|null $plan, string $key, int $default = 0): int
+    public function getLimit(Plan|string|null $plan, string $key, int|float $default = 0): int|float
     {
         $value = data_get($this->limits($plan), $key, $default);
 
-        return is_numeric($value) ? (int) $value : $default;
+        if (! is_numeric($value)) {
+            return $default;
+        }
+
+        return $key === 'ai_budget' ? (float) $value : (int) $value;
     }
 
     public function isUnlimitedLimit(Plan|string|null $plan, string $key): bool
@@ -91,15 +99,46 @@ class PlanMatrixService
         }
 
         $base = $this->planRepository->getMatrix($planId);
+        $stripeAddons = $this->tenantAddonSubscriptionRepository->forTenant($tenant, activeOnly: true);
         $extras = $this->tenantRepository->listExtraEntitlements($tenant);
 
-        if ($extras->isEmpty()) {
+        if ($stripeAddons->isEmpty() && $extras->isEmpty()) {
             return $this->withLegacyAliases($base);
         }
 
         $features = $base['features'];
         $limits = $base['limits'];
 
+        foreach ($stripeAddons as $stripeAddon) {
+            if (! $stripeAddon->grantsAccess()) {
+                continue;
+            }
+
+            foreach ($stripeAddon->addon->definition['grants'] ?? [] as $grant) {
+                $key = EntitlementCatalog::canonicalKey((string) $grant['key']);
+                $grantType = (string) $grant['type'];
+                $unitValue = $grant['unit_value'];
+
+                if ($grantType === EntitlementType::FEATURE->value) {
+                    if ($unitValue === true) {
+                        $this->setFeatureValue($features, $key, true);
+                    }
+
+                    continue;
+                }
+
+                $baseValue = $limits[$key] ?? 0;
+                if ($baseValue === -1) {
+                    continue;
+                }
+
+                $limits[$key] = $key === 'ai_budget'
+                    ? (float) $baseValue + ((float) $unitValue * $stripeAddon->quantity)
+                    : (int) $baseValue + ((int) $unitValue * $stripeAddon->quantity);
+            }
+        }
+
+        // Extras manuais continuam sendo o override final administrado pelo CS.
         foreach ($extras as $extra) {
             $ent = $extra->entitlement;
             $value = $extra->value;
@@ -130,11 +169,15 @@ class PlanMatrixService
     /**
      * Obtém o limite para um tenant específico, considerando entitlements extras.
      */
-    public function getLimitForTenant(Tenant $tenant, string $key, int $default = 0): int
+    public function getLimitForTenant(Tenant $tenant, string $key, int|float $default = 0): int|float
     {
         $value = data_get($this->resolveForTenant($tenant)['limits'], $key, $default);
 
-        return is_numeric($value) ? (int) $value : $default;
+        if (! is_numeric($value)) {
+            return $default;
+        }
+
+        return $key === 'ai_budget' ? (float) $value : (int) $value;
     }
 
     /**

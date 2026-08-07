@@ -4,8 +4,10 @@ namespace Tests\Feature\Billing;
 
 use App\Http\Controllers\Api\V1\Tenant\PlanSwapController;
 use App\Http\Requests\Tenant\PlanSwapRequest;
+use App\Models\Central\BillingAddon;
 use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
+use App\Models\Central\TenantAddonSubscription;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -196,6 +198,48 @@ class PlanSwapTest extends TestCase
         $json = json_decode($response->getContent(), true);
 
         $this->assertFalse($json['data']['is_upgrade']);
+    }
+
+    public function test_plan_swap_preserves_active_addon_items(): void
+    {
+        $planHigh = $this->makePlan('Pro', 10, 'price_pro');
+        $planLow = $this->makePlan('Basic', 1, 'price_basic');
+        $tenantId = $this->insertTenant($planHigh->id);
+        $tenant = $this->loadTenant($tenantId);
+        $addon = BillingAddon::query()->create([
+            'slug' => 'storage-addon-test',
+            'name' => 'Storage addon',
+            'type' => 'limit_pack',
+            'stripe_price_id' => 'price_addon_storage',
+            'currency' => 'brl',
+            'billing_interval' => 'month',
+            'definition' => ['grants' => []],
+            'is_active' => true,
+            'sort_order' => 0,
+        ]);
+
+        TenantAddonSubscription::query()->create([
+            'tenant_id' => $tenantId,
+            'billing_addon_id' => $addon->getKey(),
+            'stripe_subscription_id' => 'sub_test',
+            'stripe_subscription_item_id' => 'si_test',
+            'stripe_price_id' => 'price_addon_storage',
+            'quantity' => 3,
+            'status' => 'active',
+        ]);
+
+        $subMock = $this->makeSubscriptionMock('price_pro');
+        $subMock->shouldReceive('swap')->once()->with([
+            'price_basic' => ['quantity' => 1],
+            'price_addon_storage' => ['quantity' => 3],
+        ])->andReturnSelf();
+
+        $tenant->fakeSubscription = $subMock;
+        app(Tenancy::class)->tenant = $tenant;
+
+        $response = app(PlanSwapController::class)->swap($this->makeSwapRequest($planLow->slug));
+
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     // -------------------------------------------------------------------------

@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StorePlanRequest;
 use App\Http\Requests\Admin\SyncPlanEntitlementsRequest;
 use App\Http\Requests\Admin\UpdatePlanRequest;
-use App\Http\Resources\PlanResource;
+use App\Http\Resources\AdminPlanResource;
 use App\Services\ApiResponseService;
 use App\Services\PlanService;
 use Illuminate\Http\JsonResponse;
@@ -23,7 +23,7 @@ class PlanAdminController extends Controller
         $plans = $this->planService->list();
 
         return ApiResponseService::success(
-            PlanResource::collection($plans),
+            AdminPlanResource::collection($plans),
             'DATA_RETRIEVED_SUCCESSFULLY'
         );
     }
@@ -37,14 +37,14 @@ class PlanAdminController extends Controller
             return ApiResponseService::notFound(language()->t('PLAN_NOT_FOUND'));
         }
 
-        return ApiResponseService::success(new PlanResource($model));
+        return ApiResponseService::success(new AdminPlanResource($model));
     }
 
     public function store(StorePlanRequest $request): JsonResponse
     {
         $model = $this->planService->create($request->validated());
 
-        return ApiResponseService::created(new PlanResource($model));
+        return ApiResponseService::created(new AdminPlanResource($model));
     }
 
     public function update(UpdatePlanRequest $request, int $plan): JsonResponse
@@ -56,7 +56,7 @@ class PlanAdminController extends Controller
         }
 
         return ApiResponseService::success(
-            new PlanResource($model),
+            new AdminPlanResource($model),
             'SUCCESS_OPERATION'
         );
     }
@@ -85,7 +85,7 @@ class PlanAdminController extends Controller
         }
 
         return ApiResponseService::success(
-            new PlanResource($model),
+            new AdminPlanResource($model),
             'SUCCESS_OPERATION'
         );
     }

@@ -2,11 +2,20 @@
 
 namespace Tests\Unit\Services;
 
+use App\Enums\Common\BillingAddonSubscriptionStatus;
+use App\Enums\Common\BillingAddonType;
+use App\Models\Central\BillingAddon;
+use App\Models\Central\Entitlement;
 use App\Models\Central\Plan;
+use App\Models\Central\Tenant;
+use App\Models\Central\TenantAddonSubscription;
+use App\Models\Central\TenantEntitlement;
 use App\Services\PlanMatrixService;
 use Database\Seeders\EntitlementSeeder;
 use Database\Seeders\PlanSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class PlanMatrixServiceTest extends TestCase
@@ -178,5 +187,63 @@ class PlanMatrixServiceTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
 
         $service->resolve('nonexistent');
+    }
+
+    public function test_it_adds_active_stripe_addons_and_applies_manual_extras_last(): void
+    {
+        $plan = Plan::where('slug', 'broker')->firstOrFail();
+        $storage = Entitlement::where('key', 'storage_gb')->firstOrFail();
+        $tenantId = Str::uuid()->toString();
+
+        DB::table('tenants')->insert([
+            'id' => $tenantId,
+            'name' => 'Add-on tenant',
+            'slug' => 'addon-'.Str::lower(Str::random(8)),
+            'status' => Tenant::STATUS_ACTIVE,
+            'plan_id' => $plan->getKey(),
+            'database_created' => false,
+            'trial_extended' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $tenant = Tenant::query()->findOrFail($tenantId);
+        $addon = BillingAddon::query()->create([
+            'slug' => 'storage-pack-test',
+            'name' => 'Storage pack test',
+            'type' => BillingAddonType::LIMIT_PACK,
+            'stripe_price_id' => 'price_storage_test',
+            'currency' => 'brl',
+            'billing_interval' => 'month',
+            'definition' => [
+                'grants' => [
+                    ['key' => 'storage_gb', 'type' => 'limit', 'unit_value' => 10],
+                ],
+            ],
+            'is_active' => true,
+            'sort_order' => 0,
+        ]);
+
+        TenantAddonSubscription::query()->create([
+            'tenant_id' => $tenant->getKey(),
+            'billing_addon_id' => $addon->getKey(),
+            'stripe_subscription_id' => 'sub_test',
+            'stripe_subscription_item_id' => 'si_storage_test',
+            'stripe_price_id' => 'price_storage_test',
+            'quantity' => 2,
+            'status' => BillingAddonSubscriptionStatus::ACTIVE,
+        ]);
+
+        TenantEntitlement::query()->create([
+            'tenant_id' => $tenant->getKey(),
+            'entitlement_id' => $storage->getKey(),
+            'value' => 99,
+            'price' => 0,
+        ]);
+
+        $matrix = app(PlanMatrixService::class)->resolveForTenant($tenant);
+
+        // O extra Stripe soma sobre o plano, mas o extra manual é o override final.
+        $this->assertSame(99, $matrix['limits']['storage_gb']);
     }
 }

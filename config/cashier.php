@@ -31,6 +31,17 @@ return [
     ],
 
     /*
+    | Preços recorrentes dos add-ons por ambiente. A rotação de preço deve
+    | criar um novo SKU/slug; não altere o preço de um add-on já contratado.
+    */
+    'addon_prices' => [
+        'storage-10gb' => env('STRIPE_PRICE_ADDON_STORAGE_10GB'),
+        'ai-budget-5' => env('STRIPE_PRICE_ADDON_AI_BUDGET_5'),
+        'reports-builder' => env('STRIPE_PRICE_ADDON_REPORTS_BUILDER'),
+        'growth-bundle' => env('STRIPE_PRICE_ADDON_GROWTH_BUNDLE'),
+    ],
+
+    /*
     |--------------------------------------------------------------------------
     | Cashier Path
     |--------------------------------------------------------------------------

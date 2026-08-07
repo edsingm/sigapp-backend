@@ -5,9 +5,13 @@ namespace App\Services\Billing;
 use App\Enums\TenantStatus;
 use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
+use App\Models\Central\TenantAddonSubscription;
 use App\Notifications\PaymentRetryNotification;
+use App\Repositories\Contracts\PlanRepositoryInterface;
+use App\Repositories\Contracts\TenantAddonSubscriptionRepositoryInterface;
 use Carbon\Carbon;
 use Laravel\Cashier\Cashier;
+use Laravel\Cashier\Subscription;
 use Stripe\StripeClient;
 
 class TenantBillingService
@@ -427,6 +431,7 @@ class TenantBillingService
     public function getSubscriptionSnapshot(Tenant $tenant): array
     {
         $tenant->load(['plan', 'scheduledPlan']);
+        $addonSubscriptions = app(TenantAddonSubscriptionRepositoryInterface::class)->forTenant($tenant);
         $localSubscription = $tenant->subscription('default');
         $scheduledPlan = $tenant->getRelationValue('scheduledPlan');
         $tenantStripeId = $tenant->getAttribute('stripe_id');
@@ -490,7 +495,10 @@ class TenantBillingService
                         'billing_cycle_anchor' => $stripeSubscription->billing_cycle_anchor
                             ? Carbon::createFromTimestamp($stripeSubscription->billing_cycle_anchor)->toIso8601String()
                             : null,
-                        'price_id' => $stripeSubscription->items->data[0]->price->id ?? null,
+                        'price_id' => data_get(
+                            $this->resolvePrimarySubscriptionItem($tenant, $stripeSubscription),
+                            'price.id',
+                        ),
                         'latest_invoice' => $stripeSubscription->latest_invoice ?? null,
                     ] : null,
                 ];
@@ -548,6 +556,20 @@ class TenantBillingService
                 'trial_ends_at' => $localSubscription->trial_ends_at?->toIso8601String(),
                 'ends_at' => $localSubscription->ends_at?->toIso8601String(),
             ] : null,
+            'addons' => $addonSubscriptions->map(
+                static fn (TenantAddonSubscription $subscription): array => [
+                    'id' => $subscription->getKey(),
+                    'slug' => $subscription->addon?->slug,
+                    'name' => $subscription->addon?->name,
+                    'quantity' => $subscription->quantity,
+                    'status' => $subscription->status->value,
+                    'grants_access' => $subscription->grantsAccess(),
+                    'cancel_at_period_end' => $subscription->cancel_at_period_end,
+                    'current_period_start' => $subscription->current_period_start?->toIso8601String(),
+                    'current_period_end' => $subscription->current_period_end?->toIso8601String(),
+                    'canceled_at' => $subscription->canceled_at?->toIso8601String(),
+                ],
+            )->values()->all(),
             'stripe' => $stripeData,
             'invoices' => $invoices,
             'stripe_error' => app()->environment('local') ? $stripeError : null,
@@ -560,11 +582,61 @@ class TenantBillingService
             return;
         }
 
-        $newPlan = Plan::where('stripe_price_id', $priceId)->first();
+        $newPlan = app(PlanRepositoryInterface::class)->findByStripePriceId($priceId);
 
         if ($newPlan && $newPlan->id !== $tenant->getAttribute('plan_id')) {
             $tenant->update(['plan_id' => $newPlan->id]);
         }
+    }
+
+    public function syncPlanFromSubscription(Tenant $tenant, object $stripeSubscription): void
+    {
+        $primaryItem = $this->resolvePrimarySubscriptionItem($tenant, $stripeSubscription);
+        $priceId = data_get($primaryItem, 'price.id');
+
+        $this->syncPlanFromPriceId($tenant, is_string($priceId) ? $priceId : null);
+    }
+
+    /**
+     * Preserva os itens de add-on ativos ao trocar o preço-base da assinatura.
+     * Sem esse payload explícito, o swap do Cashier remove os demais preços.
+     *
+     * @return string|array<string, array{quantity: int}>
+     */
+    public function buildPlanSwapPrices(Tenant $tenant, string $newPlanPriceId): string|array
+    {
+        $prices = [$newPlanPriceId => ['quantity' => 1]];
+        $addonSubscriptions = app(TenantAddonSubscriptionRepositoryInterface::class)
+            ->forTenant($tenant, activeOnly: true);
+
+        foreach ($addonSubscriptions as $addonSubscription) {
+            $priceId = $addonSubscription->stripe_price_id;
+            if ($priceId === '' || $priceId === $newPlanPriceId || $addonSubscription->quantity < 1) {
+                continue;
+            }
+
+            $prices[$priceId] = ['quantity' => $addonSubscription->quantity];
+        }
+
+        return count($prices) === 1 ? $newPlanPriceId : $prices;
+    }
+
+    public function subscriptionHasPlanPrice(
+        Tenant $tenant,
+        Subscription $subscription,
+        string $priceId,
+    ): bool {
+        $subscriptionPrice = $subscription->getAttribute('stripe_price');
+        if (is_string($subscriptionPrice) && $subscriptionPrice === $priceId) {
+            return true;
+        }
+
+        $plan = $tenant->getRelationValue('plan');
+        if (! $plan instanceof Plan) {
+            $plan = $tenant->plan;
+        }
+
+        return $plan instanceof Plan && $plan->stripe_price_id === $priceId;
     }
 
     /**
@@ -594,11 +666,15 @@ class TenantBillingService
         $stripeSubscription = $this->retrieveSubscription($subscriptionId);
         $tenantTrialEndsAt = $tenant->getAttribute('trial_ends_at');
         $subscriptionItems = $stripeSubscription->items->data ?? [];
-        $primaryItem = $subscriptionItems[0] ?? null;
+        $primaryItem = $this->resolvePrimarySubscriptionItem($tenant, $stripeSubscription);
 
         $subscription = $tenant->subscriptions()->firstOrNew([
             'stripe_id' => $stripeSubscription->id,
         ]);
+
+        if (! $subscription instanceof Subscription) {
+            throw new \UnexpectedValueException('Registro local de assinatura inválido.');
+        }
 
         $trialEndsAt = $stripeSubscription->trial_end
             ? Carbon::createFromTimestamp($stripeSubscription->trial_end)
@@ -611,8 +687,8 @@ class TenantBillingService
         $subscription->fill([
             'type' => 'default',
             'stripe_status' => $stripeSubscription->status,
-            'stripe_price' => $primaryItem->price->id ?? null,
-            'quantity' => $primaryItem->quantity ?? 1,
+            'stripe_price' => data_get($primaryItem, 'price.id'),
+            'quantity' => (int) data_get($primaryItem, 'quantity', 1),
             'trial_ends_at' => $trialEndsAt,
             'ends_at' => $endsAt,
         ]);
@@ -622,10 +698,21 @@ class TenantBillingService
             $subscription->items()->updateOrCreate([
                 'stripe_id' => $item->id,
             ], [
-                'stripe_product' => $item->price->product,
-                'stripe_price' => $item->price->id,
-                'quantity' => $item->quantity ?? 1,
+                'stripe_product' => data_get($item, 'price.product'),
+                'stripe_price' => data_get($item, 'price.id'),
+                'quantity' => (int) data_get($item, 'quantity', 1),
             ]);
+        }
+
+        $stripeItemIds = array_values(array_filter(array_map(
+            static fn (mixed $item): mixed => is_object($item) ? data_get($item, 'id') : null,
+            $subscriptionItems,
+        ), static fn (mixed $id): bool => is_string($id) && $id !== ''));
+
+        if ($stripeItemIds === []) {
+            $subscription->items()->delete();
+        } else {
+            $subscription->items()->whereNotIn('stripe_id', $stripeItemIds)->delete();
         }
 
         // Sincroniza trial_ends_at do Stripe de volta para a coluna do tenant,
@@ -672,7 +759,7 @@ class TenantBillingService
             'stripe_subscription_id' => $subscription->id ?? $tenantStripeSubscriptionId,
         ]);
 
-        $this->syncPlanFromPriceId($tenant, $subscription->items->data[0]->price->id ?? null);
+        $this->syncPlanFromSubscription($tenant, $subscription);
         $this->syncSubscription($tenant, $subscription->id);
 
         $this->applyStripeSubscriptionStatus($tenant, $stripeStatus);
@@ -682,6 +769,43 @@ class TenantBillingService
             'source' => 'stripe',
             'stripe_status' => $stripeStatus,
         ];
+    }
+
+    private function resolvePrimarySubscriptionItem(Tenant $tenant, object $stripeSubscription): ?object
+    {
+        $items = data_get($stripeSubscription, 'items.data', []);
+        if (! is_iterable($items)) {
+            return null;
+        }
+
+        $tenant->loadMissing(['plan', 'scheduledPlan']);
+        $scheduledPriceId = $tenant->scheduledPlan?->stripe_price_id;
+        $currentPriceId = $tenant->plan?->stripe_price_id;
+        $candidates = array_values(array_filter([$scheduledPriceId, $currentPriceId]));
+
+        foreach ($candidates as $candidate) {
+            foreach ($items as $item) {
+                if (is_object($item) && data_get($item, 'price.id') === $candidate) {
+                    return $item;
+                }
+            }
+        }
+
+        $planRepository = app(PlanRepositoryInterface::class);
+        foreach ($items as $item) {
+            $priceId = is_object($item) ? data_get($item, 'price.id') : null;
+            if (is_string($priceId) && $planRepository->findByStripePriceId($priceId) instanceof Plan) {
+                return $item;
+            }
+        }
+
+        foreach ($items as $item) {
+            if (is_object($item)) {
+                return $item;
+            }
+        }
+
+        return null;
     }
 
     /**

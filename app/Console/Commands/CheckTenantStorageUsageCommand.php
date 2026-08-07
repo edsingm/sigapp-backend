@@ -33,7 +33,7 @@ class CheckTenantStorageUsageCommand extends Command
                         return;
                     }
 
-                    $limitGb = $planMatrix->getLimitForTenant($tenant, 'storage_gb');
+                    $limitGb = (int) $planMatrix->getLimitForTenant($tenant, 'storage_gb');
                     if ($limitGb <= 0) {
                         return;
                     }

@@ -11,6 +11,7 @@ use App\Notifications\PaymentActionRequiredNotification;
 use App\Notifications\PaymentRetryNotification;
 use App\Notifications\TrialEndingNotification;
 use App\Repositories\Contracts\TenantRepositoryInterface;
+use App\Services\Billing\AddonReconciliationService;
 use App\Services\Billing\CouponService;
 use App\Services\Billing\TenantBillingService;
 use App\Services\Billing\WebhookEventService;
@@ -34,6 +35,7 @@ class WebhookController extends CashierController
         protected TenantRepositoryInterface $tenantRepository,
         protected CouponService $couponService,
         protected WebhookEventService $webhookEventService,
+        protected AddonReconciliationService $addonReconciliationService,
     ) {
         if ($this->requiresSignedWebhook() && $this->hasWebhookSecret()) {
             $this->middleware(VerifyWebhookSignature::class);
@@ -515,6 +517,10 @@ class WebhookController extends CashierController
             ]);
 
             $this->billingService->applyStripeSubscriptionStatus($tenant, 'canceled');
+            $this->addonReconciliationService->cancelSubscription(
+                $tenant,
+                (string) ($subscription['id'] ?? $this->tenantStripeSubscriptionId($tenant)),
+            );
             Log::info('Tenant cancelou assinatura', ['tenant_id' => $tenant->id]);
 
             $this->audit('tenant.subscription_canceled', "Assinatura cancelada para tenant '{$this->tenantName($tenant)}'.", [
@@ -859,10 +865,11 @@ class WebhookController extends CashierController
         ]);
 
         if (! $skipPlanSync) {
-            $this->billingService->syncPlanFromPriceId($tenant, data_get($stripeSubscription, 'items.data.0.price.id'));
+            $this->billingService->syncPlanFromSubscription($tenant, $stripeSubscription);
         }
 
         $this->billingService->syncSubscription($tenant, $subscriptionId);
+        $this->addonReconciliationService->reconcile($tenant, $stripeSubscription);
 
         $appliedStatus = $this->billingService->applyStripeSubscriptionStatus($tenant, $stripeStatus);
 

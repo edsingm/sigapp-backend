@@ -15,8 +15,10 @@ use App\Models\Tenant\DocumentVersion;
 use App\Models\Tenant\User;
 use App\Repositories\Tenant\DocumentIntelligenceRepository;
 use App\Services\PlanMatrixService;
+use App\Support\SafeUploadExtension;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use RuntimeException;
 
 class DocumentIntelligenceService
@@ -48,10 +50,17 @@ class DocumentIntelligenceService
             return $existingVersion;
         }
 
+        $extension = SafeUploadExtension::resolve($file, SafeUploadExtension::DOCUMENT_EXTENSIONS);
+        if ($extension === null) {
+            throw ValidationException::withMessages([
+                'arquivo' => ['Tipo de conteúdo não reconhecido ou não permitido. Envie PDF, imagens, Office, KML/KMZ ou DWG.'],
+            ]);
+        }
+
         $version = $this->repository->nextVersion($documento);
         $path = $file->storeAs(
             'documentos/versions/'.$documento->id,
-            $version.'_'.Str::uuid().'_'.Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)).'.'.($file->guessExtension() ?: 'bin'),
+            $version.'_'.Str::uuid().'_'.Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)).'.'.$extension,
             's3',
         );
         if (! is_string($path)) {

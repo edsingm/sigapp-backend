@@ -18,7 +18,6 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use RuntimeException;
 
 class TerrenoPolygonImportService
 {
@@ -50,13 +49,22 @@ class TerrenoPolygonImportService
             foreach ($files as $file) {
                 $extension = mb_strtolower($file->getClientOriginalExtension());
                 if (! in_array($extension, ['kml', 'kmz'], true)) {
-                    throw new RuntimeException('Envie somente arquivos KML ou KMZ.');
+                    throw new TerrenoImportException(
+                        'POLYGON_IMPORT_INVALID_FILE',
+                        'Envie somente arquivos KML ou KMZ.',
+                        422,
+                        ['arquivos' => ['Envie somente arquivos KML ou KMZ.']],
+                    );
                 }
                 $diskName = 's3';
                 $path = 'imports/terrenos/polygons/'.Str::uuid().'.'.$extension;
                 $contents = file_get_contents($file->getRealPath());
                 if ($contents === false || ! Storage::disk($diskName)->put($path, $contents)) {
-                    throw new RuntimeException('Não foi possível armazenar um dos arquivos geográficos.');
+                    throw new TerrenoImportException(
+                        'POLYGON_IMPORT_UPLOAD_FAILED',
+                        'Não foi possível armazenar um dos arquivos geográficos. Tente novamente.',
+                        422,
+                    );
                 }
                 $this->storageQuota->commitFile(
                     $diskName,

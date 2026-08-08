@@ -457,6 +457,8 @@ Ao criar controller/service/job novo nos escopos cobertos, ele **precisa** nasce
 
 ## 🔍 Qualidade: PHPStan e Pint
 
+Os testes devem usar force=true no phpunit.xml e falhar antes da execução se a aplicação não estiver em APP_ENV=testing, conexão central sqlite e banco :memory:. O comando recomendado é composer test, que limpa o cache de configuração antes da suíte; nunca execute a suíte contra o PostgreSQL local.
+
 - **PHPStan nível 8** (+ `bleedingEdge`), paths `app` e `tests`, `phpVersion: 80400`. Rode `composer analyse` antes de todo commit.
 - O `phpstan.neon` inclui o baseline **`phpstan.baseline.neon`** e uma lista extensa de `ignoreErrors` para a "magia" do Eloquent (o Larastan está instalado como dev-dependency, mas a extensão **não** está incluída no `phpstan.neon` — os falsos positivos são tratados via ignores/baseline). **Não adicione novos padrões ao `ignoreErrors` nem regenere o baseline para esconder erro novo** — corrija o tipo. Ignore novo só com justificativa em comentário.
 - **Pint** preset `laravel`: `./vendor/bin/pint --test` deve passar limpo antes de qualquer merge.

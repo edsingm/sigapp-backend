@@ -294,7 +294,6 @@ class TenantAddonServiceTest extends TestCase
         );
     }
 
-    /** @return TenantAddonSubscriptionRepositoryInterface&MockInterface */
     private function subscriptionRepositoryMock(): TenantAddonSubscriptionRepositoryInterface&MockInterface
     {
         /** @var TenantAddonSubscriptionRepositoryInterface&MockInterface $mock */
@@ -304,7 +303,6 @@ class TenantAddonServiceTest extends TestCase
         return $mock;
     }
 
-    /** @return Tenant&MockInterface */
     private function tenantMock(string $id): Tenant&MockInterface
     {
         /** @var Tenant&MockInterface $tenant */

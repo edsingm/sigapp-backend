@@ -3,12 +3,14 @@
 use App\Http\Controllers\Api\V1\Admin\AclController;
 use App\Http\Controllers\Api\V1\Admin\AdminLoginAttemptController;
 use App\Http\Controllers\Api\V1\Admin\AuditController;
+use App\Http\Controllers\Api\V1\Admin\BillingAddonAdminController;
 use App\Http\Controllers\Api\V1\Admin\CouponController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController;
 use App\Http\Controllers\Api\V1\Admin\EntitlementController;
 use App\Http\Controllers\Api\V1\Admin\PlanAdminController;
 use App\Http\Controllers\Api\V1\Admin\PlatformAnnouncementController;
 use App\Http\Controllers\Api\V1\Admin\PostController;
+use App\Http\Controllers\Api\V1\Admin\TenantAddonAdminController;
 use App\Http\Controllers\Api\V1\Admin\TenantController;
 use App\Http\Controllers\Api\V1\Admin\TenantPlanController;
 use App\Http\Controllers\Api\V1\Admin\UserController;
@@ -161,6 +163,14 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
                         Route::put('/tenants/{id}/entitlements/{entitlementId}', [TenantPlanController::class, 'updateExtraEntitlement'])->name('tenants.entitlements.update');
                         Route::delete('/tenants/{id}/entitlements/{entitlementId}', [TenantPlanController::class, 'removeExtraEntitlement'])->name('tenants.entitlements.destroy');
 
+                        // Stripe add-ons e matriz efetiva de acesso por tenant
+                        Route::get('/tenants/{tenant}/addons', [TenantAddonAdminController::class, 'index'])
+                            ->name('tenants.addons.index');
+                        Route::post('/tenants/{tenant}/addons/reconcile', [TenantAddonAdminController::class, 'reconcile'])
+                            ->name('tenants.addons.reconcile');
+                        Route::get('/tenants/{tenant}/access-matrix', [TenantAddonAdminController::class, 'accessMatrix'])
+                            ->name('tenants.access-matrix');
+
                         // Users
                         Route::apiResource('users', UserController::class);
 
@@ -190,6 +200,10 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
 
                         // Entitlements — CRUD admin
                         Route::apiResource('entitlements', EntitlementController::class);
+
+                        // Stripe add-ons — CRUD do catálogo admin
+                        Route::apiResource('billing-addons', BillingAddonAdminController::class)
+                            ->except(['create', 'edit']);
 
                         // Coupons — CRUD admin
                         Route::apiResource('coupons', CouponController::class)->except(['create', 'edit']);

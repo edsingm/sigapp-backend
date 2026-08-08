@@ -55,7 +55,7 @@ class PlanSwapController extends Controller
             return ApiResponseService::conflict('NO_ACTIVE_SUBSCRIPTION');
         }
 
-        if ((string) $subscription->getAttribute('stripe_price') === $stripePriceId) {
+        if ($this->billingService->subscriptionHasPlanPrice($tenant, $subscription, $stripePriceId)) {
             return ApiResponseService::conflict('ALREADY_ON_THIS_PLAN');
         }
 
@@ -70,13 +70,15 @@ class PlanSwapController extends Controller
                 // pendingIfPaymentFails() mantém a troca em pending_update até o pagamento confirmar;
                 // sem isso (default_incomplete), o preço seria aplicado mesmo sem pagamento e o
                 // webhook customer.subscription.updated liberaria o plano superior de graça.
-                $subscription->pendingIfPaymentFails()->swapAndInvoice($stripePriceId);
+                $swapPrices = $this->billingService->buildPlanSwapPrices($tenant, $stripePriceId);
+                $subscription->pendingIfPaymentFails()->swapAndInvoice($swapPrices);
                 // Aplica o plano imediatamente e cancela qualquer downgrade pendente.
                 $tenant->update(['plan_id' => $newPlan->getKey(), 'scheduled_plan_id' => null]);
             } else {
                 // Downgrade: muda o preço no Stripe para a próxima renovação.
                 // O plan_id permanece inalterado até invoice.paid confirmar o novo ciclo.
-                $subscription->swap($stripePriceId);
+                $swapPrices = $this->billingService->buildPlanSwapPrices($tenant, $stripePriceId);
+                $subscription->swap($swapPrices);
                 $tenant->update(['scheduled_plan_id' => $newPlan->getKey()]);
             }
 

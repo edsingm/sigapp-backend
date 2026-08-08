@@ -11,7 +11,9 @@ use App\Notifications\PaymentActionRequiredNotification;
 use App\Notifications\PaymentRetryNotification;
 use App\Notifications\TrialEndingNotification;
 use App\Repositories\Contracts\TenantRepositoryInterface;
+use App\Services\Billing\AddonReconciliationService;
 use App\Services\Billing\CouponService;
+use App\Services\Billing\TenantAddonPurchaseService;
 use App\Services\Billing\TenantBillingService;
 use App\Services\Billing\WebhookEventService;
 use App\Traits\LogsAudit;
@@ -20,6 +22,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use InvalidArgumentException;
 use Laravel\Cashier\Http\Controllers\WebhookController as CashierController;
 use Laravel\Cashier\Http\Middleware\VerifyWebhookSignature;
 use Symfony\Component\HttpFoundation\Response;
@@ -34,6 +37,8 @@ class WebhookController extends CashierController
         protected TenantRepositoryInterface $tenantRepository,
         protected CouponService $couponService,
         protected WebhookEventService $webhookEventService,
+        protected AddonReconciliationService $addonReconciliationService,
+        protected TenantAddonPurchaseService $addonPurchaseService,
     ) {
         if ($this->requiresSignedWebhook() && $this->hasWebhookSecret()) {
             $this->middleware(VerifyWebhookSignature::class);
@@ -126,6 +131,10 @@ class WebhookController extends CashierController
     protected function handleCheckoutSessionCompleted(array $payload)
     {
         $session = (array) data_get($payload, 'data.object', []);
+        if (data_get($session, 'metadata.purpose') === TenantAddonPurchaseService::CHECKOUT_PURPOSE) {
+            return $this->handleAddonCheckoutCompleted($session);
+        }
+
         $tenantId = data_get($session, 'metadata.tenant_id');
 
         if (! $tenantId) {
@@ -257,6 +266,63 @@ class WebhookController extends CashierController
         ]);
 
         return $this->successMethod();
+    }
+
+    protected function handleCheckoutSessionAsyncPaymentSucceeded(array $payload): Response
+    {
+        $session = (array) data_get($payload, 'data.object', []);
+
+        if (data_get($session, 'metadata.purpose') !== TenantAddonPurchaseService::CHECKOUT_PURPOSE) {
+            return $this->successMethod();
+        }
+
+        return $this->handleAddonCheckoutCompleted($session);
+    }
+
+    protected function handleCheckoutSessionAsyncPaymentFailed(array $payload): Response
+    {
+        $session = (array) data_get($payload, 'data.object', []);
+
+        if (data_get($session, 'metadata.purpose') === TenantAddonPurchaseService::CHECKOUT_PURPOSE) {
+            $this->addonPurchaseService->markFailedFromCheckoutSession($session);
+        }
+
+        return $this->successMethod();
+    }
+
+    protected function handleCheckoutSessionExpired(array $payload): Response
+    {
+        $session = (array) data_get($payload, 'data.object', []);
+
+        if (data_get($session, 'metadata.purpose') === TenantAddonPurchaseService::CHECKOUT_PURPOSE) {
+            $this->addonPurchaseService->markExpiredFromCheckoutSession($session);
+        }
+
+        return $this->successMethod();
+    }
+
+    /** @param array<string, mixed> $session */
+    private function handleAddonCheckoutCompleted(array $session): Response
+    {
+        try {
+            $purchase = $this->addonPurchaseService->completeFromCheckoutSession($session);
+
+            Log::info('Checkout de add-on processado.', [
+                'session_id' => $session['id'] ?? null,
+                'purchase_id' => $purchase?->getKey(),
+                'payment_status' => $session['payment_status'] ?? null,
+                'granted' => $purchase !== null,
+            ]);
+
+            return $this->successMethod();
+        } catch (InvalidArgumentException $exception) {
+            Log::warning('Checkout de add-on rejeitado pela validação de vínculo.', [
+                'session_id' => $session['id'] ?? null,
+                'reason' => $exception->getMessage(),
+            ]);
+
+            return $this->unprocessedSuccessMethod();
+        }
     }
 
     /**
@@ -515,6 +581,10 @@ class WebhookController extends CashierController
             ]);
 
             $this->billingService->applyStripeSubscriptionStatus($tenant, 'canceled');
+            $this->addonReconciliationService->cancelSubscription(
+                $tenant,
+                (string) ($subscription['id'] ?? $this->tenantStripeSubscriptionId($tenant)),
+            );
             Log::info('Tenant cancelou assinatura', ['tenant_id' => $tenant->id]);
 
             $this->audit('tenant.subscription_canceled', "Assinatura cancelada para tenant '{$this->tenantName($tenant)}'.", [
@@ -859,10 +929,11 @@ class WebhookController extends CashierController
         ]);
 
         if (! $skipPlanSync) {
-            $this->billingService->syncPlanFromPriceId($tenant, data_get($stripeSubscription, 'items.data.0.price.id'));
+            $this->billingService->syncPlanFromSubscription($tenant, $stripeSubscription);
         }
 
         $this->billingService->syncSubscription($tenant, $subscriptionId);
+        $this->addonReconciliationService->reconcile($tenant, $stripeSubscription);
 
         $appliedStatus = $this->billingService->applyStripeSubscriptionStatus($tenant, $stripeStatus);
 

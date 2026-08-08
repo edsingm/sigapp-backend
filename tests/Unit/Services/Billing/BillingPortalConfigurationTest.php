@@ -34,10 +34,11 @@ class BillingPortalConfigurationTest extends TestCase
         $tenant = new TenantPortalStub;
         $service = new TenantBillingService;
 
-        $url = $service->createBillingPortalUrl($tenant, 'https://app.test/billing');
+        $returnUrl = 'https://acme.sigapp.com.br/sig/configuracoes/faturamento';
+        $url = $service->createBillingPortalUrl($tenant, $returnUrl);
 
         $this->assertSame('https://portal.stripe.test/session', $url);
-        $this->assertSame('https://app.test/billing', $tenant->capturedReturnUrl);
+        $this->assertSame($returnUrl, $tenant->capturedReturnUrl);
         $this->assertSame(['configuration' => 'bpc_restricted'], $tenant->capturedOptions);
     }
 
@@ -48,7 +49,10 @@ class BillingPortalConfigurationTest extends TestCase
         $tenant = new TenantPortalStub;
         $service = new TenantBillingService;
 
-        $service->createBillingPortalUrl($tenant, 'https://app.test/billing');
+        $service->createBillingPortalUrl(
+            $tenant,
+            'https://acme.sigapp.com.br/sig/configuracoes/faturamento'
+        );
 
         $this->assertSame([], $tenant->capturedOptions);
     }

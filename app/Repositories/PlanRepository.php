@@ -52,6 +52,11 @@ class PlanRepository implements PlanRepositoryInterface
         return Plan::query()->where('slug', $slug)->first();
     }
 
+    public function findByStripePriceId(string $stripePriceId): ?Plan
+    {
+        return Plan::query()->where('stripe_price_id', $stripePriceId)->first();
+    }
+
     public function findActiveBySlug(string $slug): ?Plan
     {
         return Plan::query()

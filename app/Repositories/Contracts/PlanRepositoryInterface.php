@@ -22,6 +22,8 @@ interface PlanRepositoryInterface
 
     public function findBySlug(string $slug): ?Plan;
 
+    public function findByStripePriceId(string $stripePriceId): ?Plan;
+
     public function findActiveBySlug(string $slug): ?Plan;
 
     public function create(array $data): Plan;

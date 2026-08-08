@@ -310,7 +310,7 @@ class WebhookHandlerTest extends TestCase
                 'trial_end' => null,
                 'cancel_at' => null,
             ]);
-        $billingMock->shouldReceive('syncPlanFromPriceId')->andReturnNull();
+        $billingMock->shouldReceive('syncPlanFromSubscription')->andReturnNull();
         $billingMock->shouldReceive('syncSubscription')->andReturnNull();
 
         $this->app->instance(TenantBillingService::class, $billingMock);
@@ -570,8 +570,8 @@ class WebhookHandlerTest extends TestCase
                 'cancel_at' => null,
             ]);
 
-        // syncPlanFromPriceId NÃO deve ser chamado enquanto o downgrade está pendente
-        $billingMock->shouldReceive('syncPlanFromPriceId')->never();
+        // syncPlanFromSubscription NÃO deve ser chamado enquanto o downgrade está pendente
+        $billingMock->shouldReceive('syncPlanFromSubscription')->never();
         $billingMock->shouldReceive('syncSubscription')->once()->andReturnNull();
         $billingMock->shouldReceive('applyStripeSubscriptionStatus')->andReturn('active');
 
@@ -635,8 +635,8 @@ class WebhookHandlerTest extends TestCase
                 'cancel_at' => null,
             ]);
 
-        // No invoice.paid, syncPlanFromPriceId DEVE rodar normalmente
-        $billingMock->shouldReceive('syncPlanFromPriceId')->once()->andReturnNull();
+        // No invoice.paid, syncPlanFromSubscription DEVE rodar normalmente
+        $billingMock->shouldReceive('syncPlanFromSubscription')->once()->andReturnNull();
         $billingMock->shouldReceive('syncSubscription')->once()->andReturnNull();
         $billingMock->shouldReceive('applyStripeSubscriptionStatus')->andReturn('active');
 
@@ -682,7 +682,7 @@ class WebhookHandlerTest extends TestCase
                 'trial_end' => null,
                 'cancel_at' => null,
             ]);
-        $billingMock->shouldReceive('syncPlanFromPriceId')->once()->andReturnNull();
+        $billingMock->shouldReceive('syncPlanFromSubscription')->once()->andReturnNull();
         $billingMock->shouldReceive('syncSubscription')->once()->andReturnNull();
         $billingMock->shouldReceive('applyStripeSubscriptionStatus')->andReturn('active');
 
@@ -738,7 +738,7 @@ class WebhookHandlerTest extends TestCase
                 'trial_end' => null,
                 'cancel_at' => null,
             ]);
-        $billingMock->shouldReceive('syncPlanFromPriceId')->once()->andReturnNull();
+        $billingMock->shouldReceive('syncPlanFromSubscription')->once()->andReturnNull();
         $billingMock->shouldReceive('syncSubscription')->once()->andReturnNull();
         $billingMock->shouldReceive('applyStripeSubscriptionStatus')->andReturn('active');
 

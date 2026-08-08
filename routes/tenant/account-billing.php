@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\Tenant\DunningController;
 use App\Http\Controllers\Api\V1\Tenant\NotificationPreferenceController;
 use App\Http\Controllers\Api\V1\Tenant\PlanSwapController;
 use App\Http\Controllers\Api\V1\Tenant\PlatformAnnouncementController;
+use App\Http\Controllers\Api\V1\Tenant\TenantAddonController;
 use App\Http\Controllers\Api\V1\Tenant\TenantController;
 use App\Http\Controllers\Api\V1\TenantAuthController;
 use Illuminate\Support\Facades\Route;
@@ -51,6 +52,17 @@ Route::post('/tenant/billing-portal', [TenantController::class, 'billingPortal']
 // as opções de upgrade/downgrade. Admin-only.
 Route::get('/tenant/plans', [PlanController::class, 'index'])
     ->middleware('tenant.admin');
+
+// Add-ons Stripe — somente o admin do tenant pode contratar e alterar quantidade.
+Route::middleware('tenant.admin')->group(function () {
+    Route::get('/tenant/addons', [TenantAddonController::class, 'index']);
+    Route::get('/tenant/addons/mine', [TenantAddonController::class, 'mine']);
+    Route::post('/tenant/addons/purchase', [TenantAddonController::class, 'purchase']);
+    Route::patch('/tenant/addons/{addon}', [TenantAddonController::class, 'update'])
+        ->whereNumber('addon');
+    Route::post('/tenant/addons/{addon}/cancel', [TenantAddonController::class, 'cancel'])
+        ->whereNumber('addon');
+});
 
 // Billing — troca de plano e atualização de método de pagamento
 // Acessíveis mesmo com assinatura suspensa (tenant pode reativar/atualizar sem bloqueio)

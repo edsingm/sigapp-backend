@@ -26,6 +26,7 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * @property int $sort_order
  * @property array<string, mixed> $features
  * @property array<string, int> $limits
+ * @property-read string $formatted_price
  * @property int $tenants_count
  * @property Carbon $created_at
  * @property Carbon $updated_at
@@ -143,7 +144,7 @@ class Plan extends Model
     /**
      * Obtém o limite de uma chave específica.
      */
-    public function getLimit(string $key, int $default = 0): int
+    public function getLimit(string $key, int|float $default = 0): int|float
     {
         return app(PlanMatrixService::class)->getLimit($this, $key, $default);
     }

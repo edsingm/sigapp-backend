@@ -68,6 +68,37 @@ class TenantAppUrlTest extends TestCase
         );
     }
 
+    public function test_billing_url_uses_tenant_subdomain_and_faturamento_route(): void
+    {
+        config([
+            'app.frontend_url' => 'https://app.sigapp.com.br',
+            'tenancy.identification.central_domains' => ['sigapp.com.br', 'localhost', '127.0.0.1'],
+        ]);
+
+        $tenant = $this->tenantWithDomain('acme', 'acme');
+
+        $url = app(TenantAppUrl::class)->billingUrl($tenant);
+
+        $this->assertSame(
+            'https://acme.sigapp.com.br/sig/configuracoes/faturamento',
+            $url
+        );
+    }
+
+    public function test_billing_url_uses_local_subdomain_with_port(): void
+    {
+        config(['app.frontend_url' => 'http://localhost:8080']);
+
+        $tenant = $this->tenantWithDomain('acme', 'acme');
+
+        $url = app(TenantAppUrl::class)->billingUrl($tenant);
+
+        $this->assertSame(
+            'http://acme.localhost:8080/sig/configuracoes/faturamento',
+            $url
+        );
+    }
+
     private function tenantWithDomain(string $slug, string $domain): Tenant
     {
         $tenant = Tenant::create([

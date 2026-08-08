@@ -9,6 +9,7 @@ use App\Models\Central\Tenant;
 use App\Models\Tenant\AiRequestLog;
 use App\Repositories\Contracts\AiTelemetryRepositoryInterface;
 use App\Services\Ai\Tools\AiTelemetryService;
+use App\Services\Billing\AiCreditService;
 use App\Services\PlanMatrixService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
@@ -28,11 +29,23 @@ class AiTelemetryServiceTest extends TestCase
 
     private PlanMatrixService&MockInterface $planMatrix;
 
+    private AiCreditService&MockInterface $aiCredits;
+
     protected function setUp(): void
     {
         parent::setUp();
         $this->repo = $this->mockTelemetryRepository();
         $this->planMatrix = $this->mockPlanMatrix();
+        $this->aiCredits = $this->mockAiCreditService();
+        $this->aiCredits->shouldReceive('summary')->byDefault()->andReturn([
+            'balance_usd' => 0.0,
+            'purchased_usd' => 0.0,
+            'consumed_usd' => 0.0,
+            'consumed_this_month_usd' => 0.0,
+        ]);
+        $this->aiCredits->shouldReceive('syncMonthlyConsumption')->byDefault()->andReturnUsing(
+            static fn (Tenant $tenant, float $amount): float => $amount,
+        );
     }
 
     protected function tearDown(): void
@@ -367,7 +380,7 @@ class AiTelemetryServiceTest extends TestCase
 
     public function test_budget_status_marks_exceeded_from_monthly_spend(): void
     {
-        $service = new class($this->repo, $this->planMatrix) extends AiTelemetryService
+        $service = new class($this->repo, $this->planMatrix, $this->aiCredits) extends AiTelemetryService
         {
             public function getTenantMonthlyCost(): float
             {
@@ -412,6 +425,39 @@ class AiTelemetryServiceTest extends TestCase
         $this->assertSame(0.0, $status['remaining_usd']);
         $this->assertSame(100, $status['usage_percent']);
         $this->assertTrue($status['exceeded']);
+    }
+
+    public function test_budget_status_combines_monthly_plan_with_persistent_addon_credits(): void
+    {
+        $tenant = (new Tenant)->forceFill(['id' => 'tenant-budget-with-credits']);
+
+        $this->planMatrix->shouldReceive('resolveForTenant')
+            ->once()
+            ->with($tenant)
+            ->andReturn(['features' => [], 'limits' => ['ai_budget' => 10]]);
+        $this->repo->shouldReceive('getCurrentMonthCost')->once()->andReturn(12.0);
+        $this->aiCredits->shouldReceive('summary')->once()->with($tenant)->andReturn([
+            'balance_usd' => 3.0,
+            'purchased_usd' => 5.0,
+            'consumed_usd' => 2.0,
+            'consumed_this_month_usd' => 2.0,
+        ]);
+
+        tenancy()->tenant = $tenant;
+        tenancy()->initialized = true;
+
+        try {
+            $status = $this->makeService()->getBudgetStatus();
+        } finally {
+            tenancy()->tenant = null;
+            tenancy()->initialized = false;
+        }
+
+        $this->assertSame(10.0, $status['plan_budget_usd']);
+        $this->assertSame(15.0, $status['budget_usd']);
+        $this->assertSame(3.0, $status['addon_credit_balance_usd']);
+        $this->assertSame(3.0, $status['remaining_usd']);
+        $this->assertFalse($status['exceeded']);
     }
 
     public function test_reserve_budget_persists_commitment_inside_tenant_lock(): void
@@ -606,7 +652,7 @@ class AiTelemetryServiceTest extends TestCase
 
     private function makeService(): AiTelemetryService
     {
-        return new AiTelemetryService($this->repo, $this->planMatrix);
+        return new AiTelemetryService($this->repo, $this->planMatrix, $this->aiCredits);
     }
 
     private function mockTelemetryRepository(): AiTelemetryRepositoryInterface&MockInterface
@@ -626,6 +672,17 @@ class AiTelemetryServiceTest extends TestCase
 
         if (! $mock instanceof PlanMatrixService) {
             throw new \RuntimeException('Mock da matriz de plano inválido.');
+        }
+
+        return $mock;
+    }
+
+    private function mockAiCreditService(): AiCreditService&MockInterface
+    {
+        $mock = Mockery::mock(AiCreditService::class);
+
+        if (! $mock instanceof AiCreditService) {
+            throw new \RuntimeException('Mock de créditos de IA inválido.');
         }
 
         return $mock;

@@ -211,7 +211,7 @@ class AdminPlansApiTest extends TestCase
 
     // ─── Response does not expose sensitive fields ────────────────────────────
 
-    public function test_plan_response_does_not_expose_stripe_price_id(): void
+    public function test_admin_plan_response_exposes_stripe_price_id(): void
     {
         $this->seed(PlanSeeder::class);
         $this->actingAsAdmin();
@@ -220,6 +220,6 @@ class AdminPlansApiTest extends TestCase
         $response = $this->adminJson('get', "/api/v1/admin/plans/{$plan->id}");
 
         $data = $response->json('data');
-        $this->assertArrayNotHasKey('stripe_price_id', $data);
+        $this->assertSame($plan->stripe_price_id, $data['stripe_price_id']);
     }
 }

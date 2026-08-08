@@ -25,7 +25,6 @@ class TenantAddonSubscriptionRepository implements TenantAddonSubscriptionReposi
         if ($activeOnly) {
             $query->whereIn('status', [
                 BillingAddonSubscriptionStatus::ACTIVE->value,
-                BillingAddonSubscriptionStatus::TRIALING->value,
                 BillingAddonSubscriptionStatus::PAST_DUE->value,
             ]);
         }

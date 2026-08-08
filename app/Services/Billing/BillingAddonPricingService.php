@@ -22,6 +22,7 @@ class BillingAddonPricingService
      *     unit_amount: int|null,
      *     currency: string,
      *     interval: string,
+     *     price_type: string,
      *     formatted_price: string|null,
      *     is_purchasable: bool
      * }
@@ -43,7 +44,13 @@ class BillingAddonPricingService
                     $price = $this->billingService->retrievePrice($priceId);
                     $unitAmount = data_get($price, 'unit_amount');
                     $currency = data_get($price, 'currency');
-                    $interval = data_get($price, 'recurring.interval');
+                    $priceType = data_get($price, 'type');
+                    if ($priceType === null && data_get($price, 'recurring.interval') !== null) {
+                        $priceType = 'recurring';
+                    }
+                    $interval = $priceType === 'one_time'
+                        ? 'one_time'
+                        : data_get($price, 'recurring.interval');
                     $isActive = data_get($price, 'active') === true;
 
                     if (
@@ -52,7 +59,8 @@ class BillingAddonPricingService
                         || $unitAmount < 0
                         || ! is_string($currency)
                         || $currency === ''
-                        || $interval !== 'month'
+                        || ! in_array($priceType, ['one_time', 'recurring'], true)
+                        || ($priceType === 'recurring' && $interval !== 'month')
                     ) {
                         return $fallback;
                     }
@@ -62,8 +70,9 @@ class BillingAddonPricingService
                     return [
                         'unit_amount' => $unitAmount,
                         'currency' => $currency,
-                        'interval' => 'month',
-                        'formatted_price' => $this->format($unitAmount, $currency),
+                        'interval' => (string) $interval,
+                        'price_type' => $priceType,
+                        'formatted_price' => $this->format($unitAmount, $currency, $priceType),
                         'is_purchasable' => true,
                     ];
                 } catch (\Throwable $exception) {
@@ -91,6 +100,7 @@ class BillingAddonPricingService
      *     unit_amount: int|null,
      *     currency: string,
      *     interval: string,
+     *     price_type: string,
      *     formatted_price: string|null,
      *     is_purchasable: bool
      * }
@@ -101,16 +111,17 @@ class BillingAddonPricingService
             'unit_amount' => null,
             'currency' => strtolower($addon->currency),
             'interval' => $addon->billing_interval,
+            'price_type' => $addon->billing_interval === 'one_time' ? 'one_time' : 'recurring',
             'formatted_price' => null,
             'is_purchasable' => false,
         ];
     }
 
-    private function format(int $unitAmount, string $currency): string
+    private function format(int $unitAmount, string $currency, string $priceType): string
     {
         return Cashier::formatAmount(
             $unitAmount,
             $currency,
-        ).'/mês';
+        ).($priceType === 'recurring' ? '/mês' : '');
     }
 }

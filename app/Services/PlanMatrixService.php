@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Enums\Common\EntitlementType;
+use App\Models\Central\BillingAddon;
 use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
 use App\Repositories\Contracts\PlanRepositoryInterface;
+use App\Repositories\Contracts\TenantAddonPurchaseRepositoryInterface;
 use App\Repositories\Contracts\TenantAddonSubscriptionRepositoryInterface;
 use App\Repositories\Contracts\TenantRepositoryInterface;
 use App\Support\EntitlementCatalog;
@@ -19,6 +21,7 @@ class PlanMatrixService
         private readonly PlanRepositoryInterface $planRepository,
         private readonly TenantRepositoryInterface $tenantRepository,
         private readonly TenantAddonSubscriptionRepositoryInterface $tenantAddonSubscriptionRepository,
+        private readonly TenantAddonPurchaseRepositoryInterface $tenantAddonPurchaseRepository,
     ) {}
 
     /**
@@ -100,9 +103,10 @@ class PlanMatrixService
 
         $base = $this->planRepository->getMatrix($planId);
         $stripeAddons = $this->tenantAddonSubscriptionRepository->forTenant($tenant, activeOnly: true);
+        $oneTimePurchases = $this->tenantAddonPurchaseRepository->paidForTenant($tenant);
         $extras = $this->tenantRepository->listExtraEntitlements($tenant);
 
-        if ($stripeAddons->isEmpty() && $extras->isEmpty()) {
+        if ($stripeAddons->isEmpty() && $oneTimePurchases->isEmpty() && $extras->isEmpty()) {
             return $this->withLegacyAliases($base);
         }
 
@@ -110,32 +114,27 @@ class PlanMatrixService
         $limits = $base['limits'];
 
         foreach ($stripeAddons as $stripeAddon) {
-            if (! $stripeAddon->grantsAccess()) {
+            $addon = $stripeAddon->addon;
+            if (! $stripeAddon->grantsAccess() || ! $addon instanceof BillingAddon) {
                 continue;
             }
 
-            foreach ($stripeAddon->addon->definition['grants'] ?? [] as $grant) {
-                $key = EntitlementCatalog::canonicalKey((string) $grant['key']);
-                $grantType = (string) $grant['type'];
-                $unitValue = $grant['unit_value'];
+            $this->applyAddonGrants(
+                $features,
+                $limits,
+                (array) $addon->definition,
+                $stripeAddon->quantity,
+            );
+        }
 
-                if ($grantType === EntitlementType::FEATURE->value) {
-                    if ($unitValue === true) {
-                        $this->setFeatureValue($features, $key, true);
-                    }
-
-                    continue;
-                }
-
-                $baseValue = $limits[$key] ?? 0;
-                if ($baseValue === -1) {
-                    continue;
-                }
-
-                $limits[$key] = $key === 'ai_budget'
-                    ? (float) $baseValue + ((float) $unitValue * $stripeAddon->quantity)
-                    : (int) $baseValue + ((int) $unitValue * $stripeAddon->quantity);
-            }
+        foreach ($oneTimePurchases as $purchase) {
+            $this->applyAddonGrants(
+                $features,
+                $limits,
+                (array) $purchase->grant_snapshot,
+                $purchase->quantity,
+                skipAiBudget: true,
+            );
         }
 
         // Extras manuais continuam sendo o override final administrado pelo CS.
@@ -246,6 +245,57 @@ class PlanMatrixService
         }
 
         unset($cursor);
+    }
+
+    /**
+     * Créditos avulsos de ai_budget são consumíveis e vivem no ledger; somá-los
+     * à matriz faria o saldo gasto reaparecer a cada virada de mês.
+     *
+     * @param  array<string, mixed>  $features
+     * @param  array<string, int|float>  $limits
+     * @param  array<string, mixed>  $definition
+     */
+    private function applyAddonGrants(
+        array &$features,
+        array &$limits,
+        array $definition,
+        int $quantity,
+        bool $skipAiBudget = false,
+    ): void {
+        foreach ((array) ($definition['grants'] ?? []) as $grant) {
+            if (! is_array($grant)) {
+                continue;
+            }
+
+            $key = EntitlementCatalog::canonicalKey((string) ($grant['key'] ?? ''));
+            $grantType = (string) ($grant['type'] ?? '');
+            $unitValue = $grant['unit_value'] ?? 0;
+
+            if ($key === '' || ($skipAiBudget && $key === 'ai_budget')) {
+                continue;
+            }
+
+            if ($grantType === EntitlementType::FEATURE->value) {
+                if ($unitValue === true) {
+                    $this->setFeatureValue($features, $key, true);
+                }
+
+                continue;
+            }
+
+            if (! is_numeric($unitValue)) {
+                continue;
+            }
+
+            $baseValue = $limits[$key] ?? 0;
+            if ($baseValue === -1) {
+                continue;
+            }
+
+            $limits[$key] = $key === 'ai_budget'
+                ? (float) $baseValue + ((float) $unitValue * $quantity)
+                : (int) $baseValue + ((int) $unitValue * $quantity);
+        }
     }
 
     /**

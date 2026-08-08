@@ -41,7 +41,7 @@ class BillingAddonService
         $data['type'] = $type->value;
         $data['definition'] = $this->definitionService->normalize($type, (array) $data['definition']);
         $data['currency'] = strtolower((string) ($data['currency'] ?? config('cashier.currency', 'brl')));
-        $data['billing_interval'] = 'month';
+        $data['billing_interval'] = (string) ($data['billing_interval'] ?? 'month');
 
         return $this->repository->create($data);
     }

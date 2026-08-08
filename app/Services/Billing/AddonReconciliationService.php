@@ -37,6 +37,12 @@ class AddonReconciliationService
         $status = BillingAddonSubscriptionStatus::tryFrom(
             $this->stringValue($stripeSubscription, 'status') ?? ''
         ) ?? BillingAddonSubscriptionStatus::INCOMPLETE;
+        if ($status === BillingAddonSubscriptionStatus::TRIALING) {
+            // A assinatura principal pode estar em trial, mas add-ons não.
+            // Mantemos o item sem acesso até o plano sair do trial e o Stripe
+            // emitir a reconciliação com status active.
+            $status = BillingAddonSubscriptionStatus::INCOMPLETE;
+        }
         $cancelAtPeriodEnd = (bool) data_get($stripeSubscription, 'cancel_at_period_end', false);
         $activeItemIds = [];
         $matched = 0;

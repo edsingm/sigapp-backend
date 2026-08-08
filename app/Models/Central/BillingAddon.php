@@ -82,6 +82,12 @@ class BillingAddon extends Model
         return $this->hasMany(TenantAddonSubscription::class);
     }
 
+    /** @return HasMany<TenantAddonPurchase, $this> */
+    public function purchases(): HasMany
+    {
+        return $this->hasMany(TenantAddonPurchase::class);
+    }
+
     public function isPurchasable(): bool
     {
         return $this->is_active

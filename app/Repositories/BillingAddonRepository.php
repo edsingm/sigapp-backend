@@ -61,6 +61,6 @@ class BillingAddonRepository implements BillingAddonRepositoryInterface
 
     public function hasSubscriptions(BillingAddon $addon): bool
     {
-        return $addon->subscriptions()->exists();
+        return $addon->subscriptions()->exists() || $addon->purchases()->exists();
     }
 }

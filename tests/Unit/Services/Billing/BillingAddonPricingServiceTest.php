@@ -70,6 +70,38 @@ class BillingAddonPricingServiceTest extends TestCase
         $this->assertNull($details['formatted_price']);
     }
 
+    public function test_it_accepts_and_formats_an_active_one_time_price(): void
+    {
+        Cache::setDefaultDriver('array');
+        Cache::forget('billing-addon-price:price_ai_credit');
+
+        /** @var TenantBillingService&MockInterface $billingService */
+        $billingService = Mockery::mock(TenantBillingService::class);
+        $billingService->shouldReceive('retrievePrice')
+            ->once()
+            ->with('price_ai_credit')
+            ->andReturn((object) [
+                'active' => true,
+                'type' => 'one_time',
+                'unit_amount' => 3500,
+                'currency' => 'brl',
+                'recurring' => null,
+            ]);
+
+        /** @var BillingAddon $addon */
+        $addon = BillingAddon::factory()->make([
+            'stripe_price_id' => 'price_ai_credit',
+            'billing_interval' => 'one_time',
+        ]);
+        $details = (new BillingAddonPricingService($billingService))->details($addon);
+
+        $this->assertSame(3500, $details['unit_amount']);
+        $this->assertSame('one_time', $details['interval']);
+        $this->assertSame('one_time', $details['price_type']);
+        $this->assertSame('R$ 35,00', $details['formatted_price']);
+        $this->assertTrue($details['is_purchasable']);
+    }
+
     public function test_tenant_resource_exposes_price_contract_without_stripe_identifiers(): void
     {
         /** @var BillingAddon $addon */

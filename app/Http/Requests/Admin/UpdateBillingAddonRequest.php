@@ -28,7 +28,7 @@ class UpdateBillingAddonRequest extends FormRequest
             'type' => ['sometimes', Rule::enum(BillingAddonType::class)],
             'stripe_price_id' => ['nullable', 'string', 'max:255', 'regex:/^price_[A-Za-z0-9]+$/'],
             'currency' => ['sometimes', 'string', 'size:3', 'in:brl'],
-            'billing_interval' => ['sometimes', 'string', 'in:month'],
+            'billing_interval' => ['sometimes', 'string', 'in:month,one_time'],
             'definition' => ['sometimes', 'array'],
             'definition.grants' => ['required_with:definition', 'array', 'min:1'],
             'definition.grants.*.key' => ['required_with:definition', 'string', 'max:100'],

@@ -30,7 +30,7 @@ class BillingAddonSeeder extends Seeder
             [
                 'slug' => 'ai-budget-5',
                 'name' => 'Orçamento adicional de IA — US$ 5',
-                'description' => 'Adiciona US$ 5 ao orçamento mensal de IA do tenant.',
+                'description' => 'Adiciona US$ 5 em créditos acumulativos de IA, sem expiração mensal.',
                 'type' => BillingAddonType::LIMIT_PACK,
                 'definition' => [
                     'grants' => [
@@ -38,6 +38,7 @@ class BillingAddonSeeder extends Seeder
                     ],
                 ],
                 'sort_order' => 2,
+                'billing_interval' => 'one_time',
             ],
             [
                 'slug' => 'reports-builder',
@@ -72,7 +73,7 @@ class BillingAddonSeeder extends Seeder
             $values = [
                 ...$addon,
                 'currency' => (string) config('cashier.currency', 'brl'),
-                'billing_interval' => 'month',
+                'billing_interval' => (string) ($addon['billing_interval'] ?? 'month'),
                 'is_active' => true,
             ];
 

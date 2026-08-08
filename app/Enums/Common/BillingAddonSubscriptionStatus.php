@@ -16,6 +16,8 @@ enum BillingAddonSubscriptionStatus: string
 
     public function grantsAccess(): bool
     {
-        return in_array($this, [self::ACTIVE, self::TRIALING, self::PAST_DUE], true);
+        // Add-ons não possuem período de teste. O trial é uma característica
+        // exclusiva do plano e não pode liberar um item complementar.
+        return in_array($this, [self::ACTIVE, self::PAST_DUE], true);
     }
 }

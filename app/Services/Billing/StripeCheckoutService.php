@@ -2,8 +2,11 @@
 
 namespace App\Services\Billing;
 
+use App\Models\Central\BillingAddon;
 use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
+use App\Models\Central\TenantAddonPurchase;
+use App\Support\TenantAppUrl;
 use App\Traits\LogsAudit;
 use Laravel\Cashier\Cashier;
 use Stripe\Checkout\Session;
@@ -13,6 +16,10 @@ use Stripe\StripeClient;
 class StripeCheckoutService
 {
     use LogsAudit;
+
+    public function __construct(
+        private readonly ?TenantAppUrl $tenantAppUrl = null,
+    ) {}
 
     protected function stripe(): StripeClient
     {
@@ -120,6 +127,52 @@ class StripeCheckoutService
         ], $sessionOptions));
     }
 
+    public function createAddonPaymentSession(
+        Tenant $tenant,
+        BillingAddon $addon,
+        TenantAddonPurchase $purchase,
+    ): Session {
+        $customerId = $tenant->getAttribute('stripe_id');
+        if (! is_string($customerId) || $customerId === '') {
+            throw new \InvalidArgumentException('O tenant não possui Customer Stripe para a compra avulsa.');
+        }
+
+        $metadata = [
+            'purpose' => TenantAddonPurchaseService::CHECKOUT_PURPOSE,
+            'purchase_id' => (string) $purchase->getKey(),
+            'tenant_id' => (string) $tenant->getKey(),
+            'addon_id' => (string) $addon->getKey(),
+            'price_id' => (string) $addon->stripe_price_id,
+        ];
+
+        return $this->stripe()->checkout->sessions->create([
+            'customer' => $customerId,
+            'client_reference_id' => (string) $purchase->getKey(),
+            'mode' => 'payment',
+            'line_items' => [[
+                'price' => (string) $addon->stripe_price_id,
+                'quantity' => $purchase->quantity,
+            ]],
+            'allow_promotion_codes' => true,
+            'tax_id_collection' => ['enabled' => true],
+            'customer_update' => ['name' => 'auto', 'address' => 'auto'],
+            'invoice_creation' => ['enabled' => true],
+            'payment_intent_data' => ['metadata' => $metadata],
+            'metadata' => $metadata,
+            'success_url' => $this->tenantAppUrl()->billingUrl($tenant, [
+                'billing_tab' => 'addons',
+                'addon_checkout' => 'success',
+                'session_id' => '{CHECKOUT_SESSION_ID}',
+            ]),
+            'cancel_url' => $this->tenantAppUrl()->billingUrl($tenant, [
+                'billing_tab' => 'addons',
+                'addon_checkout' => 'cancelled',
+            ]),
+        ], [
+            'idempotency_key' => 'tenant-addon-purchase-'.$purchase->getKey(),
+        ]);
+    }
+
     /**
      * Cria um Produto + Preço no Stripe em tempo de execução quando o plano não possui um stripe_price_id.
      *
@@ -165,6 +218,11 @@ class StripeCheckoutService
         $landingUrl = config('app.landing_url');
 
         return rtrim((string) $landingUrl, '/').'/cadastro?success=1&session_id={CHECKOUT_SESSION_ID}';
+    }
+
+    private function tenantAppUrl(): TenantAppUrl
+    {
+        return $this->tenantAppUrl ?? app(TenantAppUrl::class);
     }
 
     private function signupCancelUrl(string $planSlug): string

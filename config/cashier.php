@@ -31,7 +31,7 @@ return [
     ],
 
     /*
-    | Preços recorrentes dos add-ons por ambiente. A rotação de preço deve
+    | Preços recorrentes ou avulsos dos add-ons por ambiente. A rotação de preço deve
     | criar um novo SKU/slug; não altere o preço de um add-on já contratado.
     */
     'addon_prices' => [
@@ -73,6 +73,9 @@ return [
         // com os handlers em App\Http\Controllers\Api\V1\WebhookController.
         'events' => [
             'checkout.session.completed',
+            'checkout.session.async_payment_succeeded',
+            'checkout.session.async_payment_failed',
+            'checkout.session.expired',
             'invoice.paid',
             'invoice.payment_failed',
             'invoice.payment_action_required',

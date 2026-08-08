@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Services\Billing;
 
+use App\Enums\Common\BillingAddonSubscriptionStatus;
 use App\Models\Central\BillingAddon;
 use App\Models\Central\Tenant;
 use App\Models\Central\TenantAddonSubscription;
@@ -79,5 +80,53 @@ class AddonReconciliationServiceTest extends TestCase
             ->reconcile($tenant, $stripeSubscription);
 
         $this->assertSame(['matched' => 1, 'canceled' => 1, 'ignored' => 1], $result);
+    }
+
+    public function test_it_does_not_grant_access_to_addons_on_a_plan_trial(): void
+    {
+        $addon = BillingAddon::factory()->make([
+            'id' => 8,
+            'stripe_price_id' => 'price_trial_addon',
+        ]);
+        $tenant = Mockery::mock(Tenant::class);
+        $tenant->shouldReceive('getKey')->andReturn('tenant-1');
+
+        /** @var BillingAddonRepositoryInterface&MockInterface $addonRepository */
+        $addonRepository = Mockery::mock(BillingAddonRepositoryInterface::class);
+        $addonRepository->shouldReceive('findByStripePriceId')
+            ->with('price_trial_addon')
+            ->once()
+            ->andReturn($addon);
+
+        /** @var TenantAddonSubscriptionRepositoryInterface&MockInterface $subscriptionRepository */
+        $subscriptionRepository = Mockery::mock(TenantAddonSubscriptionRepositoryInterface::class);
+        $subscriptionRepository->shouldReceive('upsertFromStripe')
+            ->once()
+            ->withArgs(static function (...$arguments): bool {
+                return $arguments[5] === 0
+                    && $arguments[6] === BillingAddonSubscriptionStatus::INCOMPLETE;
+            })
+            ->andReturn(new TenantAddonSubscription);
+        $subscriptionRepository->shouldReceive('deactivateMissingItems')
+            ->once()
+            ->andReturn(0);
+
+        $result = (new AddonReconciliationService($addonRepository, $subscriptionRepository))
+            ->reconcile($tenant, (object) [
+                'id' => 'sub_trial',
+                'status' => 'trialing',
+                'cancel_at_period_end' => false,
+                'items' => (object) [
+                    'data' => [
+                        (object) [
+                            'id' => 'si_trial_addon',
+                            'quantity' => 1,
+                            'price' => (object) ['id' => 'price_trial_addon'],
+                        ],
+                    ],
+                ],
+            ]);
+
+        $this->assertSame(['matched' => 1, 'canceled' => 0, 'ignored' => 0], $result);
     }
 }

@@ -10,6 +10,7 @@ use App\Http\Requests\Tenant\UpdateAddonQuantityRequest;
 use App\Http\Resources\TenantAddonSubscriptionResource;
 use App\Http\Resources\TenantBillingAddonResource;
 use App\Models\Central\Tenant;
+use App\Models\Central\TenantAddonPurchase;
 use App\Services\ApiResponseService;
 use App\Services\Billing\TenantAddonService;
 use Illuminate\Http\JsonResponse;
@@ -24,8 +25,13 @@ class TenantAddonController extends Controller
 
     public function index(): JsonResponse
     {
+        $tenant = tenancy()->tenant;
+        if (! $tenant instanceof Tenant) {
+            return ApiResponseService::serverError('TENANT_CONTEXT_NOT_AVAILABLE');
+        }
+
         return ApiResponseService::success(
-            TenantBillingAddonResource::collection($this->service->catalog()),
+            TenantBillingAddonResource::collection($this->service->catalog($tenant)),
             'DATA_RETRIEVED_SUCCESSFULLY',
         );
     }
@@ -65,6 +71,16 @@ class TenantAddonController extends Controller
             );
         } catch (InvalidArgumentException $exception) {
             return ApiResponseService::error('BILLING_ADDON_PURCHASE_ERROR', $exception->getMessage(), null, 422);
+        }
+
+        if ($record instanceof TenantAddonPurchase) {
+            return ApiResponseService::created([
+                'purchase_mode' => 'one_time',
+                'purchase_id' => $record->getKey(),
+                'checkout_session_id' => $record->stripe_checkout_session_id,
+                'checkout_url' => $record->checkout_url,
+                'status' => $record->status->value,
+            ]);
         }
 
         return ApiResponseService::created(new TenantAddonSubscriptionResource($record));

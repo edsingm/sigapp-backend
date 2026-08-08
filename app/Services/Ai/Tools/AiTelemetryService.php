@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Services\Ai\Tools;
 
 use App\Exceptions\AiBudgetExceededException;
+use App\Models\Central\Tenant;
 use App\Models\Tenant\AiRequestLog;
 use App\Repositories\Contracts\AiTelemetryRepositoryInterface;
+use App\Services\Billing\AiCreditService;
 use App\Services\PlanMatrixService as ServicesPlanMatrixService;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -27,6 +29,7 @@ class AiTelemetryService
     public function __construct(
         private readonly AiTelemetryRepositoryInterface $repository,
         private readonly ServicesPlanMatrixService $planMatrix,
+        private readonly AiCreditService $aiCredits,
     ) {
         /** @var array<string, array<string, float>> $priceMap */
         $priceMap = config('ai.prices_per_million_tokens', []);
@@ -40,7 +43,16 @@ class AiTelemetryService
      */
     public function logRequest(array $data): AiRequestLog
     {
-        return $this->repository->create($this->requestPayload($data));
+        if (! tenancy()->initialized) {
+            return $this->repository->create($this->requestPayload($data));
+        }
+
+        return Cache::lock($this->budgetLockKey(), 10)->block(5, function () use ($data): AiRequestLog {
+            $log = $this->repository->create($this->requestPayload($data));
+            $this->syncCreditsToCurrentCommitment(allowOverdraft: true);
+
+            return $log;
+        });
     }
 
     /**
@@ -79,16 +91,46 @@ class AiTelemetryService
 
             $budgetLimit = $this->resolveBudgetLimit();
             $committed = $this->repository->getCurrentMonthCost();
+            $tenant = $this->currentTenant();
 
-            if ($budgetLimit <= 0 || $committed + $amount > $budgetLimit) {
+            if (! $tenant instanceof Tenant || $budgetLimit <= 0) {
                 throw new AiBudgetExceededException;
             }
 
-            return $this->repository->create($this->requestPayload([
+            $this->syncCreditsToCommitment($tenant, $budgetLimit, $committed, allowOverdraft: true);
+            $credits = $this->aiCredits->summary($tenant);
+            $effectiveLimit = $budgetLimit
+                + $credits['consumed_this_month_usd']
+                + $credits['balance_usd'];
+
+            if ($committed + $amount > $effectiveLimit) {
+                throw new AiBudgetExceededException;
+            }
+
+            $reservation = $this->repository->create($this->requestPayload([
                 ...$data,
                 'estimated_cost_usd' => $amount,
                 'status' => 'reserved',
             ]));
+
+            try {
+                $this->syncCreditsToCommitment(
+                    $tenant,
+                    $budgetLimit,
+                    $committed + $amount,
+                    allowOverdraft: false,
+                );
+            } catch (Throwable $exception) {
+                $this->repository->update($reservation, [
+                    'estimated_cost_usd' => 0,
+                    'status' => 'expired',
+                    'error_message' => 'Reserva de crédito não confirmada.',
+                ]);
+
+                throw $exception;
+            }
+
+            return $reservation;
         });
     }
 
@@ -101,10 +143,15 @@ class AiTelemetryService
     {
         return Cache::lock($this->budgetLockKey(), 10)->block(
             5,
-            fn (): AiRequestLog => $this->repository->update(
-                $reservation,
-                $this->requestPayload([...$data, 'status' => $data['status'] ?? 'success'])
-            )
+            function () use ($reservation, $data): AiRequestLog {
+                $settled = $this->repository->update(
+                    $reservation,
+                    $this->requestPayload([...$data, 'status' => $data['status'] ?? 'success'])
+                );
+                $this->syncCreditsToCurrentCommitment(allowOverdraft: true);
+
+                return $settled;
+            }
         );
     }
 
@@ -363,14 +410,71 @@ class AiTelemetryService
     {
         $budgetLimit = $this->resolveBudgetLimit();
         $spent = $this->getTenantMonthlyCost();
+        $tenant = $this->currentTenant();
+        $credits = $tenant instanceof Tenant
+            ? $this->aiCredits->summary($tenant)
+            : [
+                'balance_usd' => 0.0,
+                'purchased_usd' => 0.0,
+                'consumed_usd' => 0.0,
+                'consumed_this_month_usd' => 0.0,
+            ];
+        $effectiveLimit = $budgetLimit > 0
+            ? $budgetLimit + $credits['consumed_this_month_usd'] + $credits['balance_usd']
+            : 0.0;
 
         return [
-            'budget_usd' => $budgetLimit,
+            'budget_usd' => round($effectiveLimit, 6),
+            'plan_budget_usd' => round($budgetLimit, 6),
+            'addon_credit_balance_usd' => $credits['balance_usd'],
+            'addon_credit_consumed_usd' => $credits['consumed_usd'],
             'spent_usd' => round($spent, 6),
-            'remaining_usd' => round(max(0, $budgetLimit - $spent), 6),
-            'usage_percent' => $budgetLimit > 0 ? round(($spent / $budgetLimit) * 100, 1) : 100,
-            'exceeded' => $spent >= $budgetLimit,
+            'remaining_usd' => round(max(0, $effectiveLimit - $spent), 6),
+            'usage_percent' => $effectiveLimit > 0 ? round(($spent / $effectiveLimit) * 100, 1) : 100,
+            'exceeded' => $spent >= $effectiveLimit,
         ];
+    }
+
+    private function syncCreditsToCurrentCommitment(bool $allowOverdraft): void
+    {
+        $tenant = $this->currentTenant();
+        if (! $tenant instanceof Tenant) {
+            return;
+        }
+
+        $this->syncCreditsToCommitment(
+            $tenant,
+            $this->resolveBudgetLimit(),
+            $this->repository->getCurrentMonthCost(),
+            $allowOverdraft,
+        );
+    }
+
+    private function syncCreditsToCommitment(
+        Tenant $tenant,
+        float $planBudget,
+        float $committed,
+        bool $allowOverdraft,
+    ): void {
+        if ($planBudget <= 0) {
+            return;
+        }
+
+        $requiredCredits = round(max(0, $committed - $planBudget), 6);
+        $currentConsumption = $this->aiCredits->summary($tenant)['consumed_this_month_usd'];
+
+        if (abs($requiredCredits - $currentConsumption) < 0.000001) {
+            return;
+        }
+
+        $this->aiCredits->syncMonthlyConsumption($tenant, $requiredCredits, $allowOverdraft);
+    }
+
+    private function currentTenant(): ?Tenant
+    {
+        $tenant = tenancy()->tenant;
+
+        return $tenant instanceof Tenant ? $tenant : null;
     }
 
     private function budgetLockKey(): string

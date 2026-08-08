@@ -19,6 +19,12 @@ class TenantAppUrl
         return $this->build($tenant, '/login/reset-password', $query);
     }
 
+    /** @param array<string, string> $query */
+    public function billingUrl(Tenant $tenant, array $query = []): string
+    {
+        return $this->build($tenant, '/sig/configuracoes/faturamento', $query);
+    }
+
     /**
      * @param  array<string, string>  $query
      */

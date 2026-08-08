@@ -4,18 +4,18 @@ namespace Tests\Unit\Services;
 
 use App\Enums\Common\BillingAddonSubscriptionStatus;
 use App\Enums\Common\BillingAddonType;
+use App\Enums\Common\TenantAddonPurchaseStatus;
 use App\Models\Central\BillingAddon;
 use App\Models\Central\Entitlement;
 use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
+use App\Models\Central\TenantAddonPurchase;
 use App\Models\Central\TenantAddonSubscription;
 use App\Models\Central\TenantEntitlement;
 use App\Services\PlanMatrixService;
 use Database\Seeders\EntitlementSeeder;
 use Database\Seeders\PlanSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class PlanMatrixServiceTest extends TestCase
@@ -193,21 +193,17 @@ class PlanMatrixServiceTest extends TestCase
     {
         $plan = Plan::where('slug', 'broker')->firstOrFail();
         $storage = Entitlement::where('key', 'storage_gb')->firstOrFail();
-        $tenantId = Str::uuid()->toString();
-
-        DB::table('tenants')->insert([
-            'id' => $tenantId,
+        $tenant = Tenant::query()->create([
             'name' => 'Add-on tenant',
-            'slug' => 'addon-'.Str::lower(Str::random(8)),
+            'slug' => 'addon-'.strtolower(fake()->unique()->lexify('????????')),
             'status' => Tenant::STATUS_ACTIVE,
             'plan_id' => $plan->getKey(),
             'database_created' => false,
             'trial_extended' => false,
-            'created_at' => now(),
-            'updated_at' => now(),
+            'admin_name' => 'Admin',
+            'admin_email' => 'admin@addon.test',
+            'admin_password' => 'Password123!',
         ]);
-
-        $tenant = Tenant::query()->findOrFail($tenantId);
         $addon = BillingAddon::query()->create([
             'slug' => 'storage-pack-test',
             'name' => 'Storage pack test',
@@ -245,5 +241,62 @@ class PlanMatrixServiceTest extends TestCase
 
         // O extra Stripe soma sobre o plano, mas o extra manual é o override final.
         $this->assertSame(99, $matrix['limits']['storage_gb']);
+    }
+
+    public function test_it_applies_paid_one_time_grants_but_keeps_ai_credit_out_of_monthly_matrix(): void
+    {
+        $plan = Plan::where('slug', 'basico')->firstOrFail();
+        $tenant = Tenant::query()->create([
+            'name' => 'One-time add-on tenant',
+            'slug' => 'one-time-addon-tenant',
+            'status' => Tenant::STATUS_ACTIVE,
+            'plan_id' => $plan->getKey(),
+            'database_created' => false,
+            'trial_extended' => false,
+            'admin_name' => 'Admin',
+            'admin_email' => 'admin@one-time-addon.test',
+            'admin_password' => 'Password123!',
+        ]);
+        $service = app(PlanMatrixService::class);
+        $before = $service->resolveForTenant($tenant);
+
+        $addon = BillingAddon::query()->create([
+            'slug' => 'one-time-bundle-test',
+            'name' => 'One-time bundle test',
+            'type' => BillingAddonType::BUNDLE,
+            'stripe_price_id' => 'price_one_time_bundle_test',
+            'currency' => 'brl',
+            'billing_interval' => 'one_time',
+            'definition' => [
+                'grants' => [
+                    ['key' => 'storage_gb', 'type' => 'limit', 'unit_value' => 7],
+                    ['key' => 'ai_budget', 'type' => 'limit', 'unit_value' => 5.0],
+                    ['key' => 'reports.builder', 'type' => 'feature', 'unit_value' => true],
+                ],
+            ],
+            'is_active' => true,
+            'sort_order' => 0,
+        ]);
+
+        TenantAddonPurchase::query()->create([
+            'tenant_id' => $tenant->getKey(),
+            'billing_addon_id' => $addon->getKey(),
+            'stripe_checkout_session_id' => 'cs_one_time_bundle_test',
+            'stripe_payment_intent_id' => 'pi_one_time_bundle_test',
+            'stripe_price_id' => 'price_one_time_bundle_test',
+            'quantity' => 2,
+            'unit_amount' => 3500,
+            'amount_total' => 7000,
+            'currency' => 'brl',
+            'status' => TenantAddonPurchaseStatus::PAID,
+            'grant_snapshot' => $addon->definition,
+            'paid_at' => now(),
+        ]);
+
+        $matrix = $service->resolveForTenant($tenant);
+
+        $this->assertSame($before['limits']['storage_gb'] + 14, $matrix['limits']['storage_gb']);
+        $this->assertSame($before['limits']['ai_budget'], $matrix['limits']['ai_budget']);
+        $this->assertTrue($matrix['features']['reports']['builder']);
     }
 }

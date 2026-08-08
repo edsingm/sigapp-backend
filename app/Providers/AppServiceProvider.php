@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\Central\Subscription;
 use App\Models\Central\Tenant;
 use App\Models\Tenant\ComiteRevisao;
 use App\Models\Tenant\Contrato;
@@ -152,6 +153,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Cashier::useCustomerModel(Tenant::class);
+        Cashier::useSubscriptionModel(Subscription::class);
         $this->configureRateLimiting();
 
         // All tenant models share a single policy — TenantPolicy resolves the

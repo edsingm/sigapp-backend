@@ -14,6 +14,7 @@ use App\Services\ApiResponseService;
 use App\Services\Billing\TenantBillingProfileService;
 use App\Services\Billing\TenantBillingService;
 use App\Services\UsageMetricsService;
+use App\Support\TenantAppUrl;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
@@ -24,6 +25,7 @@ class TenantController extends Controller
         protected UsageMetricsService $usageService,
         protected TenantBillingService $billingService,
         protected TenantBillingProfileService $billingProfileService,
+        protected TenantAppUrl $tenantAppUrl,
     ) {}
 
     public function billingProfile(ShowTenantBillingProfileRequest $request): JsonResponse
@@ -168,7 +170,11 @@ class TenantController extends Controller
     /**
      * Criar uma sessão do portal de faturamento.
      *
-     * GET /api/v1/tenant/billing-portal
+     * POST /api/v1/tenant/billing-portal
+     *
+     * return_url aponta ao host do tenant (subdomínio) e à rota real de
+     * faturamento — se voltar em FRONTEND_URL central, o cookie de sessão
+     * host-only some e o usuário parece deslogado.
      */
     public function billingPortal(): JsonResponse
     {
@@ -179,7 +185,7 @@ class TenantController extends Controller
         }
 
         try {
-            $returnUrl = rtrim((string) config('app.frontend_url'), '/').'/billing';
+            $returnUrl = $this->tenantAppUrl->billingUrl($tenant);
 
             return ApiResponseService::success([
                 'url' => $this->billingService->createBillingPortalUrl($tenant, $returnUrl),

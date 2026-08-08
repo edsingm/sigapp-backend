@@ -130,6 +130,11 @@ class TenantBillingService
         return $this->stripe()->subscriptions->retrieve($subscriptionId, []);
     }
 
+    public function retrievePrice(string $priceId): object
+    {
+        return $this->stripe()->prices->retrieve($priceId, []);
+    }
+
     public function retrieveCharge(string $chargeId): object
     {
         return $this->stripe()->charges->retrieve($chargeId, []);

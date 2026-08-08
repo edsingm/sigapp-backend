@@ -24,7 +24,8 @@ Estados `active`, `trialing` e `past_due` concedem acesso. Preços desconhecidos
 6. APIs tenant para catálogo, contratação, quantidade e cancelamento.
 7. Troca de plano Cashier preservando os itens de add-on ativos.
 8. Snapshot de billing expondo add-ons sem IDs internos Stripe.
-9. Configuração/seed por ambiente, traduções, AGENTS e testes direcionados.
+9. Catálogo tenant expondo o Price recorrente real do Stripe em `price.unit_amount`, `price.currency`, `price.interval`, `formatted_price` e `is_purchasable`, com cache curto e validação no backend para contratação e alteração de quantidade.
+10. Configuração/seed por ambiente, traduções, AGENTS e testes direcionados.
 
 ## Validação
 

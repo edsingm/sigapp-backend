@@ -21,20 +21,25 @@ class TenantAddonService
         private readonly TenantAddonSubscriptionRepositoryInterface $subscriptionRepository,
         private readonly TenantBillingService $billingService,
         private readonly AddonReconciliationService $reconciliationService,
+        private readonly BillingAddonPricingService $pricingService,
     ) {}
 
     /** @return Collection<int, BillingAddon> */
     public function catalog(): Collection
     {
         return $this->addonRepository->all(activeOnly: true)
-            ->filter(static fn (BillingAddon $addon): bool => $addon->isPurchasable())
-            ->values();
+            ->each(fn (BillingAddon $addon): BillingAddon => $this->pricingService->hydrate($addon));
     }
 
     /** @return Collection<int, TenantAddonSubscription> */
     public function mine(Tenant $tenant): Collection
     {
-        return $this->subscriptionRepository->forTenant($tenant);
+        return $this->subscriptionRepository->forTenant($tenant)
+            ->each(function (TenantAddonSubscription $subscription): void {
+                if ($subscription->addon instanceof BillingAddon) {
+                    $this->pricingService->hydrate($subscription->addon);
+                }
+            });
     }
 
     public function purchase(Tenant $tenant, string $addonSlug, int $quantity): TenantAddonSubscription
@@ -85,6 +90,8 @@ class TenantAddonService
         if ($record === null || ! $record->addon instanceof BillingAddon) {
             throw new InvalidArgumentException('Assinatura de add-on não encontrada.');
         }
+
+        $this->ensurePurchasablePrice($record->addon);
 
         $subscription = $this->activeSubscription($tenant);
         $priceId = (string) $record->addon->stripe_price_id;
@@ -142,7 +149,16 @@ class TenantAddonService
             throw new InvalidArgumentException('Add-on não encontrado ou indisponível para compra.');
         }
 
+        $this->ensurePurchasablePrice($addon);
+
         return $addon;
+    }
+
+    private function ensurePurchasablePrice(BillingAddon $addon): void
+    {
+        if (! $this->pricingService->details($addon)['is_purchasable']) {
+            throw new InvalidArgumentException('O preço do add-on está indisponível ou não é recorrente mensal.');
+        }
     }
 
     private function activeSubscription(Tenant $tenant): Subscription

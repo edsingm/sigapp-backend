@@ -41,7 +41,11 @@ class TerrenoImportService
         $path = 'imports/terrenos/'.Str::uuid().'.xlsx';
         $contents = file_get_contents($file->getRealPath());
         if ($contents === false || ! Storage::disk($diskName)->put($path, $contents)) {
-            throw new RuntimeException('Não foi possível armazenar a planilha.');
+            throw new TerrenoImportException(
+                'TERRAIN_IMPORT_UPLOAD_FAILED',
+                'Não foi possível armazenar a planilha. Tente novamente.',
+                422,
+            );
         }
 
         $import = $this->storageQuota->commitFile(

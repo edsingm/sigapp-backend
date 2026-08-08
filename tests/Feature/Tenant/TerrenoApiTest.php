@@ -165,4 +165,29 @@ KML;
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['nome']);
     }
+
+    public function test_import_kmz_rejects_invalid_extension_and_invalid_content_with_clear_messages(): void
+    {
+        $terreno = Terreno::create([
+            'nome' => 'Terreno KMZ',
+            'created_by' => $this->admin->id,
+            'updated_by' => $this->admin->id,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/terrenos/{$terreno->id}/import-kmz", [
+                'arquivo' => UploadedFile::fake()->create('area.pdf', 20, 'application/pdf'),
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['arquivo'])
+            ->assertJsonFragment(['Envie um arquivo .kml ou .kmz.']);
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/terrenos/{$terreno->id}/import-kmz", [
+                'arquivo' => UploadedFile::fake()->createWithContent('quebrado.kml', 'not-xml'),
+            ])
+            ->assertUnprocessable()
+            ->assertJsonPath('error.code', 'VALIDATION_ERROR')
+            ->assertJsonValidationErrors(['arquivo']);
+    }
 }

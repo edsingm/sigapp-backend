@@ -19,6 +19,7 @@ use App\Services\ApiResponseService;
 use App\Services\Tenant\TerrenoService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 
@@ -198,14 +199,19 @@ class TerrenoController extends Controller
         $terreno = $this->service->findOrFail($id);
         $this->authorize('update', $terreno);
 
+        $arquivo = $request->file('arquivo');
+        if (! $arquivo instanceof UploadedFile) {
+            return ApiResponseService::validationError([
+                'arquivo' => ['O arquivo é obrigatório.'],
+            ]);
+        }
+
         try {
-            $terreno = $this->service->importPolygon($terreno, $request->file('arquivo'), $request->user());
+            $terreno = $this->service->importPolygon($terreno, $arquivo, $request->user());
         } catch (\RuntimeException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-                'errors' => ['arquivo' => [$e->getMessage()]],
-            ], 422);
+            return ApiResponseService::validationError([
+                'arquivo' => [$e->getMessage()],
+            ]);
         }
 
         return ApiResponseService::success(

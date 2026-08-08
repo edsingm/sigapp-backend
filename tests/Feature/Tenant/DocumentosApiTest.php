@@ -3,6 +3,7 @@
 namespace Tests\Feature\Tenant;
 
 use App\Enums\Common\RolesEnum;
+use App\Exceptions\StorageQuotaExceededException;
 use App\Http\Middleware\AddTenantContextToLogs;
 use App\Http\Middleware\ApiRequestLogger;
 use App\Http\Middleware\CheckSubscriptionStatus;
@@ -15,6 +16,7 @@ use App\Jobs\IndexDocumentEmbeddingJob;
 use App\Models\Tenant\Documento;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\User;
+use App\Services\Tenant\StorageQuotaService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
@@ -131,5 +133,74 @@ class DocumentosApiTest extends TestCase
             'status' => 'status_invalido',
         ])->assertUnprocessable()
             ->assertJsonValidationErrors(['status']);
+    }
+
+    public function test_documento_upload_accepts_zip_based_formats_with_client_extension(): void
+    {
+        $kmzPath = tempnam(sys_get_temp_dir(), 'kmz');
+        self::assertIsString($kmzPath);
+        $zip = new \ZipArchive;
+        self::assertTrue($zip->open($kmzPath, \ZipArchive::OVERWRITE));
+        $zip->addFromString('doc.kml', '<?xml version="1.0"?><kml/>');
+        $zip->close();
+
+        $kmz = new UploadedFile($kmzPath, 'poligono.kmz', 'application/vnd.google-earth.kmz', null, true);
+
+        $response = $this->actingAs($this->admin)->postJson('/api/v1/documentos', [
+            'terreno_id' => $this->terreno->id,
+            'arquivo' => $kmz,
+            'tipo' => 'planta',
+            'categoria' => 'tecnico',
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.tipo', 'planta');
+
+        $documento = Documento::findOrFail($response->json('data.id'));
+        $this->assertStringEndsWith('.kmz', (string) $documento->file_path);
+        Storage::disk('s3')->assertExists($documento->file_path);
+    }
+
+    public function test_documento_upload_rejects_disallowed_type_with_clear_message(): void
+    {
+        $file = UploadedFile::fake()->create('malware.exe', 50, 'application/octet-stream');
+
+        $this->actingAs($this->admin)->postJson('/api/v1/documentos', [
+            'terreno_id' => $this->terreno->id,
+            'arquivo' => $file,
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['arquivo'])
+            ->assertJsonPath('error.code', 'VALIDATION_ERROR');
+    }
+
+    public function test_documento_upload_rejects_oversized_file_with_portuguese_message(): void
+    {
+        $file = UploadedFile::fake()->create('grande.pdf', 11 * 1024, 'application/pdf');
+
+        $this->actingAs($this->admin)->postJson('/api/v1/documentos', [
+            'terreno_id' => $this->terreno->id,
+            'arquivo' => $file,
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['arquivo'])
+            ->assertJsonFragment(['O arquivo não pode ser maior que 10 MB.']);
+    }
+
+    public function test_documento_upload_returns_plan_limit_when_storage_quota_is_exceeded(): void
+    {
+        $this->mock(StorageQuotaService::class, function ($mock): void {
+            $mock->shouldReceive('commitFile')
+                ->once()
+                ->andThrow(new StorageQuotaExceededException);
+        });
+
+        $file = UploadedFile::fake()->create('matricula.pdf', 100, 'application/pdf');
+
+        $this->actingAs($this->admin)->postJson('/api/v1/documentos', [
+            'terreno_id' => $this->terreno->id,
+            'arquivo' => $file,
+            'tipo' => 'matricula',
+        ])->assertForbidden()
+            ->assertJsonPath('error.code', 'PLAN_LIMIT_EXCEEDED')
+            ->assertJsonPath('error.details.resource', 'storage_gb');
     }
 }

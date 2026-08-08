@@ -31,6 +31,24 @@ class StoreTerrenoPolygonImportRequest extends FormRequest
         ];
     }
 
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return [
+            'idempotency_key.required' => 'A chave de idempotência é obrigatória.',
+            'idempotency_key.uuid' => 'A chave de idempotência deve ser um UUID válido.',
+            'arquivos.required' => 'Envie ao menos um arquivo KML ou KMZ.',
+            'arquivos.array' => 'Os arquivos devem ser enviados como lista.',
+            'arquivos.min' => 'Envie ao menos um arquivo KML ou KMZ.',
+            'arquivos.max' => 'Envie no máximo 10 arquivos por importação.',
+            'arquivos.*.required' => 'Cada item deve ser um arquivo válido.',
+            'arquivos.*.file' => 'Cada item deve ser um arquivo válido.',
+            'arquivos.*.max' => 'Cada arquivo não pode ser maior que 10 MB.',
+            'arquivos.*.mimetypes' => 'Envie somente arquivos .kml ou .kmz.',
+            'arquivos.*.extensions' => 'Envie somente arquivos .kml ou .kmz.',
+        ];
+    }
+
     /** @return list<callable(Validator): void> */
     public function after(): array
     {

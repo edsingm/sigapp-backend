@@ -28,4 +28,18 @@ class StoreTerrenoImportRequest extends FormRequest
             ],
         ];
     }
+
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return [
+            'idempotency_key.required' => 'A chave de idempotência é obrigatória.',
+            'idempotency_key.uuid' => 'A chave de idempotência deve ser um UUID válido.',
+            'arquivo.required' => 'O arquivo é obrigatório.',
+            'arquivo.file' => 'O campo arquivo deve conter um arquivo válido.',
+            'arquivo.max' => 'A planilha não pode ser maior que 10 MB.',
+            'arquivo.mimetypes' => 'Envie uma planilha Excel (.xlsx).',
+            'arquivo.extensions' => 'Envie uma planilha Excel (.xlsx).',
+        ];
+    }
 }

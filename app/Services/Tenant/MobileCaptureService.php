@@ -88,9 +88,10 @@ class MobileCaptureService
             return $capture->load('attachments', 'terreno');
         }
 
+        $extension = strtolower($file->getClientOriginalExtension() ?: (string) ($file->guessExtension() ?: 'bin'));
         $path = $file->storeAs(
             'mobile-captures/'.$capture->client_id,
-            Str::uuid().'_'.Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)).'.'.($file->guessExtension() ?: 'bin'),
+            Str::uuid().'_'.Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)).'.'.$extension,
             self::STORAGE_DISK,
         );
         if (! is_string($path)) {

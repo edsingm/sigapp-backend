@@ -6,6 +6,7 @@ use App\Jobs\IndexDocumentEmbeddingJob;
 use App\Models\Tenant\Documento;
 use App\Models\Tenant\User;
 use App\Repositories\Tenant\DocumentoRepository;
+use App\Support\SafeUploadExtension;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -15,26 +16,6 @@ use RuntimeException;
 class DocumentoService
 {
     private const STORAGE_DISK = 's3';
-
-    /**
-     * @var list<string>
-     */
-    private const ALLOWED_EXTENSIONS = [
-        'pdf',
-        'jpg',
-        'jpeg',
-        'png',
-        'webp',
-        'doc',
-        'docx',
-        'xls',
-        'xlsx',
-        'ppt',
-        'pptx',
-        'kml',
-        'kmz',
-        'dwg',
-    ];
 
     public function __construct(
         private readonly DocumentoRepository $documentoRepository,
@@ -47,10 +28,10 @@ class DocumentoService
      */
     public function createFromUpload(array $data, UploadedFile $file, User $user): Documento
     {
-        $extension = strtolower((string) ($file->guessExtension() ?? ''));
-        if ($extension === '' || ! in_array($extension, self::ALLOWED_EXTENSIONS, true)) {
+        $extension = SafeUploadExtension::resolve($file, SafeUploadExtension::DOCUMENT_EXTENSIONS);
+        if ($extension === null) {
             throw ValidationException::withMessages([
-                'arquivo' => ['Tipo de conteúdo não reconhecido ou não permitido.'],
+                'arquivo' => ['Tipo de conteúdo não reconhecido ou não permitido. Envie PDF, imagens, Office, KML/KMZ ou DWG.'],
             ]);
         }
 

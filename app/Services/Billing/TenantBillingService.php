@@ -145,6 +145,18 @@ class TenantBillingService
         return $this->stripe()->subscriptions->cancel($subscriptionId, []);
     }
 
+    /**
+     * Remove um subscription item avulso (add-on) da assinatura no Stripe.
+     *
+     * @param  bool  $prorate  true = create_prorations (crédito proporcional); false = none
+     */
+    public function deleteSubscriptionItem(string $subscriptionItemId, bool $prorate = true): object
+    {
+        return $this->stripe()->subscriptionItems->delete($subscriptionItemId, [
+            'proration_behavior' => $prorate ? 'create_prorations' : 'none',
+        ]);
+    }
+
     public function createBillingPortalUrl(Tenant $tenant, ?string $returnUrl = null): string
     {
         // Quando há uma portal configuration dedicada (troca de plano desabilitada),

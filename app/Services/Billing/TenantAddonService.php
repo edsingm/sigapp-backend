@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Billing;
 
+use App\Enums\Common\BillingAddonSubscriptionStatus;
 use App\Models\Central\BillingAddon;
 use App\Models\Central\Tenant;
 use App\Models\Central\TenantAddonPurchase;
@@ -14,8 +15,11 @@ use App\Repositories\Contracts\TenantAddonSubscriptionRepositoryInterface;
 use App\Services\PlanMatrixService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 use Laravel\Cashier\Subscription;
+use Stripe\Exception\ApiErrorException;
+use Throwable;
 
 class TenantAddonService
 {
@@ -120,10 +124,14 @@ class TenantAddonService
             throw new InvalidArgumentException('Assinatura de add-on não encontrada.');
         }
 
+        if ($record->status === BillingAddonSubscriptionStatus::CANCELED || ! $record->grantsAccess()) {
+            throw new InvalidArgumentException('Não é possível alterar a quantidade de um add-on cancelado ou sem acesso ativo.');
+        }
+
         $this->ensurePurchasablePrice($record->addon);
 
-        $subscription = $this->activeSubscription($tenant);
-        $priceId = (string) $record->addon->stripe_price_id;
+        $subscription = $this->refreshLocalSubscriptionItems($tenant, $this->activeSubscription($tenant));
+        $priceId = $this->resolvedItemPriceId($record);
 
         if (! $subscription->hasPrice($priceId)) {
             throw new InvalidArgumentException('O item do add-on não está presente na assinatura Stripe.');
@@ -150,24 +158,42 @@ class TenantAddonService
             throw new InvalidArgumentException('Assinatura de add-on não encontrada.');
         }
 
+        // Idempotente: já cancelado e sem acesso.
+        if ($record->status === BillingAddonSubscriptionStatus::CANCELED && ! $record->grantsAccess()) {
+            return $record;
+        }
+
         $subscription = $tenant->subscription('default');
         if ($subscription instanceof Subscription && $subscription->valid()) {
-            $priceId = (string) $record->addon->stripe_price_id;
+            $subscription = $this->refreshLocalSubscriptionItems($tenant, $subscription);
+            $priceId = $this->resolvedItemPriceId($record);
 
             Cache::lock("tenant-addon:{$tenant->getKey()}:{$record->billing_addon_id}", 60)
-                ->block(10, function () use ($subscription, $priceId): void {
-                    if ($subscription->hasPrice($priceId)) {
-                        $subscription->noProrate()->removePrice($priceId);
-                    }
+                ->block(10, function () use ($subscription, $priceId, $record): void {
+                    $this->removeAddonItemFromStripe($subscription, $priceId, $record);
                 });
 
             $this->reconcileCurrentSubscription($tenant, $subscription);
         } else {
+            $this->removeAddonItemWhenSubscriptionUnavailable($record);
             $this->subscriptionRepository->cancel($record);
+            $this->reconcileByStoredSubscriptionId($tenant, $record);
         }
 
-        return $this->subscriptionRepository->findForTenant($tenant, $id)
+        $updated = $this->subscriptionRepository->findForTenant($tenant, $id)
             ?? throw new InvalidArgumentException('Assinatura de add-on não encontrada após cancelamento.');
+
+        if ($updated->grantsAccess()) {
+            throw new InvalidArgumentException(
+                'Não foi possível cancelar o add-on no Stripe. O acesso permanece ativo; tente reconciliar a assinatura.'
+            );
+        }
+
+        if ($updated->status !== BillingAddonSubscriptionStatus::CANCELED) {
+            return $this->subscriptionRepository->cancel($updated);
+        }
+
+        return $updated;
     }
 
     private function findPurchasableAddon(string $slug): BillingAddon
@@ -221,6 +247,135 @@ class TenantAddonService
         }
 
         return $subscription;
+    }
+
+    /**
+     * Price do item contratado (espelho local), com fallback seguro ao catálogo.
+     */
+    private function resolvedItemPriceId(TenantAddonSubscription $record): string
+    {
+        $itemPriceId = (string) $record->stripe_price_id;
+        if ($itemPriceId !== '') {
+            return $itemPriceId;
+        }
+
+        $catalogPriceId = (string) ($record->addon?->stripe_price_id ?? '');
+        if ($catalogPriceId !== '') {
+            return $catalogPriceId;
+        }
+
+        throw new InvalidArgumentException('O add-on não possui um price Stripe associado.');
+    }
+
+    /**
+     * Sincroniza subscription_items do Cashier com o Stripe antes de hasPrice/removePrice.
+     */
+    private function refreshLocalSubscriptionItems(Tenant $tenant, Subscription $subscription): Subscription
+    {
+        $stripeSubscriptionId = (string) $subscription->getAttribute('stripe_id');
+        if ($stripeSubscriptionId === '') {
+            return $subscription;
+        }
+
+        $this->billingService->syncSubscription($tenant, $stripeSubscriptionId);
+
+        $refreshed = $tenant->subscription('default');
+        if (! $refreshed instanceof Subscription) {
+            throw new InvalidArgumentException('Assinatura local não encontrada após sincronização com o Stripe.');
+        }
+
+        return $refreshed->load('items');
+    }
+
+    /**
+     * Remove o item do add-on com crédito proporcional (proration).
+     */
+    private function removeAddonItemFromStripe(
+        Subscription $subscription,
+        string $priceId,
+        TenantAddonSubscription $record,
+    ): void {
+        if ($subscription->hasPrice($priceId)) {
+            $subscription->prorate()->removePrice($priceId);
+
+            return;
+        }
+
+        $itemId = (string) $record->stripe_subscription_item_id;
+        if ($itemId === '') {
+            throw new InvalidArgumentException('O item do add-on não está presente na assinatura Stripe.');
+        }
+
+        try {
+            $this->billingService->deleteSubscriptionItem($itemId, prorate: true);
+        } catch (ApiErrorException $exception) {
+            if ($this->isAlreadyDeletedStripeItem($exception)) {
+                return;
+            }
+
+            throw new InvalidArgumentException(
+                'Não foi possível remover o item do add-on no Stripe: '.$exception->getMessage(),
+                previous: $exception,
+            );
+        }
+    }
+
+    private function removeAddonItemWhenSubscriptionUnavailable(TenantAddonSubscription $record): void
+    {
+        $itemId = (string) $record->stripe_subscription_item_id;
+        if ($itemId === '') {
+            return;
+        }
+
+        try {
+            $this->billingService->deleteSubscriptionItem($itemId, prorate: true);
+        } catch (ApiErrorException $exception) {
+            if ($this->isAlreadyDeletedStripeItem($exception)) {
+                return;
+            }
+
+            Log::warning('Falha ao remover item de add-on no Stripe com assinatura local inválida.', [
+                'tenant_id' => $record->tenant_id,
+                'addon_subscription_id' => $record->getKey(),
+                'stripe_subscription_item_id' => $itemId,
+                'error' => $exception->getMessage(),
+            ]);
+        } catch (Throwable $exception) {
+            Log::warning('Erro inesperado ao remover item de add-on no Stripe.', [
+                'tenant_id' => $record->tenant_id,
+                'addon_subscription_id' => $record->getKey(),
+                'error' => $exception->getMessage(),
+            ]);
+        }
+    }
+
+    private function reconcileByStoredSubscriptionId(Tenant $tenant, TenantAddonSubscription $record): void
+    {
+        $stripeSubscriptionId = (string) $record->stripe_subscription_id;
+        if ($stripeSubscriptionId === '') {
+            return;
+        }
+
+        try {
+            $stripeSubscription = $this->billingService->retrieveSubscription($stripeSubscriptionId);
+            $this->reconciliationService->reconcile($tenant, $stripeSubscription);
+        } catch (Throwable $exception) {
+            Log::info('Reconciliação pós-cancelamento de add-on ignorada (assinatura Stripe indisponível).', [
+                'tenant_id' => $tenant->getKey(),
+                'stripe_subscription_id' => $stripeSubscriptionId,
+                'error' => $exception->getMessage(),
+            ]);
+        }
+    }
+
+    private function isAlreadyDeletedStripeItem(ApiErrorException $exception): bool
+    {
+        $code = $exception->getStripeCode();
+        $message = strtolower($exception->getMessage());
+
+        return $code === 'resource_missing'
+            || str_contains($message, 'no such subscription item')
+            || str_contains($message, 'resource_missing');
     }
 
     private function reconcileCurrentSubscription(Tenant $tenant, Subscription $subscription): void

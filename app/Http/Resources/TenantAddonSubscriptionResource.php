@@ -20,7 +20,9 @@ class TenantAddonSubscriptionResource extends JsonResource
             'quantity' => $this->quantity,
             'status' => $this->status->value,
             'grants_access' => $this->grantsAccess(),
-            'cancel_at_period_end' => $this->cancel_at_period_end,
+            // Sempre false no modelo atual: add-ons são removidos imediatamente
+            // (com proration). Não herda cancel_at_period_end da assinatura do plano.
+            'cancel_at_period_end' => (bool) $this->cancel_at_period_end,
             'current_period_start' => $this->current_period_start?->toIso8601String(),
             'current_period_end' => $this->current_period_end?->toIso8601String(),
             'canceled_at' => $this->canceled_at?->toIso8601String(),

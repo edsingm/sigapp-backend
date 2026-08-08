@@ -43,7 +43,9 @@ class AddonReconciliationService
             // emitir a reconciliação com status active.
             $status = BillingAddonSubscriptionStatus::INCOMPLETE;
         }
-        $cancelAtPeriodEnd = (bool) data_get($stripeSubscription, 'cancel_at_period_end', false);
+        // cancel_at_period_end da Subscription do plano NÃO se aplica a itens de add-on.
+        // Add-ons recorrentes são removidos imediatamente (com proration); este flag só
+        // existiria se implementarmos cancelamento agendado por item no futuro.
         $activeItemIds = [];
         $matched = 0;
         $ignored = 0;
@@ -77,7 +79,7 @@ class AddonReconciliationService
                 stripePriceId: $priceId,
                 quantity: $effectiveQuantity,
                 status: $status,
-                cancelAtPeriodEnd: $cancelAtPeriodEnd,
+                cancelAtPeriodEnd: false,
                 currentPeriodStart: $this->timestamp(
                     data_get($item, 'current_period_start')
                         ?? data_get($stripeSubscription, 'current_period_start')

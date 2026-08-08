@@ -16,6 +16,7 @@ use App\Services\Billing\TenantAddonService;
 use Illuminate\Http\JsonResponse;
 use InvalidArgumentException;
 use Laravel\Cashier\Exceptions\IncompletePayment;
+use Laravel\Cashier\Exceptions\SubscriptionUpdateFailure;
 
 class TenantAddonController extends Controller
 {
@@ -106,7 +107,7 @@ class TenantAddonController extends Controller
                 $this->incompletePaymentDetails($exception),
                 402,
             );
-        } catch (InvalidArgumentException $exception) {
+        } catch (SubscriptionUpdateFailure|InvalidArgumentException $exception) {
             return ApiResponseService::error('BILLING_ADDON_UPDATE_ERROR', $exception->getMessage(), null, 422);
         }
 
@@ -122,7 +123,7 @@ class TenantAddonController extends Controller
 
         try {
             $record = $this->service->cancel($tenant, $addon);
-        } catch (InvalidArgumentException $exception) {
+        } catch (SubscriptionUpdateFailure|InvalidArgumentException $exception) {
             return ApiResponseService::error('BILLING_ADDON_CANCEL_ERROR', $exception->getMessage(), null, 422);
         }
 

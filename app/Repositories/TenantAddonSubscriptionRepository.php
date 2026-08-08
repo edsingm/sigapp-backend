@@ -114,6 +114,7 @@ class TenantAddonSubscriptionRepository implements TenantAddonSubscriptionReposi
             ->update([
                 'status' => BillingAddonSubscriptionStatus::CANCELED,
                 'quantity' => 0,
+                'cancel_at_period_end' => false,
                 'canceled_at' => now(),
                 'last_synced_at' => now(),
             ]);
@@ -127,6 +128,7 @@ class TenantAddonSubscriptionRepository implements TenantAddonSubscriptionReposi
             ->update([
                 'status' => BillingAddonSubscriptionStatus::CANCELED,
                 'quantity' => 0,
+                'cancel_at_period_end' => false,
                 'canceled_at' => now(),
                 'last_synced_at' => now(),
             ]);
@@ -137,6 +139,7 @@ class TenantAddonSubscriptionRepository implements TenantAddonSubscriptionReposi
         $subscription->forceFill([
             'status' => BillingAddonSubscriptionStatus::CANCELED,
             'quantity' => 0,
+            'cancel_at_period_end' => false,
             'canceled_at' => now(),
             'last_synced_at' => now(),
         ])->save();

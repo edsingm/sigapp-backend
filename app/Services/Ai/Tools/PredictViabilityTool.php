@@ -44,7 +44,7 @@ class PredictViabilityTool implements Tool
         }
 
         $result = $this->predictiveService->predictApprovalProbability($terreno);
-        $payload = is_array($result) ? $result : ['result' => $result];
+        $payload = $result;
 
         return AiToolResponse::ok(AiPredictivePayload::withMeta($payload));
     }

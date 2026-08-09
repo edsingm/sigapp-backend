@@ -44,7 +44,7 @@ class PesquisarEmpreendimentosImobiliariosTool implements Tool
             return AiToolResponse::error('Falha ao pesquisar empreendimentos imobiliários: '.$exception->getMessage());
         }
 
-        return AiToolResponse::ok(is_array($resultado) ? $resultado : ['result' => $resultado]);
+        return AiToolResponse::ok($resultado);
     }
 
     public function schema(JsonSchema $schema): array

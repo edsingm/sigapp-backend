@@ -168,7 +168,7 @@ class ReportCatalogService
                 ),
                 'recommended_formats' => $meta['recommended_formats'],
                 'supports_value_metric' => $this->valueColumn($key) !== null,
-                'supports_detail' => ($meta['columns'] ?? []) !== [],
+                'supports_detail' => $meta['columns'] !== [],
             ];
         }
 
@@ -188,17 +188,17 @@ class ReportCatalogService
                 ],
             ],
             'datasets' => $datasets,
-            'formats' => array_values(array_map(
+            'formats' => array_map(
                 static fn (string $key, array $meta): array => [
                     'key' => $key,
                     'label' => $meta['label'],
                     'description' => $meta['description'],
                     'best_for' => $meta['best_for'],
-                    'feature' => $meta['feature'] ?? null,
+                    'feature' => $meta['feature'],
                 ],
                 array_keys($this->formats()),
                 array_values($this->formats()),
-            )),
+            ),
             'schedule_frequencies' => ['daily', 'weekly', 'monthly'],
             'charts' => array_map(
                 static fn (string $key): array => [
@@ -783,7 +783,7 @@ class ReportCatalogService
     }
 
     /**
-     * @return array<string, array{label: string, description: string, best_for: list<string>}>
+     * @return array<string, array{label: string, description: string, best_for: list<string>, feature: string|null}>
      */
     public function formats(): array
     {
@@ -819,9 +819,14 @@ class ReportCatalogService
 
     public function featureForFormat(string $format): ?string
     {
-        $feature = $this->formats()[$format]['feature'] ?? null;
+        $definition = $this->formats()[$format] ?? null;
+        if ($definition === null) {
+            return null;
+        }
 
-        return is_string($feature) && $feature !== '' ? $feature : null;
+        $feature = $definition['feature'];
+
+        return $feature !== '' ? $feature : null;
     }
 
     /**

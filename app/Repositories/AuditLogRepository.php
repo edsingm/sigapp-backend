@@ -73,14 +73,15 @@ class AuditLogRepository
      */
     public function distinctActions(int $limit = 50): array
     {
-        return AuditLog::query()
+        return array_values(AuditLog::query()
             ->select('action')
             ->distinct()
             ->orderBy('action')
             ->limit($limit)
             ->pluck('action')
-            ->filter()
+            ->filter(static fn (mixed $action): bool => $action !== null && $action !== '')
+            ->map(static fn (mixed $action): string => (string) $action)
             ->values()
-            ->all();
+            ->all());
     }
 }

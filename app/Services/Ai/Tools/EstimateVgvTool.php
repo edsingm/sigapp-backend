@@ -44,7 +44,7 @@ class EstimateVgvTool implements Tool
         }
 
         $benchmark = $this->predictiveService->getVgvBenchmark($terreno);
-        $payload = is_array($benchmark) ? $benchmark : ['result' => $benchmark];
+        $payload = $benchmark;
 
         return AiToolResponse::ok(AiPredictivePayload::withMeta(
             $payload,

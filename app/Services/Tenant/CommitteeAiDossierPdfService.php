@@ -32,7 +32,14 @@ class CommitteeAiDossierPdfService
     }
 
     /**
-     * @return array{title: string, sections: list<array{key: string, title: string, body: string}>, generatedAt: string}
+     * @return array{
+     *     title: string,
+     *     status: string,
+     *     sections: list<array{key: string, title: string, body: string}>,
+     *     generatedAt: string,
+     *     terreno_id: int,
+     *     viabilidade_id: int|null
+     * }
      */
     public function previewPayload(int $reviewId): array
     {
@@ -74,13 +81,12 @@ class CommitteeAiDossierPdfService
      */
     private function normalizeSections(ComiteAiDossier $dossier): array
     {
-        $sections = is_array($dossier->sections) ? $dossier->sections : [];
+        $sections = $dossier->sections ?? [];
         $normalized = [];
         foreach ($sections as $key => $value) {
-            $keyString = is_string($key) ? $key : (string) $key;
             $normalized[] = [
-                'key' => $keyString,
-                'title' => strtoupper(str_replace('_', ' ', $keyString)),
+                'key' => $key,
+                'title' => strtoupper(str_replace('_', ' ', $key)),
                 'body' => is_string($value)
                     ? $value
                     : (is_scalar($value) || $value === null

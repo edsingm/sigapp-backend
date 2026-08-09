@@ -149,7 +149,7 @@ class AiIbgeCityProfileServiceTest extends TestCase
             'cidade' => 'Londrina - PR',
         ])), true);
 
-        $this->assertTrue($out['ok'] ?? false, json_encode($out));
+        $this->assertTrue($out['ok'] ?? false, json_encode($out) ?: 'IBGE profile response was not valid JSON.');
         $this->assertSame(4113700, $out['data']['municipio']['codigo_ibge'] ?? null);
     }
 

@@ -20,7 +20,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $status
  * @property int $prompt_version
  * @property string $input_hash
- * @property array<string, string|null>|null $sections
+ * @property array<string, mixed>|null $sections
  * @property string|null $raw_response
  * @property string|null $provider
  * @property string|null $model

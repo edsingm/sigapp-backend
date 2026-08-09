@@ -167,12 +167,15 @@ class PlatformAnnouncementService
     /**
      * @return Collection<int, Tenant>
      */
-    private function resolveRecipients(PlatformAnnouncement $announcement)
+    private function resolveRecipients(PlatformAnnouncement $announcement): Collection
     {
-        return $this->recipientsQuery($announcement)
+        /** @var Collection<int, Tenant> $recipients */
+        $recipients = $this->recipientsQuery($announcement)
             ->whereNotNull('admin_email')
             ->where('admin_email', '!=', '')
             ->get();
+
+        return $recipients;
     }
 
     /**
@@ -214,7 +217,10 @@ class PlatformAnnouncementService
         }
 
         // Prioridade visual: segurança > manutenção > update > info > promo
-        return $query->get()->sortBy(function (PlatformAnnouncement $a) {
+        /** @var Collection<int, PlatformAnnouncement> $announcements */
+        $announcements = $query->get();
+
+        return $announcements->sortBy(function (PlatformAnnouncement $a): array {
             return [
                 PlatformAnnouncement::typePriority((string) $a->type),
                 // sent_at mais recente primeiro (invertido no sortBy com timestamp negativo)

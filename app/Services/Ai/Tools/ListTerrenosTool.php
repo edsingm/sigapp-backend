@@ -4,6 +4,7 @@ namespace App\Services\Ai\Tools;
 
 use App\Models\Tenant\Terreno;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\Database\Eloquent\Collection;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
@@ -105,8 +106,12 @@ class ListTerrenosTool implements Tool
         }
 
         $total = (int) $query->count();
+        /** @var Collection<int, Terreno> $terrenos */
         $terrenos = $query->limit($limit)->get();
-        $terrenos = app(AiToolAuth::class)->filterByView($terrenos, static fn ($t) => $t);
+        $terrenos = app(AiToolAuth::class)->filterByView(
+            $terrenos,
+            static fn (Terreno $terreno): Terreno => $terreno,
+        );
 
         if ($terrenos->isEmpty()) {
             return AiToolResponse::empty(
@@ -118,7 +123,7 @@ class ListTerrenosTool implements Tool
             );
         }
 
-        $items = $terrenos->map(static function (Terreno $terreno): array {
+        $items = array_map(static function (Terreno $terreno): array {
             return [
                 'id' => $terreno->id,
                 'nome' => $terreno->nome,
@@ -138,7 +143,7 @@ class ListTerrenosTool implements Tool
                     'updated_at' => optional($terreno->viabilidadeAtual->updated_at)?->toAtomString(),
                 ] : null,
             ];
-        })->all();
+        }, $terrenos->all());
 
         return AiToolResponse::ok([
             'items' => $items,

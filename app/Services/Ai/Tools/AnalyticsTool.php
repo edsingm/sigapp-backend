@@ -53,7 +53,7 @@ class AnalyticsTool implements Tool
             default => $this->insightService->generateInsights($limit),
         };
 
-        return AiToolResponse::ok(is_array($result) ? $result : ['result' => $result]);
+        return AiToolResponse::ok($result);
     }
 
     public function schema(JsonSchema $schema): array

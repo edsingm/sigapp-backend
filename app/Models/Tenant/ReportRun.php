@@ -34,6 +34,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property Carbon|null $expires_at
  * @property-read ReportTemplate|null $template
  * @property-read ReportSchedule|null $schedule
+ * @property-read User|null $requester
  */
 #[Table('report_runs')]
 #[Fillable(['report_template_id', 'report_schedule_id', 'requested_by', 'completed_by', 'idempotency_key', 'definition_snapshot', 'filters', 'format', 'status', 'progress', 'storage_disk', 'storage_path', 'mime_type', 'size', 'error_message', 'requested_at', 'completed_at', 'expires_at'])]

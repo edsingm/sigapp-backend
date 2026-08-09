@@ -6,6 +6,7 @@ use App\Models\Central\PlatformAnnouncement;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class StorePlatformAnnouncementRequest extends FormRequest
 {
@@ -49,9 +50,9 @@ class StorePlatformAnnouncementRequest extends FormRequest
         ];
     }
 
-    public function withValidator($validator): void
+    public function withValidator(Validator $validator): void
     {
-        $validator->after(function ($validator): void {
+        $validator->after(function (Validator $validator): void {
             $segment = $this->input('segment');
             $value = $this->input('segment_value');
             if (in_array($segment, [

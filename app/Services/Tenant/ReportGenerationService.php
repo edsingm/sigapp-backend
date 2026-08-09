@@ -230,6 +230,7 @@ class ReportGenerationService
     {
         $map = $this->catalog->columnMapFor($dataset);
         $physical = [];
+        /** @var list<string> $virtual */
         $virtual = [];
         foreach ($columns as $column) {
             if (in_array($column, self::LEGAL_VIRTUAL_COLUMNS, true) && $dataset === 'legalizacoes') {
@@ -258,7 +259,8 @@ class ReportGenerationService
 
         $legalMetrics = [];
         if ($dataset === 'legalizacoes' && $virtual !== []) {
-            $ids = $records->pluck('id')->map(static fn ($id): int => (int) $id)->all();
+            /** @var list<int> $ids */
+            $ids = array_values($records->pluck('id')->map(static fn (mixed $id): int => (int) $id)->all());
             $legalMetrics = $this->legalMetrics->metricsByLegalizacao($ids);
         }
 
@@ -273,12 +275,13 @@ class ReportGenerationService
             if ($dataset === 'legalizacoes' && $virtual !== []) {
                 $metrics = $legalMetrics[(int) $record->id] ?? null;
                 foreach ($virtual as $virtualColumn) {
-                    $row[$virtualColumn] = match ($virtualColumn) {
-                        'custo_planejado' => $metrics['custo_planejado'] ?? 0,
-                        'custo_realizado' => $metrics['custo_realizado'] ?? 0,
-                        'critical_path_days' => $metrics['critical_path_days'] ?? null,
-                        default => null,
-                    };
+                    if ($virtualColumn === 'custo_planejado') {
+                        $row[$virtualColumn] = $metrics['custo_planejado'] ?? 0;
+                    } elseif ($virtualColumn === 'custo_realizado') {
+                        $row[$virtualColumn] = $metrics['custo_realizado'] ?? 0;
+                    } else {
+                        $row[$virtualColumn] = $metrics['critical_path_days'] ?? null;
+                    }
                 }
             }
             $rows[] = $row;

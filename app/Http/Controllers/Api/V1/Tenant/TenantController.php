@@ -9,6 +9,7 @@ use App\Http\Requests\Tenant\UpdateTenantBillingProfileRequest;
 use App\Http\Resources\PlanResource;
 use App\Http\Resources\TenantBillingProfileResource;
 use App\Http\Resources\TenantResource;
+use App\Models\Central\Tenant;
 use App\Models\Tenant\Terreno;
 use App\Services\ApiResponseService;
 use App\Services\Billing\TenantBillingProfileService;
@@ -179,6 +180,10 @@ class TenantController extends Controller
     public function billingPortal(): JsonResponse
     {
         $tenant = tenancy()->tenant;
+
+        if (! $tenant instanceof Tenant) {
+            return ApiResponseService::notFound('TENANT_NOT_FOUND');
+        }
 
         if (! $tenant->stripe_id) {
             return ApiResponseService::conflict('BILLING_PORTAL_UNAVAILABLE');

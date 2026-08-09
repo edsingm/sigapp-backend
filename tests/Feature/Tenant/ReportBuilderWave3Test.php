@@ -96,7 +96,7 @@ class ReportBuilderWave3Test extends TestCase
             'id' => $scheduleId,
             'is_active' => 1,
         ]);
-        $this->assertNotNull(ReportSchedule::query()->find($scheduleId)?->last_run_id);
+        $this->assertNotNull(ReportSchedule::query()->whereKey($scheduleId)->value('last_run_id'));
 
         $this->actingAs($this->admin)
             ->getJson('/api/v1/reports/schedules')

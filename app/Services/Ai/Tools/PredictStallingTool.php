@@ -57,11 +57,11 @@ class PredictStallingTool implements Tool
         }
 
         $forecast = $this->predictiveService->getStallingForecast();
-        $payload = is_array($forecast) ? $forecast : ['result' => $forecast];
+        $payload = $forecast;
 
         return AiToolResponse::ok(AiPredictivePayload::withMeta(
             $payload,
-            isset($payload['total_active']) ? (int) $payload['total_active'] : null,
+            (int) $payload['total_active'],
             'stalling_forecast_heuristic'
         ));
     }

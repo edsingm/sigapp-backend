@@ -27,7 +27,7 @@ class GetCityIbgeProfileTool implements Tool
         $uf = trim((string) ($request['uf'] ?? $request['estado'] ?? '')) ?: null;
 
         // "Londrina - PR" às vezes vem só em cidade
-        if (($uf === null || $uf === '') && $cidade !== null && preg_match('/\b([A-Za-z]{2})\s*$/', $cidade, $m) === 1) {
+        if ($uf === null && $cidade !== null && preg_match('/\b([A-Za-z]{2})\s*$/', $cidade, $m) === 1) {
             $uf = strtoupper($m[1]);
             $cidade = trim((string) preg_replace('/[\s\-\/]*[A-Za-z]{2}\s*$/', '', $cidade));
         }
@@ -48,7 +48,7 @@ class GetCityIbgeProfileTool implements Tool
             return AiToolResponse::error('Falha ao consultar dados do IBGE: '.$exception->getMessage());
         }
 
-        return AiToolResponse::ok(is_array($result) ? $result : ['profile' => $result]);
+        return AiToolResponse::ok($result);
     }
 
     public function schema(JsonSchema $schema): array

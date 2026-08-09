@@ -24,6 +24,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property Carbon|null $next_run_at
  * @property Carbon|null $last_run_at
  * @property int|null $last_run_id
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
  * @property-read ReportTemplate|null $template
  * @property-read User|null $owner
  * @property-read ReportRun|null $lastRun

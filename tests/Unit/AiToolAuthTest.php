@@ -84,12 +84,22 @@ class AiToolAuthTest extends TestCase
 
         $this->assertNull($auth->ensureRateLimit('ai-test-bucket', 1, 60, 'Limite atingido.'));
 
-        $payload = json_decode(
-            (string) $auth->ensureRateLimit('ai-test-bucket', 1, 60, 'Limite atingido.'),
-            true
+        $response = $this->requireResponse(
+            $auth->ensureRateLimit('ai-test-bucket', 1, 60, 'Limite atingido.')
         );
+        $payload = json_decode($response, true);
+        $this->assertIsArray($payload);
 
         $this->assertSame(AiToolResponse::ERROR, $payload['code']);
-        $this->assertStringContainsString('Limite atingido', $payload['message']);
+        $this->assertStringContainsString('Limite atingido', (string) $payload['message']);
+    }
+
+    private function requireResponse(?string $response): string
+    {
+        if ($response === null) {
+            self::fail('Expected a rate-limit response.');
+        }
+
+        return $response;
     }
 }

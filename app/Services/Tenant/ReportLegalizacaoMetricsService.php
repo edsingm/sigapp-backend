@@ -23,8 +23,10 @@ class ReportLegalizacaoMetricsService
      */
     public function metricsByLegalizacao(array $legalizacaoIds): array
     {
-        $ids = array_values(array_unique(array_filter($legalizacaoIds, static fn (mixed $id): bool => is_int($id) || ctype_digit((string) $id))));
-        $ids = array_map('intval', $ids);
+        $ids = array_values(array_unique(array_filter(
+            $legalizacaoIds,
+            static fn (int $id): bool => $id > 0,
+        )));
         if ($ids === []) {
             return [];
         }
@@ -34,6 +36,7 @@ class ReportLegalizacaoMetricsService
             ->whereNull('deleted_at')
             ->get(['legalizacao_id', 'custos', 'valor_custo', 'custo_pago', 'tipo_custo']);
 
+        /** @var array<int, array{custo_planejado: float, custo_realizado: float}> $costs */
         $costs = [];
         foreach ($ids as $id) {
             $costs[$id] = ['custo_planejado' => 0.0, 'custo_realizado' => 0.0];
@@ -51,8 +54,8 @@ class ReportLegalizacaoMetricsService
                     $realized += $value;
                 }
             }
-            $costs[$legalizacaoId]['custo_planejado'] += $planned;
-            $costs[$legalizacaoId]['custo_realizado'] += $realized;
+            $costs[$legalizacaoId]['custo_planejado'] = ($costs[$legalizacaoId]['custo_planejado'] ?? 0.0) + $planned;
+            $costs[$legalizacaoId]['custo_realizado'] = ($costs[$legalizacaoId]['custo_realizado'] ?? 0.0) + $realized;
         }
 
         $result = [];
@@ -77,14 +80,14 @@ class ReportLegalizacaoMetricsService
      */
     public function aggregateByDimension(Collection $legalizacoes, string $dimensionColumn): array
     {
-        $ids = $legalizacoes->pluck('id')->map(static fn ($id): int => (int) $id)->all();
+        $ids = array_values($legalizacoes->pluck('id')->map(static fn (mixed $id): int => (int) $id)->all());
         $metrics = $this->metricsByLegalizacao($ids);
 
         $groups = [];
         foreach ($legalizacoes as $row) {
-            $label = $row->{$dimensionColumn} ?? null;
+            $label = data_get($row, $dimensionColumn);
             $label = $label === null || $label === '' ? 'Não informado' : (string) $label;
-            $id = (int) $row->id;
+            $id = (int) data_get($row, 'id');
             $m = $metrics[$id] ?? [
                 'custo_planejado' => 0.0,
                 'custo_realizado' => 0.0,
@@ -150,7 +153,7 @@ class ReportLegalizacaoMetricsService
      */
     private function normalizeCustos(object $etapa): array
     {
-        $raw = $etapa->custos ?? null;
+        $raw = data_get($etapa, 'custos');
         if (is_string($raw) && $raw !== '') {
             $decoded = json_decode($raw, true);
             $raw = is_array($decoded) ? $decoded : null;
@@ -162,11 +165,12 @@ class ReportLegalizacaoMetricsService
             return $items;
         }
 
-        if ($etapa->valor_custo !== null) {
+        $valorCusto = data_get($etapa, 'valor_custo');
+        if ($valorCusto !== null) {
             return [[
-                'tipo_custo' => $etapa->tipo_custo ?? null,
-                'valor_custo' => $etapa->valor_custo,
-                'custo_pago' => (bool) ($etapa->custo_pago ?? false),
+                'tipo_custo' => data_get($etapa, 'tipo_custo'),
+                'valor_custo' => $valorCusto,
+                'custo_pago' => (bool) (data_get($etapa, 'custo_pago') ?? false),
             ]];
         }
 

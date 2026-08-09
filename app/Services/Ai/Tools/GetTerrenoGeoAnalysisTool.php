@@ -39,6 +39,7 @@ class GetTerrenoGeoAnalysisTool implements Tool
             return $deny;
         }
 
+        /** @var Terreno|null $terreno */
         $terreno = Terreno::query()
             ->with('cidade:code,city')
             ->select([

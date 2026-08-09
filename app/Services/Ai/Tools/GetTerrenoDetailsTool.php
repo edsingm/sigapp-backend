@@ -133,6 +133,7 @@ class GetTerrenoDetailsTool implements Tool
             $withCount[] = 'projetos';
         }
 
+        /** @var Terreno|null $terreno */
         $terreno = Terreno::query()
             ->with($with)
             ->withCount($withCount)

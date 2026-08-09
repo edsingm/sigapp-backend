@@ -341,7 +341,15 @@ class AiPredictiveAnalysisService
     /**
      * Estatísticas de stalling do tenant.
      *
-     * @return array{total_stalled: int, avg_stall_days: float, most_common_stalling_stage: int|string|null, stalling_rate: float}
+     * @return array{
+     *     total_stalled: int,
+     *     total_active: int,
+     *     avg_stall_days: float,
+     *     most_common_stalling_stage: int|string|null,
+     *     stalling_rate: float,
+     *     stage_distribution: array<int|string, int>,
+     *     at_risk_terrenos: array<int, array<string, mixed>>
+     * }
      */
     public function getStallingForecast(): array
     {

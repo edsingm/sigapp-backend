@@ -12,6 +12,7 @@ use Laravel\Ai\Streaming\Events\ToolResult;
 final class AiToolCallTelemetry
 {
     /**
+     * @param  Collection<int, object>  $events
      * @return list<array{
      *   tool: string,
      *   input: mixed,
@@ -25,7 +26,19 @@ final class AiToolCallTelemetry
      */
     public static function fromStreamEvents(Collection $events, AiDataRedactor $redactor): array
     {
-        /** @var array<string, array<string, mixed>> $byId */
+        /**
+         * @var array<string, array{
+         *     tool: string,
+         *     input: mixed,
+         *     step: int,
+         *     code: string|null,
+         *     successful: bool|null,
+         *     result_bytes: int|null,
+         *     duration_ms: int|null,
+         *     error: string|null,
+         *     _started_at?: int
+         * }> $byId
+         */
         $byId = [];
         $step = 0;
 
@@ -87,11 +100,16 @@ final class AiToolCallTelemetry
             unset($byId[$id]['_started_at']);
         }
 
-        return array_values(array_map(static function (array $row): array {
-            unset($row['_started_at']);
-
-            return $row;
-        }, $byId));
+        return array_values(array_map(static fn (array $row): array => [
+            'tool' => $row['tool'],
+            'input' => $row['input'],
+            'step' => $row['step'],
+            'code' => $row['code'],
+            'successful' => $row['successful'],
+            'result_bytes' => $row['result_bytes'],
+            'duration_ms' => $row['duration_ms'],
+            'error' => $row['error'],
+        ], $byId));
     }
 
     public static function extractCode(?string $result): ?string

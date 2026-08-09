@@ -14,12 +14,15 @@ class ReportScheduleRepository
     /** @return Collection<int, ReportSchedule> */
     public function listForUser(User $user): Collection
     {
-        return ReportSchedule::query()
+        /** @var Collection<int, ReportSchedule> $schedules */
+        $schedules = ReportSchedule::query()
             ->where('owner_id', $user->id)
             ->with(['template:id,name,is_system', 'lastRun:id,status,completed_at,format'])
             ->orderByDesc('is_active')
             ->orderBy('next_run_at')
             ->get();
+
+        return $schedules;
     }
 
     public function findForUser(User $user, int $id): ReportSchedule
@@ -53,7 +56,8 @@ class ReportScheduleRepository
     /** @return Collection<int, ReportSchedule> */
     public function dueSchedules(): Collection
     {
-        return ReportSchedule::query()
+        /** @var Collection<int, ReportSchedule> $schedules */
+        $schedules = ReportSchedule::query()
             ->where('is_active', true)
             ->where(function ($query): void {
                 $query->whereNull('next_run_at')
@@ -63,6 +67,8 @@ class ReportScheduleRepository
             ->orderBy('id')
             ->limit(200)
             ->get();
+
+        return $schedules;
     }
 
     /**

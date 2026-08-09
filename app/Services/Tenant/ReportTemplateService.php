@@ -220,7 +220,7 @@ class ReportTemplateService
     {
         $dims = $this->catalog->dimensionKeysFor($datasets[0]);
 
-        return $dims === [] ? ['status'] : [array_values($dims)[0]];
+        return $dims === [] ? ['status'] : [$dims[0]];
     }
 
     /**

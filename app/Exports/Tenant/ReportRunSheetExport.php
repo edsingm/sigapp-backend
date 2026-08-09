@@ -14,6 +14,7 @@ use Maatwebsite\Excel\Concerns\WithTitle;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
+/** @phpstan-type ReportSection array<string, mixed> */
 class ReportRunSheetExport implements FromCollection, ShouldAutoSize, WithHeadings, WithStyles, WithTitle
 {
     /** @var list<string> */
@@ -35,9 +36,11 @@ class ReportRunSheetExport implements FromCollection, ShouldAutoSize, WithHeadin
         return Str::limit(str_replace(['*', ':', '/', '\\', '?', '[', ']'], '', $title), 31, '');
     }
 
+    /** @return Collection<int, array<int, mixed>> */
     public function collection(): Collection
     {
         if (($this->section['mode'] ?? 'aggregate') === 'detail') {
+            /** @var list<string> $columns */
             $columns = $this->section['columns'] ?? [];
 
             return collect($this->section['rows'] ?? [])->map(static function (array $row) use ($columns): array {
@@ -97,6 +100,7 @@ class ReportRunSheetExport implements FromCollection, ShouldAutoSize, WithHeadin
         return $headings;
     }
 
+    /** @return array<int, array<string, mixed>> */
     public function styles(Worksheet $sheet): array
     {
         return [

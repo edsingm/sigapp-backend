@@ -1,5 +1,11 @@
 # Deploy do SIGAPP no Coolify
 
+> **OBSOLETO.** A VPS não usa mais Coolify; o orquestrador atual é o **Dokploy**.
+> Use **`docs/deploy-dokploy.md`** e `docs/2026-08-07-processo-release.md`.
+> Este arquivo permanece só como histórico e **não** deve ser seguido em operação.
+
+---
+
 Runbook do primeiro deploy do SIGAPP em uma VPS gerenciada pelo Coolify. O
 cenário considerado é um banco de produção vazio, Traefik como proxy, quatro
 aplicações separadas e PostgreSQL/Redis gerenciados pelo Coolify.

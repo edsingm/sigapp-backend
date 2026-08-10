@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\LanguageController;
 use App\Http\Controllers\Api\V1\PlanController;
+use App\Http\Controllers\Api\V1\Tenant\BillingHistoryController;
 use App\Http\Controllers\Api\V1\Tenant\Common\ModulesController;
 use App\Http\Controllers\Api\V1\Tenant\CouponController as TenantCouponController;
 use App\Http\Controllers\Api\V1\Tenant\DunningController;
@@ -64,8 +65,9 @@ Route::middleware('tenant.admin')->group(function () {
         ->whereNumber('addon');
 });
 
-// Billing — troca de plano e atualização de método de pagamento
-// Acessíveis mesmo com assinatura suspensa (tenant pode reativar/atualizar sem bloqueio)
+// Billing — troca de plano, histórico e atualização de método de pagamento
+// Acessíveis mesmo com assinatura suspensa (tenant pode reativar/atualizar sem bloqueio).
+// Compra/alteração de add-ons é bloqueada no service quando o tenant não está active.
 Route::middleware('tenant.admin')->group(function () {
     Route::post('/tenant/subscription/swap', [PlanSwapController::class, 'swap'])
         ->middleware('tenant.admin');
@@ -78,4 +80,11 @@ Route::middleware('tenant.admin')->group(function () {
     Route::get('/tenant/billing/payment-status', [DunningController::class, 'status']);
     Route::post('/tenant/billing/retry-payment', [DunningController::class, 'retryPayment'])
         ->middleware('tenant.admin');
+});
+
+// Histórico de faturas — regularização com tenant suspenso (fora de CheckSubscriptionStatus)
+Route::prefix('tenant/billing')->group(function () {
+    Route::get('/history', [BillingHistoryController::class, 'index']);
+    Route::get('/invoices/{invoiceId}', [BillingHistoryController::class, 'show']);
+    Route::get('/invoices/{invoiceId}/pdf', [BillingHistoryController::class, 'downloadPdf']);
 });

@@ -126,6 +126,7 @@ class CentralLoginBrokerServiceTest extends TestCase
                 'tenant_id' => (string) $tenant->id,
                 'tenant_name' => $tenant->name,
                 'tenant_slug' => $tenant->slug,
+                'tenant_status' => Tenant::STATUS_ACTIVE,
                 'tenant_url' => 'https://construtora-halz4.sigapp.com.br',
                 'tenant_user_id' => (string) Str::uuid(),
                 'email' => 'broker@example.com',
@@ -141,5 +142,68 @@ class CentralLoginBrokerServiceTest extends TestCase
         $this->assertSame('redirect', $first['next_action'] ?? null);
         $this->assertNull($second);
         $this->assertDatabaseCount((new LoginTransferTicket)->getTable(), 1);
+    }
+
+    public function test_select_tenant_includes_status_for_suspended_tenant_regularization(): void
+    {
+        $tenant = Tenant::create([
+            'name' => 'Construtora Suspensa',
+            'slug' => 'construtora-suspensa',
+            'status' => Tenant::STATUS_SUSPENDED,
+            'admin_name' => 'Admin',
+            'admin_email' => 'admin@example.com',
+            'admin_password' => 'Password123',
+        ]);
+
+        $session = CentralLoginBrokerSession::create([
+            'id' => (string) Str::uuid(),
+            'email' => 'broker@example.com',
+            'ip_address' => '192.0.2.10',
+            'tenant_options' => [[
+                'tenant_id' => (string) $tenant->id,
+                'tenant_name' => $tenant->name,
+                'tenant_slug' => $tenant->slug,
+                'tenant_status' => Tenant::STATUS_SUSPENDED,
+                'tenant_url' => 'https://construtora-suspensa.sigapp.com.br',
+                'tenant_user_id' => (string) Str::uuid(),
+                'email' => 'broker@example.com',
+            ]],
+            'expires_at' => now()->addMinutes(5),
+        ]);
+
+        $result = app(CentralLoginBrokerService::class)->selectTenant(
+            $session->id,
+            (string) $tenant->id,
+            null,
+            new RequestContext(ipAddress: '192.0.2.10'),
+        );
+
+        $this->assertSame('redirect', $result['next_action'] ?? null);
+        $this->assertSame(Tenant::STATUS_SUSPENDED, $result['tenant']['status'] ?? null);
+        $this->assertNotEmpty($result['transfer_ticket'] ?? null);
+    }
+
+    public function test_tenant_allows_login_for_suspended_and_under_review(): void
+    {
+        $suspended = Tenant::create([
+            'name' => 'Suspended Co',
+            'slug' => 'suspended-co',
+            'status' => Tenant::STATUS_SUSPENDED,
+            'admin_name' => 'Admin',
+            'admin_email' => 'admin-s@example.com',
+            'admin_password' => 'Password123',
+        ]);
+        $cancelled = Tenant::create([
+            'name' => 'Cancelled Co',
+            'slug' => 'cancelled-co',
+            'status' => Tenant::STATUS_CANCELLED,
+            'admin_name' => 'Admin',
+            'admin_email' => 'admin-c@example.com',
+            'admin_password' => 'Password123',
+        ]);
+
+        $this->assertTrue($suspended->allowsLogin());
+        $this->assertFalse($cancelled->allowsLogin());
+        $this->assertTrue($suspended->placeUnderReview()->allowsLogin());
     }
 }

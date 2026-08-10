@@ -242,6 +242,17 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     }
 
     /**
+     * Verifica se o usuário ainda pode autenticar neste tenant para
+     * regularizar cobrança (active, suspended, under_review).
+     */
+    public function allowsLogin(): bool
+    {
+        $status = TenantStatus::tryFrom((string) $this->getAttribute('status'));
+
+        return $status instanceof TenantStatus && $status->allowsLogin();
+    }
+
+    /**
      * Verifica se o tenant está em período de teste.
      */
     public function onTrial(): bool

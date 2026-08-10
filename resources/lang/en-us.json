@@ -129,5 +129,13 @@
     "TERRAIN_IMPORT_COMMIT_FAILED": "The terrain import could not be completed",
     "POLYGON_IMPORT_QUEUED": "Polygon import queued for processing",
     "POLYGON_IMPORT_PROCESSING_FAILED": "The polygon files could not be processed",
-    "POLYGON_LINKED": "Polygon linked to terrain successfully"
+    "POLYGON_LINKED": "Polygon linked to terrain successfully",
+    "SUBSCRIPTION_INACTIVE": "Subscription inactive",
+    "SUBSCRIPTION_PENDING": "Subscription pending payment",
+    "SUBSCRIPTION_SUSPENDED": "Subscription suspended due to non-payment",
+    "SUBSCRIPTION_CANCELLED": "Subscription cancelled",
+    "SUBSCRIPTION_SETUP_FAILED": "Environment setup failed. Please contact support.",
+    "SUBSCRIPTION_UNDER_REVIEW": "Account under review due to a payment dispute. Please contact support.",
+    "TRIAL_ENDED": "Trial period ended. Please subscribe to a plan to continue.",
+    "BILLING_ADDON_REQUIRES_ACTIVE_SUBSCRIPTION": "Inactive subscription. Settle payment to purchase or change add-ons."
 }

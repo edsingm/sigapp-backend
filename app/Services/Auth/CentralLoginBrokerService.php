@@ -63,6 +63,7 @@ class CentralLoginBrokerService
                     'id' => $match['tenant_id'],
                     'name' => $match['tenant_name'],
                     'slug' => $match['tenant_slug'],
+                    'status' => $match['tenant_status'] ?? null,
                     'tenant_url' => $match['tenant_url'],
                 ];
             }, $matches),
@@ -223,7 +224,8 @@ class CentralLoginBrokerService
 
             $tenant = $candidateDirectory->tenant;
 
-            if (! $tenant instanceof Tenant || ! $tenant->isActive()) {
+            // Permite active/suspended/under_review para regularização de cobrança.
+            if (! $tenant instanceof Tenant || ! $tenant->allowsLogin()) {
                 continue;
             }
 
@@ -264,6 +266,7 @@ class CentralLoginBrokerService
                 'tenant_id' => (string) $tenant->id,
                 'tenant_name' => (string) $tenant->getAttribute('name'),
                 'tenant_slug' => (string) $tenant->getAttribute('slug'),
+                'tenant_status' => (string) $tenant->getAttribute('status'),
                 'tenant_url' => $tenantUrl,
                 'tenant_user_id' => (string) $candidate['tenant_user_id'],
                 'user_name' => (string) $candidate['user_name'],
@@ -294,6 +297,7 @@ class CentralLoginBrokerService
                 'id' => $match['tenant_id'],
                 'name' => $match['tenant_name'],
                 'slug' => $match['tenant_slug'],
+                'status' => $match['tenant_status'] ?? null,
             ],
             'tenant_url' => $match['tenant_url'],
             'transfer_ticket' => $ticket['ticket'],

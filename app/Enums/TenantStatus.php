@@ -32,4 +32,27 @@ enum TenantStatus: string
     {
         return $this === self::UNDER_REVIEW;
     }
+
+    /**
+     * Status em que o usuário ainda pode autenticar para regularizar cobrança
+     * (portal, dunning, histórico) mesmo sem acesso aos módulos de negócio.
+     */
+    public function allowsLogin(): bool
+    {
+        return match ($this) {
+            self::ACTIVE, self::SUSPENDED, self::UNDER_REVIEW => true,
+            default => false,
+        };
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function loginEligibleValues(): array
+    {
+        return array_values(array_map(
+            static fn (self $status): string => $status->value,
+            array_filter(self::cases(), static fn (self $status): bool => $status->allowsLogin()),
+        ));
+    }
 }

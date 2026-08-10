@@ -303,13 +303,36 @@ class TenantAddonServiceTest extends TestCase
         return $mock;
     }
 
-    private function tenantMock(string $id): Tenant&MockInterface
+    private function tenantMock(string $id, bool $active = true): Tenant&MockInterface
     {
         /** @var Tenant&MockInterface $tenant */
         $tenant = Mockery::mock(Tenant::class);
         $tenant->shouldReceive('getKey')->andReturn($id);
+        $tenant->shouldReceive('isActive')->byDefault()->andReturn($active);
 
         return $tenant;
+    }
+
+    public function test_purchase_rejects_inactive_tenant(): void
+    {
+        $tenant = $this->tenantMock('tenant-suspended', active: false);
+        $service = $this->service();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Assinatura inativa');
+
+        $service->purchase($tenant, 'storage-10gb', 1);
+    }
+
+    public function test_update_quantity_rejects_inactive_tenant(): void
+    {
+        $tenant = $this->tenantMock('tenant-suspended', active: false);
+        $service = $this->service();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Assinatura inativa');
+
+        $service->updateQuantity($tenant, 1, 2);
     }
 
     private function addon(int $id, string $catalogPriceId): BillingAddon

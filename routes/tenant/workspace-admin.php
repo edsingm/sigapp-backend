@@ -5,7 +5,6 @@ use App\Http\Controllers\Api\V1\Tenant\Admin\DepartmentController as AdminDepart
 use App\Http\Controllers\Api\V1\Tenant\Admin\PermissionController as AdminPermissionController;
 use App\Http\Controllers\Api\V1\Tenant\Admin\RoleController as AdminRoleController;
 use App\Http\Controllers\Api\V1\Tenant\Admin\UserManagementController as AdminUserManagementController;
-use App\Http\Controllers\Api\V1\Tenant\BillingHistoryController;
 use App\Http\Controllers\Api\V1\Tenant\GlobalSearchController;
 use App\Http\Controllers\Api\V1\Tenant\ReportBuilderController;
 use App\Http\Controllers\Api\V1\Tenant\SavedViewController;
@@ -21,13 +20,6 @@ use Illuminate\Support\Facades\Route;
 // Tenant info
 Route::get('/tenant', [TenantController::class, 'show']);
 Route::get('/tenant/usage', [TenantController::class, 'usage']);
-
-// Billing history
-Route::prefix('tenant/billing')->group(function () {
-    Route::get('/history', [BillingHistoryController::class, 'index']);
-    Route::get('/invoices/{invoiceId}', [BillingHistoryController::class, 'show']);
-    Route::get('/invoices/{invoiceId}/pdf', [BillingHistoryController::class, 'downloadPdf']);
-});
 
 // Users (select inputs for tenant forms)
 Route::get('/users/for-select', [UserController::class, 'usersForSelect']);

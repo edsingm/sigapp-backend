@@ -136,6 +136,60 @@ class WebhookHandlerTest extends TestCase
         $this->assertTenantStatus($tenant, Tenant::STATUS_SUSPENDED);
     }
 
+    public function test_invoice_paid_reactivates_suspended_tenant(): void
+    {
+        Notification::fake();
+
+        $subscriptionId = 'sub_reactivate_'.uniqid();
+        $tenant = $this->makeTenant([
+            'status' => Tenant::STATUS_SUSPENDED,
+            'stripe_subscription_id' => $subscriptionId,
+            'database_created' => true,
+        ]);
+
+        $billingMock = Mockery::mock(TenantBillingService::class)->makePartial();
+        $billingMock->shouldReceive('retrieveSubscription')
+            ->andReturn((object) [
+                'id' => $subscriptionId,
+                'status' => 'active',
+                'customer' => $tenant->getAttribute('stripe_id'),
+                'items' => (object) [
+                    'data' => [
+                        (object) [
+                            'id' => 'si_reactivate',
+                            'price' => (object) ['id' => 'price_test', 'product' => 'prod_test'],
+                            'quantity' => 1,
+                        ],
+                    ],
+                ],
+                'trial_end' => null,
+                'cancel_at' => null,
+            ]);
+        $billingMock->shouldReceive('syncPlanFromSubscription')->once()->andReturnNull();
+        $billingMock->shouldReceive('syncSubscription')->once()->andReturnNull();
+        $billingMock->shouldReceive('applyStripeSubscriptionStatus')
+            ->once()
+            ->withArgs(function (Tenant $resolved, ?string $status) use ($tenant): bool {
+                return (string) $resolved->getKey() === (string) $tenant->getKey()
+                    && $status === 'active';
+            })
+            ->andReturnUsing(function (Tenant $resolved): string {
+                $resolved->activate();
+
+                return Tenant::STATUS_ACTIVE;
+            });
+
+        $this->app->instance(TenantBillingService::class, $billingMock);
+
+        $this->postWebhook('invoice.paid', [
+            'customer' => $tenant->getAttribute('stripe_id'),
+            'subscription' => $subscriptionId,
+            'id' => 'in_reactivate_'.uniqid(),
+        ])->assertOk();
+
+        $this->assertTenantStatus($tenant, Tenant::STATUS_ACTIVE);
+    }
+
     public function test_payment_failed_with_unknown_customer_returns_ok_without_error(): void
     {
         Notification::fake();

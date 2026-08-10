@@ -2,6 +2,7 @@
 
 namespace App\Services\Auth;
 
+use App\Enums\TenantStatus;
 use App\Models\Central\Tenant;
 use App\Models\Central\TenantUserDirectory;
 use App\Models\Tenant\User as TenantUser;
@@ -66,6 +67,9 @@ class TenantUserDirectoryService
     /**
      * Busca candidatos por e-mail no diretório central.
      *
+     * Inclui tenants com status elegível a login (active, suspended, under_review)
+     * para permitir regularização de cobrança via broker central.
+     *
      * @return Collection<int, TenantUserDirectory>
      */
     public function candidatesForEmail(string $email): Collection
@@ -74,7 +78,10 @@ class TenantUserDirectoryService
             ->with(['tenant.domains'])
             ->where('email_normalized', $this->normalizeEmail($email))
             ->where('active', true)
-            ->whereHas('tenant', fn ($query) => $query->where('status', Tenant::STATUS_ACTIVE))
+            ->whereHas(
+                'tenant',
+                fn ($query) => $query->whereIn('status', TenantStatus::loginEligibleValues())
+            )
             ->orderBy('tenant_id')
             ->get();
     }

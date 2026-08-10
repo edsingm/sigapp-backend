@@ -308,7 +308,7 @@ class TenantAddonServiceTest extends TestCase
         /** @var Tenant&MockInterface $tenant */
         $tenant = Mockery::mock(Tenant::class);
         $tenant->shouldReceive('getKey')->andReturn($id);
-        $tenant->shouldReceive('isActive')->andReturn($active)->byDefault();
+        $tenant->shouldReceive('isActive')->byDefault()->andReturn($active);
 
         return $tenant;
     }

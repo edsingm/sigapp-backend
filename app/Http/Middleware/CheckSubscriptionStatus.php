@@ -25,13 +25,13 @@ class CheckSubscriptionStatus
         if (! $tenant->isActive()) {
             return ApiResponseService::error(
                 'SUBSCRIPTION_INACTIVE',
-                match ($tenant->status) {
-                    TenantStatus::PENDING->value => 'Assinatura pendente de pagamento',
-                    TenantStatus::SUSPENDED->value => 'Assinatura suspensa por falta de pagamento',
-                    TenantStatus::CANCELLED->value => 'Assinatura cancelada',
-                    TenantStatus::SETUP_FAILED->value => 'Falha na configuração do ambiente. Entre em contato com o suporte.',
-                    TenantStatus::UNDER_REVIEW->value => 'Conta em revisão por contestação de pagamento. Entre em contato com o suporte.',
-                    default => 'Assinatura inativa',
+                match ((string) $tenant->status) {
+                    TenantStatus::PENDING->value => 'SUBSCRIPTION_PENDING',
+                    TenantStatus::SUSPENDED->value => 'SUBSCRIPTION_SUSPENDED',
+                    TenantStatus::CANCELLED->value => 'SUBSCRIPTION_CANCELLED',
+                    TenantStatus::SETUP_FAILED->value => 'SUBSCRIPTION_SETUP_FAILED',
+                    TenantStatus::UNDER_REVIEW->value => 'SUBSCRIPTION_UNDER_REVIEW',
+                    default => 'SUBSCRIPTION_INACTIVE',
                 },
                 [
                     'status' => $tenant->status,
@@ -46,7 +46,7 @@ class CheckSubscriptionStatus
         if ($tenant->trialEnded() && ! $tenant->stripe_subscription_id) {
             return ApiResponseService::error(
                 'TRIAL_ENDED',
-                'Período de teste encerrado. Por favor, assine um plano para continuar.',
+                'TRIAL_ENDED',
                 [
                     'trial_ended_at' => $tenant->trial_ends_at->toIso8601String(),
                     'support_url' => 'https://sigapp.com.br/suporte',

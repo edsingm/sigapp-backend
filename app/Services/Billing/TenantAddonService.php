@@ -68,6 +68,8 @@ class TenantAddonService
         string $addonSlug,
         int $quantity,
     ): TenantAddonSubscription|TenantAddonPurchase {
+        $this->ensureTenantCanMutateAddons($tenant);
+
         $addon = $this->findPurchasableAddon($addonSlug);
 
         if ($quantity < 1 || $quantity > 100) {
@@ -115,6 +117,8 @@ class TenantAddonService
 
     public function updateQuantity(Tenant $tenant, int $id, int $quantity): TenantAddonSubscription
     {
+        $this->ensureTenantCanMutateAddons($tenant);
+
         if ($quantity < 1 || $quantity > 100) {
             throw new InvalidArgumentException('A quantidade deve estar entre 1 e 100.');
         }
@@ -194,6 +198,19 @@ class TenantAddonService
         }
 
         return $updated;
+    }
+
+    /**
+     * Compra e alteração de quantidade exigem tenant active.
+     * Cancelamento permanece permitido para reduzir custo durante inadimplência.
+     */
+    private function ensureTenantCanMutateAddons(Tenant $tenant): void
+    {
+        if (! $tenant->isActive()) {
+            throw new InvalidArgumentException(
+                language()->t('BILLING_ADDON_REQUIRES_ACTIVE_SUBSCRIPTION')
+            );
+        }
     }
 
     private function findPurchasableAddon(string $slug): BillingAddon

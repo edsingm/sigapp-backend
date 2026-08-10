@@ -129,5 +129,13 @@
     "TERRAIN_IMPORT_COMMIT_FAILED": "Não foi possível concluir a importação de terrenos",
     "POLYGON_IMPORT_QUEUED": "Importação de polígonos enviada para processamento",
     "POLYGON_IMPORT_PROCESSING_FAILED": "Não foi possível processar os arquivos de polígonos",
-    "POLYGON_LINKED": "Polígono associado ao terreno com sucesso"
+    "POLYGON_LINKED": "Polígono associado ao terreno com sucesso",
+    "SUBSCRIPTION_INACTIVE": "Assinatura inativa",
+    "SUBSCRIPTION_PENDING": "Assinatura pendente de pagamento",
+    "SUBSCRIPTION_SUSPENDED": "Assinatura suspensa por falta de pagamento",
+    "SUBSCRIPTION_CANCELLED": "Assinatura cancelada",
+    "SUBSCRIPTION_SETUP_FAILED": "Falha na configuração do ambiente. Entre em contato com o suporte.",
+    "SUBSCRIPTION_UNDER_REVIEW": "Conta em revisão por contestação de pagamento. Entre em contato com o suporte.",
+    "TRIAL_ENDED": "Período de teste encerrado. Por favor, assine um plano para continuar.",
+    "BILLING_ADDON_REQUIRES_ACTIVE_SUBSCRIPTION": "Assinatura inativa. Regularize o pagamento para contratar ou alterar add-ons."
 }

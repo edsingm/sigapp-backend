@@ -20,7 +20,9 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Testing\TestResponse;
 use Laravel\Sanctum\Sanctum;
+use Symfony\Component\HttpFoundation\Response;
 use Tests\TestCase;
 
 class HiperdadosImportApiTest extends TestCase
@@ -232,11 +234,7 @@ class HiperdadosImportApiTest extends TestCase
     {
         $this->artisan('migrate', ['--path' => 'database/migrations/tenant', '--realpath' => false]);
 
-        $fixture = json_decode(
-            (string) file_get_contents(base_path('tests/Fixtures/hiperdados_terrenos_sample.json')),
-            true
-        );
-        $this->assertIsArray($fixture);
+        $fixture = $this->hiperdadosFixture();
 
         $result = app(HiperdadosTerrenoCommitService::class)->commit($fixture);
 
@@ -275,9 +273,31 @@ class HiperdadosImportApiTest extends TestCase
     }
 
     /**
-     * @param  array<string, mixed>  $payload
+     * @return list<array<string, mixed>>
      */
-    private function adminJson(string $method, string $uri, array $payload = [])
+    private function hiperdadosFixture(): array
+    {
+        $decoded = json_decode(
+            (string) file_get_contents(base_path('tests/Fixtures/hiperdados_terrenos_sample.json')),
+            true
+        );
+
+        $this->assertIsList($decoded);
+
+        $fixture = [];
+        foreach ($decoded as $item) {
+            $this->assertIsArray($item);
+            $fixture[] = $item;
+        }
+
+        return $fixture;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return TestResponse<Response>
+     */
+    private function adminJson(string $method, string $uri, array $payload = []): TestResponse
     {
         return $this
             ->withHeader('Host', 'localhost')

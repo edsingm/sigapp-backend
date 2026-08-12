@@ -13,7 +13,7 @@
 - **Todo Job deve implementar `failed(Throwable $e)`** — verificado por `LayerBoundariesTest::test_all_jobs_define_failed_handler`. Defina também `$tries`/`$timeout`/`$backoff`.
 - Eventos de domínio em `app/Events/Tenant/` com listeners em `app/Listeners/Tenant/` registrados explicitamente no `EventServiceProvider` — a descoberta automática global está desativada em `bootstrap/app.php` para não duplicar listeners; side-effects nunca inline no Service quando houver evento adequado.
 - Agendamentos ficam em **`routes/console.php`** (broker cleanup 5min, consent-logs diário, tenants pendentes por hora, poda diária de referências expiradas de tags Redis às 03:30, verificação de storage 07:00, etapas atrasadas 08:00, digests diário/semanal, scores IA 06:00, stats de tenants por hora). Comando novo recorrente → agende ali com `name()` exclusivo, `onOneServer()` e `withoutOverlapping()` com expiração maior que a duração esperada.
-- Comandos Artisan em `app/Console/Commands/` com `$signature`/`$description`; comandos destrutivos (ex.: `WipeAllTenants`) exigem confirmação explícita.
+- Comandos Artisan em `app/Console/Commands/` com `$signature`/`$description`; comandos destrutivos (ex.: `WipeAllTenants`, `sigapp:bootstrap --force`) exigem confirmação explícita em TTY. `sigapp:release` é o caminho de deploy (migrate central + `tenants:migrate`, sem seed); `sigapp:bootstrap` só em ambiente vazio. Os binários `/usr/local/bin/sigapp-*` são wrappers desses comandos.
 
 ## Notificações e e-mail
 

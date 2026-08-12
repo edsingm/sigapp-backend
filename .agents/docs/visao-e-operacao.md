@@ -37,6 +37,8 @@ composer test                       # config:clear + php artisan test
 composer analyse                    # phpstan (memory 512M)
 ./vendor/bin/pint --test            # checa formatação (sem alterar)
 php artisan test --testsuite=Architecture   # só os testes de arquitetura
+php artisan sigapp:release          # deploy: migrate central + tenants (nunca seed)
+php artisan sigapp:bootstrap        # só ambiente vazio: migrate + seed
 ```
 
 ---
@@ -62,7 +64,7 @@ Há duas formas de rodar localmente: **Herd/`composer dev`** (nativo, macOS) ou 
 ### Produção — quem roda o quê
 
 - `entrypoint.prod.sh` prepara caches e sobe o supervisord; ele **não executa migrations** durante restart/scale.
-- Primeiro deploy em banco vazio: execute `/usr/local/bin/sigapp-bootstrap` uma única vez (`migrate` + `db:seed`). Releases seguintes executam `/usr/local/bin/sigapp-release` (`migrate` central + `tenants:migrate`) antes de trocar o tráfego.
+- Primeiro deploy em banco vazio: execute `/usr/local/bin/sigapp-bootstrap` uma única vez (wrapper de `php artisan sigapp:bootstrap` → `migrate` + `db:seed`). Releases seguintes executam `/usr/local/bin/sigapp-release` (wrapper de `php artisan sigapp:release` → `migrate` central + `tenants:migrate`) antes de trocar o tráfego. O bootstrap recusa banco já inicializado, salvo `--force`. O release nunca executa seeders.
 - `supervisord.conf` mantém **nginx**, **php-fpm**, **`schedule:work`** e cinco grupos isolados de workers Redis: `tenant-provisioning`, `ai`, `exports`, `notifications` e `default`. A concorrência de cada grupo é configurada por `QUEUE_*_PROCESSES`; `retry_after=660` permanece acima do maior timeout de Job (600s). O scheduler pode rodar em todas as réplicas porque cada evento de `routes/console.php` tem nome único, `onOneServer()` e `withoutOverlapping()` sobre o Redis compartilhado; nunca adicione um schedule sem essas três proteções.
 - `nginx.conf`: root em `public/`, `client_max_body_size 50M` (limite de upload), `fastcgi_read_timeout 120s` (teto para requests longos — PDFs/exports pesados devem ir para Jobs).
 

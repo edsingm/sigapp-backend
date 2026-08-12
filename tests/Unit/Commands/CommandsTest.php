@@ -38,6 +38,22 @@ class CommandsTest extends TestCase
         $this->assertTrue($r->hasMethod('handle'));
     }
 
+    public function test_sigapp_bootstrap_command_existe(): void
+    {
+        $this->assertTrue(class_exists('App\Console\Commands\SigappBootstrapCommand'));
+
+        $r = new \ReflectionClass('App\Console\Commands\SigappBootstrapCommand');
+        $this->assertTrue($r->hasMethod('handle'));
+    }
+
+    public function test_sigapp_release_command_existe(): void
+    {
+        $this->assertTrue(class_exists('App\Console\Commands\SigappReleaseCommand'));
+
+        $r = new \ReflectionClass('App\Console\Commands\SigappReleaseCommand');
+        $this->assertTrue($r->hasMethod('handle'));
+    }
+
     public function test_bootstrap_central_admin_command_existe(): void
     {
         $this->assertTrue(class_exists('App\Console\Commands\BootstrapCentralAdminCommand'));

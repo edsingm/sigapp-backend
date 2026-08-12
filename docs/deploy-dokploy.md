@@ -2,7 +2,8 @@
 
 Runbook operacional do backend na VPS gerenciada pelo **Dokploy**.  
 O processo de scripts (`sigapp-bootstrap` / `sigapp-release` / entrypoint) está em
-`docs/2026-08-07-processo-release.md`. Este arquivo cobre **plataforma, ordem
+`docs/2026-08-07-processo-release.md`. Os binários delegam a `php artisan sigapp:bootstrap`
+e `php artisan sigapp:release`. Este arquivo cobre **plataforma, ordem
 de deploy e comandos copy-paste**.
 
 > O runbook legado `docs/deploy-coolify.md` está **obsoleto**. Coolify não é

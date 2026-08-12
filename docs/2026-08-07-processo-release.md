@@ -4,8 +4,10 @@
 
 O backend possui dois processos operacionais diferentes:
 
-- `sigapp-bootstrap`: usado somente na criação inicial de um ambiente com banco vazio.
-- `sigapp-release`: usado nos deploys seguintes, antes de liberar a nova versão para receber tráfego.
+- `sigapp:bootstrap` (`/usr/local/bin/sigapp-bootstrap`): usado somente na criação inicial de um ambiente com banco vazio.
+- `sigapp:release` (`/usr/local/bin/sigapp-release`): usado nos deploys seguintes, antes de liberar a nova versão para receber tráfego.
+
+A sequência vive nos comandos Artisan. Os binários em `/usr/local/bin/` são wrappers de uma linha (contrato de ops no Dokploy/SSH).
 
 O processo de inicialização do container (`entrypoint.prod.sh`) é separado dos dois. Ele não executa migrations; apenas prepara caches, cria o link de storage e inicia os processos da aplicação.
 
@@ -15,9 +17,11 @@ Quando o banco ainda não possui a estrutura do SIGAPP, execute uma única vez:
 
 ```bash
 /usr/local/bin/sigapp-bootstrap
+# equivalente:
+php artisan sigapp:bootstrap
 ```
 
-O script executa:
+O comando executa:
 
 ```bash
 php artisan migrate --force
@@ -27,9 +31,9 @@ php artisan route:cache
 php artisan view:cache
 ```
 
-O bootstrap cria as migrations centrais e popula os dados iniciais. Não deve ser usado em cada deploy, porque executa os seeders.
+O bootstrap cria as migrations centrais e popula os dados iniciais. Recusa se a tabela `plans` já tiver linhas, salvo `--force` (em TTY pede confirmação). Não deve ser usado em cada deploy, porque executa os seeders.
 
-Arquivo: `.docker/bootstrap.prod.sh`.
+Arquivo: `.docker/bootstrap.prod.sh` → `php artisan sigapp:bootstrap`.
 
 ## Release de uma nova versão
 
@@ -37,9 +41,11 @@ Para publicar uma versão em um ambiente já inicializado, execute:
 
 ```bash
 /usr/local/bin/sigapp-release
+# equivalente:
+php artisan sigapp:release
 ```
 
-O script executa, nesta ordem:
+O comando executa, nesta ordem:
 
 ```bash
 php artisan migrate --force
@@ -48,6 +54,8 @@ php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 ```
+
+O release **nunca** executa `db:seed`. `--no-cache` (e o ambiente `testing`) omite a recriação dos caches.
 
 ### O que cada etapa faz
 
@@ -59,7 +67,7 @@ php artisan view:cache
 
 O release deve terminar com código de saída zero antes da troca de tráfego. Migrations não devem ser executadas automaticamente durante o restart ou scale dos containers.
 
-Arquivo: `.docker/release.prod.sh`.
+Arquivo: `.docker/release.prod.sh` → `php artisan sigapp:release`.
 
 ## Inicialização do container
 

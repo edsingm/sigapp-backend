@@ -69,6 +69,8 @@ composer test                       # config:clear + php artisan test
 composer analyse                    # phpstan (memory 512M)
 ./vendor/bin/pint --test            # checa formatação
 php artisan test --testsuite=Architecture
+php artisan sigapp:release          # deploy: migrate central + tenants (nunca seed)
+php artisan sigapp:bootstrap        # só ambiente vazio: migrate + seed
 ```
 
 ---

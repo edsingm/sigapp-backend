@@ -1,0 +1,160 @@
+[
+  {
+    "id": "33975",
+    "nome": "DNN33975 - Area Faculdade",
+    "gestor": "Edson Maldonado",
+    "status": "Descartado",
+    "poligono": [
+      {
+        "lat": -22.23102863738233,
+        "lng": -49.64705652676553
+      },
+      {
+        "lat": -22.2303086150564,
+        "lng": -49.64755005322427
+      },
+      {
+        "lat": -22.229712731714095,
+        "lng": -49.6488160558793
+      },
+      {
+        "lat": -22.229970948140064,
+        "lng": -49.649980134591765
+      }
+    ],
+    "ficha": {
+      "endereco": "Av. Presidente Vargas",
+      "complemento": "",
+      "bairro": "",
+      "cidade": "Garça",
+      "uf": "SP",
+      "distrito": "",
+      "zoneamento": "",
+      "operacao_urbana": "",
+      "area_total": "39.243,93",
+      "data_compra": "",
+      "status_portal": "Descartado",
+      "zona_regional": "Leste",
+      "gestor": "Edson Maldonado",
+      "produtos": [
+        {
+          "tipo_unidade": "2 DORM",
+          "lancamento": "20/07/2024",
+          "unidades": "170",
+          "permutas": "0",
+          "area_privativa": "45,00",
+          "preco_m2": "R$ 4.000,00",
+          "preco": "R$ 180.000,00",
+          "vgv_total": "R$ 30.600.000,00"
+        }
+      ]
+    },
+    "formulario": {
+      "Regional": "Guararapes",
+      "População": "42.110",
+      "Média Salarial": "3.036,00",
+      "% População Ocupada": "25,40",
+      "Demanda": "",
+      "Teto MCMV Faixa 2": "190.000,00",
+      "Tamanho Área Bruta (m²)": "45000",
+      "Tamanho Área Útil (m²)": "",
+      "Empreendimento": "Condominio fechado",
+      "Quant. de Unidades 2 Dorm": "180",
+      "Valor Unid. 2 Dorm.": "170.000,00",
+      "Quant. Unidades 3 Dorm.": "0",
+      "Valor Unid. 3 Dorm.": "0,00",
+      "Quant. Unidades Total": "180",
+      "VGV Estimado Total": "30.600.000,00",
+      "Data Apresentação": "05/07/2023",
+      "Data Negociação": "",
+      "Data Contrato": "",
+      "Data Assinatura": "",
+      "Data Descarte": "15/08/2023"
+    },
+    "corretores": []
+  },
+  {
+    "id": "34027",
+    "nome": "DNN34027 - Jardim Santa Vitória",
+    "gestor": "Emerson Marinho",
+    "status": "Descartado",
+    "poligono": [
+      {
+        "lat": -21.12110097673036,
+        "lng": -48.93861026730279
+      },
+      {
+        "lat": -21.12098087969274,
+        "lng": -48.937548112532895
+      },
+      {
+        "lat": -21.120740685325778,
+        "lng": -48.936807822844784
+      },
+      {
+        "lat": -21.12431353639313,
+        "lng": -48.93709750141839
+      }
+    ],
+    "ficha": {
+      "endereco": "Avenida Palmares",
+      "complemento": "",
+      "bairro": "",
+      "cidade": "Catanduva",
+      "uf": "SP",
+      "distrito": "",
+      "zoneamento": "",
+      "operacao_urbana": "",
+      "area_total": "703.120,67",
+      "data_compra": "",
+      "status_portal": "Descartado",
+      "zona_regional": "Leste",
+      "gestor": "Emerson Marinho",
+      "produtos": [
+        {
+          "tipo_unidade": "Casa 2Q",
+          "lancamento": "",
+          "unidades": "1470",
+          "permutas": "0",
+          "area_privativa": "46,00",
+          "preco_m2": "R$ 3.800,00",
+          "preco": "R$ 174.800,00",
+          "vgv_total": "R$ 256.956.000,00"
+        }
+      ]
+    },
+    "formulario": {
+      "Regional": "Rio Preto",
+      "População": "115.785",
+      "Média Salarial": "3.300,00",
+      "% População Ocupada": "38,10",
+      "Demanda": "",
+      "Teto MCMV Faixa 2": "220.000,00",
+      "Tamanho Área Bruta (m²)": "738.319",
+      "Tamanho Área Útil (m²)": "349.631",
+      "Empreendimento": "Loteamento Aberto",
+      "Quant. de Unidades 2 Dorm": "1.470",
+      "Valor Unid. 2 Dorm.": "165.000,00",
+      "Quant. Unidades 3 Dorm.": "",
+      "Valor Unid. 3 Dorm.": "",
+      "Quant. Unidades Total": "1.470",
+      "VGV Estimado Total": "242.550.000,00",
+      "Data Apresentação": "09/06/2023",
+      "Data Negociação": "",
+      "Data Contrato": "",
+      "Data Assinatura": "",
+      "Data Descarte": "03/08/2023"
+    },
+    "corretores": [
+      {
+        "nome": "Alan Moises",
+        "telefone": "",
+        "celular": "(17) 9.9654-2193",
+        "valor_m2": "0,00",
+        "area": "703.120,67",
+        "valor_total": "0,00",
+        "data_apresentacao": "26/05/2023"
+      }
+    ]
+  }
+]

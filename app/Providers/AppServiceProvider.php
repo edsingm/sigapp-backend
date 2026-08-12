@@ -243,6 +243,17 @@ class AppServiceProvider extends ServiceProvider
                 ->response(fn () => ApiResponseService::tooManyRequests('TERRAIN_IMPORT_RATE_LIMITED'));
         });
 
+        RateLimiter::for('hiperdados-imports', function (Request $request) {
+            $user = $request->user();
+            $key = $user
+                ? 'hiperdados-imports:user:'.$user->id
+                : 'hiperdados-imports:ip:'.$request->ip();
+
+            return Limit::perMinute(3)
+                ->by($key)
+                ->response(fn () => ApiResponseService::tooManyRequests('HIPERDADOS_IMPORT_RATE_LIMITED'));
+        });
+
         RateLimiter::for('central-login', function (Request $request) {
             $email = strtolower(trim((string) $request->input('email', '')));
 

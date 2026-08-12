@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Tenant;
+namespace App\Services\Parsers\Hiperdados;
 
 use DOMDocument;
 use RuntimeException;

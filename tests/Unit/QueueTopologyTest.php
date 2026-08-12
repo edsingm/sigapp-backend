@@ -6,8 +6,10 @@ namespace Tests\Unit;
 
 use App\Jobs\AnalyzeDocumentJob;
 use App\Jobs\CleanupPendingTenantsJob;
+use App\Jobs\CommitHiperdadosImportJob;
 use App\Jobs\CommitTerrenoImportJob;
 use App\Jobs\CreateFullTenantJob;
+use App\Jobs\FetchHiperdadosImportJob;
 use App\Jobs\GenerateCommitteeAiDossierJob;
 use App\Jobs\GenerateReportRunJob;
 use App\Jobs\GenerateTenantExportJob;
@@ -60,8 +62,10 @@ class QueueTopologyTest extends TestCase
     {
         $expectedQueues = [
             AnalyzeDocumentJob::class => 'ai',
+            CommitHiperdadosImportJob::class => 'exports',
             CommitTerrenoImportJob::class => 'exports',
             CreateFullTenantJob::class => 'tenant-provisioning',
+            FetchHiperdadosImportJob::class => 'exports',
             GenerateCommitteeAiDossierJob::class => 'ai',
             GenerateReportRunJob::class => 'exports',
             GenerateTenantExportJob::class => 'exports',
@@ -84,6 +88,7 @@ class QueueTopologyTest extends TestCase
     {
         foreach ([
             CleanupPendingTenantsJob::class,
+            CommitHiperdadosImportJob::class,
             CommitTerrenoImportJob::class,
             GenerateCommitteeAiDossierJob::class,
             GenerateReportRunJob::class,

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use App\Services\Tenant\PortalTerrenoClient;
-use App\Services\Tenant\PortalTerrenoCorretoresParser;
-use App\Services\Tenant\PortalTerrenoFichaParser;
-use App\Services\Tenant\PortalTerrenoFormularioParser;
+use App\Services\Parsers\Hiperdados\PortalTerrenoClient;
+use App\Services\Parsers\Hiperdados\PortalTerrenoCorretoresParser;
+use App\Services\Parsers\Hiperdados\PortalTerrenoFichaParser;
+use App\Services\Parsers\Hiperdados\PortalTerrenoFormularioParser;
 use Illuminate\Console\Command;
 use RuntimeException;
 use Throwable;

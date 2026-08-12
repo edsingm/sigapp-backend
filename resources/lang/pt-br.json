@@ -137,5 +137,16 @@
     "SUBSCRIPTION_SETUP_FAILED": "Falha na configuração do ambiente. Entre em contato com o suporte.",
     "SUBSCRIPTION_UNDER_REVIEW": "Conta em revisão por contestação de pagamento. Entre em contato com o suporte.",
     "TRIAL_ENDED": "Período de teste encerrado. Por favor, assine um plano para continuar.",
-    "BILLING_ADDON_REQUIRES_ACTIVE_SUBSCRIPTION": "Assinatura inativa. Regularize o pagamento para contratar ou alterar add-ons."
+    "BILLING_ADDON_REQUIRES_ACTIVE_SUBSCRIPTION": "Assinatura inativa. Regularize o pagamento para contratar ou alterar add-ons.",
+    "HIPERDADOS_IMPORT_QUEUED": "Importação Hiperdados enfileirada. Acompanhe o progresso.",
+    "HIPERDADOS_IMPORT_RETRIEVED": "Importação Hiperdados recuperada",
+    "HIPERDADOS_IMPORTS_LISTED": "Lista de importações Hiperdados recuperada",
+    "HIPERDADOS_IMPORT_PREVIEW": "Pré-visualização dos dados extraídos",
+    "HIPERDADOS_IMPORT_COMMIT_QUEUED": "Commit no tenant enfileirado",
+    "HIPERDADOS_IMPORT_RATE_LIMITED": "Muitas importações Hiperdados em curto período. Tente novamente em 1 minuto.",
+    "HIPERDADOS_CREDENTIALS_REQUIRED": "Informe usuário e senha do portal",
+    "HIPERDADOS_IMPORT_NOT_READY": "A importação ainda não está pronta para commit",
+    "HIPERDADOS_PAYLOAD_MISSING": "Arquivo de dados da importação não encontrado",
+    "HIPERDADOS_PAYLOAD_INVALID": "JSON da importação está inválido",
+    "TENANT_DATABASE_NOT_READY": "O banco do tenant ainda não foi provisionado"
 }

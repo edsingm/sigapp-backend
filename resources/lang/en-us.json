@@ -137,5 +137,16 @@
     "SUBSCRIPTION_SETUP_FAILED": "Environment setup failed. Please contact support.",
     "SUBSCRIPTION_UNDER_REVIEW": "Account under review due to a payment dispute. Please contact support.",
     "TRIAL_ENDED": "Trial period ended. Please subscribe to a plan to continue.",
-    "BILLING_ADDON_REQUIRES_ACTIVE_SUBSCRIPTION": "Inactive subscription. Settle payment to purchase or change add-ons."
+    "BILLING_ADDON_REQUIRES_ACTIVE_SUBSCRIPTION": "Inactive subscription. Settle payment to purchase or change add-ons.",
+    "HIPERDADOS_IMPORT_QUEUED": "Hiperdados import queued. Track progress.",
+    "HIPERDADOS_IMPORT_RETRIEVED": "Hiperdados import retrieved",
+    "HIPERDADOS_IMPORTS_LISTED": "Hiperdados imports listed",
+    "HIPERDADOS_IMPORT_PREVIEW": "Extracted data preview",
+    "HIPERDADOS_IMPORT_COMMIT_QUEUED": "Tenant commit queued",
+    "HIPERDADOS_IMPORT_RATE_LIMITED": "Too many Hiperdados imports in a short period. Try again in 1 minute.",
+    "HIPERDADOS_CREDENTIALS_REQUIRED": "Portal username and password are required",
+    "HIPERDADOS_IMPORT_NOT_READY": "Import is not ready for commit",
+    "HIPERDADOS_PAYLOAD_MISSING": "Import payload file not found",
+    "HIPERDADOS_PAYLOAD_INVALID": "Import JSON payload is invalid",
+    "TENANT_DATABASE_NOT_READY": "Tenant database is not provisioned yet"
 }

@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\Admin\BillingAddonAdminController;
 use App\Http\Controllers\Api\V1\Admin\CouponController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController;
 use App\Http\Controllers\Api\V1\Admin\EntitlementController;
+use App\Http\Controllers\Api\V1\Admin\HiperdadosImportController;
 use App\Http\Controllers\Api\V1\Admin\PlanAdminController;
 use App\Http\Controllers\Api\V1\Admin\PlatformAnnouncementController;
 use App\Http\Controllers\Api\V1\Admin\PostController;
@@ -207,6 +208,20 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
 
                         // Coupons — CRUD admin
                         Route::apiResource('coupons', CouponController::class)->except(['create', 'edit']);
+
+                        // Hiperdados → migração de terrenos do portal legado
+                        Route::get('/hiperdados-imports', [HiperdadosImportController::class, 'index'])
+                            ->name('hiperdados-imports.index');
+                        Route::post('/hiperdados-imports', [HiperdadosImportController::class, 'store'])
+                            ->middleware('throttle:hiperdados-imports')
+                            ->name('hiperdados-imports.store');
+                        Route::get('/hiperdados-imports/{hiperdadosImport}', [HiperdadosImportController::class, 'show'])
+                            ->name('hiperdados-imports.show');
+                        Route::get('/hiperdados-imports/{hiperdadosImport}/preview', [HiperdadosImportController::class, 'preview'])
+                            ->name('hiperdados-imports.preview');
+                        Route::post('/hiperdados-imports/{hiperdadosImport}/commit', [HiperdadosImportController::class, 'commit'])
+                            ->middleware('throttle:hiperdados-imports')
+                            ->name('hiperdados-imports.commit');
                     });
                 });
 

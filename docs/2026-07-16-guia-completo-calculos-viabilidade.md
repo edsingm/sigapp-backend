@@ -3,7 +3,7 @@
 > Documento funcional e técnico para orientar a página do frontend “Como funciona a viabilidade”.
 >
 > **Motor documentado:** `3.0.0`
-> **Referência validada:** planilha Cimcal v.02.2026 — Osvaldo Cruz  
+> **Referência validada:** planilha modelo v.02.2026
 > **Atualizado em:** 01/08/2026
 > **Fonte da verdade:** cálculo executado no backend. O frontend deve apresentar os resultados, nunca recalculá-los.
 
@@ -114,7 +114,7 @@ A seleção muda a composição e o momento do fluxo mensal. As fórmulas da DRE
 
 ### 4.5 Premissas iniciais do seeder
 
-O `PremissasViabilidadeSeeder` cria a premissa inicial **Padrão CEF** com os valores do cenário canônico da planilha Cimcal Osvaldo Cruz v.02.2026. Entre os principais valores estão:
+O `PremissasViabilidadeSeeder` cria a premissa inicial **Padrão CEF** com os valores do cenário canônico da planilha modelo v.02.2026. Entre os principais valores estão:
 
 | Premissa | Valor inicial CEF |
 |---|---:|
@@ -883,7 +883,7 @@ Os três campos são retornados no nível superior de `data` sem necessidade de 
 | Divisão sem base | Mostrar “Não aplicável”, nunca `Infinity` ou `NaN` |
 | Estoque zerado | Mostrar o mês de zeragem e VSO total de até 100% |
 
-## 20. Exemplo validado: Cimcal — Osvaldo Cruz
+## 20. Exemplo validado: planilha modelo
 
 O cenário usado para validar o motor possui:
 
@@ -992,8 +992,8 @@ As TIRs elevadas decorrem do vetor de saldos acumulados usado pelo XIRR da plani
 - Curvas oficiais: [`CurvaService.php`](../app/Services/Tenant/Viabilidade/v1/CurvaService.php)
 - Resposta pública: [`ViabilidadeCalculationResource.php`](../app/Http/Resources/Tenant/ViabilidadeCalculationResource.php)
 - Premissas iniciais: [`PremissasViabilidadeSeeder.php`](../database/seeders/Tenant/PremissasViabilidadeSeeder.php)
-- Auditoria da planilha: [`2026-07-15-auditoria-planilha-cimcal-osvaldo-cruz.md`](2026-07-15-auditoria-planilha-cimcal-osvaldo-cruz.md)
-- Fixture de referência: [`cimcal_osvaldo_cruz_v02_2026.json`](../tests/Fixtures/Viabilidade/cimcal_osvaldo_cruz_v02_2026.json)
+- Auditoria da planilha: [`2026-07-15-auditoria-planilha-modelo.md`](2026-07-15-auditoria-planilha-modelo.md)
+- Fixture de referência: [`planilha_modelo_v02_2026.json`](../tests/Fixtures/Viabilidade/planilha_modelo_v02_2026.json)
 - Teste das premissas iniciais: [`PremissasViabilidadeSeederTest.php`](../tests/Feature/Tenant/PremissasViabilidadeSeederTest.php)
 
 ## 24. Checklist de aceite da página
@@ -1025,4 +1025,4 @@ Este documento deve ser revisado sempre que houver alteração em:
 - defaults do seeder de premissas;
 - nomes e disponibilidade dos campos da API.
 
-Ao atualizar, valide novamente o cenário Cimcal e mantenha o documento alinhado com o teste de conformidade da planilha e com `PremissasViabilidadeSeederTest`.
+Ao atualizar, valide novamente o cenário da planilha modelo e mantenha o documento alinhado com o teste de conformidade da planilha e com `PremissasViabilidadeSeederTest`.

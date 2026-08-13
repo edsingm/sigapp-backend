@@ -19,7 +19,7 @@ class PremissasViabilidadeSeederTest extends TestCase
         $this->artisan('migrate', ['--path' => 'database/migrations/tenant', '--realpath' => false]);
     }
 
-    public function test_seeds_cef_premises_from_canonical_cimcal_workbook(): void
+    public function test_seeds_cef_premises_from_planilha_modelo(): void
     {
         $this->seed(PremissasViabilidadeSeeder::class);
 

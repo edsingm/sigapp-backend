@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
- * Contrato de cálculo baseado na planilha Cimcal de Osvaldo Cruz (v.02.2026).
+ * Contrato de cálculo baseado na planilha modelo (v.02.2026).
  *
  * Os valores esperados são os resultados armazenados no XLSX fornecido pelo
  * usuário. Custos da DRE são normalizados como positivos, seguindo a API.
@@ -35,7 +35,7 @@ class PlanilhaConformidadeTest extends TestCase
         $this->service = app(ViabilidadeUnificadoService::class);
     }
 
-    public function test_compara_dre_fluxo_e_kpis_com_a_planilha_cimcal_osvaldo_cruz(): void
+    public function test_compara_dre_fluxo_e_kpis_com_a_planilha_modelo(): void
     {
         $fixture = $this->loadFixture();
         [$terrenoId, $viabilidadeId] = $this->createScenario($fixture['assumptions']);
@@ -210,7 +210,7 @@ class PlanilhaConformidadeTest extends TestCase
         ]);
 
         DB::table('premissas_viabilidade')->insert([
-            'nome' => 'Cimcal Osvaldo Cruz v.02.2026',
+            'nome' => 'Planilha Modelo v.02.2026',
             'perfil_financiamento' => PerfilFinanciamento::CEF->value,
             'ativo' => true,
             'versao' => 1,
@@ -409,7 +409,7 @@ class PlanilhaConformidadeTest extends TestCase
      */
     private function loadFixture(): array
     {
-        $path = base_path('tests/Fixtures/Viabilidade/cimcal_osvaldo_cruz_v02_2026.json');
+        $path = base_path('tests/Fixtures/Viabilidade/planilha_modelo_v02_2026.json');
         $this->assertFileExists($path);
 
         $fixture = json_decode((string) file_get_contents($path), true, flags: JSON_THROW_ON_ERROR);

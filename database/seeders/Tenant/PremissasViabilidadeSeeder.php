@@ -96,8 +96,8 @@ class PremissasViabilidadeSeeder extends Seeder
             'obra_ate_lancamento' => 1.0,
         ];
 
-        // Premissas do cenário CEF da planilha canônica
-        // "20260710 - Viabilidade Cimcal - Osvaldo Cruz.xlsx" (v.02.2026).
+        // Premissas do cenário CEF da planilha modelo
+        // "20260710 - Viabilidade Planilha Modelo.xlsx" (v.02.2026).
         // O perfil próprio não é sobrescrito porque não existe cenário próprio
         // equivalente validado nessa pasta de trabalho.
         $valoresCef = array_merge($valoresBase, [

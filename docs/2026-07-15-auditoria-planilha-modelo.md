@@ -1,8 +1,8 @@
-# Auditoria da viabilidade Cimcal — Osvaldo Cruz
+# Auditoria da planilha modelo
 
 ## Escopo e fonte
 
-- Arquivo: `docs/viabilidade-modelo/20260710 - Viabilidade Cimcal - Osvaldo Cruz.xlsx`
+- Arquivo: `docs/viabilidade-modelo/20260710 - Viabilidade Planilha Modelo.xlsx`
 - SHA-256: `b7ad9ff34b69dc6b1ea172ea967ce805e6dc2f28cc5aee19096fd171fb40f4f2`
 - Modelo: `v.02.2026`
 - Projeto: `Lot Flores da Terra`, Osvaldo Cruz/SP
@@ -123,7 +123,7 @@ A planilha calcula `XIRR(Tab_Mestre!ID6:ID99, Tab_Mestre!I6:I99)` para a TIR ope
 
 O solucionador não descarta retornos anuais acima de 500%. Em fluxos não convencionais, procura todas as raízes: usa a única raiz não negativa e retorna `null` quando existem múltiplas raízes não negativas, pois nesse caso a TIR é matematicamente ambígua.
 
-No cenário Cimcal, o motor resulta em 600,55% a.a. operacional e 991,81% a.a. financeira, contra 600,53% e 991,81% do XLSX. A diferença operacional de 0,02 p.p. decorre dos arredondamentos mensais em centavos.
+No cenário da planilha modelo, o motor resulta em 600,55% a.a. operacional e 991,81% a.a. financeira, contra 600,53% e 991,81% do XLSX. A diferença operacional de 0,02 p.p. decorre dos arredondamentos mensais em centavos.
 
 O cronograma PJ também foi alinhado: desembolso ao atingir a demanda mínima, juros no próprio mês do desembolso, janela regular de juros a partir da obra e amortização SAC após a carência. Isso reconciliou exposição financeira, payback e TIR financeira.
 
@@ -135,10 +135,10 @@ O XLSX possui recálculo completo ao abrir, vínculo externo e células auxiliar
 
 O teste `tests/Feature/Tenant/PlanilhaConformidadeTest.php` agora:
 
-1. monta exatamente o cenário Cimcal;
+1. monta exatamente o cenário da planilha modelo;
 2. valida VGV, unidades e todas as linhas relevantes da DRE com tolerância de 0,10%;
 3. valida entradas, saídas, FCO, saldo operacional, aporte, devolução, saldo elegível, distribuição, saldo final, principal e juros PJ do fluxo com tolerância de 0,001%;
 4. valida exposições em até R$ 2,00, paybacks de forma exata e TIRs em até 0,10 ponto percentual;
 5. imprime a comparação completa e mantém um baseline explícito do motor `2.4.0`.
 
-Os valores, células-fonte, hash e divergências estão registrados em `tests/Fixtures/Viabilidade/cimcal_osvaldo_cruz_v02_2026.json`.
+Os valores, células-fonte, hash e divergências estão registrados em `tests/Fixtures/Viabilidade/planilha_modelo_v02_2026.json`.

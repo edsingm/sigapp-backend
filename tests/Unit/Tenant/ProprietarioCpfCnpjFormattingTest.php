@@ -16,6 +16,8 @@ class ProprietarioCpfCnpjFormattingTest extends TestCase
             'tipo_pessoa' => Proprietario::TIPO_JURIDICA,
         ]);
 
-        self::assertSame('12.ABC.345/01DE-35', $proprietario->cpf_cnpj_formatado);
+        self::assertSame('**.***.***/****-35', $proprietario->cpf_cnpj_formatado);
+        self::assertSame('**.***.***/****-35', Proprietario::maskTaxId('12abc34501de35', Proprietario::TIPO_JURIDICA));
+        self::assertSame('***.***.***-25', Proprietario::maskTaxId('52998224725', Proprietario::TIPO_FISICA));
     }
 }

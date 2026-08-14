@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Tenant;
 
+use App\Models\Tenant\Proprietario;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -19,7 +20,7 @@ class ProprietarioResource extends JsonResource
             'terreno_id' => $this->terreno_id,
             'nome' => $this->nome,
             'rg' => $this->rg,
-            'cpf_cnpj' => $this->cpf_cnpj,
+            'cpf_cnpj' => Proprietario::maskTaxId($this->cpf_cnpj, $this->tipo_pessoa),
             'nascimento' => $this->nascimento?->format('Y-m-d'),
             'tipo_pessoa' => $this->tipo_pessoa,
             'estado_civil' => $this->estado_civil,
@@ -35,7 +36,7 @@ class ProprietarioResource extends JsonResource
             'conjuge' => $this->conjuge,
             'conjuge_rg' => $this->conjuge_rg,
             'conjuge_nascimento' => $this->conjuge_nascimento?->format('Y-m-d'),
-            'conjuge_cpf_cnpj' => $this->conjuge_cpf_cnpj,
+            'conjuge_cpf_cnpj' => Proprietario::maskTaxId($this->conjuge_cpf_cnpj, Proprietario::TIPO_FISICA),
             'observacoes' => $this->observacoes,
             'created_by' => new UserResource($this->whenLoaded('createdBy')),
             'updated_by' => new UserResource($this->whenLoaded('updatedBy')),

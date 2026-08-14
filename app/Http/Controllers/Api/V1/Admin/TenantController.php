@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\ConfirmTenantWipeRequest;
 use App\Http\Requests\Admin\ListTenantsRequest;
 use App\Http\Requests\Admin\UpdateTenantStatusRequest;
 use App\Http\Resources\AdminTenantDetailResource;
@@ -10,12 +11,21 @@ use App\Http\Resources\AdminTenantSummaryResource;
 use App\Models\Central\Tenant;
 use App\Services\Admin\TenantAdminService;
 use App\Services\ApiResponseService;
+use App\Services\Privacy\PrivacyRequestService;
+use App\Services\Privacy\PrivacySubjectService;
+use App\Services\Privacy\TenantLifecycleService;
+use App\Traits\LogsAudit;
 use Illuminate\Http\JsonResponse;
 
 class TenantController extends Controller
 {
+    use LogsAudit;
+
     public function __construct(
-        private readonly TenantAdminService $tenantService
+        private readonly TenantAdminService $tenantService,
+        private readonly PrivacyRequestService $privacyRequests,
+        private readonly TenantLifecycleService $lifecycle,
+        private readonly PrivacySubjectService $privacySubjects,
     ) {}
 
     /**
@@ -110,5 +120,66 @@ class TenantController extends Controller
             AdminTenantSummaryResource::make($tenant->loadMissing('plan'))->resolve(),
             'Tenant suspenso com sucesso'
         );
+    }
+
+    public function privilegedAccess(Tenant $tenant): JsonResponse
+    {
+        $logs = $this->privacyRequests->privilegedAccess((string) $tenant->getKey(), 50);
+
+        return ApiResponseService::paginated($logs, 'PRIVILEGED_ACCESS_RETRIEVED');
+    }
+
+    public function offboard(Tenant $tenant): JsonResponse
+    {
+        $updated = $this->lifecycle->scheduleOffboard($tenant);
+
+        $this->audit('privacy.tenant_offboarded', 'Offboarding do tenant agendado.', [
+            'tenant_id' => (string) $updated->getKey(),
+            'wipe_scheduled_at' => optional($updated->getAttribute('wipe_scheduled_at'))->toIso8601String(),
+        ]);
+
+        return ApiResponseService::success([
+            'cancelled_at' => optional($updated->getAttribute('cancelled_at'))->toIso8601String(),
+            'wipe_scheduled_at' => optional($updated->getAttribute('wipe_scheduled_at'))->toIso8601String(),
+        ], 'PRIVACY_TENANT_OFFBOARDED');
+    }
+
+    public function wipe(ConfirmTenantWipeRequest $request, Tenant $tenant): JsonResponse
+    {
+        $updated = $this->lifecycle->wipe($tenant, force: true);
+
+        $this->audit('privacy.tenant_wiped', 'Wipe imediato do tenant executado.', [
+            'tenant_id' => (string) $updated->getKey(),
+        ]);
+
+        return ApiResponseService::success([
+            'wiped_at' => optional($updated->getAttribute('wiped_at'))->toIso8601String(),
+        ], 'PRIVACY_TENANT_WIPED');
+    }
+
+    public function portabilityExport(Tenant $tenant): JsonResponse
+    {
+        if (! (bool) $tenant->getAttribute('database_created')) {
+            return ApiResponseService::error('TENANT_NOT_READY', 'TENANT_NOT_FOUND', null, 422);
+        }
+
+        $generation = null;
+        $tenant->run(function () use (&$generation): void {
+            $generation = $this->privacySubjects->queueWorkspaceExportForCurrentTenant();
+        });
+
+        if ($generation === null) {
+            return ApiResponseService::error('TENANT_NOT_READY', 'TENANT_NOT_FOUND', null, 422);
+        }
+
+        $this->audit('privacy.tenant_export_requested', 'Dump do tenant disparado pelo admin da plataforma.', [
+            'tenant_id' => (string) $tenant->getKey(),
+            'export_id' => $generation->id,
+        ]);
+
+        return ApiResponseService::success([
+            'export_id' => $generation->id,
+            'status' => $generation->status->value,
+        ], 'PRIVACY_EXPORT_QUEUED', 202);
     }
 }

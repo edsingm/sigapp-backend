@@ -2,6 +2,7 @@
 
 namespace App\Models\Central;
 
+use App\Encryption\TenantKeyVault;
 use App\Enums\TenantBillingProfileType;
 use App\Enums\TenantStatus;
 use Carbon\Carbon;
@@ -55,11 +56,18 @@ use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
  * @property string|null $billing_tax_regime
  * @property bool $billing_profile_required
  * @property Carbon|null $billing_profile_completed_at
+ * @property Carbon|null $cancelled_at
+ * @property Carbon|null $wipe_scheduled_at
+ * @property Carbon|null $wiped_at
+ * @property Carbon|null $ai_document_transfer_accepted_at
+ * @property Carbon|null $pii_encrypted_at
+ * @property Carbon|null $wipe_notice_d60_sent_at
+ * @property Carbon|null $wipe_notice_d83_sent_at
  * @property Carbon $created_at
  * @property Carbon $updated_at
  */
 #[Table('tenants')]
-#[Fillable(['name', 'slug', 'status', 'stripe_id', 'stripe_subscription_id', 'plan_id', 'scheduled_plan_id', 'storage_alert_threshold', 'trial_ends_at', 'encryption_key', 'database_created', 'setup_completed_at', 'trial_extended', 'admin_name', 'admin_email', 'admin_password', 'billing_profile_type', 'billing_tax_id', 'billing_legal_name', 'billing_trade_name', 'billing_email', 'billing_phone', 'billing_postal_code', 'billing_street', 'billing_number', 'billing_complement', 'billing_neighborhood', 'billing_city', 'billing_state', 'billing_country', 'billing_municipal_registration', 'billing_tax_regime', 'billing_profile_required', 'billing_profile_completed_at', 'data'])]
+#[Fillable(['name', 'slug', 'status', 'stripe_id', 'stripe_subscription_id', 'plan_id', 'scheduled_plan_id', 'storage_alert_threshold', 'trial_ends_at', 'encryption_key', 'database_created', 'setup_completed_at', 'trial_extended', 'admin_name', 'admin_email', 'admin_password', 'billing_profile_type', 'billing_tax_id', 'billing_legal_name', 'billing_trade_name', 'billing_email', 'billing_phone', 'billing_postal_code', 'billing_street', 'billing_number', 'billing_complement', 'billing_neighborhood', 'billing_city', 'billing_state', 'billing_country', 'billing_municipal_registration', 'billing_tax_regime', 'billing_profile_required', 'billing_profile_completed_at', 'cancelled_at', 'wipe_scheduled_at', 'wiped_at', 'ai_document_transfer_accepted_at', 'pii_encrypted_at', 'wipe_notice_d60_sent_at', 'wipe_notice_d83_sent_at', 'data'])]
 #[Hidden([
     'admin_password',
     'encryption_key',
@@ -103,6 +111,13 @@ class Tenant extends BaseTenant implements TenantWithDatabase
             'billing_profile_completed_at' => 'datetime',
             'database_created' => 'boolean',
             'trial_extended' => 'boolean',
+            'cancelled_at' => 'datetime',
+            'wipe_scheduled_at' => 'datetime',
+            'wiped_at' => 'datetime',
+            'ai_document_transfer_accepted_at' => 'datetime',
+            'pii_encrypted_at' => 'datetime',
+            'wipe_notice_d60_sent_at' => 'datetime',
+            'wipe_notice_d83_sent_at' => 'datetime',
             'data' => 'array',
             'admin_password' => 'hashed',
         ];
@@ -310,9 +325,25 @@ class Tenant extends BaseTenant implements TenantWithDatabase
      */
     public function cancel(): self
     {
-        $this->update(['status' => self::STATUS_CANCELLED]);
+        $days = max(1, (int) config('privacy.cancelled_tenant_retention_days', 90));
+        $payload = ['status' => self::STATUS_CANCELLED];
+
+        if ($this->getAttribute('cancelled_at') === null) {
+            $payload['cancelled_at'] = now();
+        }
+
+        if ($this->getAttribute('wipe_scheduled_at') === null) {
+            $payload['wipe_scheduled_at'] = now()->addDays($days);
+        }
+
+        $this->update($payload);
 
         return $this;
+    }
+
+    public function hasAcceptedAiDocumentTransfer(): bool
+    {
+        return $this->getAttribute('ai_document_transfer_accepted_at') !== null;
     }
 
     /**
@@ -321,7 +352,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     public function generateEncryptionKey(): string
     {
         $key = base64_encode(random_bytes(32));
-        $this->update(['encryption_key' => $key]);
+        app(TenantKeyVault::class)->wrapAndStore($this, $key);
 
         return $key;
     }
@@ -412,6 +443,13 @@ class Tenant extends BaseTenant implements TenantWithDatabase
             'admin_name',
             'admin_email',
             'admin_password',
+            'cancelled_at',
+            'wipe_scheduled_at',
+            'wiped_at',
+            'ai_document_transfer_accepted_at',
+            'pii_encrypted_at',
+            'wipe_notice_d60_sent_at',
+            'wipe_notice_d83_sent_at',
             'data',
         ];
     }

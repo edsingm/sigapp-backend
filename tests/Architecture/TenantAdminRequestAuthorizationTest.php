@@ -47,6 +47,11 @@ class TenantAdminRequestAuthorizationTest extends TestCase
     {
         $requests = [
             self::ROOT_PATH.'app/Http/Requests/Tenant/StoreRequisicaoVeiculoRequest.php',
+            self::ROOT_PATH.'app/Http/Requests/Tenant/StoreLegalAcceptanceRequest.php',
+            self::ROOT_PATH.'app/Http/Requests/Tenant/AuthorizeTenantPrivacyRequest.php',
+            self::ROOT_PATH.'app/Http/Requests/Tenant/StorePrivacyErasureRequest.php',
+            self::ROOT_PATH.'app/Http/Requests/Tenant/AnonymizeProprietarioRequest.php',
+            self::ROOT_PATH.'app/Http/Requests/Tenant/AuthorizeTenantDirectorRequest.php',
         ];
 
         foreach ($requests as $file) {

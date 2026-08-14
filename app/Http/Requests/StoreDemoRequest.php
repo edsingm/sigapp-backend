@@ -27,6 +27,7 @@ class StoreDemoRequest extends FormRequest
             'land_context' => ['nullable', 'string', 'max:2000'],
             'source' => ['nullable', 'string', 'max:100'],
             'page' => ['nullable', 'string', 'max:100'],
+            'accepted_privacy' => ['required', 'accepted'],
         ];
     }
 

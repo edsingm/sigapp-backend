@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Api;
 
 use App\Events\DemoRequestReceived;
+use App\Models\Central\DemoRequest;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Tests\TestCase;
@@ -35,6 +36,7 @@ class DemoRequestApiTest extends TestCase
                 'land_context' => 'Terreno para análise',
                 'source' => 'demonstracao',
                 'page' => 'demonstracao',
+                'accepted_privacy' => true,
             ]);
 
         $response
@@ -50,7 +52,13 @@ class DemoRequestApiTest extends TestCase
             'source' => 'demonstracao',
             'page' => 'demonstracao',
             'ip_hash' => hash('sha256', '198.51.100.10'),
+            'accepted_privacy' => 1,
+            'privacy_document_key' => 'privacy_policy',
         ]);
+
+        $this->assertNotNull(
+            DemoRequest::query()->where('email', 'edson@example.com')->value('accepted_at')
+        );
 
         Event::assertDispatched(DemoRequestReceived::class);
     }
@@ -68,7 +76,22 @@ class DemoRequestApiTest extends TestCase
         $response
             ->assertUnprocessable()
             ->assertJsonPath('error.code', 'VALIDATION_ERROR')
-            ->assertJsonValidationErrors(['name', 'email', 'company']);
+            ->assertJsonValidationErrors(['name', 'email', 'company', 'accepted_privacy']);
+
+        $this->assertDatabaseCount('demo_requests', 0);
+    }
+
+    public function test_public_endpoint_rejects_demo_without_privacy_acceptance(): void
+    {
+        $this
+            ->withHeader('Host', 'localhost')
+            ->postJson('/api/v1/demo-request', [
+                'name' => 'Edson',
+                'email' => 'edson@example.com',
+                'company' => 'Empresa Teste',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('accepted_privacy');
 
         $this->assertDatabaseCount('demo_requests', 0);
     }
@@ -83,6 +106,7 @@ class DemoRequestApiTest extends TestCase
                     'name' => 'Visitante',
                     'email' => "visitor-{$attempt}@example.com",
                     'company' => 'Empresa Teste',
+                    'accepted_privacy' => true,
                 ])
                 ->assertCreated();
         }
@@ -94,6 +118,7 @@ class DemoRequestApiTest extends TestCase
                 'name' => 'Visitante',
                 'email' => 'visitor-six@example.com',
                 'company' => 'Empresa Teste',
+                'accepted_privacy' => true,
             ])
             ->assertTooManyRequests();
     }

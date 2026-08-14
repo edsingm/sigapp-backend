@@ -2,6 +2,7 @@
 
 namespace App\Models\Tenant;
 
+use App\Casts\EncryptedWithTenantKey;
 use App\Traits\HasDashboardCache;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -20,6 +21,8 @@ class CorretorExterno extends Model
      * Os atributos que devem ser convertidos.
      */
     protected $casts = [
+        'email' => EncryptedWithTenantKey::class,
+        'telefone' => EncryptedWithTenantKey::class,
         'creci' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',

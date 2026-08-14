@@ -36,6 +36,16 @@ Schedule::command('privacy:cleanup-consent-logs')
     ->name('privacy-cleanup-consent-logs')
     ->onOneServer()
     ->withoutOverlapping(120);
+Schedule::command('privacy:purge-cancelled-tenants')
+    ->daily()
+    ->name('privacy-purge-cancelled-tenants')
+    ->onOneServer()
+    ->withoutOverlapping(180);
+Schedule::command('privacy:purge-soft-deletes')
+    ->daily()
+    ->name('privacy-purge-soft-deletes')
+    ->onOneServer()
+    ->withoutOverlapping(180);
 Schedule::command('tenants:cleanup-pending')
     ->hourly()
     ->name('tenants-cleanup-pending')

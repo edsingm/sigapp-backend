@@ -88,6 +88,7 @@ class PublicTenantSubdomainAvailabilityTest extends TestCase
                 'admin_email' => "admin-{$subdomain}@example.com",
                 'admin_password' => 'Password123',
                 'accept_usage_contract' => true,
+                'accept_privacy_policy' => true,
             ], $plan);
 
             $this->fail('Expected the reserved structural subdomain to be rejected.');
@@ -131,6 +132,7 @@ class PublicTenantSubdomainAvailabilityTest extends TestCase
                 'admin_email' => 'nova@example.com',
                 'admin_password' => 'Password123',
                 'accept_usage_contract' => true,
+                'accept_privacy_policy' => true,
             ]);
 
         $response

@@ -7,6 +7,7 @@ namespace Tests\Unit\Services\Tenant;
 use App\Models\Tenant\AiRequestLog;
 use App\Models\Tenant\Terreno;
 use App\Services\Ai\Agents\SIG_IA;
+use App\Services\Ai\Tools\AiDataRedactor;
 use App\Services\Ai\Tools\AiProviderRouter;
 use App\Services\Ai\Tools\AiTelemetryService;
 use App\Services\Ai\Tools\AnalyticsTool;
@@ -82,7 +83,7 @@ class TerrenoAiReportServiceTest extends TestCase
 
         $service = new TerrenoAiReportService(
             new TerrenoAiReportDataService(new TerrenoAiReportMapRenderer),
-            new TerrenoAiNarrativeService($telemetry),
+            new TerrenoAiNarrativeService($telemetry, new AiDataRedactor),
         );
         $result = $service->build($this->makeTerreno());
 
@@ -106,7 +107,7 @@ class TerrenoAiReportServiceTest extends TestCase
         ));
         $this->stubProviderRouter($agent);
 
-        $result = (new TerrenoAiNarrativeService($telemetry))->generate($this->context());
+        $result = (new TerrenoAiNarrativeService($telemetry, new AiDataRedactor))->generate($this->context());
 
         $this->assertSame('**Resumo Executivo**\nNarrativa gerada.', $result['markdown']);
         $this->assertStringContainsString('<strong>Resumo Executivo</strong>', $result['html']);
@@ -127,7 +128,7 @@ class TerrenoAiReportServiceTest extends TestCase
         $agent->shouldReceive('prompt')->once()->andThrow(new RuntimeException('provider indisponível'));
         $this->stubProviderRouter($agent);
 
-        $result = (new TerrenoAiNarrativeService($telemetry))->generate($this->context());
+        $result = (new TerrenoAiNarrativeService($telemetry, new AiDataRedactor))->generate($this->context());
 
         $this->assertStringContainsString('A IA não conseguiu redigir a narrativa completa', $result['markdown']);
         $this->assertStringContainsString('provider indisponível', $result['markdown']);
@@ -154,7 +155,7 @@ class TerrenoAiReportServiceTest extends TestCase
         $agent->shouldNotReceive('prompt');
         $this->stubProviderRouter($agent);
 
-        $result = (new TerrenoAiNarrativeService($telemetry))->generate($this->context());
+        $result = (new TerrenoAiNarrativeService($telemetry, new AiDataRedactor))->generate($this->context());
 
         $this->assertStringContainsString('orçamento excedido', $result['markdown']);
     }

@@ -2,6 +2,7 @@
 
 namespace App\Models\Tenant;
 
+use App\Casts\EncryptedWithTenantKey;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -18,6 +19,9 @@ class TerrenoContato extends Model
      * @var array<string, string>
      */
     protected $casts = [
+        'email' => EncryptedWithTenantKey::class,
+        'telefone' => EncryptedWithTenantKey::class,
+        'observacoes' => EncryptedWithTenantKey::class,
         'terreno_id' => 'int',
         'created_by' => 'int',
         'updated_by' => 'int',

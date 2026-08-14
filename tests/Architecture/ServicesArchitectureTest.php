@@ -60,6 +60,9 @@ class ServicesArchitectureTest extends TestCase
         'app/Services/Tenant/TerrenoAiNarrativeService.php',
         'app/Services/Tenant/AiReportGenerationService.php',
         'app/Services/Tenant/SubdomainPolicyService.php',
+        'app/Services/Privacy/LegalDocumentService.php',
+        'app/Services/Privacy/PrivacySubjectService.php',
+        'app/Services/Privacy/PrivacyRequestService.php',
     ];
 
     /**

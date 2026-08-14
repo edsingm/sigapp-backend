@@ -18,6 +18,7 @@ class CentralUserResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'is_admin' => (bool) $this->is_admin,
+            'is_dpo' => (bool) $this->is_dpo,
             'email_verified_at' => $this->email_verified_at?->toIso8601String(),
             'role' => $this->is_admin ? 'sigapp' : null,
             'roles' => $this->is_admin ? ['sigapp'] : [],

@@ -2,6 +2,7 @@
 
 namespace App\Models\Tenant;
 
+use App\Casts\EncryptedWithTenantKey;
 use App\Services\Billing\BrazilianTaxIdValidator;
 use App\Traits\HasDashboardCache;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -12,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Table('terreno_proprietarios')]
-#[Fillable(['terreno_id', 'nome', 'rg', 'cpf_cnpj', 'nascimento', 'tipo_pessoa', 'estado_civil', 'nacionalidade', 'profissao', 'porcentagem_terreno', 'email', 'telefone', 'endereco', 'cidade', 'estado', 'cep', 'conjuge', 'conjuge_rg', 'conjuge_nascimento', 'conjuge_cpf_cnpj', 'observacoes', 'created_by', 'updated_by'])]
+#[Fillable(['terreno_id', 'nome', 'rg', 'cpf_cnpj', 'cpf_cnpj_hash', 'nascimento', 'tipo_pessoa', 'estado_civil', 'nacionalidade', 'profissao', 'porcentagem_terreno', 'email', 'telefone', 'endereco', 'cidade', 'estado', 'cep', 'conjuge', 'conjuge_rg', 'conjuge_nascimento', 'conjuge_cpf_cnpj', 'observacoes', 'created_by', 'updated_by'])]
 /**
  * @property int $id
  * @property-read Terreno|null $terreno
@@ -35,7 +36,26 @@ class Proprietario extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
+        'rg' => EncryptedWithTenantKey::class,
+        'cpf_cnpj' => EncryptedWithTenantKey::class,
+        'email' => EncryptedWithTenantKey::class,
+        'telefone' => EncryptedWithTenantKey::class,
+        'endereco' => EncryptedWithTenantKey::class,
+        'cep' => EncryptedWithTenantKey::class,
+        'conjuge_rg' => EncryptedWithTenantKey::class,
+        'conjuge_cpf_cnpj' => EncryptedWithTenantKey::class,
+        'observacoes' => EncryptedWithTenantKey::class,
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (Proprietario $model): void {
+            $cpf = (string) ($model->cpf_cnpj ?? '');
+            $model->cpf_cnpj_hash = $cpf !== ''
+                ? hash('sha256', BrazilianTaxIdValidator::normalizeTaxId($cpf))
+                : null;
+        });
+    }
 
     /**
      * @return list<string>
@@ -95,12 +115,35 @@ class Proprietario extends Model
         return preg_replace('/([A-Z0-9]{2})([A-Z0-9]{3})([A-Z0-9]{3})([A-Z0-9]{4})(\d{2})/', '$1.$2.$3/$4-$5', $cleaned) ?? $value;
     }
 
+    public static function maskTaxId(?string $value, ?string $tipo): ?string
+    {
+        if ($value === null || $value === '') {
+            return $value;
+        }
+
+        if ($tipo === self::TIPO_FISICA) {
+            $digits = BrazilianTaxIdValidator::digits($value);
+            if (strlen($digits) !== 11) {
+                return '***.***.***-**';
+            }
+
+            return '***.***.***-'.substr($digits, -2);
+        }
+
+        $normalized = BrazilianTaxIdValidator::normalizeTaxId($value);
+        if (strlen($normalized) !== 14) {
+            return '**.***.***/****-**';
+        }
+
+        return '**.***.***/****-'.substr($normalized, -2);
+    }
+
     /**
      * Acessor para formatar CPF/CNPJ
      */
     public function getCpfCnpjFormatadoAttribute(): string
     {
-        return $this->formatarCpfCnpj($this->cpf_cnpj, $this->tipo_pessoa);
+        return self::maskTaxId($this->cpf_cnpj, $this->tipo_pessoa) ?? '';
     }
 
     /**
@@ -108,7 +151,7 @@ class Proprietario extends Model
      */
     public function getConjugeCpfCnpjFormatadoAttribute(): string
     {
-        return $this->formatarCpfCnpj($this->conjuge_cpf_cnpj, self::TIPO_FISICA);
+        return self::maskTaxId($this->conjuge_cpf_cnpj, self::TIPO_FISICA) ?? '';
     }
 
     /**

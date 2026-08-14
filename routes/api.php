@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\Admin\HiperdadosImportController;
 use App\Http\Controllers\Api\V1\Admin\PlanAdminController;
 use App\Http\Controllers\Api\V1\Admin\PlatformAnnouncementController;
 use App\Http\Controllers\Api\V1\Admin\PostController;
+use App\Http\Controllers\Api\V1\Admin\PrivacyRequestController;
 use App\Http\Controllers\Api\V1\Admin\TenantAddonAdminController;
 use App\Http\Controllers\Api\V1\Admin\TenantController;
 use App\Http\Controllers\Api\V1\Admin\TenantPlanController;
@@ -21,6 +22,7 @@ use App\Http\Controllers\Api\V1\CentralAuthController;
 use App\Http\Controllers\Api\V1\ConsentLogController;
 use App\Http\Controllers\Api\V1\DemoRequestController;
 use App\Http\Controllers\Api\V1\LanguageController;
+use App\Http\Controllers\Api\V1\LegalDocumentController;
 use App\Http\Controllers\Api\V1\PlanController;
 use App\Http\Controllers\Api\V1\PublicTenantController;
 use App\Http\Controllers\Api\V1\SignupController;
@@ -112,6 +114,9 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
                     Route::post('/consent-log', [ConsentLogController::class, 'store'])
                         ->withoutMiddleware(['throttle:api-public'])
                         ->middleware('throttle:consent-log');
+
+                    Route::get('/legal/documents', [LegalDocumentController::class, 'index'])
+                        ->name($routeNamePrefix.'legal.documents.index');
                 });
 
                 // Authenticated routes (central app)
@@ -152,6 +157,19 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
                         Route::get('/tenants/{tenant}', [TenantController::class, 'show'])->name('tenants.show');
                         Route::post('/tenants/{tenant}/activate', [TenantController::class, 'activate'])->name('tenants.activate');
                         Route::post('/tenants/{tenant}/suspend', [TenantController::class, 'suspend'])->name('tenants.suspend');
+                        Route::get('/tenants/{tenant}/privileged-access', [TenantController::class, 'privilegedAccess'])
+                            ->name('tenants.privileged-access');
+                        Route::post('/tenants/{tenant}/offboard', [TenantController::class, 'offboard'])
+                            ->name('tenants.offboard');
+                        Route::post('/tenants/{tenant}/wipe', [TenantController::class, 'wipe'])
+                            ->name('tenants.wipe');
+                        Route::post('/tenants/{tenant}/portability-export', [TenantController::class, 'portabilityExport'])
+                            ->name('tenants.portability-export');
+
+                        Route::get('/privacy/requests', [PrivacyRequestController::class, 'index'])->name('privacy.requests.index');
+                        Route::post('/privacy/requests', [PrivacyRequestController::class, 'store'])->name('privacy.requests.store');
+                        Route::get('/privacy/requests/{id}', [PrivacyRequestController::class, 'show'])->name('privacy.requests.show');
+                        Route::patch('/privacy/requests/{id}', [PrivacyRequestController::class, 'update'])->name('privacy.requests.update');
 
                         // Tenant Plan Management
                         Route::post('/tenants/{id}/plan', [TenantPlanController::class, 'assignPlan'])->name('tenants.plan.assign');

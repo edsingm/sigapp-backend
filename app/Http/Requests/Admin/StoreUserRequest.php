@@ -21,6 +21,7 @@ class StoreUserRequest extends FormRequest
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8'],
             'is_admin' => ['sometimes', 'boolean'],
+            'is_dpo' => ['sometimes', 'boolean'],
         ];
     }
 }

@@ -26,6 +26,7 @@ class UpdateUserRequest extends FormRequest
             'email' => ['sometimes', 'email', Rule::unique('users', 'email')->ignore($userId)],
             'password' => ['nullable', 'string', 'min:8'],
             'is_admin' => ['sometimes', 'boolean'],
+            'is_dpo' => ['sometimes', 'boolean'],
         ];
     }
 }

@@ -19,6 +19,8 @@ class DemoRequestService
      */
     public function register(array $data, ?string $ipAddress, ?string $userAgent): DemoRequest
     {
+        $privacy = (array) config('legal.privacy_policy', []);
+
         $demoRequest = $this->repository->create([
             'name' => (string) $data['name'],
             'email' => (string) $data['email'],
@@ -30,6 +32,11 @@ class DemoRequestService
             'page' => isset($data['page']) ? (string) $data['page'] : null,
             'ip_hash' => hash('sha256', $ipAddress ?? ''),
             'user_agent' => substr($userAgent ?? '', 0, 500),
+            'accepted_privacy' => true,
+            'accepted_at' => now(),
+            'privacy_document_key' => (string) ($privacy['key'] ?? 'privacy_policy'),
+            'privacy_document_version' => isset($privacy['version']) ? (string) $privacy['version'] : null,
+            'privacy_document_hash' => isset($privacy['hash']) ? (string) $privacy['hash'] : null,
         ]);
 
         DemoRequestReceived::dispatch($demoRequest);

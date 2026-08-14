@@ -17,7 +17,7 @@ class StoreTenantExportRequest extends FormRequest
     public function authorize(): bool
     {
         $type = TenantExportType::tryFrom((string) $this->input('type'));
-        if ($type === null) {
+        if ($type === null || ! $type->isOperationalExport()) {
             return $this->user() !== null;
         }
 
@@ -45,7 +45,10 @@ class StoreTenantExportRequest extends FormRequest
 
         return [
             'idempotency_key' => ['required', 'uuid'],
-            'type' => ['required', Rule::enum(TenantExportType::class)],
+            'type' => ['required', Rule::enum(TenantExportType::class)->except([
+                TenantExportType::SUBJECT_PORTABILITY,
+                TenantExportType::TENANT_PORTABILITY,
+            ])],
             'subject_id' => [
                 Rule::requiredIf($requiresSubject),
                 Rule::prohibitedIf($type !== null && ! $requiresSubject),

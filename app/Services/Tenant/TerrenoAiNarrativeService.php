@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Tenant;
 
 use App\Models\Tenant\AiRequestLog;
+use App\Services\Ai\Tools\AiDataRedactor;
 use App\Services\Ai\Tools\AiProviderRouter;
 use App\Services\Ai\Tools\AiTelemetryService;
 use Illuminate\Support\Facades\Auth;
@@ -15,13 +16,15 @@ final class TerrenoAiNarrativeService
 {
     public function __construct(
         private readonly AiTelemetryService $telemetryService,
+        private readonly AiDataRedactor $redactor,
     ) {}
 
     /** @return array{markdown: string, html: string} */
     public function generate(array $context): array
     {
-        $jsonContext = json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT)
-            ?: '{}';
+        $jsonContext = $this->redactor->redactText(
+            json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) ?: '{}',
+        );
 
         $prompt = <<<PROMPT
 Você está escrevendo um relatório executivo do SIG IA para um terreno específico.

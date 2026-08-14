@@ -27,6 +27,11 @@ class DemoRequestFactory extends Factory
             'page' => 'demonstracao',
             'ip_hash' => hash('sha256', fake()->ipv4()),
             'user_agent' => fake()->userAgent(),
+            'accepted_privacy' => true,
+            'accepted_at' => now(),
+            'privacy_document_key' => 'privacy_policy',
+            'privacy_document_version' => (string) config('legal.privacy_policy.version'),
+            'privacy_document_hash' => (string) config('legal.privacy_policy.hash'),
         ];
     }
 }

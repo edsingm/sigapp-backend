@@ -136,6 +136,8 @@ Route::middleware('check.feature:product_settings')->group(function () {
 
 // Proprietarios
 Route::get('/proprietarios/select', [ProprietariosController::class, 'proprietariosForSelect']);
+Route::post('/proprietarios/{proprietario}/anonymize', [ProprietariosController::class, 'anonymize'])
+    ->name('tenant.proprietarios.anonymize');
 Route::apiResource('proprietarios', ProprietariosController::class);
 
 // Terreno Produtos

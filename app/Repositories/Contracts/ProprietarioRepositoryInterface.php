@@ -26,4 +26,9 @@ interface ProprietarioRepositoryInterface
     public function delete(Proprietario $proprietario): void;
 
     public function findWithRelations(int $id): ?Proprietario;
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    public function anonymize(Proprietario $proprietario, array $attributes): Proprietario;
 }

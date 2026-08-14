@@ -50,18 +50,23 @@ class BackfillTenantPiiEncryptionJob implements ShouldBeUnique, ShouldQueue
                 return;
             }
 
-            Proprietario::query()->orderBy('id')->chunkById(100, function ($proprietarios): void {
-                foreach ($proprietarios as $proprietario) {
-                    $raw = (string) ($proprietario->getAttributes()['cpf_cnpj'] ?? '');
-                    $plain = $proprietario->cpf_cnpj;
-                    $hashSource = is_string($plain) && $plain !== '' ? $plain : $raw;
-                    $normalized = $hashSource !== '' ? BrazilianTaxIdValidator::normalizeTaxId($hashSource) : '';
-
-                    $proprietario->forceFill([
-                        'cpf_cnpj_hash' => $normalized !== '' ? hash('sha256', $normalized) : null,
-                    ])->save();
+            $ids = Proprietario::query()->orderBy('id')->pluck('id');
+            foreach ($ids as $id) {
+                /** @var Proprietario|null $proprietario */
+                $proprietario = Proprietario::query()->find($id);
+                if ($proprietario === null) {
+                    continue;
                 }
-            });
+
+                $raw = (string) ($proprietario->getAttributes()['cpf_cnpj'] ?? '');
+                $plain = $proprietario->cpf_cnpj;
+                $hashSource = is_string($plain) && $plain !== '' ? $plain : $raw;
+                $normalized = $hashSource !== '' ? BrazilianTaxIdValidator::normalizeTaxId($hashSource) : '';
+
+                $proprietario->forceFill([
+                    'cpf_cnpj_hash' => $normalized !== '' ? hash('sha256', $normalized) : null,
+                ])->save();
+            }
         });
 
         $tenant->update(['pii_encrypted_at' => now()]);

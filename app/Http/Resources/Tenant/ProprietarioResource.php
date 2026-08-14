@@ -15,14 +15,16 @@ class ProprietarioResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $tipoPessoa = $this->tipo_pessoa;
+
         return [
             'id' => $this->id,
             'terreno_id' => $this->terreno_id,
             'nome' => $this->nome,
             'rg' => $this->rg,
-            'cpf_cnpj' => Proprietario::maskTaxId($this->cpf_cnpj, $this->tipo_pessoa),
+            'cpf_cnpj' => Proprietario::maskTaxId($this->cpf_cnpj, $tipoPessoa),
             'nascimento' => $this->nascimento?->format('Y-m-d'),
-            'tipo_pessoa' => $this->tipo_pessoa,
+            'tipo_pessoa' => $tipoPessoa,
             'estado_civil' => $this->estado_civil,
             'nacionalidade' => $this->nacionalidade,
             'profissao' => $this->profissao,

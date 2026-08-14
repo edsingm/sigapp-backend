@@ -30,6 +30,8 @@ use Stancl\Tenancy\Database\Concerns\CentralConnection;
  * @property int|null $assigned_to
  * @property string|null $notes
  * @property string|null $export_path
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
  */
 #[Fillable([
     'protocol',

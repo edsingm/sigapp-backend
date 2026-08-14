@@ -47,6 +47,6 @@ class PrivacySubjectRepository
         DocumentAnalysis::query()->whereIn('documento_id', $documentIds)->delete();
         AiDocumentChunk::query()->whereIn('document_id', $documentIds)->delete();
 
-        return $documentIds;
+        return array_values($documentIds);
     }
 }

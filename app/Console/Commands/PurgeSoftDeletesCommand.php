@@ -18,6 +18,7 @@ use App\Models\Tenant\Proprietario;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\Viabilidade;
 use Illuminate\Console\Command;
+use Illuminate\Database\Eloquent\Collection;
 
 class PurgeSoftDeletesCommand extends Command
 {
@@ -34,7 +35,7 @@ class PurgeSoftDeletesCommand extends Command
         $aiCutoff = now()->subDays(max(1, (int) config('privacy.ai_log_retention_days', 90)));
         $removed = 0;
 
-        /** @var \Illuminate\Database\Eloquent\Collection<int, Tenant> $tenants */
+        /** @var Collection<int, Tenant> $tenants */
         $tenants = Tenant::query()
             ->where('status', Tenant::STATUS_ACTIVE)
             ->where('database_created', true)

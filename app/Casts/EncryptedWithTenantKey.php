@@ -42,7 +42,7 @@ class EncryptedWithTenantKey implements CastsAttributes
 
         $encrypter = app(TenantEncrypter::class);
         if (! $encrypter->isConfigured()) {
-            return is_string($value) ? $value : null;
+            return $value;
         }
 
         return $encrypter->encrypt((string) $value);

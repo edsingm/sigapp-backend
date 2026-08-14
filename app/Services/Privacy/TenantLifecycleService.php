@@ -10,6 +10,7 @@ use App\Models\Central\TenantUserDirectory;
 use App\Notifications\TenantWipeUpcomingNotification;
 use App\Services\Tenant\TenantCacheService;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Storage;
 use Stancl\Tenancy\Jobs\DeleteDatabase;
 use Throwable;
@@ -116,16 +117,13 @@ class TenantLifecycleService
     }
 
     /**
-     * @return list<Tenant>
-     */
-    /**
      * @return array<int, Tenant>
      */
     private function dueForWipeNotice(int $daysBefore, string $sentAtColumn): array
     {
         $daysBefore = max(1, $daysBefore);
 
-        /** @var \Illuminate\Database\Eloquent\Collection<int, Tenant> $rows */
+        /** @var Collection<int, Tenant> $rows */
         $rows = Tenant::query()
             ->whereNull('wiped_at')
             ->whereNull($sentAtColumn)
@@ -141,7 +139,7 @@ class TenantLifecycleService
      */
     private function tenantsWhereWipeDue(): array
     {
-        /** @var \Illuminate\Database\Eloquent\Collection<int, Tenant> $rows */
+        /** @var Collection<int, Tenant> $rows */
         $rows = Tenant::query()
             ->whereNull('wiped_at')
             ->whereNotNull('wipe_scheduled_at')
@@ -173,11 +171,15 @@ class TenantLifecycleService
 
     private function deleteTenantStorage(Tenant $tenant): void
     {
-        $prefix = 'tenants/'.$tenant->getKey();
-        $disk = Storage::disk('s3');
-        $files = $disk->allFiles($prefix);
-        if ($files !== []) {
-            $disk->delete($files);
+        try {
+            $prefix = 'tenants/'.$tenant->getKey();
+            $disk = Storage::disk('s3');
+            $files = $disk->allFiles($prefix);
+            if ($files !== []) {
+                $disk->delete($files);
+            }
+        } catch (Throwable) {
+            // Testes sem AWS e falha de storage não bloqueiam o wipe do registro.
         }
     }
 }

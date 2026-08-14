@@ -15,7 +15,10 @@ class UserRepository
 
     public function first(): ?User
     {
-        return User::query()->orderBy('id')->first();
+        /** @var User|null $user */
+        $user = User::query()->orderBy('id')->first();
+
+        return $user;
     }
 
     /**

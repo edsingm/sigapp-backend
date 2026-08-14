@@ -89,32 +89,6 @@ class Proprietario extends Model
         return $this->belongsTo(User::class, 'updated_by');
     }
 
-    /**
-     * Auxiliar para formatar CPF ou CNPJ
-     */
-    private function formatarCpfCnpj(?string $value, ?string $tipo): string
-    {
-        if (empty($value)) {
-            return '';
-        }
-
-        if ($tipo === self::TIPO_FISICA) {
-            $cleaned = BrazilianTaxIdValidator::digits($value);
-            if (strlen($cleaned) !== 11) {
-                return $value;
-            }
-
-            return preg_replace('/(\d{3})(\d{3})(\d{3})(\d{2})/', '$1.$2.$3-$4', $cleaned) ?? $value;
-        }
-
-        $cleaned = BrazilianTaxIdValidator::normalizeTaxId($value);
-        if (strlen($cleaned) !== 14) {
-            return $value;
-        }
-
-        return preg_replace('/([A-Z0-9]{2})([A-Z0-9]{3})([A-Z0-9]{3})([A-Z0-9]{4})(\d{2})/', '$1.$2.$3/$4-$5', $cleaned) ?? $value;
-    }
-
     public static function maskTaxId(?string $value, ?string $tipo): ?string
     {
         if ($value === null || $value === '') {

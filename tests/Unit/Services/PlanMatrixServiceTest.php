@@ -66,6 +66,7 @@ class PlanMatrixServiceTest extends TestCase
             'reports.builder',
             'territorial.map_comparison',
             'documents.intelligence',
+            'ai.advanced',
             'ai.contextual',
             'mobile.capture',
             'onboarding.profile',
@@ -90,7 +91,6 @@ class PlanMatrixServiceTest extends TestCase
                 'collaboration.tasks',
                 'collaboration.inbox',
                 'prospection.comparison',
-                'viabilities.scenarios',
                 'search.global',
                 'workspace.saved_views',
                 'workspace.personalization',
@@ -110,12 +110,10 @@ class PlanMatrixServiceTest extends TestCase
                 'dashboard.management',
                 'committee.meeting',
                 'committee.meeting_mode',
-                'legalization.control_center',
                 'search.global',
                 'workspace.saved_views',
                 'workspace.personalization',
                 'reports.builder',
-                'documents.intelligence',
                 'mobile.capture',
                 'onboarding.profile',
                 'dashboard.personalization',
@@ -144,9 +142,66 @@ class PlanMatrixServiceTest extends TestCase
         $pro = Plan::where('slug', 'pro')->firstOrFail();
 
         $this->assertTrue($service->hasFeature($master, 'ai'));
+        $this->assertFalse($service->hasFeature($master, 'ai.advanced'));
         $this->assertFalse($service->hasFeature($master, 'ai.contextual'));
+        $this->assertFalse($service->hasFeature($master, 'documents.intelligence'));
         $this->assertTrue($service->hasFeature($pro, 'ai'));
+        $this->assertTrue($service->hasFeature($pro, 'ai.advanced'));
         $this->assertTrue($service->hasFeature($pro, 'ai.contextual'));
+        $this->assertTrue($service->hasFeature($pro, 'documents.intelligence'));
+    }
+
+    public function test_it_applies_workflow_cut_a_across_plans(): void
+    {
+        $service = app(PlanMatrixService::class);
+        $broker = Plan::where('slug', 'broker')->firstOrFail();
+        $basico = Plan::where('slug', 'basico')->firstOrFail();
+        $master = Plan::where('slug', 'master')->firstOrFail();
+        $pro = Plan::where('slug', 'pro')->firstOrFail();
+
+        $this->assertFalse($service->hasFeature($broker, 'viabilities.enabled'));
+        $this->assertFalse($service->hasFeature($broker, 'negotiation'));
+        $this->assertSame(1, $service->getLimit($broker, 'storage_gb'));
+        $this->assertEquals(0, $service->getLimit($broker, 'ai_budget'));
+
+        $this->assertTrue($service->hasFeature($basico, 'viabilities.enabled'));
+        $this->assertTrue($service->hasFeature($basico, 'viabilities.kpis'));
+        $this->assertTrue($service->hasFeature($basico, 'viabilities.premises'));
+        $this->assertFalse($service->hasFeature($basico, 'viabilities.scenarios'));
+        $this->assertFalse($service->hasFeature($basico, 'viabilities.cash_flow'));
+        $this->assertFalse($service->hasFeature($basico, 'committee'));
+        $this->assertFalse($service->hasFeature($basico, 'negotiation'));
+        $this->assertFalse($service->hasFeature($basico, 'ai'));
+        $this->assertFalse($service->hasFeature($master, 'documents.intelligence'));
+        $this->assertFalse($service->hasFeature($master, 'ai.advanced'));
+        $this->assertFalse($service->hasFeature($master, 'ai.contextual'));
+        $this->assertSame(5, $service->getLimit($basico, 'storage_gb'));
+        $this->assertEquals(0, $service->getLimit($basico, 'ai_budget'));
+
+        $this->assertTrue($service->hasFeature($master, 'ai'));
+        $this->assertTrue($service->hasFeature($master, 'committee'));
+        $this->assertTrue($service->hasFeature($master, 'negotiation'));
+        $this->assertFalse($service->hasFeature($master, 'legalizations'));
+        $this->assertTrue($service->hasFeature($master, 'viabilities.scenarios'));
+        $this->assertTrue($service->hasFeature($master, 'viabilities.kpis'));
+        $this->assertTrue($service->hasFeature($master, 'viabilities.charts'));
+        $this->assertFalse($service->hasFeature($master, 'negotiation.deal_room'));
+        $this->assertFalse($service->hasFeature($master, 'legalization.control_center'));
+        $this->assertFalse($service->hasFeature($master, 'projects.enabled'));
+        $this->assertSame(10, $service->getLimit($master, 'storage_gb'));
+
+        $this->assertTrue($service->hasFeature($pro, 'legalizations'));
+        $this->assertTrue($service->hasFeature($pro, 'negotiation.deal_room'));
+        $this->assertTrue($service->hasFeature($pro, 'legalization.control_center'));
+        $this->assertTrue($service->hasFeature($pro, 'projects.enabled'));
+        $this->assertTrue($service->hasFeature($pro, 'projects.planning'));
+        $this->assertTrue($service->hasFeature($pro, 'documents.intelligence'));
+        $this->assertTrue($service->hasFeature($pro, 'ai.advanced'));
+        $this->assertTrue($service->hasFeature($pro, 'ai.contextual'));
+        $this->assertSame(20, $service->getLimit($pro, 'storage_gb'));
+
+        $this->assertTrue($master->is_popular);
+        $this->assertFalse($pro->is_popular);
     }
 
     public function test_it_preserves_the_projects_room_alias_for_the_pro_plan(): void

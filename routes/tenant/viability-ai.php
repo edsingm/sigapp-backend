@@ -64,42 +64,42 @@ Route::middleware('check.feature:ai')->group(function () {
     Route::get('/ai/budget', [AiController::class, 'budgetStatus']);
     Route::post('/ai/sig-ai', [AiController::class, 'chat'])
         ->middleware('ai.rate_limit', 'ai.budget');
-    Route::post('/ai/terrenos/{id}/relatorio-pdf', [AiTerrenoReportController::class, 'generate'])
-        ->middleware('ai.rate_limit', 'ai.budget')
-        ->whereNumber('id');
-    Route::post('/ai/terrenos/{id}/relatorio-pdf/jobs', [AiTerrenoReportController::class, 'generateAsync'])
-        ->middleware('ai.rate_limit', 'ai.budget')
-        ->whereNumber('id')
-        ->name('ai.terreno-reports.store');
-    Route::get('/ai/terrenos/{id}/relatorio-pdf/jobs/{generation}', [AiTerrenoReportController::class, 'status'])
-        ->whereNumber('id')
-        ->whereNumber('generation')
-        ->name('ai.terreno-reports.status');
-    Route::get('/ai/reports/{id}/download', [AiGeneratedReportController::class, 'download'])
-        ->whereNumber('id')
-        ->name('ai.reports.download');
 
-    // AI Scoring
-    Route::prefix('ai/scoring')->group(function () {
-        Route::get('/ranking', [AiScoringController::class, 'getRanking']);
-        Route::post('/recalculate', [AiScoringController::class, 'recalculateAll']);
-        Route::get('/{terreno_id}', [AiScoringController::class, 'getScore'])
-            ->whereNumber('terreno_id');
-    });
+    Route::middleware('check.feature:ai.advanced')->group(function () {
+        Route::post('/ai/terrenos/{id}/relatorio-pdf', [AiTerrenoReportController::class, 'generate'])
+            ->middleware('ai.rate_limit', 'ai.budget')
+            ->whereNumber('id');
+        Route::post('/ai/terrenos/{id}/relatorio-pdf/jobs', [AiTerrenoReportController::class, 'generateAsync'])
+            ->middleware('ai.rate_limit', 'ai.budget')
+            ->whereNumber('id')
+            ->name('ai.terreno-reports.store');
+        Route::get('/ai/terrenos/{id}/relatorio-pdf/jobs/{generation}', [AiTerrenoReportController::class, 'status'])
+            ->whereNumber('id')
+            ->whereNumber('generation')
+            ->name('ai.terreno-reports.status');
+        Route::get('/ai/reports/{id}/download', [AiGeneratedReportController::class, 'download'])
+            ->whereNumber('id')
+            ->name('ai.reports.download');
 
-    // AI Automation
-    Route::prefix('ai/automation')->group(function () {
-        Route::post('/tasks', [AiTaskController::class, 'store']);
-        Route::put('/tasks/{taskId}', [AiTaskController::class, 'update']);
-        Route::post('/workflow/transition', [AiWorkflowController::class, 'transition']);
-        Route::get('/monitor', [AiMonitorController::class, 'index']);
-    });
+        Route::prefix('ai/scoring')->group(function () {
+            Route::get('/ranking', [AiScoringController::class, 'getRanking']);
+            Route::post('/recalculate', [AiScoringController::class, 'recalculateAll']);
+            Route::get('/{terreno_id}', [AiScoringController::class, 'getScore'])
+                ->whereNumber('terreno_id');
+        });
 
-    // AI Predictive Analysis
-    Route::prefix('ai/predictive')->group(function () {
-        Route::get('/approval/{terreno_id}', [AiPredictiveAnalysisController::class, 'predictApproval']);
-        Route::get('/vgv/{terreno_id}', [AiPredictiveAnalysisController::class, 'estimateVgv']);
-        Route::get('/stalling', [AiPredictiveAnalysisController::class, 'stallingForecast']);
+        Route::prefix('ai/automation')->group(function () {
+            Route::post('/tasks', [AiTaskController::class, 'store']);
+            Route::put('/tasks/{taskId}', [AiTaskController::class, 'update']);
+            Route::post('/workflow/transition', [AiWorkflowController::class, 'transition']);
+            Route::get('/monitor', [AiMonitorController::class, 'index']);
+        });
+
+        Route::prefix('ai/predictive')->group(function () {
+            Route::get('/approval/{terreno_id}', [AiPredictiveAnalysisController::class, 'predictApproval']);
+            Route::get('/vgv/{terreno_id}', [AiPredictiveAnalysisController::class, 'estimateVgv']);
+            Route::get('/stalling', [AiPredictiveAnalysisController::class, 'stallingForecast']);
+        });
     });
 
     Route::middleware('check.feature:ai.contextual')->group(function () {

@@ -60,7 +60,7 @@ class ViabilidadeResultProjectorTest extends TestCase
 
         self::assertArrayHasKey('vgv', $projected);
         self::assertArrayHasKey('dre_itens', $projected);
-        self::assertArrayNotHasKey('indicadores', $projected);
+        self::assertArrayHasKey('indicadores', $projected);
         self::assertArrayNotHasKey('fluxo_mensal', $projected);
         self::assertArrayNotHasKey('dados_produtos', $projected);
     }
@@ -70,13 +70,13 @@ class ViabilidadeResultProjectorTest extends TestCase
         $projector = app(ViabilidadeResultProjector::class);
 
         try {
-            $projector->assertExplicitIncludesAllowed('indicadores');
+            $projector->assertExplicitIncludesAllowed('fluxo_mensal');
             self::fail('O include desabilitado deveria falhar.');
         } catch (PlanFeatureDisabledException $exception) {
-            self::assertSame('viabilities.kpis', $exception->feature);
+            self::assertSame('viabilities.cash_flow', $exception->feature);
         }
 
-        $entitlement = Entitlement::query()->where('key', 'viabilities.kpis')->firstOrFail();
+        $entitlement = Entitlement::query()->where('key', 'viabilities.cash_flow')->firstOrFail();
         TenantEntitlement::query()->create([
             'tenant_id' => $this->tenant->id,
             'entitlement_id' => $entitlement->id,
@@ -84,7 +84,7 @@ class ViabilidadeResultProjectorTest extends TestCase
             'price' => 0,
         ]);
 
-        $projector->assertExplicitIncludesAllowed('indicadores');
-        self::assertTrue($projector->allows('kpis'));
+        $projector->assertExplicitIncludesAllowed('fluxo_mensal');
+        self::assertTrue($projector->allows('cash_flow'));
     }
 }

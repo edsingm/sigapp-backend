@@ -18,7 +18,7 @@ class PlanSeeder extends Seeder
             [
                 'name' => 'SIG - Broker',
                 'slug' => 'broker',
-                'description' => 'Ideal para corretores gerenciarem seus terrenos',
+                'description' => 'Para o corretor que captura e organiza terrenos.',
                 'price' => 97.00,
                 'trial_days' => 7,
                 'is_active' => true,
@@ -28,7 +28,7 @@ class PlanSeeder extends Seeder
             [
                 'name' => 'SIG - Básico',
                 'slug' => 'basico',
-                'description' => 'Ideal para pequenas equipes que estão começando.',
+                'description' => 'Para a equipe pequena que precisa saber se o terreno fecha.',
                 'price' => 247.00,
                 'trial_days' => 7,
                 'is_active' => true,
@@ -38,21 +38,21 @@ class PlanSeeder extends Seeder
             [
                 'name' => 'SIG - Master',
                 'slug' => 'master',
-                'description' => 'Para equipes em crescimento que precisam de mais recursos.',
+                'description' => 'Para o time que decide em comitê e fecha o negócio.',
                 'price' => 597.00,
                 'trial_days' => 7,
                 'is_active' => true,
-                'is_popular' => false,
+                'is_popular' => true,
                 'sort_order' => 3,
             ],
             [
                 'name' => 'SIG - Pro',
                 'slug' => 'pro',
-                'description' => 'Para grandes organizações com necessidades específicas.',
+                'description' => 'Para a incorporadora que opera o ciclo inteiro, do lote ao projeto.',
                 'price' => 947.00,
                 'trial_days' => 7,
                 'is_active' => true,
-                'is_popular' => true,
+                'is_popular' => false,
                 'sort_order' => 4,
             ],
         ];

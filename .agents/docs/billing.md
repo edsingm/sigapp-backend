@@ -23,14 +23,21 @@
 - Os Prices dos add-ons são configurados por ambiente em `config/cashier.php` via `STRIPE_PRICE_ADDON_STORAGE_10GB`, `STRIPE_PRICE_ADDON_AI_BUDGET_5`, `STRIPE_PRICE_ADDON_REPORTS_BUILDER` e `STRIPE_PRICE_ADDON_GROWTH_BUNDLE`; `ai-budget-5` é avulso e os demais podem continuar mensais. O `BillingAddonSeeder` apenas sincroniza esses IDs no catálogo.
 - Enforcement de plano: middlewares `subscription.active`, `enforce.limits`, `check.feature` + `EntitlementService`/`PlanMatrixService`.
 - Alterações de catálogo/matriz são transacionais e invalidam os caches dos planos afetados somente após o commit. Valores administrativos são estritos: feature é boolean, limites são inteiros `>= 0` ou `-1`, e `ai_budget` aceita número não negativo. Todo upload ou arquivo gerado deve registrar seus metadados por `StorageQuotaService::commitFile()`, que mantém check de quota + persistência sob o mesmo lock e remove o objeto em caso de falha. O middleware `enforce.limits:storage_gb` é apenas rejeição antecipada. Use `plans:audit-entitlements` para auditoria read-only de catálogo, matrizes, aliases, dependências, arquivos ausentes e órfãos de storage.
-- O catálogo de features do roadmap frontend fica centralizado em
-  `Database\Seeders\EntitlementSeeder::roadmapFeatureMatrix()` e segue a
-  escada Broker → Básico → Master → Pro: operação individual, análise,
-  gestão e recursos estratégicos/IA. `onboarding.profile` e
-  `experience.accessibility` ficam disponíveis em todos os planos. Todo
-  entitlement possui `scope` (`api`, `ui`, `composite` ou `internal`); features
-  `api` precisam de gate `check.feature` ou projeção registrada e limites usam
-  sempre `internal`. `default_value` é somente template administrativo: toda
+- O catálogo de features fica em `EntitlementSeeder::planMatrix()` +
+  `roadmapFeatureMatrix()` e segue o recorte A pelo fluxo do terreno:
+  Broker (captação), Básico (análise usável), Master (decisão e fechamento),
+  Pro (operação completa). Básico libera `viabilities.summary`, `dre`, `kpis`
+  e `premises`; cenários (`viabilities.scenarios`) começam no Master.
+  Master tem `negotiation` e para no contrato; a IA do Master é só o chat
+  (`ai`). `legalizations`, `legalization.control_center`,
+  `negotiation.deal_room`, `projects.enabled`/`projects.planning`,
+  `documents.intelligence`, `ai.advanced` e `ai.contextual` são Pro.
+  `onboarding.profile` e `experience.accessibility` ficam em todos os planos.
+  Storage: Broker 1 GB, Básico 5 GB, Master 10 GB, Pro 20 GB. Básico não tem
+  `ai` nem `ai_budget`. Todo entitlement possui
+  `scope` (`api`, `ui`, `composite` ou `internal`); features `api` precisam
+  de gate `check.feature` ou projeção registrada e limites usam sempre
+  `internal`. `default_value` é somente template administrativo: toda
   associação persiste valor explícito e a autorização usa plano + override.
   Projetos usam `projects.enabled` para CRUD e `projects.planning` para
   milestones/dependências/riscos. `projects_room` e `projects.room` são aliases

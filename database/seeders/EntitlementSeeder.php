@@ -129,7 +129,7 @@ class EntitlementSeeder extends Seeder
                     'users' => 1,
                     'terrenos' => 50,
                     'products' => 1,
-                    'storage_gb' => 0,
+                    'storage_gb' => 1,
                     'ai_budget' => 0,
                 ],
             ],
@@ -149,8 +149,8 @@ class EntitlementSeeder extends Seeder
                     'viabilities.comercial' => false,
                     'viabilities.cash_flow' => false,
                     'viabilities.charts' => false,
-                    'viabilities.premises' => false,
-                    'viabilities.kpis' => false,
+                    'viabilities.premises' => true,
+                    'viabilities.kpis' => true,
                     'committee' => false,
                     'ai' => false,
                     'negotiation' => false,
@@ -167,8 +167,8 @@ class EntitlementSeeder extends Seeder
                     'users' => 3,
                     'terrenos' => 100,
                     'products' => 2,
-                    'storage_gb' => 1,
-                    'ai_budget' => 5,
+                    'storage_gb' => 5,
+                    'ai_budget' => 0,
                 ],
             ],
             'master' => [
@@ -186,13 +186,13 @@ class EntitlementSeeder extends Seeder
                     'viabilities.dre' => true,
                     'viabilities.comercial' => true,
                     'viabilities.cash_flow' => true,
-                    'viabilities.charts' => false,
-                    'viabilities.premises' => false,
-                    'viabilities.kpis' => false,
+                    'viabilities.charts' => true,
+                    'viabilities.premises' => true,
+                    'viabilities.kpis' => true,
                     'committee' => true,
                     'ai' => true,
-                    'negotiation' => false,
-                    'legalizations' => true,
+                    'negotiation' => true,
+                    'legalizations' => false,
                     'projects.enabled' => false,
                     'projects.planning' => false,
                     'product_settings' => true,
@@ -205,7 +205,7 @@ class EntitlementSeeder extends Seeder
                     'users' => 10,
                     'terrenos' => 200,
                     'products' => 3,
-                    'storage_gb' => 3,
+                    'storage_gb' => 10,
                     'ai_budget' => 20,
                 ],
             ],
@@ -243,7 +243,7 @@ class EntitlementSeeder extends Seeder
                     'users' => -1,
                     'terrenos' => -1,
                     'products' => -1,
-                    'storage_gb' => 5,
+                    'storage_gb' => 20,
                     'ai_budget' => 50,
                 ],
             ],
@@ -251,12 +251,13 @@ class EntitlementSeeder extends Seeder
     }
 
     /**
-     * Features do roadmap distribuídas progressivamente por plano.
+     * Features do recorte A, pelo fluxo do terreno.
      *
-     * Broker concentra a operação individual; Básico adiciona análise;
-     * Master adiciona gestão; Pro libera os recursos estratégicos e de IA.
-     * `onboarding.profile` e `experience.accessibility` ficam disponíveis em
-     * todos os planos. As chaves `projects_room` e `projects.room` são aliases
+     * Broker: captação. Básico: análise usável. Master: decisão e fechamento
+     * (comitê + negociação/contrato) com IA só de chat. Pro: operação completa
+     * (deal room, legalização, projetos, documentos, IA avançada/contextual).
+     * `onboarding.profile` e `experience.accessibility` ficam em todos os
+     * planos. As chaves `projects_room` e `projects.room` são aliases
      * temporários resolvidos em runtime, fora do catálogo comercial.
      *
      * @return array<string, bool>
@@ -285,6 +286,7 @@ class EntitlementSeeder extends Seeder
             'territorial.map_comparison' => false,
             'documents.intelligence' => false,
             'ai.contextual' => false,
+            'ai.advanced' => false,
             'mobile.capture' => false,
             'onboarding.profile' => false,
             'dashboard.personalization' => false,
@@ -305,21 +307,19 @@ class EntitlementSeeder extends Seeder
         $basico = [
             ...$broker,
             'prospection.comparison',
-            'viabilities.scenarios',
             'search.global',
             'workspace.personalization',
         ];
 
         $master = [
             ...$basico,
+            'viabilities.scenarios',
             'dashboard.executive',
             'dashboard.goals',
             'dashboard.management',
             'committee.meeting',
             'committee.meeting_mode',
-            'legalization.control_center',
             'reports.builder',
-            'documents.intelligence',
             'dashboard.personalization',
         ];
 
@@ -327,7 +327,10 @@ class EntitlementSeeder extends Seeder
             ...$master,
             'projects.planning',
             'negotiation.deal_room',
+            'legalization.control_center',
             'territorial.map_comparison',
+            'documents.intelligence',
+            'ai.advanced',
             'ai.contextual',
         ];
 
@@ -366,32 +369,33 @@ class EntitlementSeeder extends Seeder
             ['key' => 'territorial_base',           'label' => 'Base Territorial',            'type' => EntitlementType::FEATURE, 'default_value' => false],
             ['key' => 'ai',                         'label' => 'Assistente de IA',            'type' => EntitlementType::FEATURE, 'default_value' => false],
 
-            // ── Features reservadas para o roadmap ───────────────────────────
-            ['key' => 'prospection.terrain_cockpit',       'label' => 'Roadmap — Cockpit do terreno',          'type' => EntitlementType::FEATURE, 'default_value' => false],
-            ['key' => 'prospection.pipeline_board',        'label' => 'Roadmap — Board do pipeline',           'type' => EntitlementType::FEATURE, 'default_value' => false],
-            ['key' => 'collaboration.tasks',               'label' => 'Roadmap — Tarefas colaborativas',       'type' => EntitlementType::FEATURE, 'default_value' => false],
-            ['key' => 'collaboration.inbox',               'label' => 'Roadmap — Inbox operacional',            'type' => EntitlementType::FEATURE, 'default_value' => false],
-            ['key' => 'prospection.comparison',            'label' => 'Roadmap — Comparação de oportunidades',  'type' => EntitlementType::FEATURE, 'default_value' => false],
-            ['key' => 'viabilities.scenarios',             'label' => 'Roadmap — Cenários de viabilidade',     'type' => EntitlementType::FEATURE, 'default_value' => false],
-            ['key' => 'dashboard.executive',               'label' => 'Roadmap — Cockpit executivo',            'type' => EntitlementType::FEATURE, 'default_value' => false],
-            ['key' => 'dashboard.goals',                   'label' => 'Roadmap — Metas gerenciais',             'type' => EntitlementType::FEATURE, 'default_value' => false],
-            ['key' => 'dashboard.management',              'label' => 'Roadmap — Capacidade gerencial',         'type' => EntitlementType::FEATURE, 'default_value' => false],
+            // ── Features do recorte comercial ────────────────────────────────
+            ['key' => 'prospection.terrain_cockpit',       'label' => 'Cockpit do terreno',                    'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'prospection.pipeline_board',        'label' => 'Board do pipeline',                     'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'collaboration.tasks',               'label' => 'Tarefas colaborativas',                 'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'collaboration.inbox',               'label' => 'Inbox operacional',                     'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'prospection.comparison',            'label' => 'Comparação de oportunidades',           'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'viabilities.scenarios',             'label' => 'Cenários de viabilidade',               'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'dashboard.executive',               'label' => 'Cockpit executivo',                     'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'dashboard.goals',                   'label' => 'Metas gerenciais',                      'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'dashboard.management',              'label' => 'Capacidade gerencial',                  'type' => EntitlementType::FEATURE, 'default_value' => false],
             ['key' => 'projects.planning',                 'label' => 'Projetos — Planejamento',               'type' => EntitlementType::FEATURE, 'default_value' => false],
-            ['key' => 'committee.meeting',                 'label' => 'Roadmap — Reuniões de comitê',           'type' => EntitlementType::FEATURE, 'default_value' => false],
-            ['key' => 'committee.meeting_mode',            'label' => 'Roadmap — Modo reunião do comitê',      'type' => EntitlementType::FEATURE, 'default_value' => false],
-            ['key' => 'negotiation.deal_room',             'label' => 'Roadmap — Deal room',                    'type' => EntitlementType::FEATURE, 'default_value' => false],
-            ['key' => 'legalization.control_center',       'label' => 'Roadmap — Central de legalização',      'type' => EntitlementType::FEATURE, 'default_value' => false],
-            ['key' => 'search.global',                     'label' => 'Roadmap — Busca global',                  'type' => EntitlementType::FEATURE, 'default_value' => false],
-            ['key' => 'workspace.saved_views',             'label' => 'Roadmap — Visões salvas',                 'type' => EntitlementType::FEATURE, 'default_value' => false],
-            ['key' => 'workspace.personalization',        'label' => 'Roadmap — Personalização do workspace',  'type' => EntitlementType::FEATURE, 'default_value' => false],
-            ['key' => 'reports.builder',                   'label' => 'Roadmap — Construtor de relatórios',     'type' => EntitlementType::FEATURE, 'default_value' => false],
-            ['key' => 'territorial.map_comparison',        'label' => 'Roadmap — Comparação territorial',       'type' => EntitlementType::FEATURE, 'default_value' => false],
-            ['key' => 'documents.intelligence',             'label' => 'Roadmap — Documentos inteligentes',      'type' => EntitlementType::FEATURE, 'default_value' => false],
-            ['key' => 'ai.contextual',                     'label' => 'Roadmap — IA contextual',                 'type' => EntitlementType::FEATURE, 'default_value' => false],
-            ['key' => 'mobile.capture',                    'label' => 'Roadmap — Captura mobile',                'type' => EntitlementType::FEATURE, 'default_value' => false],
-            ['key' => 'onboarding.profile',                'label' => 'Roadmap — Onboarding por perfil',        'type' => EntitlementType::FEATURE, 'default_value' => false],
-            ['key' => 'dashboard.personalization',        'label' => 'Roadmap — Dashboard personalizável',     'type' => EntitlementType::FEATURE, 'default_value' => false],
-            ['key' => 'experience.accessibility',          'label' => 'Roadmap — Qualidade e acessibilidade',   'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'committee.meeting',                 'label' => 'Reuniões de comitê',                    'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'committee.meeting_mode',            'label' => 'Modo reunião do comitê',                'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'negotiation.deal_room',             'label' => 'Deal room',                             'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'legalization.control_center',       'label' => 'Central de legalização',                'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'search.global',                     'label' => 'Busca global',                          'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'workspace.saved_views',             'label' => 'Visões salvas',                         'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'workspace.personalization',        'label' => 'Personalização do workspace',           'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'reports.builder',                   'label' => 'Construtor de relatórios',              'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'territorial.map_comparison',        'label' => 'Comparação territorial',                'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'documents.intelligence',             'label' => 'Documentos inteligentes',               'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'ai.advanced',                       'label' => 'IA avançada',                           'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'ai.contextual',                     'label' => 'IA contextual',                         'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'mobile.capture',                    'label' => 'Captura mobile',                        'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'onboarding.profile',                'label' => 'Onboarding por perfil',                 'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'dashboard.personalization',        'label' => 'Dashboard personalizável',              'type' => EntitlementType::FEATURE, 'default_value' => false],
+            ['key' => 'experience.accessibility',          'label' => 'Qualidade e acessibilidade',            'type' => EntitlementType::FEATURE, 'default_value' => false],
 
             // ── Features aninhadas: dashboard ────────────────────────────────
             ['key' => 'dashboard.enabled',          'label' => 'Dashboard',                   'type' => EntitlementType::FEATURE, 'default_value' => false],

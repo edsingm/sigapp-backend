@@ -6,6 +6,7 @@ use App\Exceptions\SignupSlugReservedException;
 use App\Models\Central\Plan;
 use App\Models\Central\Tenant;
 use App\Services\Billing\TenantBillingService;
+use App\Services\Privacy\LegalDocumentService;
 use App\Services\Tenant\SubdomainPolicyService;
 use App\Traits\LogsAudit;
 use Illuminate\Support\Facades\DB;
@@ -20,6 +21,7 @@ class TenantSignupService
     public function __construct(
         private readonly TenantBillingService $billingService,
         private readonly SubdomainPolicyService $subdomainPolicy,
+        private readonly LegalDocumentService $legalDocuments,
     ) {}
 
     /**
@@ -110,6 +112,17 @@ class TenantSignupService
             ]);
 
             $tenant->domains()->create(['domain' => $tenant->slug]);
+
+            // Stancl persiste extras no JSON virtual — não sobrescreva a coluna `data`.
+            $tenant->setAttribute('signup_contract_acceptance', $contractAcceptance);
+            $tenant->save();
+
+            $this->legalDocuments->recordCentralAcceptances(
+                tenantId: (string) $tenant->getKey(),
+                actorEmail: $adminEmail,
+                ipAddress: $ipAddress,
+                userAgent: $userAgent,
+            );
 
             // WORKAROUND stancl/tenancy: Tenant::create() ignora colunas customizadas
             // que não estão na lista interna do pacote (id, created_at, updated_at, data).
@@ -208,7 +221,7 @@ class TenantSignupService
             'title' => 'Contrato de Utilização da Plataforma SIG.APP',
             'version' => 'v2026-02-25',
             'effective_at' => '2026-02-25T00:00:00-03:00',
-            'url' => '/juridico/contrato-utilizacao',
+            'url' => '/legal/termos-de-uso',
             'hash' => null,
         ], $configured);
     }

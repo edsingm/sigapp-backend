@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\LegalDocumentController;
 use App\Http\Controllers\Api\V1\TenantAuthController;
 use App\Http\Controllers\Api\V1\TenantPasswordResetController;
 use Illuminate\Support\Facades\Route;
@@ -15,4 +16,7 @@ Route::middleware(['tenant.context', 'throttle:api-public'])->group(function () 
         ->middleware('throttle:password-reset-request');
     Route::post('/auth/password/reset', [TenantPasswordResetController::class, 'resetPassword'])
         ->middleware('throttle:password-reset-submit');
+
+    Route::get('/legal/documents', [LegalDocumentController::class, 'index'])
+        ->name('tenant.legal.documents.index');
 });

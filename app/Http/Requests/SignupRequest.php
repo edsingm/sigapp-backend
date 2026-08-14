@@ -41,6 +41,7 @@ class SignupRequest extends FormRequest
                 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/', // Pelo menos uma letra minúscula, uma maiúscula e um dígito
             ],
             'accept_usage_contract' => ['accepted'],
+            'accept_privacy_policy' => ['accepted'],
         ];
     }
 
@@ -63,6 +64,7 @@ class SignupRequest extends FormRequest
             'admin_password.min' => 'A senha deve ter ao menos 8 caracteres',
             'admin_password.regex' => 'A senha deve conter letras maiúsculas, minúsculas e números',
             'accept_usage_contract.accepted' => 'Você deve aceitar o Contrato de Utilização para continuar',
+            'accept_privacy_policy.accepted' => language()->t('LEGAL_PRIVACY_ACCEPTANCE_REQUIRED'),
         ];
     }
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repositories\Tenant;
 
 use App\Enums\TenantExportStatus;
+use App\Enums\TenantExportType;
 use App\Models\Tenant\TenantExportGeneration;
 use App\Models\Tenant\User;
 
@@ -30,6 +31,30 @@ class TenantExportGenerationRepository
             ->whereKey($id)
             ->where('requested_by', $user->id)
             ->firstOrFail();
+    }
+
+    public function findReusableSubjectPortability(User $user): ?TenantExportGeneration
+    {
+        $id = TenantExportGeneration::query()
+            ->where('requested_by', $user->id)
+            ->where('type', TenantExportType::SUBJECT_PORTABILITY)
+            ->whereIn('status', [
+                TenantExportStatus::QUEUED,
+                TenantExportStatus::PROCESSING,
+                TenantExportStatus::COMPLETED,
+            ])
+            ->where(function ($query): void {
+                $query->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            })
+            ->orderByDesc('id')
+            ->value('id');
+
+        if (! is_numeric($id)) {
+            return null;
+        }
+
+        return TenantExportGeneration::query()->find((int) $id);
     }
 
     public function claimQueued(int $id): ?TenantExportGeneration

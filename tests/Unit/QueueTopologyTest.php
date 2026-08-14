@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit;
 
 use App\Jobs\AnalyzeDocumentJob;
+use App\Jobs\BackfillTenantPiiEncryptionJob;
 use App\Jobs\CleanupPendingTenantsJob;
 use App\Jobs\CommitHiperdadosImportJob;
 use App\Jobs\CommitTerrenoImportJob;
@@ -12,7 +13,9 @@ use App\Jobs\CreateFullTenantJob;
 use App\Jobs\FetchHiperdadosImportJob;
 use App\Jobs\GenerateCommitteeAiDossierJob;
 use App\Jobs\GenerateReportRunJob;
+use App\Jobs\GenerateSubjectPortabilityJob;
 use App\Jobs\GenerateTenantExportJob;
+use App\Jobs\GenerateTenantPortabilityJob;
 use App\Jobs\GenerateTerrenoAiReportJob;
 use App\Jobs\IndexDocumentEmbeddingJob;
 use App\Jobs\ParseTerrenoPolygonImportJob;
@@ -68,7 +71,10 @@ class QueueTopologyTest extends TestCase
             FetchHiperdadosImportJob::class => 'exports',
             GenerateCommitteeAiDossierJob::class => 'ai',
             GenerateReportRunJob::class => 'exports',
+            GenerateSubjectPortabilityJob::class => 'exports',
             GenerateTenantExportJob::class => 'exports',
+            GenerateTenantPortabilityJob::class => 'exports',
+            BackfillTenantPiiEncryptionJob::class => 'exports',
             GenerateTerrenoAiReportJob::class => 'ai',
             IndexDocumentEmbeddingJob::class => 'ai',
             ParseTerrenoPolygonImportJob::class => 'exports',
@@ -92,7 +98,10 @@ class QueueTopologyTest extends TestCase
             CommitTerrenoImportJob::class,
             GenerateCommitteeAiDossierJob::class,
             GenerateReportRunJob::class,
+            GenerateSubjectPortabilityJob::class,
             GenerateTenantExportJob::class,
+            GenerateTenantPortabilityJob::class,
+            BackfillTenantPiiEncryptionJob::class,
             GenerateTerrenoAiReportJob::class,
             IndexDocumentEmbeddingJob::class,
             ParseTerrenoPolygonImportJob::class,
@@ -118,6 +127,8 @@ class QueueTopologyTest extends TestCase
         $expectedExpirations = [
             'auth-cleanup-central-login-broker' => 10,
             'privacy-cleanup-consent-logs' => 120,
+            'privacy-purge-cancelled-tenants' => 180,
+            'privacy-purge-soft-deletes' => 180,
             'tenants-cleanup-pending' => 60,
             'tenant-notify-overdue-legalizacao-etapas' => 60,
             'tenant-check-storage-usage' => 120,

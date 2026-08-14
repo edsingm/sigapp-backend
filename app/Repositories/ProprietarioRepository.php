@@ -65,4 +65,14 @@ class ProprietarioRepository implements ProprietarioRepositoryInterface
     {
         $proprietario->delete();
     }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    public function anonymize(Proprietario $proprietario, array $attributes): Proprietario
+    {
+        $proprietario->update($attributes);
+
+        return $proprietario->refresh();
+    }
 }

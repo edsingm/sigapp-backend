@@ -6,9 +6,11 @@ use App\Http\Controllers\Api\V1\Tenant\BillingHistoryController;
 use App\Http\Controllers\Api\V1\Tenant\Common\ModulesController;
 use App\Http\Controllers\Api\V1\Tenant\CouponController as TenantCouponController;
 use App\Http\Controllers\Api\V1\Tenant\DunningController;
+use App\Http\Controllers\Api\V1\Tenant\LegalAcceptanceController;
 use App\Http\Controllers\Api\V1\Tenant\NotificationPreferenceController;
 use App\Http\Controllers\Api\V1\Tenant\PlanSwapController;
 use App\Http\Controllers\Api\V1\Tenant\PlatformAnnouncementController;
+use App\Http\Controllers\Api\V1\Tenant\PrivacyController;
 use App\Http\Controllers\Api\V1\Tenant\TenantAddonController;
 use App\Http\Controllers\Api\V1\Tenant\TenantController;
 use App\Http\Controllers\Api\V1\TenantAuthController;
@@ -20,6 +22,26 @@ Route::post('/auth/logout-all', [TenantAuthController::class, 'logoutAll']);
 Route::post('/auth/refresh', [TenantAuthController::class, 'refresh']);
 Route::get('/auth/me', [TenantAuthController::class, 'me']);
 Route::put('/auth/me', [TenantAuthController::class, 'updateMe']);
+
+Route::post('/legal/acceptances', [LegalAcceptanceController::class, 'store'])
+    ->name('tenant.legal.acceptances.store');
+
+Route::get('/privacy/me', [PrivacyController::class, 'me'])
+    ->name('tenant.privacy.me');
+Route::post('/privacy/export', [PrivacyController::class, 'storeExport'])
+    ->name('tenant.privacy.export.store');
+Route::get('/privacy/export/{export}', [PrivacyController::class, 'showExport'])
+    ->whereNumber('export')
+    ->name('tenant.privacy.export.show');
+Route::get('/privacy/export/{export}/download', [PrivacyController::class, 'downloadExport'])
+    ->whereNumber('export')
+    ->name('tenant.privacy.export.download');
+Route::post('/privacy/erasure', [PrivacyController::class, 'erase'])
+    ->name('tenant.privacy.erasure');
+Route::post('/privacy/workspace-export', [PrivacyController::class, 'storeWorkspaceExport'])
+    ->name('tenant.privacy.workspace-export');
+Route::post('/privacy/ai-document-transfer', [PrivacyController::class, 'acceptAiDocumentTransfer'])
+    ->name('tenant.privacy.ai-document-transfer');
 
 // Locale
 Route::put('/locale', [LanguageController::class, 'set']);

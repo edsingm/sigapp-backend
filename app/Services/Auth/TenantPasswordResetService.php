@@ -5,6 +5,7 @@ namespace App\Services\Auth;
 use App\Models\Central\Tenant;
 use App\Models\Tenant\User;
 use App\Notifications\TenantUserInviteNotification;
+use App\Services\Privacy\LegalDocumentService;
 use App\Support\TenantAppUrl;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Facades\Hash;
@@ -17,6 +18,7 @@ class TenantPasswordResetService
     public function __construct(
         private readonly TenantAppUrl $tenantAppUrl,
         private readonly TenantUserDirectoryService $directoryService,
+        private readonly LegalDocumentService $legalDocuments,
     ) {}
 
     /**
@@ -113,8 +115,12 @@ class TenantPasswordResetService
     /**
      * Realiza a redefinição de senha para o tenant atual.
      */
-    public function resetForCurrentTenant(string $email, string $token, string $password): string
-    {
+    public function resetForCurrentTenant(
+        string $email,
+        string $token,
+        string $password,
+        bool $recordLegalAcceptances = false,
+    ): string {
         return Password::broker('tenant_users')->reset(
             [
                 'email' => $email,
@@ -122,11 +128,15 @@ class TenantPasswordResetService
                 'password' => $password,
                 'password_confirmation' => $password,
             ],
-            function (User $user, string $password): void {
+            function (User $user, string $password) use ($recordLegalAcceptances): void {
                 $user->forceFill([
                     'password' => Hash::make($password),
                     'remember_token' => Str::random(60),
                 ])->save();
+
+                if ($recordLegalAcceptances) {
+                    $this->legalDocuments->recordTenantUserAcceptances((int) $user->getKey());
+                }
 
                 event(new PasswordReset($user));
             },

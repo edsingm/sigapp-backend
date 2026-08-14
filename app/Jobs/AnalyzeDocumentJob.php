@@ -6,6 +6,7 @@ namespace App\Jobs;
 
 use App\Exceptions\AiBudgetExceededException;
 use App\Exceptions\DocumentAnalysisUnsupportedException;
+use App\Models\Central\Tenant as CentralTenant;
 use App\Models\Tenant\DocumentAnalysis;
 use App\Models\Tenant\Documento;
 use App\Services\Ai\Document\DocumentUnderstandingService;
@@ -35,6 +36,17 @@ class AnalyzeDocumentJob implements ShouldQueue
     {
         $analysis = DocumentAnalysis::query()->find($this->analysisId);
         if (! $analysis || $analysis->status === 'completed') {
+            return;
+        }
+
+        $currentTenant = tenant();
+        if ($currentTenant instanceof CentralTenant && ! $currentTenant->hasAcceptedAiDocumentTransfer()) {
+            $this->markFailed(
+                $analysis,
+                'AI_DOCUMENT_TRANSFER_NOT_ACCEPTED',
+                ['Transferência de PDF para o provedor de IA não aceita pelo admin do tenant.'],
+            );
+
             return;
         }
 

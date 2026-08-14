@@ -66,6 +66,7 @@ class TenantPasswordResetController extends Controller
                     (string) $validated['email'],
                     (string) $validated['token'],
                     (string) $validated['password'],
+                    ($validated['intent'] ?? null) === 'invite',
                 );
             } finally {
                 if (tenancy()->initialized) {
@@ -77,6 +78,7 @@ class TenantPasswordResetController extends Controller
                 (string) $validated['email'],
                 (string) $validated['token'],
                 (string) $validated['password'],
+                ($validated['intent'] ?? null) === 'invite',
             );
         }
 

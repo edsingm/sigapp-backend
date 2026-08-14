@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Enums\Common\ModulesEnum;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -18,6 +19,9 @@ class CentralUserResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'is_admin' => (bool) $this->is_admin,
+            'is_dpo' => $this->resource instanceof Model
+                ? (bool) $this->resource->getAttribute('is_dpo')
+                : false,
             'email_verified_at' => $this->email_verified_at?->toIso8601String(),
             'role' => $this->is_admin ? 'sigapp' : null,
             'roles' => $this->is_admin ? ['sigapp'] : [],

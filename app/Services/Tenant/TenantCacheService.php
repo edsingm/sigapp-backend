@@ -106,6 +106,40 @@ final class TenantCacheService
         }
     }
 
+    /**
+     * Invalida o cache do tenant sem exigir tenancy inicializada (wipe/offboard).
+     */
+    public function flushEntireTenant(string $tenantId): void
+    {
+        $repository = Cache::store();
+
+        if (! $repository instanceof CacheRepository) {
+            return;
+        }
+
+        $modules = [
+            'dashboard',
+            'terrenos',
+            'users',
+            'proprietarios',
+            'documentos',
+            'viabilidade',
+            'legalizacao',
+            'corretores',
+            'projetos',
+            'reports',
+            'exports',
+        ];
+
+        $tags = array_map(
+            static fn (string $module): string => 'tenant:'.$tenantId.':'.$module,
+            $modules,
+        );
+        $tags[] = 'tenant:'.$tenantId;
+
+        $repository->tags($tags)->flush();
+    }
+
     public function flushModules(string ...$modules): void
     {
         $tags = array_values(array_unique(array_map(

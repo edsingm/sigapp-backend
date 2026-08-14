@@ -5,10 +5,13 @@ namespace App\Services\Admin;
 use App\Models\Central\Tenant;
 use App\Repositories\Contracts\TenantRepositoryInterface;
 use App\Services\Billing\TenantBillingService;
+use App\Traits\LogsAudit;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class TenantAdminService
 {
+    use LogsAudit;
+
     public function __construct(
         private readonly TenantRepositoryInterface $tenantRepository,
         private readonly TenantBillingService $billingService
@@ -27,6 +30,11 @@ class TenantAdminService
      */
     public function detail(Tenant $tenant): array
     {
+        $this->audit('tenant.privileged_access', 'Admin da plataforma acessou o dossiê do tenant.', [
+            'tenant_id' => (string) $tenant->getKey(),
+            'reason' => 'admin.tenant.show',
+        ]);
+
         $tenant = $this->tenantRepository->loadWithPlan($tenant);
 
         return [

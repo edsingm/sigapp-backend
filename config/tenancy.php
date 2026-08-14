@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\Central\Tenant;
+use App\Tenancy\Bootstrappers\TenantEncryptionBootstrapper;
 use App\Tenancy\TenantDatabaseManagers\PostgreSQLSchemaPublicManager;
 use Stancl\Tenancy\Bootstrappers;
 use Stancl\Tenancy\Concerns\UsableWithEarlyIdentification;
@@ -252,6 +253,7 @@ return [
         // Bootstrappers\DatabaseCacheBootstrapper::class, // Separates cache by DB rather than by prefix, must run after DatabaseTenancyBootstrapper
         Bootstrappers\FilesystemTenancyBootstrapper::class,
         Bootstrappers\QueueTenancyBootstrapper::class,
+        TenantEncryptionBootstrapper::class,
         // Bootstrappers\RedisTenancyBootstrapper::class, // Note: phpredis is needed
 
         // Adds support for the database session driver

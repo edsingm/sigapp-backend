@@ -40,6 +40,7 @@ Detalhes por domínio vivem em **[`.agents/docs/`](.agents/docs/README.md)**. Ab
 | Workflow do terreno, módulos de negócio, reports, mobile | [`.agents/docs/dominio-tenant.md`](.agents/docs/dominio-tenant.md) |
 | Motor de viabilidade, fórmulas, financiamento, premissas | [`.agents/docs/viabilidade.md`](.agents/docs/viabilidade.md) |
 | Jobs, filas, e-mail, uploads, testes, Pint/PHPStan, PR | [`.agents/docs/jobs-qualidade-checklist.md`](.agents/docs/jobs-qualidade-checklist.md) |
+| LGPD, aceites, DSAR, wipe D90, cifra de PII, RIPD | [`.agents/docs/privacidade-lgpd.md`](.agents/docs/privacidade-lgpd.md) |
 
 ---
 
@@ -195,4 +196,4 @@ Testes, jobs e checklist completo: [`.agents/docs/jobs-qualidade-checklist.md`](
 
 ---
 
-**Última atualização:** Agosto 2026 — monólito `AGENTS.md` reorganizado em hub + `.agents/docs/` (meio-termo). Conteúdo de domínio preservado nos arquivos filhos; hub concentra regras sempre on e mapa sob demanda.
+**Última atualização:** Agosto 2026 — mapa de privacidade/LGPD (SIG-26) em `.agents/docs/privacidade-lgpd.md`.

@@ -30,14 +30,13 @@ class CentralUserRepository implements CentralUserRepositoryInterface
      */
     public function create(array $data): User
     {
-        $isAdmin = array_key_exists('is_admin', $data) ? (bool) $data['is_admin'] : null;
-        unset($data['is_admin']);
+        $flags = $this->extractAdminFlags($data);
 
         $user = new User;
         $user->fill($data);
 
-        if ($isAdmin !== null) {
-            $user->forceFill(['is_admin' => $isAdmin]);
+        if ($flags !== []) {
+            $user->forceFill($flags);
         }
 
         $user->save();
@@ -50,18 +49,35 @@ class CentralUserRepository implements CentralUserRepositoryInterface
      */
     public function update(User $user, array $data): User
     {
-        $isAdmin = array_key_exists('is_admin', $data) ? (bool) $data['is_admin'] : null;
-        unset($data['is_admin']);
+        $flags = $this->extractAdminFlags($data);
 
         $user->fill($data);
 
-        if ($isAdmin !== null) {
-            $user->forceFill(['is_admin' => $isAdmin]);
+        if ($flags !== []) {
+            $user->forceFill($flags);
         }
 
         $user->save();
 
         return $user->refresh();
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, bool>
+     */
+    private function extractAdminFlags(array &$data): array
+    {
+        $flags = [];
+
+        foreach (['is_admin', 'is_dpo'] as $flag) {
+            if (array_key_exists($flag, $data)) {
+                $flags[$flag] = (bool) $data[$flag];
+                unset($data[$flag]);
+            }
+        }
+
+        return $flags;
     }
 
     public function delete(User $user): void

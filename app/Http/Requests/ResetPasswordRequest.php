@@ -11,6 +11,9 @@ class ResetPasswordRequest extends FormRequest
         return true;
     }
 
+    /**
+     * @return array<string, list<string>>
+     */
     public function rules(): array
     {
         return [
@@ -18,6 +21,19 @@ class ResetPasswordRequest extends FormRequest
             'token' => ['required', 'string'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'tenant_identifier' => ['sometimes', 'string'],
+            'intent' => ['sometimes', 'nullable', 'in:invite'],
+            'accept_legal_documents' => ['exclude_unless:intent,invite', 'accepted'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'accept_legal_documents.required_if' => language()->t('LEGAL_ACCEPTANCE_REQUIRED'),
+            'accept_legal_documents.accepted' => language()->t('LEGAL_ACCEPTANCE_REQUIRED'),
         ];
     }
 }

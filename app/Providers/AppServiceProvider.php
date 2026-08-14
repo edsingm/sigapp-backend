@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Encryption\TenantEncrypter;
 use App\Models\Central\Subscription;
 use App\Models\Central\Tenant;
 use App\Models\Tenant\ComiteRevisao;
@@ -109,6 +110,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         Cashier::ignoreRoutes();
+        $this->app->singleton(TenantEncrypter::class);
 
         $this->app->bind(AiAnomalyRepositoryInterface::class, AiAnomalyRepository::class);
         $this->app->bind(AiPredictiveRepositoryInterface::class, AiPredictiveRepository::class);

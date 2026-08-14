@@ -19,6 +19,7 @@ Os arquivos aqui **não** substituem o hub: abra-os quando a tarefa cair no dom�
 | Workflow terreno, módulos de negócio, reports, mobile | [`dominio-tenant.md`](./dominio-tenant.md) |
 | Motor de viabilidade, fórmulas, financiamento, premissas | [`viabilidade.md`](./viabilidade.md) |
 | Jobs, filas, e-mail, uploads, testes, Pint/PHPStan, PR | [`jobs-qualidade-checklist.md`](./jobs-qualidade-checklist.md) |
+| LGPD, aceites, DSAR, wipe D90, cifra de PII, RIPD | [`privacidade-lgpd.md`](./privacidade-lgpd.md) |
 
 ## Manutenção
 

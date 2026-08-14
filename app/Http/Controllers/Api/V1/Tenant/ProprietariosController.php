@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Tenant\AnonymizeProprietarioRequest;
 use App\Http\Requests\Tenant\StoreProprietarioRequest;
 use App\Http\Requests\Tenant\UpdateProprietarioRequest;
 use App\Http\Resources\Tenant\ProprietarioResource;
@@ -12,12 +13,15 @@ use App\Services\ApiResponseService;
 use App\Services\Tenant\LandWorkflowService;
 use App\Services\Tenant\ProprietarioService;
 use App\Services\Tenant\TenantCacheService;
+use App\Traits\LogsAudit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 class ProprietariosController extends Controller
 {
+    use LogsAudit;
+
     public function __construct(
         protected ProprietarioService $proprietarioService,
         protected LandWorkflowService $workflowService,
@@ -139,5 +143,25 @@ class ProprietariosController extends Controller
         }
 
         return ApiResponseService::success(null, 'Proprietário removido com sucesso!');
+    }
+
+    public function anonymize(AnonymizeProprietarioRequest $request, int $proprietario): JsonResponse
+    {
+        $model = $this->proprietarioService->findById($proprietario);
+        if (! $model instanceof Proprietario) {
+            return ApiResponseService::notFound('RESOURCE_NOT_FOUND');
+        }
+
+        $anonymized = $this->proprietarioService->anonymize($model);
+
+        $this->audit('privacy.proprietario_anonymized', 'PII do proprietário anonimizado.', [
+            'proprietario_id' => $anonymized->getKey(),
+            'terreno_id' => $anonymized->getAttribute('terreno_id'),
+        ]);
+
+        return ApiResponseService::success(
+            new ProprietarioResource($anonymized),
+            'PROPRIETARIO_ANONYMIZED',
+        );
     }
 }

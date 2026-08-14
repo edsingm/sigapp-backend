@@ -13,6 +13,14 @@ class UserRepository
         return User::query()->find($id);
     }
 
+    public function first(): ?User
+    {
+        /** @var User|null $user */
+        $user = User::query()->orderBy('id')->first();
+
+        return $user;
+    }
+
     /**
      * @param  array<int, string>  $relations
      */
@@ -93,5 +101,20 @@ class UserRepository
         $users = $query->get();
 
         return $users;
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    public function update(User $user, array $attributes): User
+    {
+        $user->update($attributes);
+
+        return $user->refresh();
+    }
+
+    public function revokeAllTokens(User $user): void
+    {
+        $user->tokens()->delete();
     }
 }

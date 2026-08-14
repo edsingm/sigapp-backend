@@ -99,4 +99,57 @@ class ProprietariosApiTest extends TestCase
             ->assertJsonPath('data.0.nome', 'Proprietário Select')
             ->assertJsonStructure(['success', 'data' => [['id', 'nome']], 'message']);
     }
+
+    public function test_anonymize_requires_authentication(): void
+    {
+        $this->postJson('/api/v1/proprietarios/1/anonymize')->assertUnauthorized();
+    }
+
+    public function test_anonymize_rejects_non_admin_and_clears_pii_for_admin(): void
+    {
+        Role::query()->firstOrCreate(['name' => RolesEnum::USER->value, 'guard_name' => 'web']);
+        $member = User::query()->create([
+            'name' => 'Member',
+            'email' => 'member@test.com',
+            'password' => 'password',
+        ]);
+        $member->assignRole(RolesEnum::USER);
+
+        $terreno = Terreno::query()->create(['nome' => 'Terreno PII', 'endereco' => 'Rua B']);
+        $proprietario = Proprietario::query()->create([
+            'terreno_id' => $terreno->id,
+            'nome' => 'João da Silva',
+            'tipo_pessoa' => 'fisica',
+            'cpf_cnpj' => '52998224725',
+            'email' => 'joao@example.com',
+            'telefone' => '14999999999',
+            'rg' => '1234567',
+            'created_by' => $this->adminUser->id,
+            'updated_by' => $this->adminUser->id,
+        ]);
+
+        tenancy()->initialized = true;
+
+        $this->actingAs($member)
+            ->postJson('/api/v1/proprietarios/'.$proprietario->id.'/anonymize')
+            ->assertForbidden();
+
+        $this->actingAs($this->adminUser)
+            ->postJson('/api/v1/proprietarios/'.$proprietario->id.'/anonymize')
+            ->assertOk()
+            ->assertJsonPath('data.nome', 'Titular anonimizado')
+            ->assertJsonPath('data.cpf_cnpj', null)
+            ->assertJsonPath('data.email', null);
+
+        $this->assertDatabaseHas('terreno_proprietarios', [
+            'id' => $proprietario->id,
+            'nome' => 'Titular anonimizado',
+            'cpf_cnpj' => null,
+            'email' => null,
+            'telefone' => null,
+            'rg' => null,
+        ]);
+
+        tenancy()->initialized = false;
+    }
 }

@@ -52,7 +52,7 @@ reais de tenants, isso é o maior risco operacional do backend.
 | Recurso | Observação |
 |---|---|
 | Backend | Compose Dokploy; service `back`; porta interna `80` (proxy do Dokploy) |
-| PostgreSQL | Projeto Compose separado; backend usa rede externa (ver `docker-compose.prod.yml`) |
+| PostgreSQL | Banco gerenciado do Dokploy (`pgvector/pgvector:0.8.6-pg16`); backend usa rede externa (ver `docker-compose.prod.yml`) |
 | Redis | Gerenciado no Dokploy; cache e filas |
 | Frontends | Repositórios irmãos (tenant / site / admin) — deploys separados |
 

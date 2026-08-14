@@ -44,7 +44,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: pgvector/pgvector:0.8.2-pg18
+        image: pgvector/pgvector:0.8.6-pg16
         env:
           POSTGRES_DB: sigapp_test
           POSTGRES_USER: postgres

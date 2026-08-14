@@ -150,7 +150,7 @@ Recomendações:
 
 | Config | Valor sugerido |
 |---|---|
-| Imagem | PostgreSQL **18** + **pgvector** (alinhar a prod/CI: `pgvector/pgvector` ou a imagem que prod já usa) |
+| Imagem | PostgreSQL **16** + **pgvector** (`pgvector/pgvector:0.8.6-pg16`, alinhado ao banco gerenciado do Dokploy e ao CI) |
 | Database | `sigapp_staging` |
 | User | `sigapp_staging` (ou `sigapp`) |
 | Password | forte, **diferente** de prod |

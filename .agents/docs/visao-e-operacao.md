@@ -11,7 +11,7 @@
 |---|---|
 | **Framework** | Laravel 13 (`laravel/framework ^13.0`) |
 | **Linguagem** | PHP **8.4+** (`php ^8.4`, PHPStan `phpVersion: 80400`) |
-| **Banco de dados** | PostgreSQL (central + 1 schema por tenant, com `pgvector` para embeddings). SQLite `:memory:` nos testes |
+| **Banco de dados** | PostgreSQL **16** + `pgvector` 0.8.6 (central + 1 schema por tenant). SQLite `:memory:` nos testes |
 | **Storage** | Laravel Storage local/S3 (`league/flysystem-aws-s3-v3`); documentos e relatórios PDF de IA usam o disk `s3`; uploads contam limite `storage_gb` do plano |
 | **Multi-tenancy** | `stancl/tenancy ^3.8` — manager customizado `PostgreSQLSchemaPublicManager`, identificação por subdomínio + header `X-Tenant` (fallback local/testing) |
 | **Autenticação** | Laravel Sanctum (tokens Bearer) + broker de login central com transfer tickets |
@@ -22,7 +22,7 @@
 | **PDF** | `spatie/laravel-pdf` + `spatie/browsershot` (Chromium — `BROWSERSHOT_CHROME_PATH`) |
 | **Excel** | `maatwebsite/excel ^3.1` (`app/Exports/`) |
 | **Docs da API** | `dedoc/scramble` — UI em `/docs/api` (alias `/docs`) |
-| **Testes** | PHPUnit 13 (suites `Architecture`, `Unit`, `Feature`) — **não** usa Pest; CI (`.github/workflows/ci.yml`): Tests (SQLite), PostgreSQL 18 + Redis 7, Pint, **PHPStan** (`composer analyse`) e **Docker build** (`--target prod`) |
+| **Testes** | PHPUnit 13 (suites `Architecture`, `Unit`, `Feature`) — **não** usa Pest; CI (`.github/workflows/ci.yml`): Tests (SQLite), PostgreSQL 16 + pgvector + Redis 7, Pint, **PHPStan** (`composer analyse`) e **Docker build** (`--target prod`) |
 | **Formatação** | Laravel Pint, preset `laravel` (`pint.json`) |
 | **Análise estática** | PHPStan **nível 8** + bleedingEdge + baseline (`phpstan.baseline.neon`) |
 | **Dev local** | Laravel Herd (macOS) ou `composer dev` / Docker (`.docker/` + `docker-compose.yml` — ver seção Docker) |
@@ -58,7 +58,7 @@ Há duas formas de rodar localmente: **Herd/`composer dev`** (nativo, macOS) ou 
 ### Compose
 
 - **Dev (`docker-compose.yml`)**: services `back` (`sigapp-backend:1.0-dev`, porta 8000) e `redis` (`redis:7-alpine`). O **PostgreSQL não está no compose** — é um container/host externo chamado `database`, alcançado pela rede externa `database_sigapp` (precisa existir: `docker network create database_sigapp`). As variáveis de ambiente de dev (DB, Redis, CORS, Sanctum, `CENTRAL_DOMAINS=localhost,127.0.0.1,sigapp-backend`, Chromium) já vêm definidas no compose.
-- **Prod (`docker-compose.prod.yml`)**: target `prod`, porta interna `80` via `expose` (sem publicação no host), PostgreSQL/Redis externos gerenciados pelo Dokploy, envs obrigatórios via `${VAR:?}` e healthcheck em `GET /api/v1/health`. O serviço `back` também se conecta à rede externa do Compose PostgreSQL (`sigapp-database-wlnxuu_default`) para resolver o alias `database`; se o projeto do banco mudar, atualize esse nome de rede. Cookies de sessão são seguros por padrão em produção; `TRUSTED_PROXIES` aceita somente IPs/CIDRs explícitos do proxy (nunca `*`).
+- **Prod (`docker-compose.prod.yml`)**: target `prod`, porta interna `80` via `expose` (sem publicação no host), PostgreSQL **16** + `pgvector` e Redis externos **gerenciados pelo Dokploy** (não o repositório `database`), envs obrigatórios via `${VAR:?}` e healthcheck em `GET /api/v1/health`. O serviço `back` também se conecta à rede externa do Compose PostgreSQL (`sigapp-database-wlnxuu_default`) para resolver o alias `database`; se o projeto do banco mudar, atualize esse nome de rede. Cookies de sessão são seguros por padrão em produção; `TRUSTED_PROXIES` aceita somente IPs/CIDRs explícitos do proxy (nunca `*`).
 - **Runbook de deploy:** `docs/deploy-dokploy.md` (Dokploy + Compose + `sigapp-release` via SSH). `docs/deploy-coolify.md` está **obsoleto**. Em produção atual: auto-deploy de `main` aponta para **prod** (`api.sigapp.com.br`, Stripe live); após cada deploy é obrigatório rodar `/usr/local/bin/sigapp-release` no container backend (referência: `sigapp-backend-j8lepv-back-1`). Staging isolado ainda não existe — todo merge em `main` é go-live até a Fase 2 do SIG-13.
 
 ### Produção — quem roda o quê

@@ -50,7 +50,7 @@ Detalhes por domínio vivem em **[`.agents/docs/`](.agents/docs/README.md)**. Ab
 | Item | Valor |
 |---|---|
 | **Framework** | Laravel 13 · PHP **8.4+** |
-| **Banco** | PostgreSQL (central + schema por tenant, `pgvector`) · SQLite nos testes |
+| **Banco** | PostgreSQL **16** + `pgvector` (central + schema por tenant) · SQLite nos testes |
 | **Multi-tenancy** | `stancl/tenancy` + `PostgreSQLSchemaPublicManager` · subdomínio / `X-Tenant` |
 | **Auth** | Sanctum + broker central (transfer tickets) · MFA TOTP no admin |
 | **RBAC** | Spatie Permission · enums `RolesEnum` / `ModulesEnum` |

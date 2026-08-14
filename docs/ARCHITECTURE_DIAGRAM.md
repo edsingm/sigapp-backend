@@ -450,7 +450,7 @@ graph TB
     
     subgraph "Infrastructure"
         COOLIFY[Coolify<br/>Deployment platform]
-        PG_EXTERNAL[PostgreSQL 18<br/>External database]
+        PG_EXTERNAL[PostgreSQL 16 + pgvector<br/>Dokploy managed]
         REDIS_EXT[Redis 7<br/>External cache/queue]
         S3_EXT[S3 Compatible<br/>External storage]
     end
@@ -480,7 +480,7 @@ graph TB
 |-------|-----------|---------|
 | **Framework** | Laravel 13 | PHP framework |
 | **Language** | PHP 8.4+ | Application language |
-| **Database** | PostgreSQL 18 | Central + tenant schemas |
+| **Database** | PostgreSQL 16 + pgvector | Central + tenant schemas |
 | **Multi-tenancy** | stancl/tenancy 3.8 | Schema-based isolation |
 | **Authentication** | Laravel Sanctum | Token-based auth |
 | **Authorization** | spatie/laravel-permission 7.0 | RBAC |

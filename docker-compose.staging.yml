@@ -95,11 +95,11 @@ services:
       start_period: 40s
     networks:
       - default
-      # PostgreSQL is deployed by Dokploy in a separate Compose project.
-      # This external network makes the database service alias `database`
-      # resolvable from the backend container.
-      - sigapp-database-staging-e3qzej
+      # PostgreSQL is a separate Dokploy Compose project. Set
+      # DATABASE_DOCKER_NETWORK to the name from `docker network ls`.
+      - database
 
 networks:
-  sigapp-database-staging-e3qzej:
+  database:
+    name: ${DATABASE_DOCKER_NETWORK:?DATABASE_DOCKER_NETWORK is required}
     external: true

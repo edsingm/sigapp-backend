@@ -210,6 +210,9 @@ docker exec sigapp-backend-j8lepv-back-1 supervisorctl status
 - Secrets só no Dokploy (runtime), nunca como build-arg e nunca no Git.
 - Se o **projeto Compose do PostgreSQL** mudar no Dokploy, atualize o nome da
   rede externa em `docker-compose.prod.yml` (hoje: `sigapp-database-wlnxuu_default`).
+- Staging: o backend **não** cria a rede do banco. Suba o Postgres staging no
+  Dokploy primeiro, anote o nome em `docker network ls` e defina
+  `DATABASE_DOCKER_NETWORK` no app de staging (`docker-compose.staging.yml`).
 
 ---
 

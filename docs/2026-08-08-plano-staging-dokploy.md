@@ -1,8 +1,10 @@
 # Plano: ambiente Staging no Dokploy (backend SIGAPP)
 
 **Data:** 2026-08-08  
-**Ticket:** SIG-13 (Fase 2)  
-**Contexto atual:** Cenário A — auto-deploy de `main` em **produção** (`api.sigapp.com.br`, Stripe live, container `sigapp-backend-j8lepv-back-1`).
+> **Histórico.** Cutover da Fase 5 concluído (Cenário B). Runbook vigente: [`docs/deploy-dokploy.md`](./deploy-dokploy.md). Ticket: **SIG-22**.
+
+**Ticket:** SIG-22 (Fase 2; o plano citava SIG-13)  
+**Contexto na redação:** Cenário A — auto-deploy de `main` em **produção** (`api.sigapp.com.br`, Stripe live, container `sigapp-backend-j8lepv-back-1`).
 
 **Objetivo:** criar um ambiente **staging** isolado onde `main` redeploya com segurança; produção deixa de receber todo merge automaticamente.
 

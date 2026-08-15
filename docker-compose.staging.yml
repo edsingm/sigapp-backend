@@ -1,5 +1,5 @@
 services:
-  back:
+  back-staging:
     build:
       context: .
       dockerfile: .docker/Dockerfile

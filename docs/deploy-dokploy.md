@@ -11,39 +11,41 @@ de deploy e comandos copy-paste**.
 
 ---
 
-## Estado atual (produção) — Cenário A
+## Estado atual — Cenário B
 
-| Item | Valor |
-|---|---|
-| Plataforma | Dokploy |
-| Tipo de deploy | Docker Compose (`docker-compose.prod.yml`) |
-| Branch | `main` |
-| Auto-deploy | **ON** → cada merge/push em `main` redeploya **produção** |
-| API | `https://api.sigapp.com.br` |
-| Stripe | **produção** (`sk_live` / prices live) |
-| PostgreSQL / Redis | Serviços na rede Docker do Dokploy (não expostos na internet) |
-| Service Compose | `back` |
-| Container backend (referência) | `sigapp-backend-j8lepv-back-1` |
-| Staging isolado | **Ainda não existe** |
+`main` sobe sozinha **somente** em staging. Produção é deploy **manual** da
+mesma revisão que passou no smoke de staging. Merge na `main` **não** é go-live.
 
-### Risco deste cenário
+| | Staging | Produção |
+|---|---|---|
+| App Dokploy | stack staging (compose `docker-compose.staging.yml`) | stack prod (compose `docker-compose.prod.yml`) |
+| Branch | `main` | `main` (revisão escolhida no deploy) |
+| Auto-deploy | **ON** | **OFF** |
+| API | `https://api.staging.sigapp.com.br` | `https://api.sigapp.com.br` |
+| Stripe | **test** (`sk_test` / prices test) | **live** (`sk_live` / prices live) |
+| PostgreSQL / Redis / S3 | isolados (não os de prod) | isolados (não os de staging) |
+| Service Compose | `back` | `back` |
+| Container (referência) | descobrir — ver [Containers](#descobrir-o-container-back) | `sigapp-backend-j8lepv-back-1` |
+| Release após cada deploy | `sigapp-release` no container **novo** | idem |
+| Bootstrap | só no 1º dia do ambiente | **nunca** de novo (já populado) |
 
 ```text
-merge main → Dokploy sobe app NOVO → schema ainda VELHO até o SSH
+local → PR + CI verde → merge main
+      → Dokploy auto-deploy STAGING
+      → sigapp-release no container novo + smoke
+      → (ok) Deploy MANUAL no app de prod (mesmo commit)
+      → sigapp-release no container novo + smoke prod
 ```
 
-Enquanto `sigapp-release` não rodar no container novo, produção pode servir
-código que depende de migrations ainda não aplicadas. Com Stripe live e dados
-reais de tenants, isso é o maior risco operacional do backend.
+O `entrypoint` **não** aplica migrations. Enquanto `sigapp-release` não rodar
+no container novo, o ambiente serve código que pode depender de schema velho.
 
-**Mitigação imediata (enquanto não houver staging):**
+CI no GitHub (Tests, PostgreSQL+Redis, Pint, PHPStan, Docker build) é gate de
+**merge**. O Dokploy não espera o Actions: um push em `main` redeploya staging
+mesmo se o CI ainda estiver vermelho. Não mergeie sem checks verdes.
 
-1. Branch protection + CI verde obrigatórios na `main` (já em vigor).
-2. Ninguém mergeia migration/feature sensível sem alguém disponível para o
-   release SSH **na sequência** do deploy.
-3. Após todo deploy: healthy → `sigapp-release` → smoke (seção abaixo).
-4. **Alvo (Fase 2 do SIG-13):** auto-deploy de `main` só em staging; prod
-   sem auto-deploy a cada merge.
+Ticket restante: **SIG-22** Fase 3 (`sigapp-release` + smoke no pipeline,
+deploy prod por tag/`workflow_dispatch`).
 
 ---
 
@@ -51,111 +53,174 @@ reais de tenants, isso é o maior risco operacional do backend.
 
 | Recurso | Observação |
 |---|---|
-| Backend | Compose Dokploy; service `back`; porta interna `80` (proxy do Dokploy) |
-| PostgreSQL | Banco gerenciado do Dokploy (`pgvector/pgvector:0.8.6-pg16`); backend usa rede externa (ver `docker-compose.prod.yml`) |
-| Redis | Gerenciado no Dokploy; cache e filas |
-| Frontends | Repositórios irmãos (tenant / site / admin) — deploys separados |
+| Backend staging | Compose `docker-compose.staging.yml`; target `staging`; porta interna `80` |
+| Backend prod | Compose `docker-compose.prod.yml`; target `prod`; porta interna `80` |
+| PostgreSQL | Um Compose Dokploy **por ambiente** (`pgvector/pgvector:0.8.6-pg16`); rede externa no backend |
+| Redis | Um por ambiente; cache e filas |
+| Frontends | Repositórios irmãos — deploys separados; não sobem com este runbook |
 
 O `entrypoint.prod.sh` **não** roda migrations. Releases seguintes usam
 `sigapp-release`. Primeiro ambiente vazio usa `sigapp-bootstrap` **uma vez**.
 
 ---
 
-## Fluxo de cada release em produção
+## Descobrir o container `back`
 
-```text
-1. PR → CI verde (Tests, PostgreSQL+Redis, Pint, PHPStan, Docker build)
-2. Merge na main
-3. Dokploy auto-deploy (compose rebuild/redeploy)
-4. Aguardar container healthy (GET /api/v1/health)
-5. SSH na VPS → sigapp-release no container back
-6. Smoke (health + checagens da mudança)
-```
-
-### 1–2. Código e CI
-
-- Só mergear com checks required verdes.
-- Não usar `git add .` sem revisar o worktree.
-- O Dokploy só vê o que já está no remoto na branch configurada (`main`).
-
-### 3–4. Aguardar o deploy
-
-No painel Dokploy, confirme que o deploy terminou e o healthcheck passou.
-
-Smoke externo rápido:
-
-```bash
-curl -fsS https://api.sigapp.com.br/api/v1/health
-```
-
-Não rode `sigapp-release` enquanto o container ainda estiver recreando.
-
-### 5. `sigapp-release` via SSH (comando oficial)
+Após recriação da stack o sufixo muda. **Não** rode release em residual de
+deploy anterior.
 
 ```bash
 ssh <user>@<host-da-vps>
 
-# Preferir o nome estável documentado:
-docker exec sigapp-backend-j8lepv-back-1 /usr/local/bin/sigapp-release
+docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}' \
+  | grep -iE 'sigapp|back'
 ```
 
-O script executa, nesta ordem:
+Separar os dois ambientes:
+
+```bash
+# Staging — o nome costuma conter "staging"
+docker ps --filter 'name=staging' --format '{{.Names}}\t{{.Status}}'
+
+# Prod — referência estável; confirme que está Up
+docker ps --filter 'name=sigapp-backend-j8lepv' --format '{{.Names}}\t{{.Status}}'
+```
+
+Critérios antes do `docker exec`:
+
+- status **Up** (não `Exited` / container de deploy antigo)
+- nome do app certo (staging ≠ `sigapp-backend-j8lepv-…`)
+- acabou de ser recriado pelo deploy que você está promovendo
+
+Sanidade inofensiva (troque `CONTAINER` pelo nome descoberto):
+
+```bash
+docker exec CONTAINER php artisan --version
+docker exec CONTAINER ls -la /usr/local/bin/sigapp-release
+```
+
+Anote o nome atual de staging neste runbook quando estabilizar.
+
+---
+
+## `sigapp-release` (os dois ambientes)
+
+Não rode enquanto o container ainda estiver recreando. No painel Dokploy,
+espere o deploy terminar e o healthcheck passar.
+
+```bash
+docker exec CONTAINER /usr/local/bin/sigapp-release
+```
+
+Ordem do script:
 
 1. `php artisan migrate --force` (central)
 2. `php artisan tenants:migrate`
 3. `config:cache` / `route:cache` / `view:cache`
 
 **Exit code deve ser 0.** Se falhar, o schema pode estar pela metade —
-não ignore; leia o log do comando e trate antes de considerar o deploy pronto.
+não ignore; leia o log e trate antes de considerar o ambiente pronto.
 
-#### Se o nome do container mudou
+Política:
 
-Após recriação da stack o sufixo pode mudar. Descobrir o container atual:
+- **Staging:** sempre após cada deploy (barato; evita esquecer migration).
+- **Prod:** sempre após o deploy manual, na imagem nova.
 
-```bash
-docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}' | grep -i back
-# ou
-docker ps --filter 'name=sigapp-backend' --format '{{.Names}}'
+---
+
+## Depois de cada merge (staging)
+
+```text
+1. PR → CI verde
+2. Merge na main
+3. Dokploy auto-deploy só do app staging
+4. Health staging
+5. SSH → sigapp-release no container staging novo
+6. Smoke staging
 ```
 
-Confirme que é o container **Up** do backend (não um residual de deploy
-anterior) e use esse nome no `docker exec`.
-
-Comando inofensivo de sanidade antes do release:
-
 ```bash
-docker exec sigapp-backend-j8lepv-back-1 php artisan --version
-docker exec sigapp-backend-j8lepv-back-1 ls -la /usr/local/bin/sigapp-release
+curl -fsS https://api.staging.sigapp.com.br/api/v1/health
 ```
 
-### 6. Smoke pós-release
+Confirme no Dokploy que **prod não redeployou** (mesma revisão/hora de antes
+do merge).
 
-```bash
-curl -fsS https://api.sigapp.com.br/api/v1/health
-```
+Smoke mínimo de staging:
 
-Dentro do container (opcional, workers/scheduler):
-
-```bash
-docker exec sigapp-backend-j8lepv-back-1 supervisorctl status
-```
-
-Checklist genérico:
-
-- [ ] `sigapp-release` terminou com exit 0
+- [ ] `sigapp-release` exit 0
 - [ ] `GET /api/v1/health` → HTTP 200
-- [ ] Workers (`tenant-provisioning`, `ai`, `exports`, `notifications`, `default`) e scheduler ativos
-- [ ] Smoke da feature do PR (login, endpoint alterado, job, etc.)
+- [ ] Workers e scheduler ativos (`supervisorctl status`)
+- [ ] Smoke da feature do PR (login, endpoint, job, etc.)
 - [ ] Sem erro novo óbvio nos logs do container
+
+```bash
+docker exec CONTAINER_STAGING supervisorctl status
+```
+
+---
+
+## Checklist de promoção staging → prod
+
+Use **uma linha por promoção**. Promova o **mesmo commit** que passou no
+staging — não “o que estiver na `main` agora” se outro merge entrou no meio.
+
+### 0. Pré-condições
+
+- [ ] CI verde no commit a promover (Actions: Tests, PostgreSQL+Redis, Pint, PHPStan, Docker build)
+- [ ] Auto-deploy do app **prod** continua **OFF**
+- [ ] Staging isolado (Stripe `sk_test`, DB/Redis/S3/`APP_KEY` ≠ prod)
+- [ ] Alguém disponível para o SSH de `sigapp-release` em prod **na sequência** do deploy
+- [ ] (Se o PR tem migration destrutiva) expand/contract já planejado; rollback de imagem **não** desfaz DDL
+
+### 1. Staging — validar a revisão
+
+- [ ] No GitHub: anotar o **SHA** (7+ chars) do merge que vai para prod
+- [ ] No Dokploy staging: deploy dessa revisão **terminou** e está healthy
+- [ ] SSH: descobrir o container staging ([acima](#descobrir-o-container-back))
+- [ ] `docker exec CONTAINER_STAGING /usr/local/bin/sigapp-release` → exit 0
+- [ ] `curl -fsS https://api.staging.sigapp.com.br/api/v1/health` → 200
+- [ ] `docker exec CONTAINER_STAGING supervisorctl status` — nginx, php-fpm, `schedule:work` e as filas `tenant-provisioning`, `ai`, `exports`, `notifications`, `default`
+- [ ] Smoke funcional da mudança (login / transfer ticket / endpoint / job)
+- [ ] Nenhum merge posterior na `main` que você **não** queira levar junto
+
+Se qualquer item falhar: **não promova**. Corrija em staging (ou reverta o
+merge) e recomece.
+
+### 2. Produção — mesmo commit
+
+- [ ] No Dokploy, app **prod**: Deploy **manual** da **mesma revisão/SHA** do passo 1
+- [ ] Aguardar recreate + healthcheck do compose
+- [ ] `curl -fsS https://api.sigapp.com.br/api/v1/health` responde (container no ar)
+- [ ] SSH: confirmar o container prod **Up** (`sigapp-backend-j8lepv-back-1` ou o nome atual)
+- [ ] `docker exec sigapp-backend-j8lepv-back-1 /usr/local/bin/sigapp-release` → exit 0
+- [ ] `curl -fsS https://api.sigapp.com.br/api/v1/health` → 200
+- [ ] `docker exec sigapp-backend-j8lepv-back-1 supervisorctl status`
+- [ ] Smoke da feature em prod
+- [ ] Sem erro novo óbvio nos logs de prod
+
+Não rode `sigapp-release` enquanto o container prod ainda estiver recreando.
+Não rode release no container **antigo**.
+
+### 3. Se der errado
+
+1. **App:** no Dokploy prod, redeploy da revisão/imagem anterior.
+2. **Schema:** se o `sigapp-release` de prod já aplicou migrations, rollback
+   de app **não** desfaz DDL. Trate como incidente de schema (expand/contract
+   ou restore planejado).
+3. Depois do rollback de app, realinhe código × schema; só rode
+   `sigapp-release` de novo se a imagem que ficou ativa tiver as migrations
+   corretas para o estado desejado.
 
 ---
 
 ## Primeiro ambiente (banco vazio)
 
-Somente na **criação inicial** de um ambiente sem schema SIGAPP:
+Somente na **criação inicial** de um ambiente sem schema SIGAPP (hoje: só se
+alguém recriar staging do zero):
 
 ```bash
-docker exec sigapp-backend-j8lepv-back-1 /usr/local/bin/sigapp-bootstrap
+docker exec CONTAINER /usr/local/bin/sigapp-bootstrap
 ```
 
 Isso roda `migrate` + `db:seed` + caches. **Não** use bootstrap em produção já
@@ -169,10 +234,13 @@ populada (reexecuta seeders).
 |---|---|
 | Rodar migrate no `entrypoint` | Restart/scale reexecuta; corrida entre réplicas |
 | Usar `sigapp-bootstrap` em prod já viva | Seeders em dados reais |
-| Esquecer `sigapp-release` após merge com migration | App novo + schema velho |
+| Esquecer `sigapp-release` após deploy com migration | App novo + schema velho |
 | Rodar release em container antigo / stack residual | Migrations da imagem errada |
+| Religar auto-deploy de prod | Cada merge volta a ser go-live |
+| Promover “o que estiver na main” sem checar SHA | Leva commit não validado em staging |
 | Testar restore de backup em cima do DB de prod | Destrutivo |
 | Confiar só no rollback de imagem após migration destrutiva | Schema em geral **não** volta com o rollback do app |
+| Colar Stripe live / `APP_KEY` / bucket de prod no staging | Não é staging |
 
 ---
 
@@ -186,6 +254,8 @@ populada (reexecuta seeders).
    alinhados; se preciso, rode `sigapp-release` de novo na imagem que ficou ativa
    (só se essa imagem contiver as migrations corretas para o estado desejado).
 
+Ensaie o rollback de **app** em staging antes de precisar em prod.
+
 ---
 
 ## Filas e manutenção
@@ -198,44 +268,41 @@ Antes de manutenção de Redis ou troca de topologia de workers:
 4. `retry_after=660` > timeout máximo de Job (600s).
 
 ```bash
-docker exec sigapp-backend-j8lepv-back-1 php artisan queue:restart
-docker exec sigapp-backend-j8lepv-back-1 supervisorctl status
+docker exec CONTAINER php artisan queue:restart
+docker exec CONTAINER supervisorctl status
 ```
 
 ---
 
 ## Variáveis e rede
 
-- Catálogo: `.env.production.example` (sem segredos reais).
+- Catálogo prod: `.env.production.example` (sem segredos reais).
 - Secrets só no Dokploy (runtime), nunca como build-arg e nunca no Git.
-- Se o **projeto Compose do PostgreSQL** mudar no Dokploy, atualize o nome da
-  rede externa em `docker-compose.prod.yml` (hoje: `sigapp-database-wlnxuu_default`).
+- Se o **projeto Compose do PostgreSQL de prod** mudar no Dokploy, atualize o
+  nome da rede externa em `docker-compose.prod.yml` (hoje: `sigapp-database-wlnxuu_default`).
 - Staging: o backend **não** cria a rede do banco. Suba o Postgres staging no
   Dokploy primeiro, anote o nome em `docker network ls` e defina
   `DATABASE_DOCKER_NETWORK` no app de staging (`docker-compose.staging.yml`).
 
 ---
 
-## Caminho para Cenário B (staging) — próximo estrutural
+## Próximo (SIG-22 Fase 3+)
 
-Objetivo: `main` auto-deploy **não** bater em produção.
+Operação atual = Modelo A do SIG-22 (Dokploy decide o deploy; release/smoke
+semi-manuais). Ainda falta no ticket:
 
-| Passo | Descrição |
-|---|---|
-| 1 | Criar app/stack **staging** no Dokploy (mesmo compose, envs isolados) |
-| 2 | DB, Redis, S3, Stripe **test**, Resend sandbox, `APP_URL` de staging |
-| 3 | Auto-deploy de `main` → **somente** staging |
-| 4 | Produção: auto-deploy **OFF** ou só tag/`workflow_dispatch` / botão manual |
-| 5 | Mesmo runbook de `sigapp-release`, com nome de container/domínio de staging |
-
-Até isso existir, trate **todo merge na `main` como go-live**.
+- `sigapp-release` automático na **imagem nova** (one-off/post-deploy)
+- smoke health automático após deploy
+- deploy prod por tag `v*` ou `workflow_dispatch` com CI verde
+- alerta de falha + rollback versionado no pipeline
 
 ---
 
 ## Referências
 
 - `docs/2026-08-07-processo-release.md` — bootstrap vs release vs entrypoint
-- `docker-compose.prod.yml` — serviço `back`, healthcheck, rede do Postgres
+- `docs/2026-08-08-plano-staging-dokploy.md` — plano histórico do cutover
+- `docker-compose.prod.yml` / `docker-compose.staging.yml`
 - `.docker/release.prod.sh`, `.docker/bootstrap.prod.sh`, `.docker/entrypoint.prod.sh`
 - `.github/workflows/ci.yml` — gates antes do merge
-- Ticket **SIG-13** — plano CI/CD completo (staging, automação do release, registry)
+- Ticket **SIG-22** — CI/CD (Fase 2 = este cenário; Fase 3 = automação)

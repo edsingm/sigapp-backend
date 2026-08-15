@@ -283,6 +283,11 @@ docker exec CONTAINER supervisorctl status
 - Staging: o backend **não** cria a rede do banco. Suba o Postgres staging no
   Dokploy primeiro, anote o nome em `docker network ls` e defina
   `DATABASE_DOCKER_NETWORK` no app de staging (`docker-compose.staging.yml`).
+- Login tenant em staging (`/{slug}.frontend…/login/callback`): o frontend
+  precisa receber o **wildcard** do mesmo `APP_DOMAIN`/`NEXT_PUBLIC_APP_DOMAIN`
+  (ex. `*.sigapp-frontend-….sslip.io`). Sem isso o Traefik responde 404 no
+  subdomínio mesmo com o ticket válido. No compose do tenant, o
+  `HostRegexp` usa `${APP_DOMAIN}`.
 
 ---
 

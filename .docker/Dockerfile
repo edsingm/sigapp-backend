@@ -114,3 +114,8 @@ RUN composer dump-autoload --optimize --no-dev \
 EXPOSE 80
 
 ENTRYPOINT ["docker-entrypoint"]
+
+##########################################################################
+# staging — mesma imagem que prod; diferença só em env/rede/domínio
+##########################################################################
+FROM prod AS staging

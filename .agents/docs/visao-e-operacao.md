@@ -54,6 +54,7 @@ Há duas formas de rodar localmente: **Herd/`composer dev`** (nativo, macOS) ou 
 | `base` | `php:8.4-fpm` + extensões (`pdo_pgsql`, `redis` via PECL, `gd`, `intl`, `zip`, `bcmath`, `pcntl`, `exif`, `mbstring`) + **Node 20 + Chromium + Puppeteer** (necessários para Browsershot/`spatie/laravel-pdf`) + Composer |
 | `dev` | código via **bind mount** (`.:/var/www`); entrypoint (`entrypoint.dev.sh`) instala `vendor/` se faltar, garante `.env`/`APP_KEY`, roda `optimize:clear` e sobe `php artisan serve` na porta **8000** |
 | `prod` | código **embutido na imagem** (`composer install --no-dev` otimizado) + **nginx + php-fpm + supervisord** |
+| `staging` | alias de `prod` (`FROM prod AS staging`); o compose de staging pede esse target — diferença só em env, rede e domínio |
 
 ### Compose
 

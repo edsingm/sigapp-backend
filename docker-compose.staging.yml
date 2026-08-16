@@ -94,12 +94,25 @@ services:
       retries: 3
       start_period: 40s
     networks:
-      - default
+      default:
       # PostgreSQL is a separate Dokploy Compose project. Set
       # DATABASE_DOCKER_NETWORK to the name from `docker network ls`.
-      - database
+      database:
+      # Dokploy/Traefik routes the public API through this network.
+      dokploy-network:
+      # Shared with frontend_tenant so its BFF can call Laravel directly
+      # while preserving the public tenant Host header.
+      sigapp-staging:
+        aliases:
+          - sigapp-backend-staging
 
 networks:
   database:
     name: ${DATABASE_DOCKER_NETWORK:?DATABASE_DOCKER_NETWORK is required}
+    external: true
+  dokploy-network:
+    name: dokploy-network
+    external: true
+  sigapp-staging:
+    name: sigapp-staging
     external: true

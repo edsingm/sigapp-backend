@@ -1,0 +1,4 @@
+interface:
+  display_name: "Premortem"
+  short_description: "Encontre falhas antes que o plano fracasse"
+  default_prompt: "Use $premortem para testar este plano, expor riscos e propor uma versão mais resiliente."

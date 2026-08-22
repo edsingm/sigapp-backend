@@ -449,7 +449,7 @@ graph TB
     end
     
     subgraph "Infrastructure"
-        COOLIFY[Coolify<br/>Deployment platform]
+        DOKPLOY[Dokploy<br/>Deployment platform]
         PG_EXTERNAL[PostgreSQL 16 + pgvector<br/>Dokploy managed]
         REDIS_EXT[Redis 7<br/>External cache/queue]
         S3_EXT[S3 Compatible<br/>External storage]
@@ -465,7 +465,7 @@ graph TB
     SUPERVISOR --> PHP_FPM
     SUPERVISOR --> SCHEDULER
     SUPERVISOR --> WORKERS
-    COOLIFY --> DOCKER
+    DOKPLOY --> DOCKER
     PHP_FPM --> PG_EXTERNAL
     PHP_FPM --> REDIS_EXT
     PHP_FPM --> S3_EXT
@@ -498,5 +498,5 @@ graph TB
 | **Static Analysis** | PHPStan level 8 | Code quality |
 | **Formatting** | Laravel Pint | Code formatting |
 | **Frontend** | Next.js (separate repo) | Client application |
-| **Deployment** | Docker + Coolify | Container orchestration |
+| **Deployment** | Docker + Dokploy | Container orchestration |
 | **Process Manager** | Supervisord | Multi-process management |

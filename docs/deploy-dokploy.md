@@ -1,13 +1,22 @@
 # Deploy do SIGAPP no Dokploy
 
-Runbook operacional do backend na VPS gerenciada pelo **Dokploy**.  
+Runbook operacional do **backend** na VPS gerenciada pelo **Dokploy**.  
 O processo de scripts (`sigapp-bootstrap` / `sigapp-release` / entrypoint) está em
 `docs/2026-08-07-processo-release.md`. Os binários delegam a `php artisan sigapp:bootstrap`
 e `php artisan sigapp:release`. Este arquivo cobre **plataforma, ordem
 de deploy e comandos copy-paste**.
 
-> O runbook legado `docs/deploy-coolify.md` está **obsoleto**. Coolify não é
-> mais usado. Em caso de divergência, este documento e o `AGENTS.md` prevalecem.
+**Dokploy é a única plataforma de deploy.** Coolify, AWS ECS/EKS, Laravel Cloud
+e equivalentes não são usados. Em caso de divergência, este documento e o
+`AGENTS.md` prevalecem.
+
+| Repositório | Compose | Runbook |
+|---|---|---|
+| backend (este) | `docker-compose.staging.yml` / `docker-compose.prod.yml` | este arquivo |
+| frontend_tenant | idem | `docs/deploy-dokploy.md` no repo tenant |
+| frontend_site | idem | `docs/deploy-dokploy.md` no repo site |
+| frontend_admin | `docker-compose.prod.yml` | `docs/deploy-dokploy.md` no repo admin |
+| database | `docker-compose.prod.yml` (infra, não app) | `docs/deploy-dokploy.md` no repo database |
 
 ---
 
@@ -306,8 +315,9 @@ semi-manuais). Ainda falta no ticket:
 ## Referências
 
 - `docs/2026-08-07-processo-release.md` — bootstrap vs release vs entrypoint
-- `docs/2026-08-08-plano-staging-dokploy.md` — plano histórico do cutover
+- `docs/2026-08-08-plano-staging-dokploy.md` — plano histórico do cutover (não é o runbook)
 - `docker-compose.prod.yml` / `docker-compose.staging.yml`
 - `.docker/release.prod.sh`, `.docker/bootstrap.prod.sh`, `.docker/entrypoint.prod.sh`
 - `.github/workflows/ci.yml` — gates antes do merge
 - Ticket **SIG-22** — CI/CD (Fase 2 = este cenário; Fase 3 = automação)
+- Frontends e banco: runbook `docs/deploy-dokploy.md` em cada repositório irmão

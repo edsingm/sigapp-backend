@@ -60,6 +60,7 @@ Detalhes por domínio vivem em **[`.agents/docs/`](.agents/docs/README.md)**. Ab
 | **Filas** | Redis em prod · grupos: provisioning, ai, exports, notifications, default |
 | **Testes** | PHPUnit 13 (Architecture, Unit, Feature) · **não** Pest |
 | **Qualidade** | Pint (`laravel`) · PHPStan nível **8** |
+| **Deploy** | Docker Compose + **Dokploy** (Cenário B: auto-deploy só em staging; prod manual) · runbook `docs/deploy-dokploy.md` |
 
 ### Comandos essenciais
 

@@ -492,7 +492,7 @@ Wildcard TLS para `*.staging.sigapp.com.br` pode exigir DNS challenge (mesmo tem
 | `.env.staging.example` | Recomendado | Catálogo de envs sem secrets; URLs staging |
 | Atualizar `docs/deploy-dokploy.md` | Sim (pós cutover) | Dois ambientes, dois comandos |
 | Atualizar `AGENTS.md` | Sim | “main → staging; prod manual” |
-| Remover leftovers Coolify em examples | Já em andamento | `SET_IN_COOLIFY` → `SET_IN_DOKPLOY` se ainda restar |
+| Remover leftovers Coolify em examples | Concluído | placeholders `SET_IN_DOKPLOY`; runbooks AWS/Coolify apagados |
 
 ### Esqueleto sugerido de `docker-compose.staging.yml`
 

@@ -14,6 +14,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -104,6 +105,7 @@ class PrivacyRequestApiTest extends TestCase
     public function test_admin_can_offboard_and_wipe_requires_confirmation(): void
     {
         $this->actingAsCentralAdmin();
+        Storage::fake('s3');
 
         $tenant = Tenant::query()->create([
             'name' => 'Offboard Me',

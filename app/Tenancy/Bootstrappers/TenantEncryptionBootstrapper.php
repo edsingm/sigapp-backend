@@ -6,10 +6,11 @@ namespace App\Tenancy\Bootstrappers;
 
 use App\Encryption\TenantEncrypter;
 use App\Encryption\TenantKeyVault;
+use App\Exceptions\TenantEncryptionException;
 use App\Models\Central\Tenant;
+use Illuminate\Support\Facades\Log;
 use Stancl\Tenancy\Contracts\TenancyBootstrapper;
 use Stancl\Tenancy\Contracts\Tenant as TenantContract;
-use Throwable;
 
 class TenantEncryptionBootstrapper implements TenancyBootstrapper
 {
@@ -26,17 +27,23 @@ class TenantEncryptionBootstrapper implements TenancyBootstrapper
 
         $stored = $tenant->getAttribute('encryption_key');
         if (! is_string($stored) || $stored === '') {
-            $plaintext = base64_encode(random_bytes(32));
-            $this->vault->wrapAndStore($tenant, $plaintext);
-            $this->encrypter->configure($plaintext);
+            $this->encrypter->forget();
+            Log::critical('Tenant sem chave de criptografia; PII ficará indisponível.', [
+                'tenant_id' => $tenant->getKey(),
+                'error_code' => 'TENANT_ENCRYPTION_KEY_MISSING',
+            ]);
 
             return;
         }
 
         try {
             $this->encrypter->configure($this->vault->reveal($tenant));
-        } catch (Throwable) {
+        } catch (TenantEncryptionException $exception) {
             $this->encrypter->forget();
+            Log::critical('Chave de criptografia do tenant indisponível; PII ficará bloqueada.', [
+                'tenant_id' => $tenant->getKey(),
+                'exception' => $exception::class,
+            ]);
         }
     }
 

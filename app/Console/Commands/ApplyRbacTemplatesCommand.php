@@ -53,45 +53,45 @@ class ApplyRbacTemplatesCommand extends Command
                 ->orWhere('slug', (string) $tenantIdentifier);
         }
 
-        $tenants = $query->get();
-
-        if ($tenants->isEmpty()) {
+        if (! $query->exists()) {
             $this->warn('Nenhum tenant encontrado.');
 
             return self::SUCCESS;
         }
 
-        foreach ($tenants as $tenant) {
-            $tenantSlug = (string) $tenant->getAttribute('slug');
+        $query->chunkById(50, function ($tenants): void {
+            foreach ($tenants as $tenant) {
+                $tenantSlug = (string) $tenant->getAttribute('slug');
 
-            $this->line("\n→ Tenant: {$tenant->id} ({$tenantSlug})");
+                $this->line("\n→ Tenant: {$tenant->id} ({$tenantSlug})");
 
-            $tenant->run(function () {
-                foreach (RolesEnum::cases() as $roleEnum) {
-                    $templatePath = database_path('rbacTemplates/'.strtolower($roleEnum->value).'.json');
+                $tenant->run(function () {
+                    foreach (RolesEnum::cases() as $roleEnum) {
+                        $templatePath = database_path('rbacTemplates/'.strtolower($roleEnum->value).'.json');
 
-                    if (! file_exists($templatePath)) {
-                        $this->warn("  [SKIP] Template não encontrado para role {$roleEnum->value}");
+                        if (! file_exists($templatePath)) {
+                            $this->warn("  [SKIP] Template não encontrado para role {$roleEnum->value}");
 
-                        continue;
+                            continue;
+                        }
+
+                        $template = json_decode(file_get_contents($templatePath), true);
+                        $role = Role::where('name', $roleEnum->value)->where('guard_name', 'web')->first();
+
+                        if (! $role) {
+                            $this->warn("  [SKIP] Role {$roleEnum->value} não encontrada no tenant.");
+
+                            continue;
+                        }
+
+                        $permissions = $this->resolvePermissions($template['permissions']);
+                        $role->syncPermissions($permissions);
+
+                        $this->line("  [OK]   {$roleEnum->value}: ".count($permissions).' permissões atribuídas.');
                     }
-
-                    $template = json_decode(file_get_contents($templatePath), true);
-                    $role = Role::where('name', $roleEnum->value)->where('guard_name', 'web')->first();
-
-                    if (! $role) {
-                        $this->warn("  [SKIP] Role {$roleEnum->value} não encontrada no tenant.");
-
-                        continue;
-                    }
-
-                    $permissions = $this->resolvePermissions($template['permissions']);
-                    $role->syncPermissions($permissions);
-
-                    $this->line("  [OK]   {$roleEnum->value}: ".count($permissions).' permissões atribuídas.');
-                }
-            });
-        }
+                });
+            }
+        });
 
         $this->newLine();
         $this->info('Concluído.');

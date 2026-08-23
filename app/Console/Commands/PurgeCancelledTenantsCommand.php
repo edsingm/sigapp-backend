@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Jobs\WipeTenantJob;
 use App\Services\Privacy\TenantLifecycleService;
 use Illuminate\Console\Command;
 
@@ -25,10 +26,10 @@ class PurgeCancelledTenantsCommand extends Command
         }
 
         $wiped = 0;
-        foreach ($lifecycle->dueForWipe() as $tenant) {
-            $lifecycle->wipe($tenant, force: true);
+        $lifecycle->eachDueForWipe(function ($tenant) use (&$wiped): void {
+            WipeTenantJob::dispatch((string) $tenant->getKey(), force: true);
             $wiped++;
-        }
+        });
 
         $this->info('Tenants removidos: '.$wiped);
 

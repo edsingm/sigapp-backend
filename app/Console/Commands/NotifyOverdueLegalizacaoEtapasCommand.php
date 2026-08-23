@@ -22,30 +22,35 @@ class NotifyOverdueLegalizacaoEtapasCommand extends Command
 
         Tenant::query()
             ->where('status', Tenant::STATUS_ACTIVE)
-            ->get()
-            ->each(function (Tenant $tenant) use ($repository, $today, &$total) {
-                try {
-                    $tenant->run(function () use ($repository, $today, &$total) {
-                        $overdue = $repository->findOverdue(
-                            [
-                                LegalizacaoEtapaStatus::CONCLUIDA->value,
-                                LegalizacaoEtapaStatus::BLOQUEADA->value,
-                            ],
-                            $today,
-                        );
+            ->select(['id'])
+            ->toBase()
+            ->chunkById(50, function ($rows) use ($repository, $today, &$total): void {
+                foreach ($rows as $row) {
+                    $tenant = Tenant::query()->findOrFail((string) $row->id);
 
-                        $tenantSlug = (string) tenant('slug');
+                    try {
+                        $tenant->run(function () use ($repository, $today, &$total) {
+                            $overdue = $repository->findOverdue(
+                                [
+                                    LegalizacaoEtapaStatus::CONCLUIDA->value,
+                                    LegalizacaoEtapaStatus::BLOQUEADA->value,
+                                ],
+                                $today,
+                            );
 
-                        foreach ($overdue as $etapa) {
-                            LegalizacaoEtapaOverdue::dispatch($etapa, $tenantSlug);
-                            $total++;
-                        }
-                    });
-                } catch (\Throwable $exception) {
-                    Log::warning('Erro ao notificar etapas atrasadas do tenant', [
-                        'tenant_id' => $tenant->id,
-                        'error' => $exception->getMessage(),
-                    ]);
+                            $tenantSlug = (string) tenant('slug');
+
+                            foreach ($overdue as $etapa) {
+                                LegalizacaoEtapaOverdue::dispatch($etapa, $tenantSlug);
+                                $total++;
+                            }
+                        });
+                    } catch (\Throwable $exception) {
+                        Log::warning('Erro ao notificar etapas atrasadas do tenant', [
+                            'tenant_id' => $tenant->id,
+                            'error' => $exception->getMessage(),
+                        ]);
+                    }
                 }
             });
 

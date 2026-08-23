@@ -18,8 +18,7 @@ class TenantSeeder extends Seeder
         $this->call(AdminUserSeeder::class);
         $this->call(ReportSystemTemplateSeeder::class);
 
-        // TODO: remover em prod
-        if (! app()->environment('prod')) {
+        if (! app()->environment('production')) {
             $this->call(ProdutoSeeder::class);
             $this->call(CorretorExternoSeeder::class);
             $this->call(RegionalSeeder::class);

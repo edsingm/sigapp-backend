@@ -108,35 +108,42 @@ class PlatformAnnouncementService
 
         $announcement->update(['status' => PlatformAnnouncement::STATUS_SENDING]);
 
-        $tenants = $this->resolveRecipients($announcement);
         $sent = 0;
         $errors = [];
 
-        foreach ($tenants as $tenant) {
-            $email = $tenant->routeNotificationForMail();
-            if (! is_string($email) || $email === '') {
-                continue;
-            }
+        $this->recipientsQuery($announcement)
+            ->whereNotNull('admin_email')
+            ->where('admin_email', '!=', '')
+            ->select(['id'])
+            ->toBase()
+            ->chunkById(100, function ($rows) use ($announcement, &$sent, &$errors): void {
+                foreach ($rows as $row) {
+                    $tenant = Tenant::query()->findOrFail((string) $row->id);
+                    $email = $tenant->routeNotificationForMail();
+                    if (! is_string($email) || $email === '') {
+                        continue;
+                    }
 
-            try {
-                $tenant->notify(new PlatformAnnouncementNotification(
-                    $announcement->title,
-                    $announcement->body,
-                    (string) $tenant->getAttribute('name'),
-                    (string) ($announcement->type ?: PlatformAnnouncement::TYPE_INFO),
-                ));
-                $sent++;
-            } catch (Throwable $e) {
-                $errors[] = [
-                    'tenant_id' => $tenant->getKey(),
-                    'error' => $e->getMessage(),
-                ];
-                Log::warning('[PlatformAnnouncement] Falha ao notificar tenant', [
-                    'tenant_id' => $tenant->getKey(),
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
+                    try {
+                        $tenant->notify(new PlatformAnnouncementNotification(
+                            $announcement->title,
+                            $announcement->body,
+                            (string) $tenant->getAttribute('name'),
+                            (string) ($announcement->type ?: PlatformAnnouncement::TYPE_INFO),
+                        ));
+                        $sent++;
+                    } catch (Throwable $e) {
+                        $errors[] = [
+                            'tenant_id' => $tenant->getKey(),
+                            'error' => $e->getMessage(),
+                        ];
+                        Log::warning('[PlatformAnnouncement] Falha ao notificar tenant', [
+                            'tenant_id' => $tenant->getKey(),
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+            });
 
         $announcement->update([
             'status' => $sent > 0 || $errors === []
@@ -162,20 +169,6 @@ class PlatformAnnouncementService
             ->whereNotNull('admin_email')
             ->where('admin_email', '!=', '')
             ->count();
-    }
-
-    /**
-     * @return Collection<int, Tenant>
-     */
-    private function resolveRecipients(PlatformAnnouncement $announcement): Collection
-    {
-        /** @var Collection<int, Tenant> $recipients */
-        $recipients = $this->recipientsQuery($announcement)
-            ->whereNotNull('admin_email')
-            ->where('admin_email', '!=', '')
-            ->get();
-
-        return $recipients;
     }
 
     /**

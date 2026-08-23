@@ -1,9 +1,11 @@
 <?php
 
+use App\Jobs\QueueHeartbeatJob;
 use App\Jobs\RefreshTenantStatsJob;
 use App\Notifications\TenantWelcomeNotification;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Schedule;
 
@@ -96,3 +98,20 @@ Schedule::command('reports:run-due-schedules')
     ->name('reports-run-due-schedules')
     ->onOneServer()
     ->withoutOverlapping(20);
+Schedule::command('billing:reconcile-tenants')
+    ->hourly()
+    ->name('billing-reconcile-tenants')
+    ->onOneServer()
+    ->withoutOverlapping(60);
+Schedule::call(function (): void {
+    $dispatchedAt = now()->timestamp;
+    Cache::put('operations:scheduler:heartbeat', $dispatchedAt, now()->addMinutes(15));
+
+    foreach ((array) config('operations.critical_queues', []) as $queue) {
+        QueueHeartbeatJob::dispatch((string) $queue, $dispatchedAt)->onQueue((string) $queue);
+    }
+})
+    ->everyMinute()
+    ->name('operations-heartbeats')
+    ->onOneServer()
+    ->withoutOverlapping(5);

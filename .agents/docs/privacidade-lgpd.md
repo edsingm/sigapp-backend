@@ -21,7 +21,7 @@ O titular dono do terreno pede à incorporadora, não ao SIGAPP. Canal público 
 - Aceite de signup em `tenants.data.signup_contract_acceptance` (JSON legado — **não migrar**). Novos aceites: `legal_acceptances` (central no signup; tenant no convite/`POST /legal/acceptances`).
 - `GET /api/v1/legal/documents` (catálogo; no tenant autenticado inclui `needs_reacceptance`). `POST /api/v1/legal/acceptances` (`auth.tenant`).
 - `billing_tax_id` com cast `encrypted` (`APP_KEY`).
-- `tenants.encryption_key` gerada em `CreateFullTenantJob` e **nunca lida**.
+- `tenants.encryption_key` é criada de forma idempotente por `TenantKeyVault` antes da primeira escrita tenant, envelopada com `APP_KEY` (`enc:v1:`) e carregada pelo bootstrapper de tenancy.
 - `AiDataRedactor` no chat/tools; `AuditLog` central.
 - Drop de schema só quando o model `Tenant` é *deleted*. `Tenant::cancel()` agenda wipe D90 (`cancelled_at` + `wipe_scheduled_at`). O wipe do ciclo de vida **não** chama `Tenant::delete()` para reter `stripe_id` / `billing_tax_id`. `DeleteTenantStorage` permanece comentado: o prefixo `tenants/{id}` no disk `s3` é apagado em `TenantLifecycleService`.
 
@@ -61,6 +61,14 @@ Reusar `TenantExportGenerationService` (fila `exports`, S3 privado, download 24h
 - Jobs de fila **não** geram `tenant.privileged_access`. Instrumentar `tenancy()->initialize` só em caminhos de suporte/admin.
 - Sem aceite de transferência de PDF: upload continua; `AnalyzeDocumentJob` **não** dispara (PR11).
 - Jobs novos: `failed()`, `$tries`, `$timeout`. Models: `$fillable`, `$casts`, factory. Sem `$guarded = []`.
+
+## Hardening operacional (SIG-28)
+
+- `EncryptedWithTenantKey` é fail-closed: sem chave válida, com chave incorreta ou ciphertext corrompido, leitura/escrita de PII lança `TenantEncryptionException` (HTTP 503 na API). Nunca retornar plaintext ou ciphertext como fallback.
+- Payloads novos usam o envelope `tenant:v1:`. O leitor aceita ciphertext legado sem prefixo apenas para migração.
+- Backfill: `php artisan privacy:backfill-tenant-pii [--tenant=<id|slug>] [--chunk=200]`. O job pagina registros, recalcula `cpf_cnpj_hash` e os blind indexes HMAC de e-mail/telefone de corretores, persiste progresso/erro no tenant e só grava `pii_encrypted_at` após varrer todas as tabelas com sucesso. Campos cifrados usam `TEXT`; unicidade e busca exata de e-mail/telefone nunca consultam o ciphertext aleatório. Estado `failed` é retomável pelo mesmo comando.
+- Wipe: `scheduled → running → completed|failed`, com `wipe_step`, tentativas e último erro. `WipeTenantJob` reexecuta com backoff; schema e prefixo `tenants/{id}` no S3 são verificados antes de limpar a chave e marcar `wiped_at`. Falha parcial mantém `encryption_key` e nunca produz falso sucesso.
+- Alertas operacionais usam logs `critical` quando jobs de wipe, reconciliação ou heartbeat esgotam tentativas; configure o coletor de logs para alertar nesse nível.
 
 ## Ordem dos PRs (backend)
 

@@ -20,6 +20,7 @@ class SigappReleaseCommand extends Command
         return $this->runSteps([
             ['migrate', ['--force' => true]],
             ['tenants:migrate'],
+            ['sigapp:schema-status', ['--fail-on-drift' => true]],
             ...$this->cacheSteps(),
         ]);
     }

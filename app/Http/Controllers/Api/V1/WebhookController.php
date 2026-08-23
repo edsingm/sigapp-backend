@@ -13,6 +13,7 @@ use App\Notifications\TrialEndingNotification;
 use App\Repositories\Contracts\TenantRepositoryInterface;
 use App\Services\Billing\AddonReconciliationService;
 use App\Services\Billing\CouponService;
+use App\Services\Billing\StripeTenantReconciliationService;
 use App\Services\Billing\TenantAddonPurchaseService;
 use App\Services\Billing\TenantBillingService;
 use App\Services\Billing\WebhookEventService;
@@ -39,6 +40,7 @@ class WebhookController extends CashierController
         protected WebhookEventService $webhookEventService,
         protected AddonReconciliationService $addonReconciliationService,
         protected TenantAddonPurchaseService $addonPurchaseService,
+        protected StripeTenantReconciliationService $stripeReconciliationService,
     ) {
         if ($this->requiresSignedWebhook() && $this->hasWebhookSecret()) {
             $this->middleware(VerifyWebhookSignature::class);
@@ -234,19 +236,15 @@ class WebhookController extends CashierController
         // Sincroniza o estado de billing (stripe_id, stripe_subscription_id, plano, subscription table)
         // ANTES de disparar o provisionamento para evitar race condition.
         if (! empty($session['subscription'])) {
-            try {
-                $this->reconcileTenantBillingState(
-                    $tenant,
-                    $session['subscription'],
-                    'checkout.session.completed',
-                    [
-                        'session_id' => $session['id'] ?? null,
-                        'customer_id' => $session['customer'] ?? null,
-                    ]
-                );
-            } catch (\Exception $e) {
-                Log::error('Erro ao sincronizar assinatura manualmente', ['error' => $e->getMessage()]);
-            }
+            $this->reconcileTenantBillingState(
+                $tenant,
+                $session['subscription'],
+                'checkout.session.completed',
+                [
+                    'session_id' => $session['id'] ?? null,
+                    'customer_id' => $session['customer'] ?? null,
+                ]
+            );
         }
 
         // Provisionamento é disparado DENTRO de reconcileTenantBillingState quando necessário.
@@ -911,43 +909,13 @@ class WebhookController extends CashierController
         array $context = [],
         bool $skipPlanSync = false
     ): void {
-        if (! $subscriptionId) {
-            Log::warning('Evento Stripe sem subscription_id para reconciliação do tenant', array_merge([
-                'tenant_id' => $tenant->id,
-                'source' => $source,
-            ], $context));
-
-            return;
-        }
-
-        $stripeSubscription = $this->billingService->retrieveSubscription($subscriptionId);
-        $stripeStatus = (string) ($stripeSubscription->status ?? '');
-
-        $tenant->update([
-            'stripe_id' => $stripeSubscription->customer ?? $this->tenantStripeId($tenant),
-            'stripe_subscription_id' => $stripeSubscription->id ?? $subscriptionId,
-        ]);
-
-        if (! $skipPlanSync) {
-            $this->billingService->syncPlanFromSubscription($tenant, $stripeSubscription);
-        }
-
-        $this->billingService->syncSubscription($tenant, $subscriptionId);
-        $this->addonReconciliationService->reconcile($tenant, $stripeSubscription);
-
-        $appliedStatus = $this->billingService->applyStripeSubscriptionStatus($tenant, $stripeStatus);
-
-        Log::info('Tenant reconciliado a partir de evento Stripe', array_merge([
-            'tenant_id' => $tenant->id,
-            'source' => $source,
-            'stripe_status' => $stripeStatus,
-            'applied_status' => $appliedStatus,
-            'database_created' => $this->tenantDatabaseCreated($tenant),
-        ], $context));
-
-        if (in_array($stripeStatus, ['active', 'trialing'], true)) {
-            $this->dispatchTenantProvisioning($tenant);
-        }
+        $this->stripeReconciliationService->reconcile(
+            $tenant,
+            (string) $subscriptionId,
+            $source,
+            $context,
+            $skipPlanSync,
+        );
     }
 
     /**

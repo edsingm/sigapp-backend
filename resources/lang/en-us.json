@@ -168,5 +168,10 @@
     "HIPERDADOS_IMPORT_NOT_READY": "Import is not ready for commit",
     "HIPERDADOS_PAYLOAD_MISSING": "Import payload file not found",
     "HIPERDADOS_PAYLOAD_INVALID": "Import JSON payload is invalid",
-    "TENANT_DATABASE_NOT_READY": "Tenant database is not provisioned yet"
+    "TENANT_DATABASE_NOT_READY": "Tenant database is not provisioned yet",
+    "TENANT_ENCRYPTION_UNAVAILABLE": "This tenant's protected data is temporarily unavailable",
+    "TENANT_ENCRYPTION_KEY_INVALID": "This tenant's data protection key is invalid",
+    "TENANT_ENCRYPTION_KEY_UNWRAP_FAILED": "This tenant's data protection key could not be opened",
+    "TENANT_PII_DECRYPTION_FAILED": "This tenant's protected data could not be read",
+    "CORRETOR_EMAIL_ALREADY_USED": "This email is already being used by another broker."
 }

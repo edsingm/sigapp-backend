@@ -86,6 +86,47 @@ class WebhookHandlerTest extends TestCase
         $this->assertSame($expectedStatus, $freshTenant->status);
     }
 
+    public function test_checkout_reconciliation_failure_is_recorded_for_stripe_retry(): void
+    {
+        $eventId = 'evt_checkout_failure_'.uniqid();
+        $sessionId = 'cs_failure_'.uniqid();
+        $subscriptionId = 'sub_failure_'.uniqid();
+        $tenant = $this->makeTenant([
+            'status' => Tenant::STATUS_PENDING,
+            'database_created' => false,
+            'data' => ['stripe_checkout_session_id' => $sessionId],
+        ]);
+
+        $billingMock = Mockery::mock(TenantBillingService::class)->makePartial();
+        $billingMock->shouldReceive('retrieveSubscription')
+            ->once()
+            ->with($subscriptionId)
+            ->andThrow(new \RuntimeException('Stripe unavailable'));
+        $this->app->instance(TenantBillingService::class, $billingMock);
+
+        $response = $this->withServerVariables(['HTTP_HOST' => 'localhost'])
+            ->postJson('/api/v1/webhook/stripe', [
+                'id' => $eventId,
+                'type' => 'checkout.session.completed',
+                'data' => ['object' => [
+                    'id' => $sessionId,
+                    'mode' => 'subscription',
+                    'status' => 'complete',
+                    'payment_status' => 'paid',
+                    'client_reference_id' => (string) $tenant->getKey(),
+                    'customer' => $tenant->getAttribute('stripe_id'),
+                    'subscription' => $subscriptionId,
+                    'metadata' => ['tenant_id' => (string) $tenant->getKey()],
+                ]],
+            ]);
+
+        $response->assertServerError();
+        $event = WebhookEvent::query()->where('event_id', $eventId)->firstOrFail();
+        $this->assertSame(WebhookEventStatus::FAILED, $event->status);
+        $this->assertStringContainsString('Stripe unavailable', (string) $event->last_error);
+        $this->assertNull($event->processed_at);
+    }
+
     // -------------------------------------------------------------------------
     // invoice.payment_failed
     // -------------------------------------------------------------------------

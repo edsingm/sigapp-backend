@@ -93,43 +93,45 @@ class TenantUserDirectoryService
     {
         tenancy()->central(fn () => TenantUserDirectory::query()->delete());
 
-        Tenant::query()->get()->each(function (Tenant $tenant): void {
-            try {
-                $users = $tenant->run(fn () => TenantUser::query()->get(['id', 'name', 'email']));
-            } catch (\Throwable $exception) {
-                Log::warning('Tenant user directory rebuild skipped tenant', [
-                    'tenant_id' => (string) $tenant->getKey(),
-                    'error' => $exception->getMessage(),
-                ]);
+        Tenant::query()->chunkById(50, function ($tenants): void {
+            foreach ($tenants as $tenant) {
+                try {
+                    $tenant->run(function () use ($tenant): void {
+                        TenantUser::query()
+                            ->select(['id', 'name', 'email'])
+                            ->chunkById(500, function ($users) use ($tenant): void {
+                                $rows = collect($users)
+                                    ->filter(fn ($user) => filled($user->email))
+                                    ->map(fn ($user) => [
+                                        'tenant_id' => (string) $tenant->getKey(),
+                                        'tenant_user_id' => (string) $user->id,
+                                        'email_normalized' => $this->normalizeEmail((string) $user->email),
+                                        'user_name' => (string) $user->name,
+                                        'active' => true,
+                                        'created_at' => now(),
+                                        'updated_at' => now(),
+                                    ])
+                                    ->values()
+                                    ->all();
 
-                return;
+                                if ($rows !== []) {
+                                    tenancy()->central(fn () => TenantUserDirectory::query()->upsert(
+                                        $rows,
+                                        ['tenant_id', 'tenant_user_id'],
+                                        ['email_normalized', 'user_name', 'active', 'updated_at'],
+                                    ));
+                                }
+                            });
+                    });
+                } catch (\Throwable $exception) {
+                    Log::warning('Tenant user directory rebuild skipped tenant', [
+                        'tenant_id' => (string) $tenant->getKey(),
+                        'error' => $exception->getMessage(),
+                    ]);
+
+                    continue;
+                }
             }
-
-            $rows = collect($users)
-                ->filter(fn ($user) => filled($user->email))
-                ->map(fn ($user) => [
-                    'tenant_id' => (string) $tenant->getKey(),
-                    'tenant_user_id' => (string) $user->id,
-                    'email_normalized' => $this->normalizeEmail((string) $user->email),
-                    'user_name' => (string) $user->name,
-                    'active' => true,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ])
-                ->values()
-                ->all();
-
-            if ($rows === []) {
-                return;
-            }
-
-            tenancy()->central(function () use ($rows): void {
-                TenantUserDirectory::query()->upsert(
-                    $rows,
-                    ['tenant_id', 'tenant_user_id'],
-                    ['email_normalized', 'user_name', 'active', 'updated_at']
-                );
-            });
         });
     }
 }

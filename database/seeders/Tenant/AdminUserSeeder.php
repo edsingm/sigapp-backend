@@ -5,6 +5,7 @@ namespace Database\Seeders\Tenant;
 use App\Enums\Common\RolesEnum;
 use App\Models\Central\Tenant;
 use App\Models\Tenant\User;
+use App\Services\Auth\TenantUserDirectoryService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -64,6 +65,7 @@ class AdminUserSeeder extends Seeder
         }
 
         $user->assignRole(RolesEnum::ADMIN);
+        app(TenantUserDirectoryService::class)->syncUser($user);
 
         Log::info('Usuário admin criado/verificado via Seeder', [
             'tenant_id' => $tenant->id,

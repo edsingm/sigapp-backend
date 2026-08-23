@@ -3,6 +3,7 @@
 namespace App\Models\Tenant;
 
 use App\Casts\EncryptedWithTenantKey;
+use App\Encryption\TenantPiiBlindIndexer;
 use App\Traits\HasDashboardCache;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -27,6 +28,29 @@ class CorretorExterno extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $corretor): void {
+            $blindIndexer = app(TenantPiiBlindIndexer::class);
+
+            if ($corretor->isDirty('email')) {
+                $email = $corretor->getAttribute('email');
+                $corretor->setAttribute(
+                    'email_hash',
+                    is_string($email) && $email !== '' ? $blindIndexer->email($email) : null,
+                );
+            }
+
+            if ($corretor->isDirty('telefone')) {
+                $phone = $corretor->getAttribute('telefone');
+                $corretor->setAttribute(
+                    'telefone_hash',
+                    is_string($phone) && $phone !== '' ? $blindIndexer->phone($phone) : null,
+                );
+            }
+        });
+    }
 
     /**
      * @return list<string>
@@ -60,26 +84,13 @@ class CorretorExterno extends Model
             'nome.max' => 'O nome não pode ter mais de 255 caracteres.',
             'email.required' => 'O email é obrigatório.',
             'email.email' => 'O email deve ter um formato válido.',
-            'email.unique' => 'Este email já está sendo usado por outro corretor.',
+            'email.unique' => __('CORRETOR_EMAIL_ALREADY_USED'),
             'telefone.required' => 'O telefone é obrigatório.',
             'telefone.string' => 'O telefone deve ser um texto válido.',
             'telefone.max' => 'O telefone não pode ter mais de 20 caracteres.',
             'creci.integer' => 'O CRECI deve ser um número válido.',
             'creci.min' => 'O CRECI deve ser um número positivo.',
         ];
-    }
-
-    /**
-     * Escopo de consulta para buscar corretores por nome ou email.
-     */
-    public function scopeSearch($query, $search)
-    {
-        return $query->where(function ($q) use ($search) {
-            $q->where('nome', 'like', "%{$search}%")
-                ->orWhere('email', 'like', "%{$search}%")
-                ->orWhere('telefone', 'like', "%{$search}%")
-                ->orWhere('creci', 'like', "%{$search}%");
-        });
     }
 
     /**

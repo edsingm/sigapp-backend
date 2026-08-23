@@ -168,5 +168,10 @@
     "HIPERDADOS_IMPORT_NOT_READY": "A importação ainda não está pronta para commit",
     "HIPERDADOS_PAYLOAD_MISSING": "Arquivo de dados da importação não encontrado",
     "HIPERDADOS_PAYLOAD_INVALID": "JSON da importação está inválido",
-    "TENANT_DATABASE_NOT_READY": "O banco do tenant ainda não foi provisionado"
+    "TENANT_DATABASE_NOT_READY": "O banco do tenant ainda não foi provisionado",
+    "TENANT_ENCRYPTION_UNAVAILABLE": "Os dados protegidos deste tenant estão temporariamente indisponíveis",
+    "TENANT_ENCRYPTION_KEY_INVALID": "A chave de proteção deste tenant é inválida",
+    "TENANT_ENCRYPTION_KEY_UNWRAP_FAILED": "Não foi possível abrir a chave de proteção deste tenant",
+    "TENANT_PII_DECRYPTION_FAILED": "Não foi possível ler os dados protegidos deste tenant",
+    "CORRETOR_EMAIL_ALREADY_USED": "Este email já está sendo usado por outro corretor."
 }

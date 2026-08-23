@@ -31,6 +31,7 @@ class HealthCheckService
 
     public function __construct(
         private readonly DocumentoService $documentoService,
+        private readonly SchemaCompatibilityService $schemas,
     ) {}
 
     /**
@@ -50,6 +51,7 @@ class HealthCheckService
             'cache' => $this->checkCache(),
             'storage' => $this->checkStorage(),
             'queue' => $this->checkQueue(),
+            'operations' => $this->checkOperationalHeartbeats(),
             'stripe' => $this->checkStripe(),
             'openrouter' => $this->checkOpenRouter(),
         ];
@@ -61,6 +63,50 @@ class HealthCheckService
             'timestamp' => now()->toIso8601String(),
             'checks' => $checks,
         ];
+    }
+
+    /** @return array{status: 'ok'|'down', timestamp: string, checks: array<string, mixed>} */
+    public function readiness(): array
+    {
+        $checks = [
+            'database' => $this->checkDatabase(),
+            'cache' => $this->checkCache(),
+            'schema' => $this->checkSchemaCompatibility(),
+            'operations' => $this->checkOperationalHeartbeats(),
+        ];
+        $down = collect($checks)->contains(fn (array $check): bool => $check['status'] === 'down');
+
+        return [
+            'status' => $down ? 'down' : 'ok',
+            'timestamp' => now()->toIso8601String(),
+            'checks' => $checks,
+        ];
+    }
+
+    /** @return array{status: 'ok'|'down', message: string, latency_ms: float, critical: bool} */
+    private function checkSchemaCompatibility(): array
+    {
+        if (app()->environment('local', 'testing')) {
+            return [
+                'status' => 'ok',
+                'message' => 'Gate de schema não obrigatório neste ambiente',
+                'latency_ms' => 0.0,
+                'critical' => false,
+            ];
+        }
+
+        return $this->timed(function (): array {
+            $state = Cache::get('operations:schema-compatibility');
+            $expected = $this->schemas->fingerprint();
+
+            if (! is_array($state)
+                || ($state['fingerprint'] ?? null) !== $expected
+                || ($state['compatible'] ?? false) !== true) {
+                throw new \RuntimeException('Schema ainda não convergiu para esta revisão.');
+            }
+
+            return ['status' => 'ok', 'message' => 'Schema convergente', 'critical' => true];
+        }, critical: true);
     }
 
     /**
@@ -182,6 +228,51 @@ class HealthCheckService
             // O sync driver é considerado OK pois jobs rodam imediatamente.
             return ['status' => 'ok', 'message' => 'Connection: '.$default];
         });
+    }
+
+    /**
+     * @return array{status: 'ok'|'down', message: string, latency_ms: float, critical: bool, details?: array<string, mixed>}
+     */
+    private function checkOperationalHeartbeats(): array
+    {
+        if (app()->environment('local', 'testing')) {
+            return [
+                'status' => 'ok',
+                'message' => 'Heartbeats não obrigatórios neste ambiente',
+                'latency_ms' => 0.0,
+                'critical' => false,
+            ];
+        }
+
+        $start = microtime(true);
+        $now = time();
+        $maxAge = max(30, (int) config('operations.heartbeat_max_age_seconds', 180));
+        $maxLag = max(1, (int) config('operations.queue_lag_max_seconds', 120));
+        $details = [];
+        $down = false;
+        $schedulerAt = Cache::get('operations:scheduler:heartbeat');
+        $schedulerAge = is_numeric($schedulerAt) ? $now - (int) $schedulerAt : null;
+        $details['scheduler'] = ['age_seconds' => $schedulerAge];
+        $down = $schedulerAge === null || $schedulerAge > $maxAge;
+
+        foreach ((array) config('operations.critical_queues', []) as $queue) {
+            $heartbeat = Cache::get("operations:queue:{$queue}");
+            $consumedAt = is_array($heartbeat) ? ($heartbeat['consumed_at'] ?? null) : null;
+            $age = is_numeric($consumedAt) ? $now - (int) $consumedAt : null;
+            $lag = is_array($heartbeat) && is_numeric($heartbeat['lag_seconds'] ?? null)
+                ? (int) $heartbeat['lag_seconds']
+                : null;
+            $details[(string) $queue] = ['age_seconds' => $age, 'lag_seconds' => $lag];
+            $down = $down || $age === null || $age > $maxAge || $lag === null || $lag > $maxLag;
+        }
+
+        return [
+            'status' => $down ? 'down' : 'ok',
+            'message' => $down ? 'Heartbeat ou queue lag fora do limite' : 'Scheduler e workers ativos',
+            'latency_ms' => round((microtime(true) - $start) * 1000, 2),
+            'critical' => true,
+            'details' => $details,
+        ];
     }
 
     /**

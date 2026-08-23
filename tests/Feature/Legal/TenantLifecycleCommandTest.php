@@ -9,6 +9,7 @@ use App\Notifications\TenantWipeUpcomingNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class TenantLifecycleCommandTest extends TestCase
@@ -65,6 +66,7 @@ class TenantLifecycleCommandTest extends TestCase
     public function test_purge_command_wipes_due_tenants_with_force(): void
     {
         Notification::fake();
+        Storage::fake('s3');
         config(['privacy.auto_wipe_enabled' => false]);
 
         $tenant = Tenant::query()->create([

@@ -18,7 +18,6 @@ use App\Models\Tenant\Proprietario;
 use App\Models\Tenant\Terreno;
 use App\Models\Tenant\Viabilidade;
 use Illuminate\Console\Command;
-use Illuminate\Database\Eloquent\Collection;
 
 class PurgeSoftDeletesCommand extends Command
 {
@@ -35,39 +34,42 @@ class PurgeSoftDeletesCommand extends Command
         $aiCutoff = now()->subDays(max(1, (int) config('privacy.ai_log_retention_days', 90)));
         $removed = 0;
 
-        /** @var Collection<int, Tenant> $tenants */
-        $tenants = Tenant::query()
+        Tenant::query()
             ->where('status', Tenant::STATUS_ACTIVE)
             ->where('database_created', true)
             ->whereNull('wiped_at')
-            ->get();
+            ->select(['id'])
+            ->toBase()
+            ->chunkById(50, function ($rows) use ($cutoff, $aiCutoff, &$removed): void {
+                foreach ($rows as $row) {
+                    $tenant = Tenant::query()->findOrFail((string) $row->id);
 
-        foreach ($tenants as $tenant) {
-            $tenant->run(function () use ($cutoff, $aiCutoff, &$removed): void {
-                $removed += Terreno::onlyTrashed()->where('deleted_at', '<', $cutoff)->forceDelete();
-                $removed += Proprietario::onlyTrashed()->where('deleted_at', '<', $cutoff)->forceDelete();
-                $removed += Viabilidade::onlyTrashed()->where('deleted_at', '<', $cutoff)->forceDelete();
-                $removed += Negociacao::onlyTrashed()->where('deleted_at', '<', $cutoff)->forceDelete();
-                $removed += Contrato::onlyTrashed()->where('deleted_at', '<', $cutoff)->forceDelete();
-                $removed += Legalizacao::onlyTrashed()->where('deleted_at', '<', $cutoff)->forceDelete();
-                $removed += Projeto::onlyTrashed()->where('deleted_at', '<', $cutoff)->forceDelete();
-                $removed += ComiteRevisao::onlyTrashed()->where('deleted_at', '<', $cutoff)->forceDelete();
-                $removed += Produto::onlyTrashed()->where('deleted_at', '<', $cutoff)->forceDelete();
+                    $tenant->run(function () use ($cutoff, $aiCutoff, &$removed): void {
+                        $removed += Terreno::onlyTrashed()->where('deleted_at', '<', $cutoff)->forceDelete();
+                        $removed += Proprietario::onlyTrashed()->where('deleted_at', '<', $cutoff)->forceDelete();
+                        $removed += Viabilidade::onlyTrashed()->where('deleted_at', '<', $cutoff)->forceDelete();
+                        $removed += Negociacao::onlyTrashed()->where('deleted_at', '<', $cutoff)->forceDelete();
+                        $removed += Contrato::onlyTrashed()->where('deleted_at', '<', $cutoff)->forceDelete();
+                        $removed += Legalizacao::onlyTrashed()->where('deleted_at', '<', $cutoff)->forceDelete();
+                        $removed += Projeto::onlyTrashed()->where('deleted_at', '<', $cutoff)->forceDelete();
+                        $removed += ComiteRevisao::onlyTrashed()->where('deleted_at', '<', $cutoff)->forceDelete();
+                        $removed += Produto::onlyTrashed()->where('deleted_at', '<', $cutoff)->forceDelete();
 
-                $removed += AiRequestLog::query()
-                    ->where('created_at', '<', $aiCutoff)
-                    ->forceDelete();
+                        $removed += AiRequestLog::query()
+                            ->where('created_at', '<', $aiCutoff)
+                            ->forceDelete();
 
-                $orphanIds = AiDocumentChunk::query()
-                    ->whereDoesntHave('documento')
-                    ->pluck('id');
+                        $orphanIds = AiDocumentChunk::query()
+                            ->whereDoesntHave('documento')
+                            ->pluck('id');
 
-                if ($orphanIds->isNotEmpty()) {
-                    AiDocumentEmbedding::query()->whereIn('chunk_id', $orphanIds)->delete();
-                    $removed += AiDocumentChunk::query()->whereIn('id', $orphanIds)->delete();
+                        if ($orphanIds->isNotEmpty()) {
+                            AiDocumentEmbedding::query()->whereIn('chunk_id', $orphanIds)->delete();
+                            $removed += AiDocumentChunk::query()->whereIn('id', $orphanIds)->delete();
+                        }
+                    });
                 }
             });
-        }
 
         $this->info('Registros removidos: '.$removed);
 

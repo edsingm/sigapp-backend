@@ -4,6 +4,9 @@ namespace App\Jobs;
 
 use App\Enums\TenantStatus;
 use App\Models\Central\Tenant;
+use App\Models\Central\TenantUserDirectory;
+use App\Models\Tenant\CorretorExterno;
+use App\Models\Tenant\User;
 use App\Notifications\TenantWelcomeNotification;
 use App\Traits\LogsAudit;
 use Database\Seeders\Tenant\TenantSeeder;
@@ -20,6 +23,7 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 #[Tries(3)]
@@ -69,6 +73,10 @@ class CreateFullTenantJob implements ShouldBeUnique, ShouldQueue
         try {
             $this->createDatabase();
 
+            // A chave precisa existir antes do primeiro tenant->run(), pois migrations,
+            // seeders e observers já podem acessar models com PII cifrada.
+            $this->tenant->ensureEncryptionKey();
+
             $this->runMigrations();
 
             $this->restoreCentralConnection($centralConnection);
@@ -77,23 +85,26 @@ class CreateFullTenantJob implements ShouldBeUnique, ShouldQueue
 
             $this->restoreCentralConnection($centralConnection);
 
-            // Passo 4: Gera a chave de criptografia
-            $this->tenant->generateEncryptionKey();
+            $this->verifyProvisioningPostconditions();
 
-            // Passo 5: Ativa o tenant
-            $this->tenant->activate();
-
-            // Passo 6: Limpa as credenciais de admin (segurança)
+            // A ativação é a última mutação crítica do provisionamento.
             $this->tenant->update([
+                'status' => TenantStatus::ACTIVE->value,
                 'admin_password' => null,
                 'database_created' => true,
+                'setup_completed_at' => now(),
             ]);
 
-            // Passo 7: Envia o e-mail de boas-vindas
-            $this->sendWelcomeEmail();
-
-            // Passo 8: Armazena informações do tenant em cache
-            $this->cacheTenantInfo();
+            // E-mail e cache são pós-ativação e não podem reverter um setup válido.
+            try {
+                $this->sendWelcomeEmail();
+                $this->cacheTenantInfo();
+            } catch (\Throwable $exception) {
+                Log::warning('Pós-processamento do provisionamento falhou', [
+                    'tenant_id' => $this->tenant->id,
+                    'exception' => $exception::class,
+                ]);
+            }
 
             // Auditoria: criação concluída
             $this->restoreCentralConnection($centralConnection);
@@ -105,7 +116,7 @@ class CreateFullTenantJob implements ShouldBeUnique, ShouldQueue
                 'tenant_id' => $this->tenant->id,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('CreateFullTenantJob falhou', [
                 'tenant_id' => $this->tenant->id,
                 'error' => $e->getMessage(),
@@ -162,10 +173,14 @@ class CreateFullTenantJob implements ShouldBeUnique, ShouldQueue
                 DB::setDefaultConnection('tenant');
             }
 
-            Artisan::call('migrate', [
+            $exitCode = Artisan::call('migrate', [
                 '--path' => 'database/migrations/tenant',
                 '--force' => true,
             ]);
+
+            if ($exitCode !== 0) {
+                throw new \RuntimeException("Tenant migrations falharam com exit code {$exitCode}.");
+            }
         });
     }
 
@@ -175,8 +190,76 @@ class CreateFullTenantJob implements ShouldBeUnique, ShouldQueue
     protected function seedTenantData(): void
     {
         $this->tenant->run(function () {
-            $seeder = new TenantSeeder;
-            $seeder->run();
+            $exitCode = Artisan::call('db:seed', [
+                '--class' => TenantSeeder::class,
+                '--force' => true,
+            ]);
+
+            if ($exitCode !== 0) {
+                throw new \RuntimeException("Tenant seed falhou com exit code {$exitCode}.");
+            }
+        });
+    }
+
+    protected function verifyProvisioningPostconditions(): void
+    {
+        $this->tenant->run(function (): void {
+            foreach (['migrations', 'users', 'roles', 'permissions', 'corretores_externos'] as $table) {
+                if (! Schema::connection('tenant')->hasTable($table)) {
+                    throw new \RuntimeException("Pós-condição de provisionamento ausente: tabela {$table}.");
+                }
+            }
+
+            $adminEmail = $this->tenantAdminEmail();
+            $admin = is_string($adminEmail)
+                ? User::query()->where('email', $adminEmail)->first()
+                : null;
+
+            if (! $admin instanceof User) {
+                throw new \RuntimeException('Pós-condição de provisionamento ausente: usuário administrador.');
+            }
+
+            if (! DB::connection('tenant')->table('roles')->exists()) {
+                throw new \RuntimeException('Pós-condição de provisionamento ausente: roles.');
+            }
+
+            $directoryReady = tenancy()->central(fn (): bool => TenantUserDirectory::query()
+                ->where('tenant_id', (string) $this->tenant->getKey())
+                ->where('tenant_user_id', (string) $admin->getKey())
+                ->where('email_normalized', mb_strtolower(trim((string) $admin->getAttribute('email'))))
+                ->where('active', true)
+                ->exists());
+
+            if (! $directoryReady) {
+                throw new \RuntimeException('Pós-condição de provisionamento ausente: diretório central do administrador.');
+            }
+
+            $probe = 'pii-probe-'.Str::uuid().'@invalid.test';
+            DB::connection('tenant')->beginTransaction();
+
+            try {
+                $model = CorretorExterno::query()->create([
+                    'nome' => 'PII provisioning probe',
+                    'email' => $probe,
+                    'telefone' => '00000000000',
+                    'creci' => 'probe-'.Str::uuid(),
+                ]);
+                $raw = DB::connection('tenant')
+                    ->table('corretores_externos')
+                    ->where('id', $model->getKey())
+                    ->value('email');
+
+                if (! is_string($raw) || $raw === $probe) {
+                    throw new \RuntimeException('Round-trip de PII persistiu plaintext.');
+                }
+
+                $fresh = $model->fresh();
+                if (! $fresh instanceof CorretorExterno || $fresh->getAttribute('email') !== $probe) {
+                    throw new \RuntimeException('Round-trip de PII não recuperou o valor original.');
+                }
+            } finally {
+                DB::connection('tenant')->rollBack();
+            }
         });
     }
 

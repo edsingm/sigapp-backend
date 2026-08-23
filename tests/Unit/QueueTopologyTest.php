@@ -20,8 +20,10 @@ use App\Jobs\GenerateTerrenoAiReportJob;
 use App\Jobs\IndexDocumentEmbeddingJob;
 use App\Jobs\ParseTerrenoPolygonImportJob;
 use App\Jobs\RecalculateAiScoresJob;
+use App\Jobs\ReconcileTenantBillingJob;
 use App\Jobs\RefreshTenantStatsJob;
 use App\Jobs\ValidateTerrenoImportJob;
+use App\Jobs\WipeTenantJob;
 use App\Notifications\TenantWelcomeNotification;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
@@ -75,6 +77,8 @@ class QueueTopologyTest extends TestCase
             GenerateTenantExportJob::class => 'exports',
             GenerateTenantPortabilityJob::class => 'exports',
             BackfillTenantPiiEncryptionJob::class => 'exports',
+            ReconcileTenantBillingJob::class => 'default',
+            WipeTenantJob::class => 'tenant-provisioning',
             GenerateTerrenoAiReportJob::class => 'ai',
             IndexDocumentEmbeddingJob::class => 'ai',
             ParseTerrenoPolygonImportJob::class => 'exports',
@@ -102,6 +106,8 @@ class QueueTopologyTest extends TestCase
             GenerateTenantExportJob::class,
             GenerateTenantPortabilityJob::class,
             BackfillTenantPiiEncryptionJob::class,
+            ReconcileTenantBillingJob::class,
+            WipeTenantJob::class,
             GenerateTerrenoAiReportJob::class,
             IndexDocumentEmbeddingJob::class,
             ParseTerrenoPolygonImportJob::class,

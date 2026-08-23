@@ -32,7 +32,11 @@ class WipeAllTenants extends Command
 
         $count = Tenant::query()->count();
 
-        Tenant::query()->get()->each->delete();
+        Tenant::query()->chunkById(50, function ($tenants): void {
+            foreach ($tenants as $tenant) {
+                $tenant->delete();
+            }
+        });
 
         $this->info("✅ {$count} tenants e seus schemas foram apagados com sucesso!");
 

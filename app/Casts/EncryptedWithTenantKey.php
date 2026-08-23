@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Casts;
 
 use App\Encryption\TenantEncrypter;
+use App\Exceptions\TenantEncryptionException;
 use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
 use Illuminate\Database\Eloquent\Model;
-use Throwable;
 
 /**
  * @implements CastsAttributes<string|null, string|null>
@@ -21,17 +21,16 @@ class EncryptedWithTenantKey implements CastsAttributes
         }
 
         $encrypter = app(TenantEncrypter::class);
-        if (! $encrypter->isConfigured()) {
-            return $value;
+        $decrypted = $encrypter->decrypt($value);
+
+        if (! is_string($decrypted)) {
+            throw new TenantEncryptionException(
+                'O conteúdo descriptografado não possui formato válido.',
+                'TENANT_PII_PAYLOAD_INVALID',
+            );
         }
 
-        try {
-            $decrypted = $encrypter->decrypt($value);
-
-            return is_string($decrypted) ? $decrypted : $value;
-        } catch (Throwable) {
-            return $value;
-        }
+        return $decrypted;
     }
 
     public function set(Model $model, string $key, mixed $value, array $attributes): ?string
@@ -40,11 +39,6 @@ class EncryptedWithTenantKey implements CastsAttributes
             return $value;
         }
 
-        $encrypter = app(TenantEncrypter::class);
-        if (! $encrypter->isConfigured()) {
-            return $value;
-        }
-
-        return $encrypter->encrypt((string) $value);
+        return app(TenantEncrypter::class)->encrypt((string) $value);
     }
 }

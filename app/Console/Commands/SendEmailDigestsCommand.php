@@ -38,43 +38,44 @@ class SendEmailDigestsCommand extends Command
 
         Tenant::query()
             ->where('status', Tenant::STATUS_ACTIVE)
-            ->get()
-            ->each(function (Tenant $tenant) use ($notifications, $preferences, $frequency, $since, &$sent) {
-                try {
-                    $tenant->run(function () use ($notifications, $preferences, $frequency, $since, &$sent) {
-                        User::query()
-                            ->where('email_digest_frequency', $frequency)
-                            ->each(function (User $user) use ($notifications, $preferences, $since, $frequency, &$sent) {
-                                $items = $notifications->createdSinceForUser($user->id, $since)
-                                    ->filter(function (MobileNotification $notification) use ($preferences, $user) {
-                                        $category = NotificationCatalog::categoryForType($notification->type);
+            ->chunkById(50, function ($tenants) use ($notifications, $preferences, $frequency, $since, &$sent): void {
+                foreach ($tenants as $tenant) {
+                    try {
+                        $tenant->run(function () use ($notifications, $preferences, $frequency, $since, &$sent) {
+                            User::query()
+                                ->where('email_digest_frequency', $frequency)
+                                ->each(function (User $user) use ($notifications, $preferences, $since, $frequency, &$sent) {
+                                    $items = $notifications->createdSinceForUser($user->id, $since)
+                                        ->filter(function (MobileNotification $notification) use ($preferences, $user) {
+                                            $category = NotificationCatalog::categoryForType($notification->type);
 
-                                        return $category !== null
-                                            && $preferences->isEnabled($user, $category, NotificationCatalog::CHANNEL_EMAIL);
-                                    })
-                                    ->map(fn (MobileNotification $notification) => [
-                                        'title' => $notification->title,
-                                        'body' => $notification->body,
-                                        'target_route' => $notification->target_route,
-                                        'created_at' => $notification->created_at?->toIso8601String(),
-                                    ])
-                                    ->values()
-                                    ->all();
+                                            return $category !== null
+                                                && $preferences->isEnabled($user, $category, NotificationCatalog::CHANNEL_EMAIL);
+                                        })
+                                        ->map(fn (MobileNotification $notification) => [
+                                            'title' => $notification->title,
+                                            'body' => $notification->body,
+                                            'target_route' => $notification->target_route,
+                                            'created_at' => $notification->created_at?->toIso8601String(),
+                                        ])
+                                        ->values()
+                                        ->all();
 
-                                if ($items === []) {
-                                    return;
-                                }
+                                    if ($items === []) {
+                                        return;
+                                    }
 
-                                $user->notify(new EmailDigestNotification($items, $frequency));
-                                $sent++;
-                            });
-                    });
-                } catch (\Throwable $exception) {
-                    Log::warning('Erro ao enviar digest de notificações do tenant', [
-                        'tenant_id' => $tenant->id,
-                        'frequency' => $frequency,
-                        'error' => $exception->getMessage(),
-                    ]);
+                                    $user->notify(new EmailDigestNotification($items, $frequency));
+                                    $sent++;
+                                });
+                        });
+                    } catch (\Throwable $exception) {
+                        Log::warning('Erro ao enviar digest de notificações do tenant', [
+                            'tenant_id' => $tenant->id,
+                            'frequency' => $frequency,
+                            'error' => $exception->getMessage(),
+                        ]);
+                    }
                 }
             });
 

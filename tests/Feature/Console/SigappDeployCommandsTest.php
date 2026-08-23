@@ -6,6 +6,7 @@ namespace Tests\Feature\Console;
 
 use App\Models\Central\Plan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Testing\PendingCommand;
 use Tests\TestCase;
 
@@ -46,6 +47,18 @@ class SigappDeployCommandsTest extends TestCase
             ->assertSuccessful();
 
         $this->assertSame(1, Plan::query()->count());
+    }
+
+    public function test_schema_status_persists_compatible_inventory_for_readiness(): void
+    {
+        $this->pendingArtisan('sigapp:schema-status', ['--fail-on-drift' => true])
+            ->assertSuccessful();
+
+        $state = Cache::get('operations:schema-compatibility');
+        $this->assertIsArray($state);
+        $this->assertTrue($state['compatible']);
+        $this->assertIsString($state['fingerprint']);
+        $this->assertArrayHasKey('checked_at', $state);
     }
 
     /**

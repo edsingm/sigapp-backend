@@ -57,12 +57,18 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
 
             // Public central health check for load balancers. Keep payload minimal.
             Route::get('/health', function (HealthCheckService $health) {
-                $report = $health->check();
+                $report = $health->readiness();
                 $isDown = $report['status'] === 'down';
 
                 return response()->json([
                     'status' => $isDown ? 'down' : 'ok',
                 ], $isDown ? 503 : 200);
+            });
+            Route::get('/health/live', fn () => response()->json(['status' => 'ok']));
+            Route::get('/health/ready', function (HealthCheckService $health) {
+                $report = $health->readiness();
+
+                return response()->json($report, $report['status'] === 'down' ? 503 : 200);
             });
         });
 

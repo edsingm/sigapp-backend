@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Infrastructure;
 
+use App\Jobs\CreateFullTenantJob;
+use App\Jobs\QueueHeartbeatJob;
 use App\Models\Central\Tenant;
+use App\Models\Central\TenantUserDirectory;
 use App\Services\Tenant\TenantCacheService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Spatie\Permission\PermissionRegistrar;
@@ -122,6 +126,48 @@ final class PostgresRedisIntegrationTest extends TestCase
         }
     }
 
+    public function test_provisioning_creates_key_and_only_activates_after_postconditions(): void
+    {
+        Notification::fake();
+        $slug = 'ci-provision-'.strtolower(Str::random(8));
+        $tenant = Tenant::query()->create([
+            'name' => Str::headline($slug),
+            'slug' => $slug,
+            'status' => Tenant::STATUS_PENDING,
+            'admin_name' => 'Provision Admin',
+            'admin_email' => "{$slug}@example.test",
+            'admin_password' => 'password123',
+            'database_created' => false,
+        ]);
+        $manager = $tenant->database()->manager();
+        $databaseName = (string) $tenant->database()->getName();
+
+        try {
+            (new CreateFullTenantJob($tenant))->handle();
+
+            $tenant->refresh();
+            $this->assertSame(Tenant::STATUS_ACTIVE, $tenant->getAttribute('status'));
+            $this->assertTrue((bool) $tenant->getAttribute('database_created'));
+            $this->assertNotNull($tenant->getAttribute('setup_completed_at'));
+            $this->assertStringStartsWith('enc:v1:', (string) $tenant->getAttribute('encryption_key'));
+            $this->assertTrue(TenantUserDirectory::query()
+                ->where('tenant_id', (string) $tenant->getKey())
+                ->where('email_normalized', "{$slug}@example.test")
+                ->where('active', true)
+                ->exists());
+
+            tenancy()->initialize($tenant);
+            $this->assertTrue(DB::connection('tenant')->table('users')->exists());
+            $this->assertTrue(DB::connection('tenant')->table('roles')->exists());
+        } finally {
+            tenancy()->end();
+
+            if ($manager->databaseExists($databaseName)) {
+                $manager->deleteDatabase($tenant);
+            }
+        }
+    }
+
     public function test_redis_provides_distributed_locks_and_queue_transport(): void
     {
         $suffix = strtolower(Str::random(12));
@@ -156,6 +202,31 @@ final class PostgresRedisIntegrationTest extends TestCase
 
         $this->assertTrue($secondLock->get());
         $secondLock->release();
+    }
+
+    public function test_a_real_laravel_job_is_consumed_by_a_redis_worker(): void
+    {
+        $suffix = strtolower(Str::random(12));
+        $queueName = "infrastructure-job-{$suffix}";
+        $heartbeatKey = "operations:queue:{$queueName}";
+        Cache::forget($heartbeatKey);
+
+        QueueHeartbeatJob::dispatch($queueName, now()->subSeconds(2)->timestamp)
+            ->onConnection('redis')
+            ->onQueue($queueName);
+
+        $this->assertSame(1, Queue::connection('redis')->size($queueName));
+        $exitCode = Artisan::call('queue:work', [
+            'connection' => 'redis',
+            '--queue' => $queueName,
+            '--once' => true,
+            '--stop-when-empty' => true,
+        ]);
+
+        $this->assertSame(0, $exitCode);
+        $this->assertIsArray(Cache::get($heartbeatKey));
+        $this->assertSame(0, Queue::connection('redis')->size($queueName));
+        Cache::forget($heartbeatKey);
     }
 
     public function test_permission_cache_is_reinitialized_between_tenants_in_the_same_worker(): void
@@ -223,7 +294,7 @@ final class PostgresRedisIntegrationTest extends TestCase
 
     private function makeTenant(string $slug): Tenant
     {
-        return Tenant::query()->create([
+        $tenant = Tenant::query()->create([
             'name' => Str::headline($slug),
             'slug' => $slug,
             'status' => Tenant::STATUS_ACTIVE,
@@ -231,5 +302,9 @@ final class PostgresRedisIntegrationTest extends TestCase
             'admin_email' => "{$slug}@example.test",
             'admin_password' => 'not-used',
         ]);
+
+        $tenant->ensureEncryptionKey();
+
+        return $tenant;
     }
 }

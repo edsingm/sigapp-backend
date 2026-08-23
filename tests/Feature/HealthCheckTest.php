@@ -142,6 +142,21 @@ class HealthCheckTest extends TestCase
             ]);
     }
 
+    public function test_liveness_is_process_only_and_readiness_exposes_critical_dependencies(): void
+    {
+        $this->getJson('/api/v1/health/live')
+            ->assertOk()
+            ->assertExactJson(['status' => 'ok']);
+
+        $this->getJson('/api/v1/health/ready')
+            ->assertOk()
+            ->assertJsonPath('status', 'ok')
+            ->assertJsonStructure([
+                'timestamp',
+                'checks' => ['database', 'cache', 'schema', 'operations'],
+            ]);
+    }
+
     public function test_check_rota_central_detalhada_exige_autenticacao_de_admin_central(): void
     {
         $response = $this->withHeader('Host', 'localhost')->getJson('/api/v1/health/details');

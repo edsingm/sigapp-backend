@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Tenant;
 
 use App\Models\Tenant\Proprietario;
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 
 class ProprietarioCpfCnpjFormattingTest extends TestCase
 {

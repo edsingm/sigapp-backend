@@ -35,26 +35,28 @@ mesma revisão que passou no smoke de staging. Merge na `main` **não** é go-li
 | PostgreSQL / Redis / S3 | isolados (não os de prod) | isolados (não os de staging) |
 | Service Compose | `back` | `back` |
 | Container (referência) | descobrir — ver [Containers](#descobrir-o-container-back) | `sigapp-backend-j8lepv-back-1` |
-| Release após cada deploy | `sigapp-release` no container **novo** | idem |
-| Bootstrap | só no 1º dia do ambiente | **nunca** de novo (já populado) |
+| Gate de schema | `sigapp:deploy` automático no entrypoint | idem |
+| Bootstrap | automático somente se o catálogo estiver vazio | **nunca** de novo (catálogo já populado) |
 
 ```text
 local → PR + CI verde → merge main
       → Dokploy auto-deploy STAGING
-      → sigapp-release no container novo + smoke
+      → entrypoint serializa migrate + inventário de schema → smoke
       → (ok) Deploy MANUAL no app de prod (mesmo commit)
-      → sigapp-release no container novo + smoke prod
+      → entrypoint serializa migrate + inventário de schema → smoke prod
 ```
 
-O `entrypoint` **não** aplica migrations. Enquanto `sigapp-release` não rodar
-no container novo, o ambiente serve código que pode depender de schema velho.
+Com `SIGAPP_RELEASE_ON_STARTUP=true` (default nos dois Compose), o entrypoint
+executa `sigapp:deploy` antes de iniciar nginx/PHP/workers. Um lock Redis
+serializa réplicas; falha de migration ou drift encerra o container e impede
+que código novo sirva sobre schema incompatível.
 
 CI no GitHub (Tests, PostgreSQL+Redis, Pint, PHPStan, Docker build) é gate de
 **merge**. O Dokploy não espera o Actions: um push em `main` redeploya staging
 mesmo se o CI ainda estiver vermelho. Não mergeie sem checks verdes.
 
-Ticket restante: **SIG-22** Fase 3 (`sigapp-release` + smoke no pipeline,
-deploy prod por tag/`workflow_dispatch`).
+Ticket restante: **SIG-22** Fase 3 (smoke no pipeline e deploy prod por tag/
+`workflow_dispatch`).
 
 ---
 
@@ -68,8 +70,9 @@ deploy prod por tag/`workflow_dispatch`).
 | Redis | Um por ambiente; cache e filas |
 | Frontends | Repositórios irmãos — deploys separados; não sobem com este runbook |
 
-O `entrypoint.prod.sh` **não** roda migrations. Releases seguintes usam
-`sigapp-release`. Primeiro ambiente vazio usa `sigapp-bootstrap` **uma vez**.
+O `entrypoint.prod.sh` roda o gate `sigapp:deploy`: ambiente vazio recebe
+bootstrap; ambiente existente recebe release central + tenants + inventário.
+Os wrappers manuais continuam disponíveis para recuperação operacional.
 
 ---
 
@@ -112,28 +115,27 @@ Anote o nome atual de staging neste runbook quando estabilizar.
 
 ---
 
-## `sigapp-release` (os dois ambientes)
+## Gate automático e diagnóstico manual
 
-Não rode enquanto o container ainda estiver recreando. No painel Dokploy,
-espere o deploy terminar e o healthcheck passar.
+Fluxo automático do entrypoint:
+
+1. adquire `deploy:sigapp-schema` no cache compartilhado;
+2. executa `sigapp:bootstrap` apenas se o ambiente estiver vazio, senão `sigapp:release`;
+3. roda `sigapp:schema-status --fail-on-drift`;
+4. cria caches e inicia o supervisor somente após exit code 0.
+
+Para inspecionar depois do deploy:
 
 ```bash
-docker exec CONTAINER /usr/local/bin/sigapp-release
+docker exec CONTAINER php artisan sigapp:schema-status --json --fail-on-drift
 ```
-
-Ordem do script:
-
-1. `php artisan migrate --force` (central)
-2. `php artisan tenants:migrate`
-3. `config:cache` / `route:cache` / `view:cache`
 
 **Exit code deve ser 0.** Se falhar, o schema pode estar pela metade —
 não ignore; leia o log e trate antes de considerar o ambiente pronto.
 
-Política:
-
-- **Staging:** sempre após cada deploy (barato; evita esquecer migration).
-- **Prod:** sempre após o deploy manual, na imagem nova.
+`/usr/local/bin/sigapp-release` permanece disponível para recuperação manual,
+mas não deve ser necessário no fluxo normal. Não desabilite
+`SIGAPP_RELEASE_ON_STARTUP` sem um procedimento externo equivalente.
 
 ---
 
@@ -143,8 +145,8 @@ Política:
 1. PR → CI verde
 2. Merge na main
 3. Dokploy auto-deploy só do app staging
-4. Health staging
-5. SSH → sigapp-release no container staging novo
+4. Aguardar container passar pelo gate e ficar healthy
+5. Consultar `sigapp:schema-status --json --fail-on-drift`
 6. Smoke staging
 ```
 
@@ -157,7 +159,7 @@ do merge).
 
 Smoke mínimo de staging:
 
-- [ ] `sigapp-release` exit 0
+- [ ] `sigapp:schema-status --json --fail-on-drift` exit 0
 - [ ] `GET /api/v1/health` → HTTP 200
 - [ ] Workers e scheduler ativos (`supervisorctl status`)
 - [ ] Smoke da feature do PR (login, endpoint, job, etc.)
@@ -179,7 +181,7 @@ staging — não “o que estiver na `main` agora” se outro merge entrou no me
 - [ ] CI verde no commit a promover (Actions: Tests, PostgreSQL+Redis, Pint, PHPStan, Docker build)
 - [ ] Auto-deploy do app **prod** continua **OFF**
 - [ ] Staging isolado (Stripe `sk_test`, DB/Redis/S3/`APP_KEY` ≠ prod)
-- [ ] Alguém disponível para o SSH de `sigapp-release` em prod **na sequência** do deploy
+- [ ] Migration segue expand/contract; imagem anterior tolera o schema expandido
 - [ ] (Se o PR tem migration destrutiva) expand/contract já planejado; rollback de imagem **não** desfaz DDL
 
 ### 1. Staging — validar a revisão
@@ -187,7 +189,7 @@ staging — não “o que estiver na `main` agora” se outro merge entrou no me
 - [ ] No GitHub: anotar o **SHA** (7+ chars) do merge que vai para prod
 - [ ] No Dokploy staging: deploy dessa revisão **terminou** e está healthy
 - [ ] SSH: descobrir o container staging ([acima](#descobrir-o-container-back))
-- [ ] `docker exec CONTAINER_STAGING /usr/local/bin/sigapp-release` → exit 0
+- [ ] `docker exec CONTAINER_STAGING php artisan sigapp:schema-status --json --fail-on-drift` → exit 0
 - [ ] `curl -fsS https://api.staging.sigapp.com.br/api/v1/health` → 200
 - [ ] `docker exec CONTAINER_STAGING supervisorctl status` — nginx, php-fpm, `schedule:work` e as filas `tenant-provisioning`, `ai`, `exports`, `notifications`, `default`
 - [ ] Smoke funcional da mudança (login / transfer ticket / endpoint / job)
@@ -199,17 +201,17 @@ merge) e recomece.
 ### 2. Produção — mesmo commit
 
 - [ ] No Dokploy, app **prod**: Deploy **manual** da **mesma revisão/SHA** do passo 1
-- [ ] Aguardar recreate + healthcheck do compose
+- [ ] Aguardar recreate, gate automático e healthcheck do compose
 - [ ] `curl -fsS https://api.sigapp.com.br/api/v1/health` responde (container no ar)
 - [ ] SSH: confirmar o container prod **Up** (`sigapp-backend-j8lepv-back-1` ou o nome atual)
-- [ ] `docker exec sigapp-backend-j8lepv-back-1 /usr/local/bin/sigapp-release` → exit 0
+- [ ] `docker exec sigapp-backend-j8lepv-back-1 php artisan sigapp:schema-status --json --fail-on-drift` → exit 0
 - [ ] `curl -fsS https://api.sigapp.com.br/api/v1/health` → 200
 - [ ] `docker exec sigapp-backend-j8lepv-back-1 supervisorctl status`
 - [ ] Smoke da feature em prod
 - [ ] Sem erro novo óbvio nos logs de prod
 
-Não rode `sigapp-release` enquanto o container prod ainda estiver recreando.
-Não rode release no container **antigo**.
+Não execute comandos de recuperação enquanto o container prod ainda estiver
+recriando. Nunca rode release manual no container **antigo**.
 
 ### 3. Se der errado
 
@@ -241,9 +243,9 @@ populada (reexecuta seeders).
 
 | Ação | Motivo |
 |---|---|
-| Rodar migrate no `entrypoint` | Restart/scale reexecuta; corrida entre réplicas |
+| Rodar `migrate` cru fora de `sigapp:deploy` | Ignora lock distribuído e inventário de schema |
 | Usar `sigapp-bootstrap` em prod já viva | Seeders em dados reais |
-| Esquecer `sigapp-release` após deploy com migration | App novo + schema velho |
+| Desabilitar `SIGAPP_RELEASE_ON_STARTUP` sem gate externo | App novo pode iniciar com schema velho |
 | Rodar release em container antigo / stack residual | Migrations da imagem errada |
 | Religar auto-deploy de prod | Cada merge volta a ser go-live |
 | Promover “o que estiver na main” sem checar SHA | Leva commit não validado em staging |
@@ -305,7 +307,6 @@ docker exec CONTAINER supervisorctl status
 Operação atual = Modelo A do SIG-22 (Dokploy decide o deploy; release/smoke
 semi-manuais). Ainda falta no ticket:
 
-- `sigapp-release` automático na **imagem nova** (one-off/post-deploy)
 - smoke health automático após deploy
 - deploy prod por tag `v*` ou `workflow_dispatch` com CI verde
 - alerta de falha + rollback versionado no pipeline

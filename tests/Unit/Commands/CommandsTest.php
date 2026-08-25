@@ -94,11 +94,11 @@ class CommandsTest extends TestCase
         $this->assertTrue($r->hasMethod('handle'));
     }
 
-    public function test_wipe_all_tenants_command_existe(): void
+    public function test_reset_all_tenants_command_existe(): void
     {
-        $this->assertTrue(class_exists('App\Console\Commands\WipeAllTenants'));
+        $this->assertTrue(class_exists('App\Console\Commands\ResetAllTenants'));
 
-        $r = new \ReflectionClass('App\Console\Commands\WipeAllTenants');
+        $r = new \ReflectionClass('App\Console\Commands\ResetAllTenants');
         $this->assertTrue($r->hasMethod('handle'));
     }
 

@@ -1,9 +1,7 @@
 services:
   back-staging:
-    build:
-      context: .
-      dockerfile: .docker/Dockerfile
-      target: staging
+    image: ${SIGAPP_IMAGE:-ghcr.io/edsingm/sigapp-backend:staging}
+    pull_policy: always
     restart: unless-stopped
     expose:
       - "80"

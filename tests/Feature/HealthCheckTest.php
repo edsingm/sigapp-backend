@@ -151,6 +151,7 @@ class HealthCheckTest extends TestCase
         $this->getJson('/api/v1/health/ready')
             ->assertOk()
             ->assertJsonPath('status', 'ok')
+            ->assertJsonPath('revision', 'unknown')
             ->assertJsonStructure([
                 'timestamp',
                 'checks' => ['database', 'cache', 'schema', 'operations'],

@@ -1,9 +1,7 @@
 services:
   back:
-    build:
-      context: .
-      dockerfile: .docker/Dockerfile
-      target: prod
+    image: ${SIGAPP_IMAGE:-ghcr.io/edsingm/sigapp-backend:production}
+    pull_policy: always
     restart: unless-stopped
     expose:
       - "80"

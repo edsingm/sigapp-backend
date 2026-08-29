@@ -87,6 +87,9 @@ ENTRYPOINT ["docker-entrypoint"]
 ##########################################################################
 FROM base AS prod
 
+ARG APP_REVISION=unknown
+ENV APP_REVISION=${APP_REVISION}
+
 RUN apt-get update && apt-get install -y \
     nginx \
     supervisor \

@@ -67,6 +67,7 @@ Route::middleware([ForceJsonResponse::class])->group(function () {
             Route::get('/health/live', fn () => response()->json(['status' => 'ok']));
             Route::get('/health/ready', function (HealthCheckService $health) {
                 $report = $health->readiness();
+                $report['revision'] = (string) config('app.revision', 'unknown');
 
                 return response()->json($report, $report['status'] === 'down' ? 503 : 200);
             });

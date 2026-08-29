@@ -22,7 +22,7 @@
 | **PDF** | `spatie/laravel-pdf` + `spatie/browsershot` (Chromium — `BROWSERSHOT_CHROME_PATH`) |
 | **Excel** | `maatwebsite/excel ^3.1` (`app/Exports/`) |
 | **Docs da API** | `dedoc/scramble` — UI em `/docs/api` (alias `/docs`) |
-| **Testes** | PHPUnit 13 (suites `Architecture`, `Unit`, `Feature`) — **não** usa Pest; CI (`.github/workflows/ci.yml`): Tests (SQLite), PostgreSQL 16 + pgvector + Redis 7, Pint, **PHPStan** (`composer analyse`) e **Docker build** (`--target prod`) |
+| **Testes/CI** | PHPUnit 13 (suites `Architecture`, `Unit`, `Feature`) — **não** usa Pest; Actions: SQLite, PostgreSQL 16 + pgvector + Redis 7, Pint, PHPStan, audit, imagem GHCR por SHA e deploy de staging após todos os gates |
 | **Formatação** | Laravel Pint, preset `laravel` (`pint.json`) |
 | **Análise estática** | PHPStan **nível 8** + bleedingEdge + baseline (`phpstan.baseline.neon`) |
 | **Dev local** | Laravel Herd (macOS) ou `composer dev` / Docker (`.docker/` + `docker-compose.yml` — ver seção Docker) |
@@ -55,14 +55,14 @@ Há duas formas de rodar localmente: **Herd/`composer dev`** (nativo, macOS) ou 
 | `base` | `php:8.4-fpm` + extensões (`pdo_pgsql`, `redis` via PECL, `gd`, `intl`, `zip`, `bcmath`, `pcntl`, `exif`, `mbstring`) + **Node 20 + Chromium + Puppeteer** (necessários para Browsershot/`spatie/laravel-pdf`) + Composer |
 | `dev` | código via **bind mount** (`.:/var/www`); entrypoint (`entrypoint.dev.sh`) instala `vendor/` se faltar, garante `.env`/`APP_KEY`, roda `optimize:clear` e sobe `php artisan serve` na porta **8000** |
 | `prod` | código **embutido na imagem** (`composer install --no-dev` otimizado) + **nginx + php-fpm + supervisord** |
-| `staging` | alias de `prod` (`FROM prod AS staging`); o compose de staging pede esse target — diferença só em env, rede e domínio |
+| `staging` | alias de build de `prod` mantido para compatibilidade; o runtime de staging consome a imagem GHCR já construída pelo CI |
 
 ### Compose
 
 - **Dev (`docker-compose.yml`)**: services `back` (`sigapp-backend:1.0-dev`, porta 8000) e `redis` (`redis:7-alpine`). O **PostgreSQL não está no compose** — é um container/host externo chamado `database`, alcançado pela rede externa `database_sigapp` (precisa existir: `docker network create database_sigapp`). As variáveis de ambiente de dev (DB, Redis, CORS, Sanctum, `CENTRAL_DOMAINS=localhost,127.0.0.1,sigapp-backend`, Chromium) já vêm definidas no compose.
-- **Staging (`docker-compose.staging.yml`)**: target `staging` (alias de `prod`); mesma forma do prod (porta 80, healthcheck, envs `${VAR:?}`), rede do Postgres via `DATABASE_DOCKER_NETWORK` e rede pública `dokploy-network` do Traefik. O backend e o `frontend_tenant` também entram na rede externa `sigapp-staging`; nela, o backend é acessado pelo alias `sigapp-backend-staging` para o BFF preservar o `Host` público do tenant sem voltar pelo Traefik. Crie essa rede uma vez no servidor antes do primeiro deploy. Stripe test, Redis/S3/`APP_KEY` isolados.
-- **Prod (`docker-compose.prod.yml`)**: target `prod`, porta interna `80` via `expose` (sem publicação no host), PostgreSQL **16** + `pgvector` e Redis externos **gerenciados pelo Dokploy** (não o repositório `database`), envs obrigatórios via `${VAR:?}` e healthcheck em `GET /api/v1/health`. O serviço `back` também se conecta à rede externa do Compose PostgreSQL (`sigapp-database-wlnxuu_default`) para resolver o alias `database`; se o projeto do banco mudar, atualize esse nome de rede. Cookies de sessão são seguros por padrão em produção; `TRUSTED_PROXIES` aceita somente IPs/CIDRs explícitos do proxy (nunca `*`).
-- **Runbook de deploy:** `docs/deploy-dokploy.md`. **Dokploy é a única plataforma** — Coolify, AWS ECS/EKS e equivalentes não são usados. **Cenário B:** auto-deploy de `main` só em staging (`api.staging.sigapp.com.br`); produção (`api.sigapp.com.br`, Stripe live) é deploy **manual** da mesma revisão. O entrypoint serializa `sigapp:deploy`, aplica bootstrap apenas em ambiente vazio ou release nos demais e só inicia o supervisor após o inventário de schema convergir. Merge na `main` **não** é go-live.
+- **Staging (`docker-compose.staging.yml`)**: consome `ghcr.io/edsingm/sigapp-backend:staging` (ou `SIGAPP_IMAGE`) com pull obrigatório; porta 80, healthcheck, envs `${VAR:?}`, rede do Postgres via `DATABASE_DOCKER_NETWORK` e rede pública `dokploy-network` do Traefik. O backend e o `frontend_tenant` também entram na rede externa `sigapp-staging`; nela, o backend é acessado pelo alias `sigapp-backend-staging`. Stripe test, Redis/S3/`APP_KEY` são isolados.
+- **Prod (`docker-compose.prod.yml`)**: consome `ghcr.io/edsingm/sigapp-backend:production` (ou `SIGAPP_IMAGE`) com pull obrigatório; porta interna 80 via `expose`, PostgreSQL **16** + `pgvector` e Redis externos gerenciados pelo Dokploy, envs obrigatórios via `${VAR:?}` e healthcheck em `GET /api/v1/health`. O serviço `back` conecta à rede externa `sigapp-database-wlnxuu_default`. Cookies são seguros por padrão; `TRUSTED_PROXIES` aceita somente IPs/CIDRs explícitos.
+- **Runbook de deploy:** `docs/deploy-dokploy.md`. GitHub Actions é o controlador: publica a imagem imutável por SHA no GHCR, promove staging automaticamente após todos os gates e exige promoção manual do mesmo SHA para produção. O auto-deploy nativo do Dokploy fica desligado. O entrypoint serializa `sigapp:deploy`, aplica bootstrap apenas em ambiente vazio ou release nos demais e só inicia o supervisor após o inventário de schema convergir. Merge na `main` publica staging, não produção.
 
 ### Produção — quem roda o quê
 

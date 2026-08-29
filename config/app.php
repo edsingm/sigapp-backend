@@ -41,6 +41,8 @@ return [
 
     'debug' => (bool) env('APP_DEBUG', false),
 
+    'revision' => env('APP_REVISION', 'unknown'),
+
     /*
     |--------------------------------------------------------------------------
     | Application URL

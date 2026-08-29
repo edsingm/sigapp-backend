@@ -1,0 +1,72 @@
+name: Deploy Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Full 40-character SHA already deployed and verified in staging
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  deploy-production:
+    name: Deploy Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    environment:
+      name: production
+      url: ${{ vars.HEALTH_URL }}
+    steps:
+      - name: Checkout main and deployment scripts
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Validate revision
+        env:
+          REVISION: ${{ inputs.revision }}
+        run: .github/scripts/validate-production-revision.sh
+      - name: Verify the revision currently running in staging
+        env:
+          HEALTH_URL: ${{ vars.STAGING_HEALTH_URL }}
+          EXPECTED_REVISION: ${{ inputs.revision }}
+        run: .github/scripts/verify-deployment-health.sh
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - name: Log in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Promote the staging image to production
+        env:
+          REVISION: ${{ inputs.revision }}
+        run: |
+          docker buildx imagetools inspect "${REGISTRY}/${IMAGE_NAME}:${REVISION}"
+          docker buildx imagetools create \
+            --tag "${REGISTRY}/${IMAGE_NAME}:production" \
+            "${REGISTRY}/${IMAGE_NAME}:${REVISION}"
+      - name: Deploy and verify production
+        env:
+          DOKPLOY_URL: ${{ vars.DOKPLOY_URL }}
+          DOKPLOY_API_TOKEN: ${{ secrets.DOKPLOY_API_TOKEN }}
+          DOKPLOY_COMPOSE_ID: ${{ vars.DOKPLOY_COMPOSE_ID }}
+          HEALTH_URL: ${{ vars.HEALTH_URL }}
+          EXPECTED_REVISION: ${{ inputs.revision }}
+          DEPLOYMENT_ENVIRONMENT: production
+        run: .github/scripts/deploy-dokploy.sh

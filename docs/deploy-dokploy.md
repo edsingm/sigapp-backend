@@ -20,52 +20,107 @@ e equivalentes não são usados. Em caso de divergência, este documento e o
 
 ---
 
-## Estado atual — Cenário B
+## Estado atual — CI/CD controlado pelo GitHub Actions
 
-`main` sobe sozinha **somente** em staging. Produção é deploy **manual** da
-mesma revisão que passou no smoke de staging. Merge na `main` **não** é go-live.
+O GitHub Actions é a única porta automática de deploy. O auto-deploy nativo do
+Dokploy fica **OFF em staging e produção**; um push nunca deve contornar os
+gates do CI.
 
 | | Staging | Produção |
 |---|---|---|
-| App Dokploy | stack staging (compose `docker-compose.staging.yml`) | stack prod (compose `docker-compose.prod.yml`) |
-| Branch | `main` | `main` (revisão escolhida no deploy) |
-| Auto-deploy | **ON** | **OFF** |
+| Compose | `docker-compose.staging.yml` | `docker-compose.prod.yml` |
+| Imagem padrão | `ghcr.io/edsingm/sigapp-backend:staging` | `ghcr.io/edsingm/sigapp-backend:production` |
+| Origem imutável | `ghcr.io/edsingm/sigapp-backend:<SHA>` | o mesmo SHA validado em staging |
+| Gatilho | push na `main`, depois de todos os gates | `Deploy Production` via `workflow_dispatch` |
+| Auto-deploy Dokploy | **OFF** | **OFF** |
 | API | `https://api.staging.sigapp.com.br` | `https://api.sigapp.com.br` |
-| Stripe | **test** (`sk_test` / prices test) | **live** (`sk_live` / prices live) |
-| PostgreSQL / Redis / S3 | isolados (não os de prod) | isolados (não os de staging) |
-| Service Compose | `back` | `back` |
-| Container (referência) | descobrir — ver [Containers](#descobrir-o-container-back) | `sigapp-backend-j8lepv-back-1` |
-| Gate de schema | `sigapp:deploy` automático no entrypoint | idem |
-| Bootstrap | automático somente se o catálogo estiver vazio | **nunca** de novo (catálogo já populado) |
+| Stripe | test | live |
+| DB / Redis / S3 / APP_KEY | isolados | isolados |
+| Gate de schema | `sigapp:deploy` no entrypoint | idem |
 
 ```text
-local → PR + CI verde → merge main
-      → Dokploy auto-deploy STAGING
-      → entrypoint serializa migrate + inventário de schema → smoke
-      → (ok) Deploy MANUAL no app de prod (mesmo commit)
-      → entrypoint serializa migrate + inventário de schema → smoke prod
+PR → CI verde → revisão humana → merge
+   → CI testa novamente a main e publica GHCR:<SHA>
+   → promove o mesmo manifest para :staging
+   → API do Dokploy recria staging
+   → readiness confirma dependências + APP_REVISION=<SHA>
+   → workflow Deploy Production recebe esse SHA manualmente
+   → confirma que staging ainda executa o SHA
+   → promove o mesmo manifest para :production
+   → API do Dokploy recria produção
+   → readiness de produção confirma o SHA
 ```
 
-Com `SIGAPP_RELEASE_ON_STARTUP=true` (default nos dois Compose), o entrypoint
-executa `sigapp:deploy` antes de iniciar nginx/PHP/workers. Um lock Redis
-serializa réplicas; falha de migration ou drift encerra o container e impede
-que código novo sirva sobre schema incompatível.
+A imagem é construída uma única vez. Os aliases `staging` e `production`
+são referências mutáveis para manifests já existentes; o artefato canônico é
+sempre a tag completa de 40 caracteres do commit.
 
-CI no GitHub (Tests, PostgreSQL+Redis, Pint, PHPStan, Docker build) é gate de
-**merge**. O Dokploy não espera o Actions: um push em `main` redeploya staging
-mesmo se o CI ainda estiver vermelho. Não mergeie sem checks verdes.
+Com `SIGAPP_RELEASE_ON_STARTUP=true`, o entrypoint executa `sigapp:deploy`
+antes de iniciar nginx/PHP/workers. Um lock Redis serializa réplicas; falha de
+migration ou drift encerra o container. `/api/v1/health/ready` expõe
+`revision`, gravada na imagem por `APP_REVISION`, para o smoke não aceitar
+a versão anterior ainda saudável.
 
-Ticket restante: **SIG-22** Fase 3 (smoke no pipeline e deploy prod por tag/
-`workflow_dispatch`).
+## Configuração única no GitHub e no Dokploy
 
----
+### GitHub Environments
+
+Crie `staging` e `production` em **Settings → Environments**.
+
+Nos dois environments:
+
+| Tipo | Nome | Valor |
+|---|---|---|
+| Variable | `DOKPLOY_URL` | URL base da instância, sem `/api` |
+| Variable | `DOKPLOY_COMPOSE_ID` | ID do Compose daquele ambiente |
+| Variable | `HEALTH_URL` | URL base pública da API, sem `/api/v1/health/ready` |
+| Secret | `DOKPLOY_API_TOKEN` | token da API do Dokploy |
+
+No environment `production`, adicione também:
+
+| Tipo | Nome | Valor |
+|---|---|---|
+| Variable | `STAGING_HEALTH_URL` | `https://api.staging.sigapp.com.br` |
+
+O workflow de produção já é manual. Para dev solo, não configure uma aprovação
+que proíba self-review; use o botão **Run workflow** como decisão explícita de
+promoção.
+
+### GitHub Actions e GHCR
+
+- Permita ao `GITHUB_TOKEN` publicar packages; o workflow limita o job a
+  `contents: read` e `packages: write`.
+- O package `ghcr.io/edsingm/sigapp-backend` pode permanecer privado.
+- Actions externas ficam fixadas por SHA completo; o Dependabot abre PRs de
+  atualização semanal para Actions e Composer.
+- Proteja `main` por ruleset, exigindo PR e os checks `Tests`,
+  `PostgreSQL + Redis`, `Code Style`, `PHPStan` e
+  `Docker Build (prod)`. Não exija aprovação de outro usuário para o fluxo
+  solo.
+
+### Acesso do Dokploy ao GHCR
+
+Configure no host/Dokploy uma credencial de registry com acesso somente de
+leitura ao package privado (`read:packages`). O token de registry não vai para
+o GitHub Actions nem para o Compose. Confirme que os dois Composes conseguem
+fazer pull antes de desativar o fluxo antigo.
+
+### Ordem segura de ativação
+
+1. Configure environments, variables e secrets no GitHub.
+2. Configure a credencial GHCR no Dokploy.
+3. Desligue **Auto Deploy** nos Composes de staging e produção **antes do merge**.
+4. Abra o PR desta mudança e deixe os cinco checks passarem.
+5. Faça o merge; o primeiro push criará `<SHA>` e `staging`, depois acionará
+   o Dokploy.
+6. Só depois de staging verde execute `Deploy Production` com o SHA completo.
 
 ## Arquitetura na VPS
 
 | Recurso | Observação |
 |---|---|
-| Backend staging | Compose `docker-compose.staging.yml`; target `staging`; porta interna `80` |
-| Backend prod | Compose `docker-compose.prod.yml`; target `prod`; porta interna `80` |
+| Backend staging | Compose consome alias GHCR `staging`; porta interna `80` |
+| Backend prod | Compose consome alias GHCR `production`; porta interna `80` |
 | PostgreSQL | Um Compose Dokploy **por ambiente** (`pgvector/pgvector:0.8.6-pg16`); rede externa no backend |
 | Redis | Um por ambiente; cache e filas |
 | Frontends | Repositórios irmãos — deploys separados; não sobem com este runbook |
@@ -141,89 +196,55 @@ mas não deve ser necessário no fluxo normal. Não desabilite
 
 ## Depois de cada merge (staging)
 
-```text
-1. PR → CI verde
-2. Merge na main
-3. Dokploy auto-deploy só do app staging
-4. Aguardar container passar pelo gate e ficar healthy
-5. Consultar `sigapp:schema-status --json --fail-on-drift`
-6. Smoke staging
-```
+O fluxo é automático:
+
+1. o push da `main` repete todos os gates;
+2. o build publica somente `ghcr.io/edsingm/sigapp-backend:<SHA>`;
+3. depois de todos os gates verdes, o manifest recebe o alias `staging`;
+4. o Actions chama `POST /api/compose.deploy`;
+5. o Dokploy faz pull e recria o Compose;
+6. o entrypoint executa release/inventário de schema;
+7. o Actions consulta readiness até obter `status=ok` e o SHA esperado.
+
+No GitHub, o job `Deploy Staging` verde é a evidência do deploy e do smoke.
+Se falhar, produção não deve ser promovida. O endpoint pode ser conferido
+manualmente:
 
 ```bash
-curl -fsS https://api.staging.sigapp.com.br/api/v1/health
+curl -fsS https://api.staging.sigapp.com.br/api/v1/health/ready
 ```
-
-Confirme no Dokploy que **prod não redeployou** (mesma revisão/hora de antes
-do merge).
-
-Smoke mínimo de staging:
-
-- [ ] `sigapp:schema-status --json --fail-on-drift` exit 0
-- [ ] `GET /api/v1/health` → HTTP 200
-- [ ] Workers e scheduler ativos (`supervisorctl status`)
-- [ ] Smoke da feature do PR (login, endpoint, job, etc.)
-- [ ] Sem erro novo óbvio nos logs do container
-
-```bash
-docker exec CONTAINER_STAGING supervisorctl status
-```
-
----
 
 ## Checklist de promoção staging → prod
 
-Use **uma linha por promoção**. Promova o **mesmo commit** que passou no
-staging — não “o que estiver na `main` agora” se outro merge entrou no meio.
+1. Abra **Actions → Deploy Production → Run workflow**.
+2. Informe o SHA completo de 40 caracteres mostrado no job `Deploy Staging`.
+3. O workflow valida que o commit existe e pertence à `main`.
+4. Ele exige que o readiness de staging esteja saudável e exponha exatamente
+   esse SHA.
+5. O manifest imutável `<SHA>` recebe o alias `production`.
+6. O Actions aciona o Compose de produção no Dokploy.
+7. O entrypoint executa `sigapp:deploy`; o smoke só passa quando readiness
+   confirma o mesmo SHA.
 
-### 0. Pré-condições
+Antes de clicar:
 
-- [ ] CI verde no commit a promover (Actions: Tests, PostgreSQL+Redis, Pint, PHPStan, Docker build)
-- [ ] Auto-deploy do app **prod** continua **OFF**
-- [ ] Staging isolado (Stripe `sk_test`, DB/Redis/S3/`APP_KEY` ≠ prod)
-- [ ] Migration segue expand/contract; imagem anterior tolera o schema expandido
-- [ ] (Se o PR tem migration destrutiva) expand/contract já planejado; rollback de imagem **não** desfaz DDL
+- [ ] `Deploy Staging` está verde para o SHA.
+- [ ] Smoke funcional da feature foi feito em staging.
+- [ ] Não há incidente ativo nem migration destrutiva sem expand/contract.
+- [ ] Backup/restore e rollback aplicáveis à mudança são conhecidos.
+- [ ] O auto-deploy nativo do Dokploy continua OFF.
 
-### 1. Staging — validar a revisão
+Depois:
 
-- [ ] No GitHub: anotar o **SHA** (7+ chars) do merge que vai para prod
-- [ ] No Dokploy staging: deploy dessa revisão **terminou** e está healthy
-- [ ] SSH: descobrir o container staging ([acima](#descobrir-o-container-back))
-- [ ] `docker exec CONTAINER_STAGING php artisan sigapp:schema-status --json --fail-on-drift` → exit 0
-- [ ] `curl -fsS https://api.staging.sigapp.com.br/api/v1/health` → 200
-- [ ] `docker exec CONTAINER_STAGING supervisorctl status` — nginx, php-fpm, `schedule:work` e as filas `tenant-provisioning`, `ai`, `exports`, `notifications`, `default`
-- [ ] Smoke funcional da mudança (login / transfer ticket / endpoint / job)
-- [ ] Nenhum merge posterior na `main` que você **não** queira levar junto
+- [ ] `Deploy Production` ficou verde.
+- [ ] `GET /api/v1/health/ready` retorna `status=ok` e o SHA promovido.
+- [ ] Login, endpoint/job alterado e logs não mostram regressão.
+- [ ] Workers e scheduler permanecem ativos.
 
-Se qualquer item falhar: **não promova**. Corrija em staging (ou reverta o
-merge) e recomece.
-
-### 2. Produção — mesmo commit
-
-- [ ] No Dokploy, app **prod**: Deploy **manual** da **mesma revisão/SHA** do passo 1
-- [ ] Aguardar recreate, gate automático e healthcheck do compose
-- [ ] `curl -fsS https://api.sigapp.com.br/api/v1/health` responde (container no ar)
-- [ ] SSH: confirmar o container prod **Up** (`sigapp-backend-j8lepv-back-1` ou o nome atual)
-- [ ] `docker exec sigapp-backend-j8lepv-back-1 php artisan sigapp:schema-status --json --fail-on-drift` → exit 0
-- [ ] `curl -fsS https://api.sigapp.com.br/api/v1/health` → 200
-- [ ] `docker exec sigapp-backend-j8lepv-back-1 supervisorctl status`
-- [ ] Smoke da feature em prod
-- [ ] Sem erro novo óbvio nos logs de prod
-
-Não execute comandos de recuperação enquanto o container prod ainda estiver
-recriando. Nunca rode release manual no container **antigo**.
-
-### 3. Se der errado
-
-1. **App:** no Dokploy prod, redeploy da revisão/imagem anterior.
-2. **Schema:** se o `sigapp-release` de prod já aplicou migrations, rollback
-   de app **não** desfaz DDL. Trate como incidente de schema (expand/contract
-   ou restore planejado).
-3. Depois do rollback de app, realinhe código × schema; só rode
-   `sigapp-release` de novo se a imagem que ficou ativa tiver as migrations
-   corretas para o estado desejado.
-
----
+Se staging mudou depois do SHA informado, o workflow falha antes de alterar o
+alias de produção. Se o deploy de produção falhar depois da promoção do alias,
+o container anterior pode continuar servindo, mas o incidente precisa ser
+tratado; não considere a tag `production` como evidência de deploy concluído.
 
 ## Primeiro ambiente (banco vazio)
 
@@ -243,31 +264,32 @@ populada (reexecuta seeders).
 
 | Ação | Motivo |
 |---|---|
-| Rodar `migrate` cru fora de `sigapp:deploy` | Ignora lock distribuído e inventário de schema |
-| Usar `sigapp-bootstrap` em prod já viva | Seeders em dados reais |
-| Desabilitar `SIGAPP_RELEASE_ON_STARTUP` sem gate externo | App novo pode iniciar com schema velho |
-| Rodar release em container antigo / stack residual | Migrations da imagem errada |
-| Religar auto-deploy de prod | Cada merge volta a ser go-live |
-| Promover “o que estiver na main” sem checar SHA | Leva commit não validado em staging |
-| Testar restore de backup em cima do DB de prod | Destrutivo |
-| Confiar só no rollback de imagem após migration destrutiva | Schema em geral **não** volta com o rollback do app |
-| Colar Stripe live / `APP_KEY` / bucket de prod no staging | Não é staging |
-
----
+| Ligar Auto Deploy no Dokploy | Contorna os gates e cria corrida com o Actions |
+| Usar webhook de push direto no Dokploy | Mesmo problema: deploy começa antes do CI terminar |
+| Recompilar em produção | Produção deixaria de receber os mesmos bytes testados |
+| Promover SHA diferente do readiness de staging | O workflow bloqueia para impedir artefato não testado |
+| Rodar `migrate` cru | Ignora lock e inventário de schema de `sigapp:deploy` |
+| Usar `sigapp-bootstrap` em ambiente existente | Reexecuta seeders |
+| Colocar Stripe/DB/S3/APP_KEY no GitHub | Esses secrets pertencem somente ao runtime do Dokploy |
+| Expor o token do Dokploy em YAML/log | Permite deploy remoto não autorizado |
+| Confiar no rollback da imagem para desfazer DDL | Migration aplicada não é revertida pela troca de imagem |
 
 ## Rollback
 
-1. **App:** no Dokploy, redeploy da revisão/imagem anterior do compose.
-2. **Schema:** se `sigapp-release` já aplicou migrations, rollback de app **não**
-   desfaz DDL. Mudanças destrutivas exigem estratégia expand/contract e, se
-   necessário, restore de backup planejado.
-3. Após qualquer rollback de app, reavalie se o schema e o código estão
-   alinhados; se preciso, rode `sigapp-release` de novo na imagem que ficou ativa
-   (só se essa imagem contiver as migrations corretas para o estado desejado).
+Cada imagem por SHA permanece endereçável no GHCR. Para rollback emergencial
+de aplicação:
 
-Ensaie o rollback de **app** em staging antes de precisar em prod.
+1. identifique o último SHA saudável no histórico de deployments;
+2. no Compose de produção, defina temporariamente
+   `SIGAPP_IMAGE=ghcr.io/edsingm/sigapp-backend:<SHA_ANTERIOR>`;
+3. acione o deploy no Dokploy e confirme readiness/revision;
+4. trate o schema separadamente — trocar imagem não desfaz migrations;
+5. após resolver o incidente, remova o override `SIGAPP_IMAGE` antes da
+   próxima promoção normal.
 
----
+Ensaie esse procedimento em staging. Não use apenas “redeploy anterior” se ele
+referenciar o alias mutável `production`, pois o alias pode já apontar para a
+imagem problemática.
 
 ## Filas e manutenção
 
@@ -285,33 +307,27 @@ docker exec CONTAINER supervisorctl status
 
 ---
 
-## Variáveis e rede
+## Variáveis, registry e rede
 
-- Catálogo prod: `.env.production.example` (sem segredos reais).
-- Secrets só no Dokploy (runtime), nunca como build-arg e nunca no Git.
-- Se o **projeto Compose do PostgreSQL de prod** mudar no Dokploy, atualize o
-  nome da rede externa em `docker-compose.prod.yml` (hoje: `sigapp-database-wlnxuu_default`).
-- Staging: o backend **não** cria a rede do banco. Suba o Postgres staging no
-  Dokploy primeiro, anote o nome em `docker network ls` e defina
-  `DATABASE_DOCKER_NETWORK` no app de staging (`docker-compose.staging.yml`).
-- Login tenant em staging (`/{slug}.frontend…/login/callback`): o frontend
-  precisa receber o **wildcard** do mesmo `APP_DOMAIN`/`NEXT_PUBLIC_APP_DOMAIN`
-  (ex. `*.sigapp-frontend-….sslip.io`). Sem isso o Traefik responde 404 no
-  subdomínio mesmo com o ticket válido. No compose do tenant, o
-  `HostRegexp` usa `${APP_DOMAIN}`.
+- Catálogo de runtime: `.env.production.example`; secrets da aplicação ficam
+  somente no Dokploy.
+- `APP_REVISION` é gravada no build pelo Actions; não sobrescreva no Compose.
+- `SIGAPP_IMAGE` é um override operacional para rollback. Normalmente fica
+  ausente e cada Compose usa seu alias padrão.
+- Staging e produção precisam de acesso de leitura ao GHCR privado.
+- Se o projeto PostgreSQL de produção mudar, atualize a rede externa em
+  `docker-compose.prod.yml`.
+- Staging exige `DATABASE_DOCKER_NETWORK` e as redes externas
+  `dokploy-network` e `sigapp-staging`.
+- O token da API do Dokploy usado pelo Actions deve ter o menor escopo
+  disponível e ser rotacionado periodicamente.
 
----
+## Próximas melhorias
 
-## Próximo (SIG-22 Fase 3+)
-
-Operação atual = Modelo A do SIG-22 (Dokploy decide o deploy; release/smoke
-semi-manuais). Ainda falta no ticket:
-
-- smoke health automático após deploy
-- deploy prod por tag `v*` ou `workflow_dispatch` com CI verde
-- alerta de falha + rollback versionado no pipeline
-
----
+- automatizar alerta de falha de deploy;
+- criar workflow explícito de rollback por SHA com confirmação;
+- publicar SBOM/attestation da imagem;
+- adicionar smoke autenticado de baixo risco além do readiness.
 
 ## Referências
 
@@ -319,6 +335,6 @@ semi-manuais). Ainda falta no ticket:
 - `docs/2026-08-08-plano-staging-dokploy.md` — plano histórico do cutover (não é o runbook)
 - `docker-compose.prod.yml` / `docker-compose.staging.yml`
 - `.docker/release.prod.sh`, `.docker/bootstrap.prod.sh`, `.docker/entrypoint.prod.sh`
-- `.github/workflows/ci.yml` — gates antes do merge
-- Ticket **SIG-22** — CI/CD (Fase 2 = este cenário; Fase 3 = automação)
+- `.github/workflows/ci.yml` — gates, publicação por SHA e deploy de staging
+- `.github/workflows/deploy-production.yml` — promoção manual do mesmo SHA
 - Frontends e banco: runbook `docs/deploy-dokploy.md` em cada repositório irmão

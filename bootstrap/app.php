@@ -28,6 +28,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Laravel\Ai\Exceptions\RateLimitedException;
+use Sentry\Laravel\Integration;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -71,6 +72,8 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+
+        Integration::handles($exceptions);
 
         // Handle AuthenticationException — prevents redirect to route('login') on tenant/API routes
         $exceptions->renderable(function (AuthenticationException $e, Request $request) {

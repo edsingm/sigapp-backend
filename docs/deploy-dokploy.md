@@ -91,8 +91,9 @@ promoção.
 - Permita ao `GITHUB_TOKEN` publicar packages; o workflow limita o job a
   `contents: read` e `packages: write`.
 - O package `ghcr.io/edsingm/sigapp-backend` pode permanecer privado.
-- Actions externas ficam fixadas por SHA completo; o Dependabot abre PRs de
-  atualização semanal para Actions e Composer.
+- Actions externas ficam fixadas por SHA completo. PRs periódicos de versão do
+  Dependabot ficam desabilitados; alerts e security updates permanecem ativos,
+  enquanto atualizações comuns entram em manutenção periódica planejada.
 - Proteja `main` por ruleset, exigindo PR e os checks `Tests`,
   `PostgreSQL + Redis`, `Code Style`, `PHPStan` e
   `Docker Build (prod)`. Não exija aprovação de outro usuário para o fluxo

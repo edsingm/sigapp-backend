@@ -35,6 +35,7 @@ gates do CI.
 | Auto-deploy Dokploy | **OFF** | **OFF** |
 | API | `https://api.staging.sigapp.com.br` | `https://api.sigapp.com.br` |
 | Stripe | test | live |
+| Sentry | ambiente `staging`, tracing 100% | ambiente `production`, tracing 10% |
 | DB / Redis / S3 / APP_KEY | isolados | isolados |
 | Gate de schema | `sigapp:deploy` no entrypoint | idem |
 
@@ -105,6 +106,22 @@ Configure no host/Dokploy uma credencial de registry com acesso somente de
 leitura ao package privado (`read:packages`). O token de registry não vai para
 o GitHub Actions nem para o Compose. Confirme que os dois Composes conseguem
 fazer pull antes de desativar o fluxo antigo.
+
+### Sentry
+
+Configure `SENTRY_LARAVEL_DSN` como secret nos dois Composes do Dokploy. O mesmo
+projeto Sentry pode atender ambos: o Compose fixa `SENTRY_ENVIRONMENT` como
+`staging` ou `production`, permitindo filtros e alertas separados. O DSN é
+obrigatório e sua ausência interrompe a interpolação do Compose antes do deploy.
+
+Não configure `SENTRY_RELEASE` normalmente. O backend usa `APP_REVISION`, gravado
+na imagem pelo GitHub Actions com o SHA completo, como release do Sentry. Assim,
+staging e produção associam eventos ao mesmo artefato imutável promovido.
+
+Os defaults operacionais são: 100% dos erros nos dois ambientes, 100% das
+transações em staging e 10% em produção. `SENTRY_SEND_DEFAULT_PII`, bindings SQL
+e tracing das interações de IA ficam desabilitados por LGPD. Não os habilite sem
+revisão de privacidade específica.
 
 ### Ordem segura de ativação
 
@@ -313,6 +330,8 @@ docker exec CONTAINER supervisorctl status
 - Catálogo de runtime: `.env.production.example`; secrets da aplicação ficam
   somente no Dokploy.
 - `APP_REVISION` é gravada no build pelo Actions; não sobrescreva no Compose.
+- `SENTRY_LARAVEL_DSN` é obrigatório nos dois Composes; mantenha o valor somente
+  no Dokploy. Ambiente e amostragem têm defaults seguros definidos no Compose.
 - `SIGAPP_IMAGE` é um override operacional para rollback. Normalmente fica
   ausente e cada Compose usa seu alias padrão.
 - Staging e produção precisam de acesso de leitura ao GHCR privado.

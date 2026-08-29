@@ -17,6 +17,14 @@ services:
       TENANCY_RESERVED_SUBDOMAINS: ${TENANCY_RESERVED_SUBDOMAINS:-smtp,mail,imap,pop3,autodiscover,autoconfig,cdn,assets,status,support,docs,billing,auth,static}
       LOG_CHANNEL: ${LOG_CHANNEL:-stderr}
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      SENTRY_LARAVEL_DSN: ${SENTRY_LARAVEL_DSN:?SENTRY_LARAVEL_DSN is required}
+      SENTRY_ENVIRONMENT: production
+      SENTRY_SAMPLE_RATE: ${SENTRY_SAMPLE_RATE:-1.0}
+      SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.1}
+      SENTRY_SEND_DEFAULT_PII: "false"
+      SENTRY_BREADCRUMBS_SQL_BINDINGS_ENABLED: "false"
+      SENTRY_TRACE_SQL_BINDINGS_ENABLED: "false"
+      SENTRY_TRACE_GEN_AI_ENABLED: "false"
       DB_CONNECTION: pgsql
       DB_HOST: ${DB_HOST:?DB_HOST is required}
       DB_PORT: ${DB_PORT:-5432}

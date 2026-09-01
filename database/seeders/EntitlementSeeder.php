@@ -9,10 +9,11 @@ use App\Repositories\Contracts\PlanRepositoryInterface;
 use App\Support\EntitlementCatalog;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use LogicException;
 
 /**
- * Popula a tabela entitlements com todos os recursos definidos em config/plans.php
- * e sincroniza os valores por plano na tabela plan_entitlements.
+ * Popula o catálogo de entitlements e sincroniza a matriz por plano
+ * (módulos/limites + recorte A do fluxo do terreno).
  *
  * Execute após o PlanSeeder.
  */
@@ -31,6 +32,9 @@ class EntitlementSeeder extends Seeder
     private function seedCatalogAndMatrix(): array
     {
         $entitlementDefs = $this->entitlementDefinitions();
+        $planMatrix = $this->planMatrix();
+        $this->assertMatrixMatchesCatalog($entitlementDefs, $planMatrix);
+
         $planIds = [];
 
         // 1. Upsert de todos os entitlements
@@ -52,7 +56,7 @@ class EntitlementSeeder extends Seeder
         $this->command->info('✅ Entitlements upserted: '.count($entitlementDefs));
 
         // 2. Sincroniza valores por plano
-        foreach ($this->planMatrix() as $slug => $matrix) {
+        foreach ($planMatrix as $slug => $matrix) {
             $plan = Plan::where('slug', $slug)->first();
 
             if (! $plan) {
@@ -88,166 +92,163 @@ class EntitlementSeeder extends Seeder
     }
 
     /**
-     * Matriz de valores iniciais por plano (espelha o config/plans.php original).
+     * Matriz persistida em plan_entitlements.
+     * Cada chave de feature vive só em moduleFeatureMatrix() ou
+     * workflowCutFeatureMatrix(); composePlan() recusa overlap.
      *
      * @return array<string, array{features: array<string, bool>, limits: array<string, int>}>
      */
     private function planMatrix(): array
     {
         return [
+            'broker' => $this->composePlan('broker'),
+            'basico' => $this->composePlan('basico'),
+            'master' => $this->composePlan('master'),
+            'pro' => $this->composePlan('pro'),
+        ];
+    }
+
+    /**
+     * @return array{features: array<string, bool>, limits: array<string, int>}
+     */
+    private function composePlan(string $planSlug): array
+    {
+        $moduleFeatures = $this->moduleFeatureMatrix($planSlug);
+        $workflowFeatures = $this->workflowCutFeatureMatrix($planSlug);
+        $overlap = array_intersect_key($workflowFeatures, $moduleFeatures);
+
+        if ($overlap !== []) {
+            throw new LogicException(
+                "Chaves duplicadas entre matriz de módulos e recorte A [{$planSlug}]: "
+                .implode(', ', array_keys($overlap))
+            );
+        }
+
+        return [
+            'features' => [...$workflowFeatures, ...$moduleFeatures],
+            'limits' => $this->limitMatrix($planSlug),
+        ];
+    }
+
+    /**
+     * Módulos e widgets clássicos (grid explícito por plano).
+     * `projects.planning` fica no recorte A, não aqui.
+     *
+     * @return array<string, bool>
+     */
+    private function moduleFeatureMatrix(string $planSlug): array
+    {
+        return match ($planSlug) {
             'broker' => [
-                'features' => [
-                    ...$this->roadmapFeatureMatrix(planSlug: 'broker'),
-                    'home' => true,
-                    'dashboard.enabled' => true,
-                    'dashboard.overview' => false,
-                    'dashboard.units_closed' => false,
-                    'dashboard.vgv' => false,
-                    'dashboard.funnel' => false,
-                    'prospection' => true,
-                    'viabilities.enabled' => false,
-                    'viabilities.summary' => false,
-                    'viabilities.dre' => false,
-                    'viabilities.comercial' => false,
-                    'viabilities.cash_flow' => false,
-                    'viabilities.charts' => false,
-                    'viabilities.premises' => false,
-                    'viabilities.kpis' => false,
-                    'committee' => false,
-                    'ai' => false,
-                    'negotiation' => false,
-                    'legalizations' => false,
-                    'projects.enabled' => false,
-                    'projects.planning' => false,
-                    'product_settings' => true,
-                    'regionals' => true,
-                    'territorial_base' => true,
-                    'exports.excel' => true,
-                    'exports.pdf' => false,
-                ],
-                'limits' => [
-                    'users' => 1,
-                    'terrenos' => 50,
-                    'products' => 1,
-                    'storage_gb' => 1,
-                    'ai_budget' => 0,
-                ],
+                'home' => true,
+                'dashboard.enabled' => true,
+                'dashboard.overview' => false,
+                'dashboard.units_closed' => false,
+                'dashboard.vgv' => false,
+                'dashboard.funnel' => false,
+                'prospection' => true,
+                'viabilities.enabled' => false,
+                'viabilities.summary' => false,
+                'viabilities.dre' => false,
+                'viabilities.comercial' => false,
+                'viabilities.cash_flow' => false,
+                'viabilities.charts' => false,
+                'viabilities.premises' => false,
+                'viabilities.kpis' => false,
+                'committee' => false,
+                'ai' => false,
+                'negotiation' => false,
+                'legalizations' => false,
+                'projects.enabled' => false,
+                'product_settings' => true,
+                'regionals' => true,
+                'territorial_base' => true,
+                'exports.excel' => true,
+                'exports.pdf' => false,
             ],
             'basico' => [
-                'features' => [
-                    ...$this->roadmapFeatureMatrix(planSlug: 'basico'),
-                    'home' => true,
-                    'dashboard.enabled' => true,
-                    'dashboard.overview' => true,
-                    'dashboard.units_closed' => false,
-                    'dashboard.vgv' => false,
-                    'dashboard.funnel' => false,
-                    'prospection' => true,
-                    'viabilities.enabled' => true,
-                    'viabilities.summary' => true,
-                    'viabilities.dre' => true,
-                    'viabilities.comercial' => false,
-                    'viabilities.cash_flow' => false,
-                    'viabilities.charts' => false,
-                    'viabilities.premises' => true,
-                    'viabilities.kpis' => true,
-                    'committee' => false,
-                    'ai' => false,
-                    'negotiation' => false,
-                    'legalizations' => false,
-                    'projects.enabled' => false,
-                    'projects.planning' => false,
-                    'product_settings' => true,
-                    'regionals' => true,
-                    'territorial_base' => true,
-                    'exports.excel' => true,
-                    'exports.pdf' => true,
-                ],
-                'limits' => [
-                    'users' => 3,
-                    'terrenos' => 100,
-                    'products' => 2,
-                    'storage_gb' => 5,
-                    'ai_budget' => 0,
-                ],
+                'home' => true,
+                'dashboard.enabled' => true,
+                'dashboard.overview' => true,
+                'dashboard.units_closed' => false,
+                'dashboard.vgv' => false,
+                'dashboard.funnel' => false,
+                'prospection' => true,
+                'viabilities.enabled' => true,
+                'viabilities.summary' => true,
+                'viabilities.dre' => true,
+                'viabilities.comercial' => false,
+                'viabilities.cash_flow' => false,
+                'viabilities.charts' => false,
+                'viabilities.premises' => true,
+                'viabilities.kpis' => true,
+                'committee' => false,
+                'ai' => false,
+                'negotiation' => false,
+                'legalizations' => false,
+                'projects.enabled' => false,
+                'product_settings' => true,
+                'regionals' => true,
+                'territorial_base' => true,
+                'exports.excel' => true,
+                'exports.pdf' => true,
             ],
             'master' => [
-                'features' => [
-                    ...$this->roadmapFeatureMatrix(planSlug: 'master'),
-                    'home' => true,
-                    'dashboard.enabled' => true,
-                    'dashboard.overview' => true,
-                    'dashboard.units_closed' => true,
-                    'dashboard.vgv' => true,
-                    'dashboard.funnel' => true,
-                    'prospection' => true,
-                    'viabilities.enabled' => true,
-                    'viabilities.summary' => true,
-                    'viabilities.dre' => true,
-                    'viabilities.comercial' => true,
-                    'viabilities.cash_flow' => true,
-                    'viabilities.charts' => true,
-                    'viabilities.premises' => true,
-                    'viabilities.kpis' => true,
-                    'committee' => true,
-                    'ai' => true,
-                    'negotiation' => true,
-                    'legalizations' => false,
-                    'projects.enabled' => false,
-                    'projects.planning' => false,
-                    'product_settings' => true,
-                    'regionals' => true,
-                    'territorial_base' => true,
-                    'exports.excel' => true,
-                    'exports.pdf' => true,
-                ],
-                'limits' => [
-                    'users' => 10,
-                    'terrenos' => 200,
-                    'products' => 3,
-                    'storage_gb' => 10,
-                    'ai_budget' => 20,
-                ],
+                'home' => true,
+                'dashboard.enabled' => true,
+                'dashboard.overview' => true,
+                'dashboard.units_closed' => true,
+                'dashboard.vgv' => true,
+                'dashboard.funnel' => true,
+                'prospection' => true,
+                'viabilities.enabled' => true,
+                'viabilities.summary' => true,
+                'viabilities.dre' => true,
+                'viabilities.comercial' => true,
+                'viabilities.cash_flow' => true,
+                'viabilities.charts' => true,
+                'viabilities.premises' => true,
+                'viabilities.kpis' => true,
+                'committee' => true,
+                'ai' => true,
+                'negotiation' => true,
+                'legalizations' => false,
+                'projects.enabled' => false,
+                'product_settings' => true,
+                'regionals' => true,
+                'territorial_base' => true,
+                'exports.excel' => true,
+                'exports.pdf' => true,
             ],
             'pro' => [
-                'features' => [
-                    ...$this->roadmapFeatureMatrix(planSlug: 'pro'),
-                    'home' => true,
-                    'dashboard.enabled' => true,
-                    'dashboard.overview' => true,
-                    'dashboard.units_closed' => true,
-                    'dashboard.vgv' => true,
-                    'dashboard.funnel' => true,
-                    'prospection' => true,
-                    'viabilities.enabled' => true,
-                    'viabilities.summary' => true,
-                    'viabilities.dre' => true,
-                    'viabilities.comercial' => true,
-                    'viabilities.cash_flow' => true,
-                    'viabilities.charts' => true,
-                    'viabilities.premises' => true,
-                    'viabilities.kpis' => true,
-                    'committee' => true,
-                    'ai' => true,
-                    'negotiation' => true,
-                    'legalizations' => true,
-                    'projects.enabled' => true,
-                    'projects.planning' => true,
-                    'product_settings' => true,
-                    'regionals' => true,
-                    'territorial_base' => true,
-                    'exports.excel' => true,
-                    'exports.pdf' => true,
-                ],
-                'limits' => [
-                    'users' => -1,
-                    'terrenos' => -1,
-                    'products' => -1,
-                    'storage_gb' => 20,
-                    'ai_budget' => 50,
-                ],
+                'home' => true,
+                'dashboard.enabled' => true,
+                'dashboard.overview' => true,
+                'dashboard.units_closed' => true,
+                'dashboard.vgv' => true,
+                'dashboard.funnel' => true,
+                'prospection' => true,
+                'viabilities.enabled' => true,
+                'viabilities.summary' => true,
+                'viabilities.dre' => true,
+                'viabilities.comercial' => true,
+                'viabilities.cash_flow' => true,
+                'viabilities.charts' => true,
+                'viabilities.premises' => true,
+                'viabilities.kpis' => true,
+                'committee' => true,
+                'ai' => true,
+                'negotiation' => true,
+                'legalizations' => true,
+                'projects.enabled' => true,
+                'product_settings' => true,
+                'regionals' => true,
+                'territorial_base' => true,
+                'exports.excel' => true,
+                'exports.pdf' => true,
             ],
-        ];
+            default => throw new LogicException("Plano [{$planSlug}] sem matriz de módulos no seeder."),
+        };
     }
 
     /**
@@ -262,7 +263,7 @@ class EntitlementSeeder extends Seeder
      *
      * @return array<string, bool>
      */
-    private function roadmapFeatureMatrix(string $planSlug): array
+    private function workflowCutFeatureMatrix(string $planSlug): array
     {
         $features = [
             'prospection.terrain_cockpit' => false,
@@ -339,7 +340,7 @@ class EntitlementSeeder extends Seeder
             'basico' => $basico,
             'master' => $master,
             'pro' => $pro,
-            default => [],
+            default => throw new LogicException("Plano [{$planSlug}] sem recorte A no seeder."),
         };
 
         foreach ($enabledFeatures as $feature) {
@@ -347,6 +348,95 @@ class EntitlementSeeder extends Seeder
         }
 
         return $features;
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    private function limitMatrix(string $planSlug): array
+    {
+        return match ($planSlug) {
+            'broker' => [
+                'users' => 1,
+                'terrenos' => 50,
+                'products' => 1,
+                'storage_gb' => 1,
+                'ai_budget' => 0,
+            ],
+            'basico' => [
+                'users' => 3,
+                'terrenos' => 100,
+                'products' => 2,
+                'storage_gb' => 5,
+                'ai_budget' => 0,
+            ],
+            'master' => [
+                'users' => 10,
+                'terrenos' => 200,
+                'products' => 3,
+                'storage_gb' => 10,
+                'ai_budget' => 5,
+            ],
+            'pro' => [
+                'users' => -1,
+                'terrenos' => -1,
+                'products' => -1,
+                'storage_gb' => 20,
+                'ai_budget' => 10,
+            ],
+            default => throw new LogicException("Plano [{$planSlug}] sem limites no seeder."),
+        };
+    }
+
+    /**
+     * @param  array<int, array{key: string, label: string, type: EntitlementType, default_value: mixed, description?: string}>  $entitlementDefs
+     * @param  array<string, array{features: array<string, bool>, limits: array<string, int>}>  $planMatrix
+     */
+    private function assertMatrixMatchesCatalog(array $entitlementDefs, array $planMatrix): void
+    {
+        $featureKeys = [];
+        $limitKeys = [];
+
+        foreach ($entitlementDefs as $def) {
+            if ($def['type'] === EntitlementType::FEATURE) {
+                $featureKeys[] = $def['key'];
+            } else {
+                $limitKeys[] = $def['key'];
+            }
+        }
+
+        foreach ($planMatrix as $slug => $matrix) {
+            $missingFeatures = array_values(array_diff($featureKeys, array_keys($matrix['features'])));
+            $extraFeatures = array_values(array_diff(array_keys($matrix['features']), $featureKeys));
+            $missingLimits = array_values(array_diff($limitKeys, array_keys($matrix['limits'])));
+            $extraLimits = array_values(array_diff(array_keys($matrix['limits']), $limitKeys));
+
+            if ($missingFeatures === [] && $extraFeatures === [] && $missingLimits === [] && $extraLimits === []) {
+                continue;
+            }
+
+            $parts = [];
+
+            if ($missingFeatures !== []) {
+                $parts[] = 'features ausentes: '.implode(', ', $missingFeatures);
+            }
+
+            if ($extraFeatures !== []) {
+                $parts[] = 'features extras: '.implode(', ', $extraFeatures);
+            }
+
+            if ($missingLimits !== []) {
+                $parts[] = 'limites ausentes: '.implode(', ', $missingLimits);
+            }
+
+            if ($extraLimits !== []) {
+                $parts[] = 'limites extras: '.implode(', ', $extraLimits);
+            }
+
+            throw new LogicException(
+                "Matriz do plano [{$slug}] fora do catálogo (".implode('; ', $parts).').'
+            );
+        }
     }
 
     /**

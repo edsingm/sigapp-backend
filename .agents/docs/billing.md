@@ -24,9 +24,12 @@
 - Os Prices dos add-ons são configurados por ambiente em `config/cashier.php` via `STRIPE_PRICE_ADDON_STORAGE_10GB`, `STRIPE_PRICE_ADDON_AI_BUDGET_5`, `STRIPE_PRICE_ADDON_REPORTS_BUILDER` e `STRIPE_PRICE_ADDON_GROWTH_BUNDLE`; `ai-budget-5` é avulso e os demais podem continuar mensais. O `BillingAddonSeeder` apenas sincroniza esses IDs no catálogo.
 - Enforcement de plano: middlewares `subscription.active`, `enforce.limits`, `check.feature` + `EntitlementService`/`PlanMatrixService`.
 - Alterações de catálogo/matriz são transacionais e invalidam os caches dos planos afetados somente após o commit. Valores administrativos são estritos: feature é boolean, limites são inteiros `>= 0` ou `-1`, e `ai_budget` aceita número não negativo. Todo upload ou arquivo gerado deve registrar seus metadados por `StorageQuotaService::commitFile()`, que mantém check de quota + persistência sob o mesmo lock e remove o objeto em caso de falha. O middleware `enforce.limits:storage_gb` é apenas rejeição antecipada. Use `plans:audit-entitlements` para auditoria read-only de catálogo, matrizes, aliases, dependências, arquivos ausentes e órfãos de storage.
-- O catálogo de features fica em `EntitlementSeeder::planMatrix()` +
-  `roadmapFeatureMatrix()` e segue o recorte A pelo fluxo do terreno:
-  Broker (captação), Básico (análise usável), Master (decisão e fechamento),
+- O catálogo de features fica em `EntitlementSeeder::planMatrix()`, composto
+  por `moduleFeatureMatrix()` (módulos e widgets clássicos) e
+  `workflowCutFeatureMatrix()` (recorte A pelo fluxo do terreno). Cada chave
+  vive em apenas um recorte; o seeder recusa overlap e exige cobertura total
+  do catálogo. Recorte A: Broker (captação), Básico (análise usável),
+  Master (decisão e fechamento),
   Pro (operação completa). Básico libera `viabilities.summary`, `dre`, `kpis`
   e `premises`; cenários (`viabilities.scenarios`) começam no Master.
   Master tem `negotiation` e para no contrato; a IA do Master é só o chat
